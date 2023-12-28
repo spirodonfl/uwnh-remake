@@ -4,3 +4,4 @@ images
 *.a
 *.o
 zig-cache
+node-modules
