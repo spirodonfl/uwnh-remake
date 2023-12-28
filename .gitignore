@@ -1,0 +1,6 @@
+images
+*.sh
+*.wasm
+*.a
+*.o
+zig-cache
