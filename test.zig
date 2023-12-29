@@ -12,7 +12,7 @@ const ArrayList = std.ArrayList;
 // Camera position
 // Viewport size
 // TODO: const renderer = @import("renderer.zig");
-var camera_position: [2]u16 = .{ 0, 0 };
+var camera_position: [2]u16 = .{ 0, 0 }; // Equivalent to a world offset, more or less
 var viewport_size: [2]u16 = .{ 0, 0 };
 // Math of camera position and viewport size
 // Renderable area would be viewport size of world at 0,0 but then world 0,0 would be offset by camera position where camera position always has positive values
@@ -30,7 +30,7 @@ var viewport_size: [2]u16 = .{ 0, 0 };
 // Eventually, when we have multiple worlds, we'll want to reference the currently loaded world.
 // For now, we'll just use the starter world via test2.zig
 // TODO: Create a "worlds.zig" import which imports other worlds
-const currentWorld = @import("test2.zig");
+const currentWorld = @import("testworld.zig");
 
 // TODO: Clean this up
 const _entities = @import("entities.zig");
