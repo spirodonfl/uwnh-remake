@@ -30,7 +30,7 @@ WebAssembly.instantiateStreaming(fetch("test.wasm"), importObject).then(
         console.log(results);
         console.log(_GAME);
         GAME = {
-            camera_offset: {x: 0, y: 0},
+            camera_offset: {x: 2, y: 0},
             __getMemory: function() {
                 return _GAME.memory;
             },
@@ -109,7 +109,7 @@ WebAssembly.instantiateStreaming(fetch("test.wasm"), importObject).then(
                 var memory_position = _GAME.getDiffList();
                 var memory_length = _GAME.getDiffListLen();
                 // TODO: Update other usage of this
-                var array = new Int32Array(_GAME.memory.buffer, memory_position, memory_length);
+                var array = new Uint8Array(_GAME.memory.buffer, memory_position, memory_length);
                 // console.log(array);
                 // var array = new Int32Array(_GAME.memory.buffer.slice(array[0], (memory_position + (4 * memory_length))));
                 // console.log(array);
@@ -132,7 +132,7 @@ WebAssembly.instantiateStreaming(fetch("test.wasm"), importObject).then(
 );
 let GAME = null;
 
-let _testScript_i = 0;
+let _testScript_i = 99;
 let _testScript = [
     function () {
         _GAME.moveEntity(0, 0);

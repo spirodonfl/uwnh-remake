@@ -3,14 +3,44 @@
 const std = @import("std");
 const ArrayList = std.ArrayList;
 
-const playerEntity = @import("entity_player.zig");
-const artificialEntity = @import("entity_artificial.zig");
+// TODO: Rendering
+// Camera
+// Viewport
+// World
+// Render only the portion of the world that fits the viewport
+// Add camera offset to viewport in order to render world (something like that)
+// Camera position
+// Viewport size
+// TODO: const renderer = @import("renderer.zig");
+var camera_position: [2]u16 = .{ 0, 0 };
+var viewport_size: [2]u16 = .{ 0, 0 };
+// Math of camera position and viewport size
+// Renderable area would be viewport size of world at 0,0 but then world 0,0 would be offset by camera position where camera position always has positive values
+// getRenderableArea() -> return all world coordinates that are within the viewport (plus camera offset) grid space x/y coords + actual data?
+
+// TODO: Scripts
+// Outer array is script line
+// Inner array is command for line (need to create legend for inner array commands)
+// if [0] = 0 = moveEntity
+// -- [1] = entityIndex
+// -- [2] = direction (0 = left, 1 = right, 2 = up, 3 = down) (EXAMPLE)
+// script: [2][3]u8 = .{ .{ 0, 0, 0 }, .{ 0, 0, 0 } };
+// runScript(scriptIndex: u8)
+
 // Eventually, when we have multiple worlds, we'll want to reference the currently loaded world.
 // For now, we'll just use the starter world via test2.zig
+// TODO: Create a "worlds.zig" import which imports other worlds
 const currentWorld = @import("test2.zig");
-const currentEntities: [2]*[3]u16 = .{ &playerEntity.data, &artificialEntity.data };
+
+// TODO: Clean this up
+const _entities = @import("entities.zig");
+const EntityDataEnum = _entities.EntityDataEnum;
+const playerEntity = _entities.playerEntity;
+const artificialEntity = _entities.artificialEntity;
+const currentEntities = _entities.currentEntities;
 
 // TODO: Update this function so it returns proper length
+// Maybe also update the name to getEntityMemoryLength or something
 export fn getEntityLength() u16 { return 3; }
 export fn getEntity(entityIndex: u8) *[3]u16 {
     return currentEntities[entityIndex];
@@ -19,6 +49,7 @@ export fn setEntityPosition(entityIndex: u8, x: u16, y: u16) void {
     currentEntities[entityIndex][1] = x;
     currentEntities[entityIndex][2] = y;
 }
+// TODO: Turn direction into an enum
 // DIRECTIONS LEGEND
 // 0 = left
 // 1 = right
@@ -48,7 +79,7 @@ export fn moveEntity(entityIndex: u8, direction: u8) u16 {
     }
 
     // Check if the intended direction is blocked
-    if (currentWorld.data[1][intended_x][intended_y] != 0) {
+    if (currentWorld.data[1][intended_y][intended_x] != 0) {
         result = GameDataError.BlockedCollision;
         return @intFromEnum(result);
     }
@@ -77,12 +108,13 @@ export fn moveEntity(entityIndex: u8, direction: u8) u16 {
         }
     }
     for (currentEntities) |entity| {
+        // TODO: Can we write a wrapper function for this? Like, toUsize() or something? For entities?
         const x = @as(usize, @intCast(entity[1])); // Assuming entity[1] is the x-coordinate
         const y = @as(usize, @intCast(entity[2])); // Assuming entity[2] is the y-coordinate
 
         // Check if indices are within the bounds of the array
-        if (x < currentWorld.data[2].len and y < currentWorld.data[2][x].len) {
-            currentWorld.data[2][x][y] = 2;
+        if (x < currentWorld.data[2].len and y < currentWorld.data[2][y].len) {
+            currentWorld.data[2][y][x] = 2;
         }
     }
 
@@ -90,7 +122,7 @@ export fn moveEntity(entityIndex: u8, direction: u8) u16 {
 }
 export fn getCurrentWorldData(layer: u8, x: u16, y: u16) u16 {
     var world_layer = currentWorld.layers[layer];
-    return currentWorld.data[world_layer][x][y];
+    return currentWorld.data[world_layer][y][x];
 }
 export fn getCurrentWorldSize() *[2]u16 {
     return &currentWorld.size;
@@ -100,7 +132,8 @@ export fn attackEntity(attackerEntityIndex: u8, attackeeEntityIndex: u8) u16 {
     var had_health: bool = false;
     var attacker = currentEntities[attackerEntityIndex];
     var attackee = currentEntities[attackeeEntityIndex];
-    if (attackee[0] > 0) {
+    // TODO: Update other areas of the code to use enum(s) like this
+    if (attackee[EntityDataEnum.getAsUsize(EntityDataEnum.Health)] > 0) {
         had_health = true;
     }
     if (attacker[1] == attackee[1]) {
