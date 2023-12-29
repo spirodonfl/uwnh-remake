@@ -6,6 +6,10 @@ pub const EntityDataEnum = enum(u16) {
     pub fn getAsUsize(self: EntityDataEnum) usize {
         return @as(usize, @intFromEnum(self));
     }
+
+    pub fn getAsU16(self: EntityDataEnum) u16 {
+        return @intFromEnum(self);
+    }
 };
 
 pub const playerEntity = @import("entity_player.zig");

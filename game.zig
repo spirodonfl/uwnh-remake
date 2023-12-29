@@ -2,21 +2,9 @@
 
 const std = @import("std");
 const ArrayList = std.ArrayList;
-
-// TODO: Rendering
-// Camera
-// Viewport
-// World
-// Render only the portion of the world that fits the viewport
-// Add camera offset to viewport in order to render world (something like that)
-// Camera position
-// Viewport size
 // TODO: const renderer = @import("renderer.zig");
 var camera_position: [2]u16 = .{ 0, 0 }; // Equivalent to a world offset, more or less
 var viewport_size: [2]u16 = .{ 0, 0 };
-// Math of camera position and viewport size
-// Renderable area would be viewport size of world at 0,0 but then world 0,0 would be offset by camera position where camera position always has positive values
-// getRenderableArea() -> return all world coordinates that are within the viewport (plus camera offset) grid space x/y coords + actual data?
 
 // TODO: Scripts
 // Outer array is script line
@@ -31,14 +19,49 @@ var viewport_size: [2]u16 = .{ 0, 0 };
 // For now, we'll just use the starter world via test2.zig
 // TODO: Create a "worlds.zig" import which imports other worlds
 const currentWorld = @import("testworld.zig");
-
 // TODO: Clean this up
 const _entities = @import("entities.zig");
 const EntityDataEnum = _entities.EntityDataEnum;
 const playerEntity = _entities.playerEntity;
 const artificialEntity = _entities.artificialEntity;
 const currentEntities = _entities.currentEntities;
+// TODO: Move diff_list stuff into its own file
+var diff_list: ArrayList(u8) = undefined;
+// Note: Use the GPA because it has some safety built-in and is also reasonably performant
+var gpa_allocator = std.heap.GeneralPurposeAllocator(.{}){};
+var allocator = gpa_allocator.allocator();
+// const bytes = try allocator.alloc(u8, 100);
+// defer allocator.free(bytes);
+const ReturnEnum = enum(u16) {
+    None = 0,
+    MissingField = 1,
+    InvalidType = 2,
+    EmptyArray = 3,
+    BlockedCollision = 4,
+    InvalidAttackPosition = 5,
+    NoMoreHealth = 6,
+    AnotherEntityIsThere = 7,
 
+    pub fn getAsUsize(self: ReturnEnum) usize {
+        return @as(usize, @intFromEnum(self));
+    }
+
+    pub fn getAsU16(self: ReturnEnum) u16 {
+        return @intFromEnum(self);
+    }
+};
+
+//----------------------------------------
+// FUNCTIONS HERE
+//----------------------------------------
+export fn setViewportSize(width: u16, height: u16) void {
+    viewport_size[0] = width;
+    viewport_size[1] = height;
+}
+export fn setCameraPosition(x: u16, y: u16) void {
+    camera_position[0] = x;
+    camera_position[1] = y;
+}
 // TODO: Update this function so it returns proper length
 // Maybe also update the name to getEntityMemoryLength or something
 export fn getEntityLength() u16 { return 3; }
@@ -56,7 +79,7 @@ export fn setEntityPosition(entityIndex: u8, x: u16, y: u16) void {
 // 2 = up
 // 3 = down
 export fn moveEntity(entityIndex: u8, direction: u8) u16 {
-    var result: GameDataError = GameDataError.None;
+    var result: ReturnEnum = ReturnEnum.None;
 
     // Add entityIndex to diff_list
     diff_list.append(entityIndex) catch unreachable;
@@ -80,14 +103,14 @@ export fn moveEntity(entityIndex: u8, direction: u8) u16 {
 
     // Check if the intended direction is blocked
     if (currentWorld.data[1][intended_y][intended_x] != 0) {
-        result = GameDataError.BlockedCollision;
+        result = ReturnEnum.BlockedCollision;
         return @intFromEnum(result);
     }
 
     // Check if the intended direction is occupied by another entity
     for (currentEntities) |entity| {
         if (entity[1] == intended_x and entity[2] == intended_y) {
-            // TODO: Later on, return an error code of some kind here
+            result = ReturnEnum.AnotherEntityIsThere;
             return @intFromEnum(result);
         }
     }
@@ -104,25 +127,20 @@ export fn moveEntity(entityIndex: u8, direction: u8) u16 {
     while (i < currentWorld.data[2].len) : (i += 1) {
         var j: usize = 0;
         while (j < currentWorld.data[2][i].len) : (j += 1) {
-            currentWorld.data[2][i][j] = 0;
+            if (currentWorld.data[2][i][j] == (entityIndex + 1)) {
+                currentWorld.data[2][i][j] = 0;
+            }
         }
     }
-    for (currentEntities) |entity| {
-        // TODO: Can we write a wrapper function for this? Like, toUsize() or something? For entities?
-        const x = @as(usize, @intCast(entity[1])); // Assuming entity[1] is the x-coordinate
-        const y = @as(usize, @intCast(entity[2])); // Assuming entity[2] is the y-coordinate
-
-        // Check if indices are within the bounds of the array
-        if (x < currentWorld.data[2].len and y < currentWorld.data[2][y].len) {
-            currentWorld.data[2][y][x] = 2;
-        }
-    }
+    currentWorld.data[2][currentEntities[entityIndex][2]][currentEntities[entityIndex][1]] = @as(u16, @intCast(entityIndex + 1));
 
     return @intFromEnum(result);
 }
 export fn getCurrentWorldData(layer: u8, x: u16, y: u16) u16 {
     var world_layer = currentWorld.layers[layer];
-    return currentWorld.data[world_layer][y][x];
+    var offset_x: u16 = x + camera_position[0];
+    var offset_y: u16 = y + camera_position[1];
+    return currentWorld.data[world_layer][offset_y][offset_x];
 }
 export fn getCurrentWorldSize() *[2]u16 {
     return &currentWorld.size;
@@ -152,37 +170,32 @@ export fn attackEntity(attackerEntityIndex: u8, attackeeEntityIndex: u8) u16 {
     }
 
     if (valid_position and had_health) {
-        return @intFromEnum(GameDataError.None);
+        return ReturnEnum.getAsU16(ReturnEnum.None);
     } else if (!had_health) {
-        return @intFromEnum(GameDataError.NoMoreHealth);
+        return ReturnEnum.getAsU16(ReturnEnum.NoMoreHealth);
     } else {
-        return @intFromEnum(GameDataError.InvalidAttackPosition);
+        return ReturnEnum.getAsU16(ReturnEnum.InvalidAttackPosition);
     }
 }
-
-// TODO: Move diff_list stuff into its own file
-var diff_list: ArrayList(u8) = undefined;
-
-// Note: Use the GPA because it has some safety built-in and is also reasonably performant
-var gpa_allocator = std.heap.GeneralPurposeAllocator(.{}){};
-var allocator = gpa_allocator.allocator();
-// const bytes = try allocator.alloc(u8, 100);
-// defer allocator.free(bytes);
-
 export fn initGame() bool {
     diff_list = ArrayList(u8).init(allocator);
 
+    var i: usize = 0;
+    while (i < currentWorld.data[2].len) : (i += 1) {
+        var j: usize = 0;
+        while (j < currentWorld.data[2][i].len) : (j += 1) {
+            if (currentWorld.data[2][i][j] == 1) {
+                currentEntities[0][1] = @as(u16, @intCast(j));
+                currentEntities[0][2] = @as(u16, @intCast(i));
+            } else if (currentWorld.data[2][i][j] == 2) {
+                currentEntities[1][1] = @as(u16, @intCast(j));
+                currentEntities[1][2] = @as(u16, @intCast(i));
+            }
+        }
+    }
+
     return true;
 }
-const GameDataError = enum(u16) {
-    None = 0,
-    MissingField = 1,
-    InvalidType = 2,
-    EmptyArray = 3,
-    BlockedCollision = 4,
-    InvalidAttackPosition = 5,
-    NoMoreHealth = 6,
-};
 export fn getDiffList() ?*u8 {
     // Returning a pointer to diff_list.items just points to an ambiguous memory location
     // Returning a pointer to the first item in diff_list, however, gives you the memory position of the first item + then coupled with the length function, you get the rest

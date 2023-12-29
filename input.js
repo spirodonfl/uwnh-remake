@@ -19,6 +19,18 @@ window.addEventListener('keyup', function (evt) {
             if (MENUS) {
                 MENUS.toggle('fullscreen');
             }
+        } else if (evt.code === 'ArrowUp') {
+            GAME.camera_offset.y -= 1;
+            GAME.setCameraPosition(GAME.camera_offset.x, GAME.camera_offset.y);
+        } else if (evt.code === 'ArrowDown') {
+            GAME.camera_offset.y += 1;
+            GAME.setCameraPosition(GAME.camera_offset.x, GAME.camera_offset.y);
+        } else if (evt.code === 'ArrowLeft') {
+            GAME.camera_offset.x -= 1;
+            GAME.setCameraPosition(GAME.camera_offset.x, GAME.camera_offset.y);
+        } else if (evt.code === 'ArrowRight') {
+            GAME.camera_offset.x += 1;
+            GAME.setCameraPosition(GAME.camera_offset.x, GAME.camera_offset.y);
         }
     }
 });

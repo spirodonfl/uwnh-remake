@@ -61,6 +61,22 @@
                     // TODO: Also, can we move this to webassembly ?
                     let world = GAME.getCurrentWorldSize();
                     let element_world = document.getElementById('world');
+                    // TODO: This is inefficient
+                    var els = document.querySelector('.blue');
+                    if (els)
+                    {
+                        els.remove();
+                    }
+                    var els = document.querySelector('.red');
+                    if (els)
+                    {
+                        els.remove();
+                    }
+                    var els = document.querySelector('.purple');
+                    if (els)
+                    {
+                        els.remove();
+                    }
                     for (let x = start_x; x < ((end_x !== null) ? end_x : world.width); ++x)
                     {
                         for (let y = start_y; y < ((end_y !== null) ? end_y : world.height); ++y)
@@ -80,43 +96,37 @@
                                 element_item.classList.add('thing');
                                 element_world.append(element_item);
                             }
-                            var _x = x - GAME.camera_offset.x;
-                            element_item.style.left = (_x * (SIZE * SCALE)) + 'px';
+                            element_item.style.left = (x * (SIZE * SCALE)) + 'px';
                             element_item.style.top = (y * (SIZE * SCALE)) + 'px';
                             element_item.classList.add('blue');
                         }
                         for (let y = start_y; y < ((end_y !== null) ? end_y : world.height); ++y)
                         {
                             let data = GAME.getCurrentWorldData(2, x, y);
-                            // TODO: This is hacky. Find a better way to tell who is in this position or move it to WASM.
-                            for (let e = 0; e < 2; ++e)
+                            // TODO: This is weird because, sometimes, data has a value like 51400 and it bounds out
+                            if (data > 0 && data < 3)
                             {
-                                // let entity = GAME.getEntityPosition(e);
-                                let entity = GAME.getEntity(e);
-                                //if (entity[0] === x && entity[1] === y)
-                                if (entity.x === x && entity.y === y)
+                                data -= 1; // because 0 is empty
+                                let entity = GAME.getEntity(data);
+                                let element_entity = document.querySelector('div[data-entity="' + data + '"]');
+                                if (!element_entity)
                                 {
-                                    let element_entity = document.querySelector('div[data-entity="' + e + '"]');
-                                    if (!element_entity)
+                                    element_entity = document.createElement('div');
+                                    element_entity.setAttribute('data-entity', data.toString());
+                                    element_entity.classList.add('thing');
+                                    element_world.append(element_entity);
+                                    if (data === 0)
                                     {
-                                        element_entity = document.createElement('div');
-                                        element_entity.setAttribute('data-entity', e.toString());
-                                        element_entity.classList.add('thing');
-                                        element_world.append(element_entity);
-                                        if (e === 0)
-                                        {
-                                            element_entity.classList.add('purple');
-                                        }
-                                        else
-                                        {
-                                            element_entity.classList.add('red');
-                                        }
+                                        element_entity.classList.add('purple');
                                     }
-                                    var _x = x - GAME.camera_offset.x;
-                                    element_entity.style.left = (_x * (SIZE * SCALE)) + 'px';
-                                    element_entity.style.top = (y * (SIZE * SCALE)) + 'px';
-                                    element_entity.innerHTML = entity.health;
+                                    else
+                                    {
+                                        element_entity.classList.add('red');
+                                    }
                                 }
+                                element_entity.style.left = (x * (SIZE * SCALE)) + 'px';
+                                element_entity.style.top = (y * (SIZE * SCALE)) + 'px';
+                                element_entity.innerHTML = entity.health;
                             }
                         }
                     }

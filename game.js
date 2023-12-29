@@ -18,19 +18,22 @@ const importObject = {
         getCurrentWorldData(layer, x, y) {},
         getCurrentWorldSize() {},
 
+        setViewportSize(width, height) {},
+        setCameraPosition(x, y) {},
+
         // TEST AREA
         getTestMemoryPixelBytes() {},
         getTestMemoryPixelBytesSize() {},
     },
 };
 let _GAME = null;
-WebAssembly.instantiateStreaming(fetch("test.wasm"), importObject).then(
+WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
     (results) => {
         _GAME = results.instance.exports;
         console.log(results);
         console.log(_GAME);
         GAME = {
-            camera_offset: {x: 2, y: 0},
+            camera_offset: {x: 0, y: 0},
             __getMemory: function() {
                 return _GAME.memory;
             },
@@ -66,6 +69,11 @@ WebAssembly.instantiateStreaming(fetch("test.wasm"), importObject).then(
             getCurrentWorldData: function(layer, x, y) {
                 var data = _GAME.getCurrentWorldData(layer, x, y);
                 return data;
+            },
+            setCameraPosition: function(x, y) {
+                this.camera_offset.x = x;
+                this.camera_offset.y = y;
+                _GAME.setCameraPosition(x, y);
             },
 
             // OLD STUFF HERE
