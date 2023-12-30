@@ -7,7 +7,7 @@ function jsonToZigArray(jsonString) {
     const array = jsonObj[key];
 
     // Generate the Zig array declaration
-    let zigCode = `const ${key} = [_]i32{ ${array.join(', ')} };`;
+    let zigCode = `const ${key} = [_]u16{ ${array.join(', ')} };`;
 
     return zigCode;
 }

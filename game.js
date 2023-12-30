@@ -17,6 +17,7 @@ const importObject = {
         attackEntity(attackerEntityIndex, attackeeEntityIndex) {},
         getCurrentWorldData(layer, x, y) {},
         getCurrentWorldSize() {},
+        getWorld(layer) {},
 
         setViewportSize(width, height) {},
         setCameraPosition(x, y) {},
@@ -34,6 +35,8 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
         console.log(_GAME);
         GAME = {
             camera_offset: {x: 0, y: 0},
+            editor_mode: false,
+            data_view: null,
             __getMemory: function() {
                 return _GAME.memory;
             },
@@ -50,6 +53,15 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
             getFromMemory: function(memory_position, memory_length) {
                 memory_length *= 2;
                 return new Uint16Array(_GAME.memory.buffer.slice(memory_position, (memory_position + memory_length)));
+                // TODO: Figure this out!
+                // if (this.data_view === null) {
+                //     this.data_view = new DataView(_GAME.memory.buffer, 0, _GAME.memory.byteLength);
+                // }
+                // let data = [];
+                // for (let i = 0; i < memory_length; i++) {
+                //     data.push(this.data_view.getUint16(memory_position + i));
+                // }
+                // return data;
             },
             getEntity: function(entityIndex) {
                 var entity_data = this.getFromMemory(_GAME.getEntity(entityIndex), _GAME.getEntityLength());
@@ -69,6 +81,11 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
             getCurrentWorldData: function(layer, x, y) {
                 var data = _GAME.getCurrentWorldData(layer, x, y);
                 return data;
+            },
+            getWorld: function(layer) {
+                var world_data = this.getFromMemory(_GAME.getWorld(layer), (this.getCurrentWorldSize().width * this.getCurrentWorldSize().height));
+                console.log(world_data);
+                return world_data;
             },
             setCameraPosition: function(x, y) {
                 this.camera_offset.x = x;

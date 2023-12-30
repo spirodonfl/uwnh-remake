@@ -9,6 +9,7 @@ pub var test_one_data: [4]u8 = [_]u8{ 0, 1, 2, 3 };
 // 1 = collision layer
 // 2 = entity layer
 // --------------------
+// TODO: Replace this with GameLayers enum abstracted
 pub var layers: [3]u8 = .{ 0, 1, 2 };
 pub var size: [2]u16 = .{ 20, 4 };
 pub var data: [3][4][20]u16 = .{

@@ -9,6 +9,7 @@
         <script type="text/javascript" src="loader.js"></script>
         <script type="text/javascript" src="menus.js"></script>
         <script type="text/javascript" src="game.js"></script>
+        <script type="text/javascript" src="editor.js"></script>
         <script type="text/javascript">
 
             // EDITOR -> general output to zig data structures as arrays
@@ -113,6 +114,8 @@
                                 {
                                     element_entity = document.createElement('div');
                                     element_entity.setAttribute('data-entity', data.toString());
+                                    element_entity.setAttribute('data-x', x);
+                                    element_entity.setAttribute('data-y', y);
                                     element_entity.classList.add('thing');
                                     element_world.append(element_entity);
                                     if (data === 0)
@@ -230,6 +233,8 @@
                     document.getElementById('view').style.margin = y_padding + 'px ' + x_padding + 'px';
                     document.getElementById('view').style.width = (x * (SIZE * SCALE)) + 'px';
                     document.getElementById('view').style.height = (y * (SIZE * SCALE)) + 'px';
+                    document.getElementById('clickable_view').style.width = (x * (SIZE * SCALE)) + 'px';
+                    document.getElementById('clickable_view').style.height = (y * (SIZE * SCALE)) + 'px';
                     DOM.width = x;
                     DOM.height = y;
                 }
@@ -289,6 +294,17 @@
             });
             window.addEventListener('load', function () {
                 var element_view = document.getElementById('view');
+                var element_clickable_view = document.getElementById('clickable_view');
+                element_clickable_view.addEventListener('click', function (e) {
+                    let x = Math.floor(e.offsetX / (SIZE * SCALE));
+                    let y = Math.floor(e.offsetY / (SIZE * SCALE));
+                    console.log('click', x, y);
+                    // TODO: This is great but we need to consider the offset based on (a) camera offset and (b) view offset due to centering and whatnot
+                    // NOTE: We do + 1 because arrays start at 0
+                    y -= 6 + 1;
+                    console.log('click', x, y);
+                    console.log(document.querySelector('div[data-x="' + x + '"][data-y="' + y + '"]'));
+                });
                 resizeObserver.observe(document.body);
                 LOADER.loaded('window_ready');
             });
@@ -309,6 +325,12 @@
                 overflow: hidden;
 
                 background-color: black;
+            }
+            #clickable_view {
+                width: 100%;
+                height: 100vh;
+                position: absolute;
+                z-index: 10;
             }
             #view {
                 width: 100%;
@@ -352,8 +374,9 @@
         </style>
     </head>
     <body>
-        <div id="stats" style="position: absolute; background-color: white; padding: 6px; z-index: 2; top: 0px;">&nbsp;</div>
+        <div id="stats" style="position: absolute; background-color: white; padding: 6px; z-index: 100; top: 0px;">&nbsp;</div>
         <div id="view">
+        <div id="clickable_view"></div>
             <style type="text/css">
                 .menu.date {
                     width: 100%;
@@ -378,7 +401,7 @@
                     width: 100%;
                     height: 100%;
                     position: absolute;
-                    z-index: 2;
+                    z-index: 99;
                     bottom: 0;
                     left: 0;
                     display: none;

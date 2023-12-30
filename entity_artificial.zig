@@ -1,4 +1,4 @@
-// Main player entity data
+// Artificial NPC entity data
 
 // ----------------------
 // LEGEND - Entity Data

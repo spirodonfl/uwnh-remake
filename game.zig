@@ -6,6 +6,12 @@ const ArrayList = std.ArrayList;
 var camera_position: [2]u16 = .{ 0, 0 }; // Equivalent to a world offset, more or less
 var viewport_size: [2]u16 = .{ 0, 0 };
 
+const GameLayers = enum(u8) {
+    Background = 0,
+    Collision = 1,
+    Entities = 2,
+};
+
 // TODO: Scripts
 // Outer array is script line
 // Inner array is command for line (need to create legend for inner array commands)
@@ -66,8 +72,14 @@ export fn setCameraPosition(x: u16, y: u16) void {
 // Maybe also update the name to getEntityMemoryLength or something
 export fn getEntityLength() u16 { return 3; }
 export fn getEntity(entityIndex: u8) *[3]u16 {
+    // Note: Technically this already an array of pointers so we only to return the pointer from this array
     return currentEntities[entityIndex];
 }
+// ALTERNATE WAY OF DOING THIS
+// export fn getEntity(entityIndex: u8) *const u16 {
+//     return &currentEntities[entityIndex][0];
+// }
+
 export fn setEntityPosition(entityIndex: u8, x: u16, y: u16) void {
     currentEntities[entityIndex][1] = x;
     currentEntities[entityIndex][2] = y;
@@ -136,6 +148,7 @@ export fn moveEntity(entityIndex: u8, direction: u8) u16 {
 
     return @intFromEnum(result);
 }
+// TODO: Update this function *without* camera position offset and create a new function that returns WITH camera position offset
 export fn getCurrentWorldData(layer: u8, x: u16, y: u16) u16 {
     var world_layer = currentWorld.layers[layer];
     var offset_x: u16 = x + camera_position[0];
@@ -144,6 +157,10 @@ export fn getCurrentWorldData(layer: u8, x: u16, y: u16) u16 {
 }
 export fn getCurrentWorldSize() *[2]u16 {
     return &currentWorld.size;
+}
+// TODO: We need a function called "getWorld" which gives us the location of the currentWorld.data array memory position
+export fn getWorld(layer: u8) *const u16 {
+    return &currentWorld.data[layer][0][0];
 }
 export fn attackEntity(attackerEntityIndex: u8, attackeeEntityIndex: u8) u16 {
     var valid_position: bool = false;
