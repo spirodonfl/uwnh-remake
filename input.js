@@ -1,7 +1,33 @@
 window.addEventListener('keyup', function (evt) {
     if (GAME && GAME.moveEntity) {
         console.log(evt);
-        if (evt.code === 'KeyW') {
+        // Note: This has to be up top so it's captured before the other KeyD is captured for moving the player around
+        // TODO: Write our input captures better, including in editor mode
+        if (evt.code === 'KeyD' && evt.shiftKey === true) {
+            if (GAME.editor_mode) {
+                var collision_block = document.querySelector('.thing.chosen');
+                var x = parseInt(collision_block.getAttribute('data-x'));
+                var y = parseInt(collision_block.getAttribute('data-y'));
+                console.log('Delete collision block at:', {x, y});
+                console.log(_GAME.editor_deleteCollision(x, y));
+                GAME.updateViewportData();
+            }
+        }
+        else if (evt.code === 'KeyA' && evt.shiftKey === true) {
+            if (GAME.editor_mode) {
+                var x = EDITOR.last_clicked_coordinates[0];
+                var y = EDITOR.last_clicked_coordinates[1];
+                console.log('About to add collision block to coords:', EDITOR.last_clicked_coordinates);
+                console.log(_GAME.editor_addCollision(x, y));
+                GAME.updateViewportData();
+            }
+        }
+        else if (evt.code === 'KeyE' && evt.shiftKey === true) {
+            if (GAME.editor_mode) {
+                // TODO: show editor UI
+            }
+        }
+        else if (evt.code === 'KeyW') {
             // UP
             GAME.moveEntity(0, 2);
         } else if (evt.code === 'KeyS') {
@@ -20,17 +46,51 @@ window.addEventListener('keyup', function (evt) {
                 MENUS.toggle('fullscreen');
             }
         } else if (evt.code === 'ArrowUp') {
-            GAME.camera_offset.y -= 1;
-            GAME.setCameraPosition(GAME.camera_offset.x, GAME.camera_offset.y);
+            GAME.setCameraPosition(0);
+            if (GAME.editor_mode) {
+                EDITOR.camera_has_changed = true;
+            }
         } else if (evt.code === 'ArrowDown') {
-            GAME.camera_offset.y += 1;
-            GAME.setCameraPosition(GAME.camera_offset.x, GAME.camera_offset.y);
+            GAME.setCameraPosition(1);
+            if (GAME.editor_mode) {
+                EDITOR.camera_has_changed = true;
+            }
         } else if (evt.code === 'ArrowLeft') {
-            GAME.camera_offset.x -= 1;
-            GAME.setCameraPosition(GAME.camera_offset.x, GAME.camera_offset.y);
+            GAME.setCameraPosition(2);
+            if (GAME.editor_mode) {
+                EDITOR.camera_has_changed = true;
+            }
         } else if (evt.code === 'ArrowRight') {
-            GAME.camera_offset.x += 1;
-            GAME.setCameraPosition(GAME.camera_offset.x, GAME.camera_offset.y);
+            GAME.setCameraPosition(3);
+            if (GAME.editor_mode) {
+                EDITOR.camera_has_changed = true;
+            }
+        } else if (evt.code === 'Digit2' && evt.shiftKey === true) {
+            GAME.editor_mode = !GAME.editor_mode;
+            if (GAME.editor_mode) {
+                var elements = document.querySelectorAll('.editor');
+                for (var i = 0; i < elements.length; ++i) {
+                    elements[i].style.display = 'block';
+                }
+            } else {
+                var elements = document.querySelectorAll('.editor');
+                for (var i = 0; i < elements.length; ++i) {
+                    elements[i].style.display = 'none';
+                }
+            }
+        } else if (evt.code === 'PageUp') {
+            EDITOR.current_layer += 1;
+            if (EDITOR.current_layer > 2) {
+                // TODO: Take into account actual number of available layers but, for now, max is 3
+                EDITOR.current_layer = 2;
+            }
+            document.querySelector('#editor_menu #current_layer .layer_number').innerHTML = EDITOR.current_layer;
+        } else if (evt.code === 'PageDown') {
+            EDITOR.current_layer -= 1;
+            if (EDITOR.current_layer < 0) {
+                EDITOR.current_layer = 0;
+            }
+            document.querySelector('#editor_menu #current_layer .layer_number').innerHTML = EDITOR.current_layer;
         }
     }
 });

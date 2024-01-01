@@ -3,6 +3,7 @@ pub const EntityDataEnum = enum(u16) {
     PositionX = 1,
     PositionY = 2,
 
+    // TODO: Remove these in favor of enumToU16&&enumToUsize functions
     pub fn getAsUsize(self: EntityDataEnum) usize {
         return @as(usize, @intFromEnum(self));
     }
@@ -12,7 +13,6 @@ pub const EntityDataEnum = enum(u16) {
     }
 };
 
-pub const playerEntity = @import("entity_player.zig");
-pub const artificialEntity = @import("entity_artificial.zig");
-pub const currentEntities: [2]*[3]u16 = .{ &playerEntity.data, &artificialEntity.data };
-
+pub const player_entity = @import("entity_player.zig");
+pub const artificial_entity = @import("entity_artificial.zig");
+pub const current_entities: [2]*[3]u16 = .{ &player_entity.data, &artificial_entity.data };

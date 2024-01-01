@@ -3,24 +3,34 @@ LOADER.addRequired('wasm');
 
 const importObject = {
     imports: {
+        getViewportData() {},
+        getViewportDataLen() {},
+        updateViewportData() {},
+        specialUpdateViewportData() {},
         getDiffList() {},
         getDiffListLen() {},
         clearDiffList() {},
         initGame() {},
 
-        // NEW STUFF HERE
+        // EDITOR FUNCTIONS HERE
+        editor_deleteCollision(x, y) {},
+        editor_addCollision(x, y) {},
+
+        // GENERAL FUNCTIONS HERE
         getEntity(entityIndex) {},
         setEntityPosition(entityIndex, x, y) {},
-        moveEntity(entityIndex, direction, error) {},
+        moveEntity(entityIndex, direction) {},
         // Specifically a memory length call
-        getEntityLength() {},
+        getEntityLength(entityIndex) {},
         attackEntity(attackerEntityIndex, attackeeEntityIndex) {},
         getCurrentWorldData(layer, x, y) {},
         getCurrentWorldSize() {},
         getWorld(layer) {},
+        getCurrentWorldIndex(layer, x, y) {},
 
         setViewportSize(width, height) {},
-        setCameraPosition(x, y) {},
+        getCameraPosition() {},
+        setCameraPosition(direction) {},
 
         // TEST AREA
         getTestMemoryPixelBytes() {},
@@ -37,8 +47,17 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
             camera_offset: {x: 0, y: 0},
             editor_mode: false,
             data_view: null,
+            last_memory_bytelength: 0,
             __getMemory: function() {
                 return _GAME.memory;
+            },
+
+            addToTestWorldData(value) {
+                _GAME.addToTestWorldData(value);
+            },
+            getTestWorldData: function () {
+                var data = this.getFromMemory(_GAME.getTestWorldData(), _GAME.getTestWorldDataLen());
+                console.log(data);
             },
 
             // NEW STUFF HERE
@@ -49,22 +68,24 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
             moveEntity: function(entityIndex, direction) {
                 console.log('moveEntity', entityIndex, direction);
                 console.log(_GAME.moveEntity(entityIndex, direction));
+                this.updateViewportData();
             },
             getFromMemory: function(memory_position, memory_length) {
-                memory_length *= 2;
-                return new Uint16Array(_GAME.memory.buffer.slice(memory_position, (memory_position + memory_length)));
-                // TODO: Figure this out!
-                // if (this.data_view === null) {
-                //     this.data_view = new DataView(_GAME.memory.buffer, 0, _GAME.memory.byteLength);
-                // }
-                // let data = [];
-                // for (let i = 0; i < memory_length; i++) {
-                //     data.push(this.data_view.getUint16(memory_position + i));
-                // }
-                // return data;
+                if (!this.data_view || this.data_view.buffer !== _GAME.memory.buffer) {
+                    this.data_view = new DataView(_GAME.memory.buffer, 0, _GAME.memory.byteLength);
+                }
+                let data = [];
+                for (let i = 0; i < memory_length; i++) {
+                    // Note: uint16 occupies 2 bytes. uint8 occupies 1 byte. uint32 occupies 4 bytes
+                    let current_position = memory_position + (i * 2);
+                    // Note: without the second parameter set to true, you will not get the right values
+                    data.push(this.data_view.getUint16(current_position, true));
+                }
+                return data;
             },
             getEntity: function(entityIndex) {
-                var entity_data = this.getFromMemory(_GAME.getEntity(entityIndex), _GAME.getEntityLength());
+                var entity_data = this.getFromMemory(_GAME.getEntity(entityIndex), _GAME.getEntityLength(entityIndex));
+                // console.log(entity_data);
                 return {
                     health: entity_data[0],
                     x: entity_data[1],
@@ -82,15 +103,36 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
                 var data = _GAME.getCurrentWorldData(layer, x, y);
                 return data;
             },
-            getWorld: function(layer) {
-                var world_data = this.getFromMemory(_GAME.getWorld(layer), (this.getCurrentWorldSize().width * this.getCurrentWorldSize().height));
-                console.log(world_data);
+            getWorld: function() {
+                // TODO: Should pull in total layers from somewhere more dynamic instead of hard coding it here
+                var world_data = this.getFromMemory(_GAME.getWorld(), (3 * this.getCurrentWorldSize().width * this.getCurrentWorldSize().height));
+                // console.log(world_data);
                 return world_data;
             },
-            setCameraPosition: function(x, y) {
-                this.camera_offset.x = x;
-                this.camera_offset.y = y;
-                _GAME.setCameraPosition(x, y);
+            getCameraPosition: function() {
+                var data = this.getFromMemory(_GAME.getCameraPosition(), 2);
+                this.camera_offset.x = data[0];
+                this.camera_offset.y = data[1];
+                return this.camera_offset;
+            },
+            setCameraPosition: function(direction) {
+                _GAME.setCameraPosition(direction);
+                this.updateViewportData();
+                this.getCameraPosition();
+            },
+            setViewportSize: function(width, height) {
+                console.log('Setting viewport size to:', width, height);
+                _GAME.setViewportSize(width, height);
+            },
+            getViewportData() {
+                var memory_position = _GAME.getViewportData();
+                var memory_length = _GAME.getViewportDataLen();
+                var viewport_data = this.getFromMemory(memory_position, memory_length);
+                // console.log(viewport_data);
+                return viewport_data;
+            },
+            updateViewportData() {
+                console.log(_GAME.updateViewportData());
             },
 
             // OLD STUFF HERE
@@ -134,7 +176,7 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
                 var memory_position = _GAME.getDiffList();
                 var memory_length = _GAME.getDiffListLen();
                 // TODO: Update other usage of this
-                var array = new Uint8Array(_GAME.memory.buffer, memory_position, memory_length);
+                var array = new Uint16Array(_GAME.memory.buffer, memory_position, memory_length);
                 // console.log(array);
                 // var array = new Int32Array(_GAME.memory.buffer.slice(array[0], (memory_position + (4 * memory_length))));
                 // console.log(array);

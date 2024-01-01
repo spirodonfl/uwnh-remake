@@ -27,6 +27,12 @@
             // strings
             // timeline (seek/fast forward/rewind)
 
+            // TODO: Use the 4x20 world
+            // scroll camera to the very top or very bottom
+            // bring main player to very top or bottom (whichever you chose)
+            // now scroll camera back towards the center
+            // main player stays rendered "stickied" to the edge
+
             const SIZE = 32;
             const SCALE = 2;
             let DOM = {
@@ -58,66 +64,95 @@
                 },
                 generateGrid: function () {},
                 renderWorld: function (start_x = 0, start_y = 0, end_x = null, end_y = null) {
-                    // TODO: Consider what part of the world is actually supposed to get rendered
-                    // TODO: Also, can we move this to webassembly ?
+                    let element_view = document.getElementById('view');
                     let world = GAME.getCurrentWorldSize();
-                    let element_world = document.getElementById('world');
-                    // TODO: This is inefficient
-                    var els = document.querySelector('.blue');
-                    if (els)
-                    {
-                        els.remove();
-                    }
-                    var els = document.querySelector('.red');
-                    if (els)
-                    {
-                        els.remove();
-                    }
-                    var els = document.querySelector('.purple');
-                    if (els)
-                    {
-                        els.remove();
-                    }
-                    for (let x = start_x; x < ((end_x !== null) ? end_x : world.width); ++x)
-                    {
-                        for (let y = start_y; y < ((end_y !== null) ? end_y : world.height); ++y)
-                        {
-                            let data = GAME.getCurrentWorldData(1, x, y);
-                            if (data === 0)
-                            {
-                                continue;
-                            }
-                            // BLOCKED SPACE
-                            let element_item = document.querySelector('div[data-x="' + x + '"][data-y="' + y + '"]');
-                            if (!element_item)
-                            {
-                                element_item = document.createElement('div');
-                                element_item.setAttribute('data-x', x);
-                                element_item.setAttribute('data-y', y);
-                                element_item.classList.add('thing');
-                                element_world.append(element_item);
-                            }
-                            element_item.style.left = (x * (SIZE * SCALE)) + 'px';
-                            element_item.style.top = (y * (SIZE * SCALE)) + 'px';
-                            element_item.classList.add('blue');
+                    if (EDITOR.camera_has_changed) {
+                        var collision_blocks = document.querySelectorAll('.blue');
+                        for (var c = 0; c < collision_blocks.length; ++c) {
+                            collision_blocks[c].remove();
                         }
-                        for (let y = start_y; y < ((end_y !== null) ? end_y : world.height); ++y)
-                        {
-                            let data = GAME.getCurrentWorldData(2, x, y);
-                            // TODO: This is weird because, sometimes, data has a value like 51400 and it bounds out
-                            if (data > 0 && data < 3)
-                            {
-                                data -= 1; // because 0 is empty
+                    }
+                    var renderer = {row: 0, column: 0};
+                    for (var d = 0; d < GAME.getViewportData().length; ++d) {
+                        if (GAME.editor_mode) {
+                            var editor_block = document.querySelector('div.editor_block[data-x="' + renderer.column + '"][data-y="' + renderer.
+                                row + '"]');
+                            var data_element = null;
+                            var coord_element = null;
+                            if (!editor_block) {
+                                editor_block = document.createElement('div');
+                                editor_block.classList.add('editor_block');
+                                editor_block.setAttribute('data-x', renderer.column);
+                                editor_block.setAttribute('data-y', renderer.row);
+
+                                var data_element = document.createElement('div');
+                                data_element.classList.add('data');
+                                editor_block.appendChild(data_element);
+
+                                var coord_element = document.createElement('div');
+                                coord_element.classList.add('coordinate');
+                                editor_block.appendChild(coord_element);
+
+                                element_view.append(editor_block);
+                            }
+                            data_element = editor_block.querySelector('.data');
+                            coord_element = editor_block.querySelector('.coordinate');
+                            coord_element.innerHTML = '(' + renderer.column + ', ' + renderer.row + ')';
+                            data_element.innerHTML = GAME.getViewportData()[d];
+                            if (GAME.getViewportData()[d] > 0) {
+                                data_element.classList.add('has_value');
+                            }
+                            editor_block.style.left = (renderer.column * (SIZE * SCALE)) + 'px';
+                            editor_block.style.top = (renderer.row * (SIZE * SCALE)) + 'px';
+                        }
+                        if (GAME.getViewportData()[d] > 0) {
+                            // Collisions
+                            if (!GAME.editor_mode) {
+                                var x = renderer.column;
+                                var y = renderer.row;
+                                let element_item = document.querySelector('div.blue[data-x="' + x + '"][data-y="' + y + '"]');
+                                if (element_item) { element_item.remove(); }
+                            }
+                            if (GAME.editor_mode && EDITOR.camera_has_changed) {
+                                var _artificial_layer = (GAME.getCurrentWorldSize().width * GAME.getCurrentWorldSize().height) * 1;
+                                var _artificial_index = GAME.getViewportData()[d];
+                                var index = _artificial_index + _artificial_layer - 1;
+                                var data = GAME.getWorld()[index];
+                                if (data === 1) {
+                                    var x = renderer.column;
+                                    var y = renderer.row;
+                                    let element_item = document.querySelector('div.blue[data-x="' + x + '"][data-y="' + y + '"]');
+                                    if (!element_item)
+                                    {
+                                        element_item = document.createElement('div');
+                                        element_item.classList.add('thing');
+                                        element_view.append(element_item);
+                                    }
+                                    element_item.setAttribute('data-x', x);
+                                    element_item.setAttribute('data-y', y);
+                                    element_item.style.left = (x * (SIZE * SCALE)) + 'px';
+                                    element_item.style.top = (y * (SIZE * SCALE)) + 'px';
+                                    element_item.classList.add('blue');
+                                }
+                            }
+
+                            // Entities
+                            var _artificial_layer = (GAME.getCurrentWorldSize().width * GAME.getCurrentWorldSize().height) * 2;
+                            var _artificial_index = GAME.getViewportData()[d];
+                            var index = _artificial_index + _artificial_layer - 1;
+                            var data = GAME.getWorld()[index];
+                            if (data > 0) {
+                                data -= 1;
+                                var x = renderer.column;
+                                var y = renderer.row;
                                 let entity = GAME.getEntity(data);
                                 let element_entity = document.querySelector('div[data-entity="' + data + '"]');
                                 if (!element_entity)
                                 {
                                     element_entity = document.createElement('div');
                                     element_entity.setAttribute('data-entity', data.toString());
-                                    element_entity.setAttribute('data-x', x);
-                                    element_entity.setAttribute('data-y', y);
                                     element_entity.classList.add('thing');
-                                    element_world.append(element_entity);
+                                    element_view.append(element_entity);
                                     if (data === 0)
                                     {
                                         element_entity.classList.add('purple');
@@ -127,67 +162,29 @@
                                         element_entity.classList.add('red');
                                     }
                                 }
+                                element_entity.setAttribute('data-x', x);
+                                element_entity.setAttribute('data-y', y);
                                 element_entity.style.left = (x * (SIZE * SCALE)) + 'px';
                                 element_entity.style.top = (y * (SIZE * SCALE)) + 'px';
                                 element_entity.innerHTML = entity.health;
                             }
                         }
+
+                        ++renderer.column;
+                        if (renderer.column >= DOM.width) {
+                            renderer.column = 0;
+                            ++renderer.row;
+                        }
                     }
+
+                    EDITOR.camera_has_changed = false;
                 },
                 initGame: function ()
                 {
                     // TODO: Hide game or do not show it until you're done all this stuff first. Loading bar?
                     this.sizeView();
-
-                    let world = GAME.getCurrentWorldSize();
-                    // world element
-                    // camera offset should always be x/y offset number even in script
-
-                    let element_world = document.getElementById('world');
-                    if (world.width < DOM.width && world.height < DOM.height)
-                    {
-                        // need to center it
-                        let leftover_x = DOM.width - world.width;
-                        leftover_x = Math.floor(leftover_x / 2);
-                        let leftover_y = DOM.height - world.height;
-                        leftover_y = Math.floor(leftover_y / 2);
-
-                        element_world.style.width = (world.width * (SIZE * SCALE)) + 'px';
-                        element_world.style.height = (world.height * (SIZE * SCALE)) + 'px';
-
-                        element_world.style.left = (leftover_x * (SIZE * SCALE)) + 'px';
-                        element_world.style.top = (leftover_y * (SIZE * SCALE)) + 'px';
-                    }
-                    else
-                    {
-                        if (world.width < DOM.width)
-                        {
-                            // TODO: THIS
-                        }
-                        else if (world.height < DOM.height)
-                        {
-                            console.log('world.height < DOM.height');
-                            // TODO: THIS
-                            // need to center it
-                            let leftover_x = DOM.width - world.width;
-                            leftover_x = Math.floor(leftover_x / 2);
-                            let leftover_y = DOM.height - world.height;
-                            leftover_y = Math.floor(leftover_y / 2);
-
-                            element_world.style.width = (world.width * (SIZE * SCALE)) + 'px';
-                            element_world.style.height = (world.height * (SIZE * SCALE)) + 'px';
-
-                            //element_world.style.left = (leftover_x * (SIZE * SCALE)) + 'px';
-                            element_world.style.top = (leftover_y * (SIZE * SCALE)) + 'px';
-                        }
-                        else
-                        {
-                            // TODO: THIS
-                            // make element_world full width/height
-                            // on renderWorld, you have to update so that you take into account GAME.camera_offset.x/y
-                            // iterate world coords +/- offset and +/- view boundary and then update
-                        }
-                    }
+                    GAME.setViewportSize(DOM.width, DOM.height);
+                    GAME.updateViewportData();
 
                     this.renderWorld();
                 },
@@ -267,6 +264,65 @@
                     DOM.renderWorld();
                     if (GAME.getDiffListLen() > 0) {
                         let diff_list = GAME.getDiffList();
+                        var mode = null;
+                        var values_read = 0;
+                        const MODES = ['entity', 'world', 'collision'];
+                        var collision_update = [null, null, null];
+                        for (var d = 0; d < diff_list.length; ++d) {
+                            // TODO: You need to merge this with the general renderer so that the general renderer only happens when you render the WHOLE world and the diff list happens when you only want to re-render *portions* of the world
+                            // Update diff_list so you only update the part of the viewport that needs updating (could be all or a specific coordinate or specific coordinates) of the viewport_data from GAME.getViewportData()
+                            if (mode === null) {
+                                mode = MODES[diff_list[d]];
+                                if (mode === 'collision') {
+                                    console.log(diff_list.slice(d, d+8));
+                                }
+                            } else {
+                                if (mode === 'entity') {
+                                    let element_entity = document.querySelector('div[data-entity="' + diff_list[d] + '"]');
+                                    if (element_entity) {
+                                        element_entity.remove();
+                                        ++values_read;
+                                        if (values_read == 1) {
+                                            mode = null;
+                                        }
+                                    } else {
+                                        console.error('COULD NOT FIND ENTITY: ' + diff_list[d]);
+                                    }
+                                } else if (mode === 'world') {
+                                    // TODO: This... is what?
+                                } else if (mode === 'collision') {
+                                    if (collision_update[0] === null) {
+                                        collision_update[0] = diff_list[d];
+                                    } else if (collision_update[1] === null) {
+                                        collision_update[1] = diff_list[d];
+                                    } else if (collision_update[2] === null) {
+                                        collision_update[2] = diff_list[d];
+                                    }
+                                    ++values_read;
+                                    if (values_read === collision_update.length) {
+                                        if (collision_update[0] === 1) {
+                                            let collision_element = document.querySelector('div[data-x="' + collision_update[1] + '"][data-y="' + collision_update[2] + '"]');
+                                            collision_element.remove();
+                                            mode = null;
+                                        } else {
+                                            console.log('Collision Update:', collision_update);
+                                            let element_world = document.getElementById('world');
+                                            let element_item = document.querySelector('div[data-x="' + collision_update[1] + '"][data-y="' + collision_update[2] + '"]');
+                                            if (!element_item)
+                                            {
+                                                element_item = document.createElement('div');
+                                                element_item.setAttribute('data-x', collision_update[1]);
+                                                element_item.setAttribute('data-y', collision_update[2]);
+                                                element_item.classList.add('thing');
+                                            }
+                                            element_item.style.left = (collision_update[1] * (SIZE * SCALE)) + 'px';
+                                            element_item.style.top = (collision_update[2] * (SIZE * SCALE)) + 'px';
+                                            element_item.classList.add('blue');
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         console.log('diff_list', diff_list);
                         // for (let i = 0; i < diff_list.length; ++i) {
                         //     let position = GAME.getEntityPosition(diff_list[i]);
@@ -299,11 +355,17 @@
                     let x = Math.floor(e.offsetX / (SIZE * SCALE));
                     let y = Math.floor(e.offsetY / (SIZE * SCALE));
                     console.log('click', x, y);
-                    // TODO: This is great but we need to consider the offset based on (a) camera offset and (b) view offset due to centering and whatnot
-                    // NOTE: We do + 1 because arrays start at 0
-                    y -= 6 + 1;
-                    console.log('click', x, y);
-                    console.log(document.querySelector('div[data-x="' + x + '"][data-y="' + y + '"]'));
+                    EDITOR.last_clicked_coordinates = [x, y];
+                    // TODO: if you move the camera around after you clicked, you need to re-click or update coordinates
+                    var clicked_element = document.querySelector('div.thing[data-x="' + x + '"][data-y="' + y + '"]');
+                    console.log(clicked_element);
+                    if (clicked_element) {
+                        if (clicked_element.classList.contains('thing')) {
+                            if (clicked_element.classList.contains('blue')) {
+                                clicked_element.classList.add('chosen');
+                            }
+                        }
+                    }
                 });
                 resizeObserver.observe(document.body);
                 LOADER.loaded('window_ready');
@@ -330,7 +392,7 @@
                 width: 100%;
                 height: 100vh;
                 position: absolute;
-                z-index: 10;
+                z-index: 1000;
             }
             #view {
                 width: 100%;
@@ -346,10 +408,6 @@
                 border: 1px solid red;
 
                 position: relative;
-            }
-            #world {
-                border: 1px solid white;
-                position: absolute;
             }
             .thing {
                 transform: scale3d(1, 1, 1);
@@ -371,12 +429,49 @@
             }
             .red { background-color:red; }
             .blue { background-color: blue; }
+            .chosen {
+                border: 1px solid pink;
+            }
+            .editor_block {
+                position: absolute;
+                background-color: rgb(255 255 255 / 10%);
+                width: var(--scaled-size-px);
+                height: var(--scaled-size-px);
+                z-index: 101;
+
+                font-size: 12px;
+                color: white;
+                font-weight: bold;
+                font-family: monospace;
+            }
+            .editor_block .data {
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                font-size: 16px;
+                display: none;
+            }
+            .editor_block .data.has_value {
+                display: block;
+            }
+            .editor_block .coordinate {
+                position: absolute;
+                bottom: 0px;
+                left: 0px;
+            }
         </style>
     </head>
     <body>
-        <div id="stats" style="position: absolute; background-color: white; padding: 6px; z-index: 100; top: 0px;">&nbsp;</div>
+        <div class="editor" id="editor_menu" style="display: none; position: absolute; background-color: gray; color: white; padding: 6px; z-index: 101; top: 0px; width: 100%; font-family: monospace;">
+            <div style="width: 100%; display: grid; grid-template-columns: repeat(4, max-content); grid-gap: 10px;">
+                <div onclick="EDITOR.getWorld(); EDITOR.worldDataToZig(EDITOR.worlds_list[0]);">File</div>
+                <div>Edit</div>
+                <div id="stats" style="background-color: white; color: black; padding: 6px;">&nbsp;</div>
+                <div id="current_layer" style="background-color: orange; padding: 6px;">Current Layer: <span class="layer_number">0</span></div>
+            </div>
+        </div>
         <div id="view">
-        <div id="clickable_view"></div>
+            <div id="clickable_view"></div>
             <style type="text/css">
                 .menu.date {
                     width: 100%;
@@ -414,7 +509,6 @@
             <div class="menu fullscreen">
                 FULL SCREEN
             </div>
-            <div id="world"></div>
         </div>
     </body>
 </html>

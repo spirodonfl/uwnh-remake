@@ -1,18 +1,28 @@
 // TODO: Can we generally avoid storing data from the WASM module into variables since that effectively doubles the memory usage?
 // Maybe store the memory locations instead
+// TODO: Find a way to inject/hook into webassembly calls and return locally stored data instead of WASM data
+// Example: if you've edited a world, just pull from the local data of that edited world instead of the WASM
+// In other words, we never manipulate data via the editor by re-allocating unless we absolutely have to
 var EDITOR = {
     current_layer: 0,
     current_entity: 0,
     entities_list: [],
     worlds_list: [],
+    camera_has_changed: true,
+    last_clicked_coordinates: [],
+    // If we've manipulated data, we need to essentially *capture* GAME and _GAME functions and return our own data, not the WASM data
+    has_manipulated_data: false,
+    setEntityHealth: function (entityIndex, health) {
+        GAME.data_view.setUint16(_GAME.getEntity(entityIndex), health, true);
+    },
     generateEntity: function (health, x, y) {
         this.entities_list.push({health: health, x: x, y: y});
     },
     getEntity: function (index) {
         this.entities_list.push(GAME.getEntity(index));
     },
-    getWorld: function (layer) {
-        this.worlds_list.push(GAME.getWorld(layer));
+    getWorld: function () {
+        this.worlds_list.push(GAME.getWorld());
     },
     entityToZig: function (entity) {
         var string = `pub var data: [3]u16 = .{ ${entity.health}, ${entity.x}, ${entity.y} };`;
@@ -39,26 +49,25 @@ var EDITOR = {
     },
     // TODO: Need to also have # of layers as well
     worldDataToZig: function (world_data) {
-        var string = `pub var data: [3][4][20]u16 = .{
-            .{
-                .{ ${world_data.slice(0, 20).join(', ')} },
-                .{ ${world_data.slice(20, 40).join(', ')} },
-                .{ ${world_data.slice(40, 60).join(', ')} },
-                .{ ${world_data.slice(60, 80).join(', ')} },
-            },
-            .{
-                .{ ${world_data.slice(0, 20).join(', ')} },
-                .{ ${world_data.slice(20, 40).join(', ')} },
-                .{ ${world_data.slice(40, 60).join(', ')} },
-                .{ ${world_data.slice(60, 80).join(', ')} },
-            },
-            .{
-                .{ ${world_data.slice(0, 20).join(', ')} },
-                .{ ${world_data.slice(20, 40).join(', ')} },
-                .{ ${world_data.slice(40, 60).join(', ')} },
-                .{ ${world_data.slice(60, 80).join(', ')} },
-            },
-        };`;
+        var new_size = 3 * GAME.getCurrentWorldSize().width * GAME.getCurrentWorldSize().height;
+        new_size += 2; // storing width & height
+
+        // Artificially fill based on current world_data
+        var new_world_data = [];
+        new_world_data[0] = 20;
+        new_world_data[1] = 4;
+        var world_i = 0;
+        for (var i = 2; i < new_size; i++) {
+            new_world_data[i] = world_data[world_i];
+            ++world_i;
+            if (world_i > world_data.length) {
+                world_i = 0;
+            }
+        }
+        if (new_world_data.length !== new_size) {
+            console.log('SERIOUS ERROR SETTINGS THE NEW WORLD SIZE');
+        }
+        var string = `pub var data: [${new_size}]u16 = .{${new_world_data.join(', ')}};`;
         console.log(string);
     },
 };
