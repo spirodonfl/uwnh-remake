@@ -5,6 +5,7 @@ const importObject = {
     imports: {
         getViewportData() {},
         getViewportDataLen() {},
+        updateEditorViewportData(width, height) {},
         updateViewportData() {},
         specialUpdateViewportData() {},
         getDiffList() {},
@@ -52,6 +53,11 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
                 return _GAME.memory;
             },
 
+            // TODO: In here, you should inject or trap function calls if you're in editor mode and you have some data you've altered for editing purposes
+            // In order to do this, you need to begin with the ability to take data out of the current webassembly memory and store it as a javascript array
+            // You also need to have the editor be able to generate arrays for you
+            // Then you need to provide "tags" or a way to tell when an editor memory block is available for a particular operation vs webassembly
+            // You can then do a cross reference/lookup of some kind on certain wasm function calls and, if there's a matching available js memory block, return that instead of calling the wasm module itself
             addToTestWorldData(value) {
                 _GAME.addToTestWorldData(value);
             },
@@ -84,7 +90,12 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
                 return data;
             },
             getEntity: function(entityIndex) {
-                var entity_data = this.getFromMemory(_GAME.getEntity(entityIndex), _GAME.getEntityLength(entityIndex));
+                var entity_data = null;
+                if (EDITOR && EDITOR.override_data_mode && EDITOR.entities_list[entityIndex]) {
+                    entity_data = EDITOR.entities_list[entityIndex];
+                } else {
+                    entity_data = this.getFromMemory(_GAME.getEntity(entityIndex), _GAME.getEntityLength(entityIndex));
+                }
                 // console.log(entity_data);
                 return {
                     health: entity_data[0],
@@ -93,20 +104,39 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
                 };
             },
             getCurrentWorldSize: function() {
-                var world_size = this.getFromMemory(_GAME.getCurrentWorldSize(), 2);
-                return {
+                var world_size = null;
+                if (EDITOR && EDITOR.override_data_mode && EDITOR.worlds_list[0]) {
+                    world_size = EDITOR.worlds_list[0].slice(0, 2);
+                } else {
+                    world_size = this.getFromMemory(_GAME.getCurrentWorldSize(), 2);
+                }
+                var data = {
                     width: world_size[0],
                     height: world_size[1],
                 };
+                // console.log(data);
+                return data;
             },
             getCurrentWorldData: function(layer, x, y) {
-                var data = _GAME.getCurrentWorldData(layer, x, y);
+                var data = null;
+                if (EDITOR && EDITOR.override_data_mode && EDITOR.worlds_list[0]) {
+                    var offset = 2;
+                    offset += (x * y) * layer;
+                    data = EDITOR.worlds_list[0].slice(offset, offset + x);
+                } else {
+                    data = _GAME.getCurrentWorldData(layer, x, y);
+                }
                 return data;
             },
             getWorld: function() {
-                // TODO: Should pull in total layers from somewhere more dynamic instead of hard coding it here
-                var world_data = this.getFromMemory(_GAME.getWorld(), (3 * this.getCurrentWorldSize().width * this.getCurrentWorldSize().height));
-                // console.log(world_data);
+                var world_data = null;
+                if (EDITOR && EDITOR.override_data_mode && EDITOR.worlds_list[0]) {
+                    world_data = EDITOR.worlds_list[0].slice(2);
+                } else {
+                    // TODO: Should pull in total layers from somewhere more dynamic instead of hard coding it here
+                    var world_data = this.getFromMemory(_GAME.getWorld(), (3 * this.getCurrentWorldSize().width * this.getCurrentWorldSize().height));
+                    // console.log(world_data);
+                }
                 return world_data;
             },
             getCameraPosition: function() {
@@ -125,11 +155,22 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
                 _GAME.setViewportSize(width, height);
             },
             getViewportData() {
+                var viewport_data = null;
                 var memory_position = _GAME.getViewportData();
                 var memory_length = _GAME.getViewportDataLen();
-                var viewport_data = this.getFromMemory(memory_position, memory_length);
+                viewport_data = this.getFromMemory(memory_position, memory_length);
                 // console.log(viewport_data);
                 return viewport_data;
+            },
+            updateEditorViewportData(width, height) {
+                if (EDITOR && EDITOR.override_data_mode && EDITOR.worlds_list[0]) {
+                    var x = EDITOR.worlds_list[0][0];
+                    var y = EDITOR.worlds_list[0][1];
+                    console.log('editor mode', {x,y});
+                    console.log(_GAME.updateEditorViewportData(x, y));
+                } else {
+                    this.updateViewportData();
+                }
             },
             updateViewportData() {
                 console.log(_GAME.updateViewportData());

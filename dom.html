@@ -465,9 +465,22 @@
         <div class="editor" id="editor_menu" style="display: none; position: absolute; background-color: gray; color: white; padding: 6px; z-index: 101; top: 0px; width: 100%; font-family: monospace;">
             <div style="width: 100%; display: grid; grid-template-columns: repeat(4, max-content); grid-gap: 10px;">
                 <div onclick="EDITOR.getWorld(); EDITOR.worldDataToZig(EDITOR.worlds_list[0]);">File</div>
-                <div>Edit</div>
+                <div>
+                    <div id="edit">Edit</div>
+                    <div id="edit_submenu">
+                        <div onclick="console.log('atest'); EDITOR.override_data_mode = true;">Save</div>
+                        <div onclick="EDITOR.generateEntityArray(20, 1, 12);">Close</div>
+                        <div onclick="EDITOR.generateWorldArray(5, 5);">Generate New World</div>
+                    </div>
+                </div>
                 <div id="stats" style="background-color: white; color: black; padding: 6px;">&nbsp;</div>
                 <div id="current_layer" style="background-color: orange; padding: 6px;">Current Layer: <span class="layer_number">0</span></div>
+            </div>
+
+            <div style="background-color: pink; color: white; font-weight: bold;">
+                <input type="text" name="health" value="10" />
+                <input type="text" name="position_x" value="1" />
+                <input type="text" name="position_y" value="12" />
             </div>
         </div>
         <div id="view">

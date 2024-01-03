@@ -4,16 +4,34 @@
 // Example: if you've edited a world, just pull from the local data of that edited world instead of the WASM
 // In other words, we never manipulate data via the editor by re-allocating unless we absolutely have to
 var EDITOR = {
+    override_data_mode: false,
     current_layer: 0,
     current_entity: 0,
     entities_list: [],
     worlds_list: [],
     camera_has_changed: true,
+    viewport_data: [],
     last_clicked_coordinates: [],
     // If we've manipulated data, we need to essentially *capture* GAME and _GAME functions and return our own data, not the WASM data
     has_manipulated_data: false,
     setEntityHealth: function (entityIndex, health) {
-        GAME.data_view.setUint16(_GAME.getEntity(entityIndex), health, true);
+        GAME.data_view.setUint16(_GAME.getEntity(entityIndex), health, true)
+    },
+    generateEntityArray: function(health, x, y) {
+        this.entities_list.push(Uint16Array.from([health, x, y]));
+        console.log(this.entities_list);
+        return this.entities_list.length - 1;
+    },
+    generateWorldArray: function(width, height) {
+        var layer = 0;
+        var new_world = new Uint16Array(width * height * 3 + 2);
+        new_world[0] = width;
+        new_world[1] = height;
+        for (var i = 2; i < new_world.length; ++i) {
+            new_world[i] = 0;
+        }
+        this.worlds_list.push(new_world);
+        console.log(this.worlds_list);
     },
     generateEntity: function (health, x, y) {
         this.entities_list.push({health: health, x: x, y: y});
@@ -70,4 +88,12 @@ var EDITOR = {
         var string = `pub var data: [${new_size}]u16 = .{${new_world_data.join(', ')}};`;
         console.log(string);
     },
+    clearEditorBlocks: function () {
+        var d = document.querySelectorAll('.editor_block');
+        for (var i = 0; i < d.length; ++i) {
+            if (d[i] instanceof HTMLElement) {
+                d[i].remove();
+            }
+        }
+    }
 };

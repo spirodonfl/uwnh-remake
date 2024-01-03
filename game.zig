@@ -163,20 +163,67 @@ fn appendLayerData(layerIndex: u16) void {
         }
     }
 }
-// TODO: Add row to world
-// fn insertSlice(self: *Self, i: usize, items: []const T) Allocator.Error!void
-// Insert slice items at index i by moving list[i .. list.len] to make room. …
-// TODO: Remove row from world
-// ??
-// TODO: Add column to world
-// fn insert(self: *Self, n: usize, item: T) Allocator.Error!void
-// Insert item at index n. Moves list[n .. list.len] to higher indices to mak…
-// TODO: Remove column from world
-// fn orderedRemove(self: *Self, i: usize) T
-// Remove the element at index i, shift elements after index i forward, and re…
-// TODO: Clear current world
-// TODO: Set data for current world at specific index + layer
-// TODO: Set size of current world and adjust rows & columns automatically (remove or add accordingly)
+export fn updateEditorViewportData(width: u16, height: u16) void {
+    viewport_data.items.len = 0;
+
+    var vp_padding_width: u16 = 0;
+    var vp_padding_height: u16 = 0;
+    if (viewport_size[0] > width) {
+        vp_padding_width = viewport_size[0] - width;
+    }
+    if (viewport_size[1] > height) {
+        vp_padding_height = viewport_size[1] - height;
+    }
+    var vp_padding_width_left: u16 = 0;
+    var vp_padding_width_right: u16 = 0;
+    var vp_padding_height_top = vp_padding_height / 2;
+    var vp_padding_height_bottom = vp_padding_height / 2;
+    if (vp_padding_width > 0) {
+        if (vp_padding_width % 2 == 1) {
+            vp_padding_width_left = (vp_padding_width - 1) / 2;
+            vp_padding_width_right = (vp_padding_width + 1) / 2;
+        } else {
+            vp_padding_width_left = vp_padding_width / 2;
+            vp_padding_width_right = vp_padding_width / 2;
+        }
+    }
+    if (vp_padding_height > 0) {
+        if (vp_padding_height % 2 == 1) {
+            vp_padding_height_top = (vp_padding_height - 1) / 2;
+            vp_padding_height_bottom = (vp_padding_height + 1) / 2;
+        } else {
+            vp_padding_height_top = vp_padding_height / 2;
+            vp_padding_height_bottom = vp_padding_height / 2;
+        }
+    }
+
+    var index: u16 = 1;
+    var index_row: u16 = 1;
+    for (0..viewport_size[1]) |row| {
+        for (0..viewport_size[0]) |column| {
+            if (
+                column >= vp_padding_width_left and
+                column < (viewport_size[0] - vp_padding_width_right) and
+                row >= vp_padding_height_top and
+                row < (viewport_size[1] - vp_padding_height_bottom)
+            ) {
+                var offset_index: u16 = index;
+                offset_index += camera_position[0];
+                offset_index += camera_position[1] * width;
+                viewport_data.append(offset_index) catch unreachable;
+                index += 1;
+            } else {
+                viewport_data.append(0) catch unreachable;
+            }
+        }
+        if (row >= vp_padding_height_top and row < (viewport_size[1] - vp_padding_height_bottom)) {
+            if (width > viewport_size[0]) {
+                index += width - viewport_size[0];
+            }
+            index_row += 1;
+        }
+    }
+}
 export fn updateViewportData() void {
     viewport_data.items.len = 0;
 
@@ -465,8 +512,3 @@ export fn getTestMemoryPixelBytes() *[4][4]u8 {
 export fn getTestMemoryPixelBytesSize() usize {
     return entity_image_bytes.len * 4;
 }
-
-// NOTE: Keeping this for reference
-// export fn getEntityDataLength() usize {
-//     return @as(usize, @intCast(@sizeOf(playerEntity)));
-// }
