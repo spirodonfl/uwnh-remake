@@ -10,7 +10,6 @@ window.addEventListener('keyup', function (evt) {
                 var y = parseInt(collision_block.getAttribute('data-y'));
                 console.log('Delete collision block at:', {x, y});
                 console.log(_GAME.editor_deleteCollision(x, y));
-                GAME.updateViewportData();
             }
         }
         else if (evt.code === 'KeyA' && evt.shiftKey === true) {
@@ -19,7 +18,6 @@ window.addEventListener('keyup', function (evt) {
                 var y = EDITOR.last_clicked_coordinates[1];
                 console.log('About to add collision block to coords:', EDITOR.last_clicked_coordinates);
                 console.log(_GAME.editor_addCollision(x, y));
-                GAME.updateViewportData();
             }
         }
         else if (evt.code === 'KeyE' && evt.shiftKey === true) {
@@ -50,23 +48,37 @@ window.addEventListener('keyup', function (evt) {
             if (GAME.editor_mode) {
                 EDITOR.camera_has_changed = true;
             }
+            DOM.__world_rendered = false;
         } else if (evt.code === 'ArrowDown') {
             GAME.setCameraPosition(1);
             if (GAME.editor_mode) {
                 EDITOR.camera_has_changed = true;
             }
+            DOM.__world_rendered = false;
         } else if (evt.code === 'ArrowLeft') {
             GAME.setCameraPosition(2);
             if (GAME.editor_mode) {
                 EDITOR.camera_has_changed = true;
             }
+            DOM.__world_rendered = false;
         } else if (evt.code === 'ArrowRight') {
             GAME.setCameraPosition(3);
             if (GAME.editor_mode) {
                 EDITOR.camera_has_changed = true;
             }
+            DOM.__world_rendered = false;
         } else if (evt.code === 'Digit2' && evt.shiftKey === true) {
             GAME.editor_mode = !GAME.editor_mode;
+            if (GAME.editor_mode) {
+                EDITOR.camera_has_changed = true;
+            } else {
+                var editor_blocks = document.querySelectorAll('.editor_block');
+                for (var i in editor_blocks) {
+                    if (editor_blocks[i] instanceof HTMLElement) {
+                        editor_blocks[i].remove();
+                    }
+                }
+            }
             if (GAME.editor_mode) {
                 var elements = document.querySelectorAll('.editor');
                 for (var i = 0; i < elements.length; ++i) {

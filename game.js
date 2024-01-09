@@ -13,6 +13,10 @@ const importObject = {
         clearDiffList() {},
         initGame() {},
 
+        getDebug() {},
+        getDebugLen() {},
+        clearDebug() {},
+
         // EDITOR FUNCTIONS HERE
         editor_deleteCollision(x, y) {},
         editor_addCollision(x, y) {},
@@ -36,6 +40,9 @@ const importObject = {
         // TEST AREA
         getTestMemoryPixelBytes() {},
         getTestMemoryPixelBytesSize() {},
+        getImage(index) {},
+        getImageSix() {},
+        getImages() {},
     },
 };
 let _GAME = null;
@@ -88,6 +95,28 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
                     data.push(this.data_view.getUint16(current_position, true));
                 }
                 return data;
+            },
+            getFromMemorySix: function(memory_position, memory_length) {
+                if (!this.data_view || this.data_view.buffer !== _GAME.memory.buffer) {
+                    this.data_view = new DataView(_GAME.memory.buffer, 0, _GAME.memory.byteLength);
+                }
+                let data = [];
+                for (let i = 0; i < memory_length; i++) {
+                    // Note: uint16 occupies 2 bytes. uint8 occupies 1 byte. uint32 occupies 4 bytes
+                    let current_position = memory_position + (i * 4);
+                    // Note: without the second parameter set to true, you will not get the right values
+                    data.push(this.data_view.getUint32(current_position, true));
+                }
+                return data;
+            },
+            getImageSix: function() {
+                console.log(GAME.getFromMemorySix(_GAME.getImageSix(), 6));
+            },
+            getImages: function() {
+                var data = GAME.getFromMemorySix(_GAME.getImages(), 6);
+                console.log(data);
+                data = GAME.getFromMemory(data[0], 32);
+                console.log(data);
             },
             getEntity: function(entityIndex) {
                 var entity_data = null;
@@ -230,6 +259,25 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
             clearDiffList: function() {
                 // console.log('clearDiffList', _GAME.clearDiffList());
                 _GAME.clearDiffList();
+            },
+            getDebug: function() {
+                // console.log('getDiffList', _GAME.getDiffList());
+                var memory_position = _GAME.getDebug();
+                var memory_length = _GAME.getDebugLen();
+                // TODO: Update other usage of this
+                var array = new Uint16Array(_GAME.memory.buffer, memory_position, memory_length);
+                // console.log(array);
+                // var array = new Int32Array(_GAME.memory.buffer.slice(array[0], (memory_position + (4 * memory_length))));
+                // console.log(array);
+                return array;
+            },
+            getDebugLen: function() {
+                // console.log('getDiffListLen', _GAME.getDiffListLen());
+                return _GAME.getDebugLen();
+            },
+            clearDebug: function() {
+                // console.log('clearDiffList', _GAME.clearDiffList());
+                _GAME.clearDebug();
             },
             initGame: function() {
                 console.log('initGame', _GAME.initGame());
