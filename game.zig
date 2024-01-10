@@ -68,7 +68,7 @@ export fn editor_deleteCollision(x: u16, y: u16) void {
     var reference_index = viewport_data.items[(y * renderer.viewport_size[0]) + x];
     // Since indexes in viewport_data actually start at 1 (where 0 = empty), we gotta offset this
     reference_index -= 1;
-    var layer_collision = helpers.enumToU16(worlds.WorldLayersEnum, worlds.WorldLayersEnum.Collision);
+    var layer_collision = @intFromEnum(worlds.WorldLayersEnum.Collision);
     var layer_offset = (current_world.data[0] * current_world.data[1]) * layer_collision;
     var index = layer_offset + reference_index;
     // To offset the first two elements that contain width & height
