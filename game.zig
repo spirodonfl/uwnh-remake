@@ -62,6 +62,8 @@ const DirectionsEnum = enum(u16) {
 //----------------------------------------
 // EDITOR FUNCTIONS HERE
 //----------------------------------------
+// const editor = @import("editor");
+// TODO: To make the above import work, we need to decouple the reference to the viewport_data so that it can be referenced within the editor.zig file
 export fn editor_deleteCollision(x: u16, y: u16) void {
     var reference_index = viewport_data.items[(y * renderer.viewport_size[0]) + x];
     // Since indexes in viewport_data actually start at 1 (where 0 = empty), we gotta offset this
@@ -93,15 +95,14 @@ export fn editor_addCollision(x: u16, y: u16) void {
     diff_list.append(x) catch unreachable;
     diff_list.append(y) catch unreachable;
 }
-var ___images: [2]u32 = undefined;
+
+const game_images = @import("images.zig");
 
 //----------------------------------------
 // FUNCTIONS HERE
 //----------------------------------------
 export fn initGame() bool {
-    const test_image = @import("test_image.zig");
-    const test_image_two = @import("test_image_two.zig");
-    ___images = .{ @as(u32, @intCast(@intFromPtr(&test_image.data))), @as(u32, @intCast(@intFromPtr(&test_image_two.data))) };
+    game_images.init();
     diff_list = ArrayList(u16).init(allocator);
     viewport_data = ArrayList(u16).init(allocator);
     debug = ArrayList(u16).init(allocator);
@@ -533,9 +534,22 @@ export fn clearDebug() bool {
     return true;
 }
 
-export fn getImages() u32 {
-    return @as(u32, @intCast(@intFromPtr(&___images)));
+const Suit = enum(u16) {
+    clubs = 0,
+    spades = 1,
+    diamonds = 2,
+    hearts = 3,
+    data = 33,
+    pub fn isClubs(self: Suit) bool {
+        return self == Suit.clubs;
+    }
+};
+
+test "enum method" {
+    try std.testing.expect(@intFromEnum(Suit.data) == 33);
+    try std.testing.expect(Suit.spades.isClubs() == Suit.isClubs(.spades));
+    try std.testing.expect(Suit.diamonds.isClubs() == Suit.isClubs(.diamonds));
+    try std.testing.expect(Suit.hearts.isClubs() == Suit.isClubs(.hearts));
+    try std.testing.expect(Suit.spades.isClubs() == Suit.isClubs(.clubs));
 }
-export fn getImage(index: u16) u32 {
-    return @as(u32, @intCast(@intFromPtr(&___images[index])));
-}
+

@@ -41,7 +41,6 @@ const importObject = {
         getTestMemoryPixelBytes() {},
         getTestMemoryPixelBytesSize() {},
         getImage(index) {},
-        getImageSix() {},
         getImages() {},
     },
 };
@@ -109,14 +108,22 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
                 }
                 return data;
             },
-            getImageSix: function() {
-                console.log(GAME.getFromMemorySix(_GAME.getImageSix(), 6));
-            },
             getImages: function() {
-                var data = GAME.getFromMemorySix(_GAME.getImages(), 6);
+                var data = GAME.getFromMemorySix(_GAME.getImages(), 1);
                 console.log(data);
                 data = GAME.getFromMemory(data[0], 32);
                 console.log(data);
+            },
+            getImage: function(index) {
+                var data = GAME.getFromMemorySix(_GAME.getImage(index), 1);
+                console.log(data);
+                var memory_position = data[0];
+                data = GAME.getFromMemory(memory_position, 3);
+                console.log(data);
+                var length = data[2];
+                data = GAME.getFromMemory(memory_position, length);
+                console.log(data);
+                return data;
             },
             getEntity: function(entityIndex) {
                 var entity_data = null;
@@ -208,18 +215,19 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
             // OLD STUFF HERE
             __testImage()
             {
-                _GAME.fillTestImage();
-                var image_data = new Uint8ClampedArray(
-                    _GAME.memory.buffer.slice(
-                        _GAME.getTestImageBufferPointer(),
-                        (
-                            _GAME.getTestImageBufferPointer() + (
-                                4 * _GAME.getTestImageSize() * _GAME.getTestImageSize()
-                            )
-                        )
-                    )
-                );
-                console.log(image_data);
+                var data = GAME.getImage(1).slice(3, GAME.getImage(1).length);
+                var image_data = [];
+                // Faking data fill
+                var max = 32 * 32 * 4;
+                var data_i = 0;
+                for (var i = 0; i < max; ++i) {
+                    image_data[i] = data[data_i] || 0;
+                    ++data_i;
+                    if (data_i >= data.length) {
+                        data_i = 0;
+                    }
+                }
+                image_data = new Uint8ClampedArray(image_data);
 
                 var canvas = document.createElement("canvas");
                 var canvas = new OffscreenCanvas(32, 32);
@@ -237,6 +245,9 @@ WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
                     var img = document.createElement("img");
                     //img.src = canvas.toDataURL("image/png");
                     var huh = URL.createObjectURL(blob);
+                    img.style.position = 'absolute';
+                    img.style.top = '0px';
+                    img.style.left = '0px';
                     img.src = huh;
                     document.body.appendChild(img);
                 });

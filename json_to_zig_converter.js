@@ -11,10 +11,12 @@ function jsonToZigArray(jsonString) {
 
     return zigCode;
 }
+function entityToZig(entity) {
+    const zigCode = `pub var data: [3]u16 = .{ ${entity.health}, ${entity.x}, ${entity.y} };`;
+    return zigCode;
+}
 
 // Example usage
-const jsonString = '{"world_data": [0, 255, 0]}';
-const zigCode = jsonToZigArray(jsonString);
-
-console.log(zigCode);
+// const jsonString = '{"world_data": [0, 255, 0]}';
+// const zigCode = jsonToZigArray(jsonString);
 // Output: const world_data = [_]i32{ 0, 255, 0 };

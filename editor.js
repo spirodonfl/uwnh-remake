@@ -1,9 +1,5 @@
-// TODO: Can we generally avoid storing data from the WASM module into variables since that effectively doubles the memory usage?
-// Maybe store the memory locations instead
-// TODO: Find a way to inject/hook into webassembly calls and return locally stored data instead of WASM data
-// Example: if you've edited a world, just pull from the local data of that edited world instead of the WASM
-// In other words, we never manipulate data via the editor by re-allocating unless we absolutely have to
 var EDITOR = {
+    edit_world_data_mode: false,
     override_data_mode: false,
     current_layer: 0,
     current_entity: 0,
@@ -85,8 +81,44 @@ var EDITOR = {
         if (new_world_data.length !== new_size) {
             console.log('SERIOUS ERROR SETTINGS THE NEW WORLD SIZE');
         }
-        var string = `pub var data: [${new_size}]u16 = .{${new_world_data.join(', ')}};`;
+        var string = `
+pub const width = ${new_world_data[0]};
+pub const height = ${new_world_data[1]};
+pub const size = width * height;
+pub var data: [size]u16 = .{${new_world_data.join(', ')}};
+        `;
         console.log(string);
+    },
+    imageToData: function () {
+        var image = document.getElementById('image_file');
+        const img = document.createElement('img');
+        var fr = new FileReader();
+        fr.readAsDataURL(image.files[0]);
+        fr.onload = function() {
+            img.onload = function() {
+                var canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                var context = canvas.getContext('2d');
+                context.drawImage(img, 0, 0);
+                var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                var data = imageData.data;
+                var output = [];
+                for (var i = 0; i < data.length; i += 4) {
+                    output.push(data[i]);
+                }
+                console.log(output);
+                var size = img.width * img.height * 4 + 3;
+                var string = `
+        pub const width = ${img.width};
+        pub const height = ${img.height};
+        pub const size = width * height * 4 + 3;
+        pub var data: [size]u16 = .{${img.width}, ${img.height}, ${size}, ${output.join(', ')}};
+                `;
+                console.log(string);
+            }
+            img.src = fr.result;
+        }
     },
     clearEditorBlocks: function () {
         var d = document.querySelectorAll('.editor_block');
