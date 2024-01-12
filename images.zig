@@ -1,3 +1,8 @@
+// TODO: Since we cannot do a mass import, we need to do this manually.
+// How will you track the current files and any new files if you're including data from editor exports?
+// Tracking new files should be easy by returning length of existing array and then you n + 1
+// Replacing files would just be array index naming convention
+
 pub const test_image = @import("test_image.zig");
 pub const test_image_two = @import("test_image_two.zig");
 

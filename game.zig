@@ -9,6 +9,28 @@
 // script: [2][3]u8 = .{ .{ 0, 0, 0 }, .{ 0, 0, 0 } };
 // runScript(scriptIndex: u8)
 
+const StringsEnum = enum(u16) {
+    Hello = 0,
+    World = 1,
+};
+const EntitiesEnum = enum(u16) {
+    Player = 0,
+    Enemy = 1,
+    NPC = 2,
+};
+const ImagesEnum = enum(u16) {
+    Atlas = 0,
+    Player = 1,
+};
+const WorldsEnum = enum(u16) {
+    World1 = 0,
+    World2 = 1,
+};
+const ScriptsEnum = enum(u16) {
+    Script1 = 0,
+    Script2 = 1,
+};
+
 const std = @import("std");
 const ArrayList = std.ArrayList;
 
@@ -74,7 +96,7 @@ export fn editor_deleteCollision(x: u16, y: u16) void {
     // To offset the first two elements that contain width & height
     index += 2;
     current_world.data[index] = 0;
-    diff_list.append(helpers.enumToU16(DiffListEnum, DiffListEnum.Collision)) catch unreachable;
+    diff_list.append(@intFromEnum(DiffListEnum.Collision)) catch unreachable;
     // TODO: Make these enums. 1 = delete, 0 = add
     diff_list.append(1) catch unreachable;
     diff_list.append(x) catch unreachable;
@@ -84,13 +106,13 @@ export fn editor_addCollision(x: u16, y: u16) void {
     var reference_index = viewport_data.items[(y * renderer.viewport_size[0]) + x];
     // Since indexes in viewport_data actually start at 1 (where 0 = empty), we gotta offset this
     reference_index -= 1;
-    var layer_collision = helpers.enumToU16(worlds.WorldLayersEnum, worlds.WorldLayersEnum.Collision);
+    var layer_collision = @intFromEnum(worlds.WorldLayersEnum.Collision);
     var layer_offset = (current_world.data[0] * current_world.data[1]) * layer_collision;
     var index = layer_offset + reference_index;
     // To offset the first two elements that contain width & height
     index += 2;
     current_world.data[index] = 1;
-    diff_list.append(helpers.enumToU16(DiffListEnum, DiffListEnum.Collision)) catch unreachable;
+    diff_list.append(@intFromEnum(DiffListEnum.Collision)) catch unreachable;
     diff_list.append(0) catch unreachable;
     diff_list.append(x) catch unreachable;
     diff_list.append(y) catch unreachable;
@@ -101,17 +123,25 @@ const game_images = @import("images.zig");
 //----------------------------------------
 // FUNCTIONS HERE
 //----------------------------------------
+// TODO: Where should I be using arena memory?
+// TODO: If using arena memory, where/when should I re-use it?
+// TODO: All else - where should be releasing memory?
+var diff_list_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+const diff_list_allocator = diff_list_arena.allocator();
+var debug_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+const debug_allocator = debug_arena.allocator();
+
 export fn initGame() bool {
     game_images.init();
-    diff_list = ArrayList(u16).init(allocator);
+    diff_list = ArrayList(u16).init(diff_list_allocator);
     viewport_data = ArrayList(u16).init(allocator);
-    debug = ArrayList(u16).init(allocator);
+    debug = ArrayList(u16).init(debug_allocator);
     //current_world.init(allocator);
 
-    var layer_entities = helpers.enumToU16(worlds.WorldLayersEnum, worlds.WorldLayersEnum.Entities);
-    var i_position_x = helpers.enumToUsize(entities.EntityDataEnum, entities.EntityDataEnum.PositionX);
-    var i_position_y = helpers.enumToUsize(entities.EntityDataEnum, entities.EntityDataEnum.PositionY);
-    var i_width = helpers.enumToUsize(worlds.WorldDataEnum, worlds.WorldDataEnum.Width);
+    var layer_entities = @intFromEnum(worlds.WorldLayersEnum.Entities);
+    var i_position_x = @intFromEnum(entities.EntityDataEnum.PositionX);
+    var i_position_y = @intFromEnum(entities.EntityDataEnum.PositionY);
+    var i_width = @intFromEnum(worlds.WorldDataEnum.Width);
     // TODO: See if there's a better way to write this code
     var subtract_count: u16 = 0;
     for (current_world.data, 0..) |value, i| {
@@ -289,8 +319,8 @@ export fn getViewportDataLen() usize {
 // }
 export fn getCurrentWorldIndex(layer: u16, x: u16, y: u16) u16 {
     var offset: u16 = 2; // To account for width & height which take up position 0 and 1
-    var i_width = helpers.enumToU16(worlds.WorldDataEnum, worlds.WorldDataEnum.Width);
-    var i_height = helpers.enumToU16(worlds.WorldDataEnum, worlds.WorldDataEnum.Height);
+    var i_width = @intFromEnum(worlds.WorldDataEnum.Width);
+    var i_height = @intFromEnum(worlds.WorldDataEnum.Height);
     var index = (layer * current_world.data[i_width] * current_world.data[i_height]) + (y * current_world.data[i_width]) + x + offset;
     return index;
 }
@@ -302,25 +332,25 @@ export fn setCameraPosition(direction: u16) void {
     var cp_x: u16 = renderer.camera_position[0];
     var cp_y: u16 = renderer.camera_position[1];
     if (cp_x >= 0) {
-        if (direction == helpers.enumToU16(DirectionsEnum, DirectionsEnum.Left)) {
+        if (direction == @intFromEnum(DirectionsEnum.Left)) {
             if (cp_x > 0) {
                 cp_x -= 1;
             }
-        } else if (direction == helpers.enumToU16(DirectionsEnum, DirectionsEnum.Right)) {
+        } else if (direction == @intFromEnum(DirectionsEnum.Right)) {
             cp_x += 1;
         }
     }
     if (cp_y >= 0) {
-        if (direction == helpers.enumToU16(DirectionsEnum, DirectionsEnum.Up)) {
+        if (direction == @intFromEnum(DirectionsEnum.Up)) {
             if (cp_y > 0) {
                 cp_y -= 1;
             }
-        } else if (direction == helpers.enumToU16(DirectionsEnum, DirectionsEnum.Down)) {
+        } else if (direction == @intFromEnum(DirectionsEnum.Down)) {
             cp_y += 1;
         }
     }
-    var i_width = helpers.enumToU16(worlds.WorldDataEnum, worlds.WorldDataEnum.Width);
-    var i_height = helpers.enumToU16(worlds.WorldDataEnum, worlds.WorldDataEnum.Height);
+    var i_width = @intFromEnum(worlds.WorldDataEnum.Width);
+    var i_height = @intFromEnum(worlds.WorldDataEnum.Height);
     if (current_world.data[i_width] > renderer.viewport_size[0]) {
         if ((cp_x + renderer.viewport_size[0]) > current_world.data[i_width]) {
             cp_x -= 1;
@@ -351,58 +381,58 @@ export fn getEntity(entityIndex: u16) *[3]u16 {
 //     return &current_entities[entityIndex][0];
 // }
 export fn setEntityPosition(entityIndex: u16, x: u16, y: u16) void {
-    var i_position_x = helpers.enumToUsize(entities.EntityDataEnum, entities.EntityDataEnum.PositionX);
-    var i_position_y = helpers.enumToUsize(entities.EntityDataEnum, entities.EntityDataEnum.PositionY);
+    var i_position_x = @intFromEnum(entities.EntityDataEnum.PositionX);
+    var i_position_y = @intFromEnum(entities.EntityDataEnum.PositionY);
     entities.current_entities[entityIndex][i_position_x] = x;
     entities.current_entities[entityIndex][i_position_y] = y;
 }
 export fn moveEntity(entityIndex: u16, direction: u16) u16 {
     // TODO: Are we not adding this twice in this function?
     // Add entityIndex to diff_list
-    diff_list.append(helpers.enumToU16(DiffListEnum, DiffListEnum.EntityMovement)) catch unreachable;
+    diff_list.append(@intFromEnum(DiffListEnum.EntityMovement)) catch unreachable;
     diff_list.append(entityIndex) catch unreachable;
 
-    var i_position_x = helpers.enumToU16(entities.EntityDataEnum, entities.EntityDataEnum.PositionX);
-    var i_position_y = helpers.enumToU16(entities.EntityDataEnum, entities.EntityDataEnum.PositionY);
+    var i_position_x = @intFromEnum(entities.EntityDataEnum.PositionX);
+    var i_position_y = @intFromEnum(entities.EntityDataEnum.PositionY);
     // This emulates the intended direction of the entity
     var intended_x: u16 = entities.current_entities[entityIndex][i_position_x];
     var intended_y: u16 = entities.current_entities[entityIndex][i_position_y];
     var previous_x: u16 = entities.current_entities[entityIndex][i_position_x];
     var previous_y: u16 = entities.current_entities[entityIndex][i_position_y];
     switch (direction) {
-        helpers.enumToU16(DirectionsEnum, DirectionsEnum.Left) => intended_x -= 1,
-        helpers.enumToU16(DirectionsEnum, DirectionsEnum.Right) => intended_x += 1,
-        helpers.enumToU16(DirectionsEnum, DirectionsEnum.Up) => intended_y -= 1,
-        helpers.enumToU16(DirectionsEnum, DirectionsEnum.Down) => intended_y += 1,
+        @intFromEnum(DirectionsEnum.Left) => intended_x -= 1,
+        @intFromEnum(DirectionsEnum.Right) => intended_x += 1,
+        @intFromEnum(DirectionsEnum.Up) => intended_y -= 1,
+        @intFromEnum(DirectionsEnum.Down) => intended_y += 1,
         else => {
-            return helpers.enumToU16(ReturnEnum, ReturnEnum.OddError);
+            return @intFromEnum(ReturnEnum.OddError);
         },
     }
 
     // Check if the intended direction is out of bounds
-    var i_width = helpers.enumToU16(worlds.WorldDataEnum, worlds.WorldDataEnum.Width);
-    var i_height = helpers.enumToU16(worlds.WorldDataEnum, worlds.WorldDataEnum.Height);
+    var i_width = @intFromEnum(worlds.WorldDataEnum.Width);
+    var i_height = @intFromEnum(worlds.WorldDataEnum.Height);
     if (intended_x < 0 or intended_x >= current_world.data[i_width] or intended_y < 0 or intended_y >= current_world.data[i_height]) {
-        return helpers.enumToU16(ReturnEnum, ReturnEnum.OutOfBounds);
+        return @intFromEnum(ReturnEnum.OutOfBounds);
     }
 
     // Check if the intended direction is blocked
     if (current_world.data[getCurrentWorldIndex(1, intended_x, intended_y)] != 0) {
-        return helpers.enumToU16(ReturnEnum, ReturnEnum.BlockedCollision);
+        return @intFromEnum(ReturnEnum.BlockedCollision);
     }
 
     // Check if the intended direction is occupied by another entity
     for (entities.current_entities) |entity| {
         if (entity[i_position_x] == intended_x and entity[i_position_y] == intended_y) {
-            return helpers.enumToU16(ReturnEnum, ReturnEnum.AnotherEntityIsThere);
+            return @intFromEnum(ReturnEnum.AnotherEntityIsThere);
         }
     }
 
     switch (direction) {
-        helpers.enumToU16(DirectionsEnum, DirectionsEnum.Left) => entities.current_entities[entityIndex][i_position_x] -= 1,
-        helpers.enumToU16(DirectionsEnum, DirectionsEnum.Right) => entities.current_entities[entityIndex][i_position_x] += 1,
-        helpers.enumToU16(DirectionsEnum, DirectionsEnum.Up) => entities.current_entities[entityIndex][i_position_y] -= 1,
-        helpers.enumToU16(DirectionsEnum, DirectionsEnum.Down) => entities.current_entities[entityIndex][i_position_y] += 1,
+        @intFromEnum(DirectionsEnum.Left) => entities.current_entities[entityIndex][i_position_x] -= 1,
+        @intFromEnum(DirectionsEnum.Right) => entities.current_entities[entityIndex][i_position_x] += 1,
+        @intFromEnum(DirectionsEnum.Up) => entities.current_entities[entityIndex][i_position_y] -= 1,
+        @intFromEnum(DirectionsEnum.Down) => entities.current_entities[entityIndex][i_position_y] += 1,
         else => {
             return helpers.enumToU16(ReturnEnum, ReturnEnum.OddError);
         },
@@ -419,8 +449,8 @@ export fn moveEntity(entityIndex: u16, direction: u16) u16 {
     current_world_index -= 1;
     var vp_row: u16 = 0;
     var vp_column: u16 = 0;
-    diff_list.append(helpers.enumToU16(DiffListEnum, DiffListEnum.Viewport)) catch unreachable;
-    diff_list.append(helpers.enumToU16(DiffListEnum, DiffListEnum.EntityMovement)) catch unreachable;
+    diff_list.append(@intFromEnum(DiffListEnum.Viewport)) catch unreachable;
+    diff_list.append(@intFromEnum(DiffListEnum.EntityMovement)) catch unreachable;
     for (viewport_data.items) |value| {
         if (value == previous_world_index) {
             diff_list.append(0) catch unreachable;
@@ -438,7 +468,7 @@ export fn moveEntity(entityIndex: u16, direction: u16) u16 {
         }
     }
 
-    var layer_entities = helpers.enumToU16(worlds.WorldLayersEnum, worlds.WorldLayersEnum.Entities);
+    var layer_entities = @intFromEnum(worlds.WorldLayersEnum.Entities);
     var entity_index_to_record = @as(u16, @intCast(entityIndex));
     entity_index_to_record += 1;
     var previous_index = getCurrentWorldIndex(layer_entities, previous_x, previous_y);
@@ -458,18 +488,18 @@ export fn getCurrentWorldData(layer: u16, x: u16, y: u16) u16 {
     if (offset_y < 0) {
         offset_y = 0;
     }
-    if (offset_x > current_world.data[helpers.enumToUsize(worlds.WorldDataEnum, worlds.WorldDataEnum.Width)] - 1) {
-        offset_x = current_world.data[helpers.enumToUsize(worlds.WorldDataEnum, worlds.WorldDataEnum.Width)];
+    if (offset_x > current_world.data[@intFromEnum(worlds.WorldDataEnum.Width)] - 1) {
+        offset_x = current_world.data[@intFromEnum(worlds.WorldDataEnum.Width)];
     }
-    if (offset_y > current_world.data[helpers.enumToUsize(worlds.WorldDataEnum, worlds.WorldDataEnum.Height)] - 1) {
-        offset_y = current_world.data[helpers.enumToUsize(worlds.WorldDataEnum, worlds.WorldDataEnum.Height)];
+    if (offset_y > current_world.data[@intFromEnum(worlds.WorldDataEnum.Height)] - 1) {
+        offset_y = current_world.data[@intFromEnum(worlds.WorldDataEnum.Height)];
     }
     var index = getCurrentWorldIndex(layer, offset_x, offset_y);
     // index = getCurrentWorldIndex(layer, x, y);
     return current_world.data[index];
 }
 export fn getCurrentWorldSize() *const u16 {
-    var i_width = helpers.enumToUsize(worlds.WorldDataEnum, worlds.WorldDataEnum.Width);
+    var i_width = @intFromEnum(worlds.WorldDataEnum.Width);
     return &current_world.data[i_width];
 }
 export fn getWorld() *const u16 {
@@ -481,9 +511,9 @@ export fn attackEntity(attackerEntityIndex: u16, attackeeEntityIndex: u16) u16 {
     var had_health: bool = false;
     var attacker = entities.current_entities[attackerEntityIndex];
     var attackee = entities.current_entities[attackeeEntityIndex];
-    var i_health = helpers.enumToUsize(entities.EntityDataEnum, entities.EntityDataEnum.Health);
-    var i_position_x = helpers.enumToUsize(entities.EntityDataEnum, entities.EntityDataEnum.PositionX);
-    var i_position_y = helpers.enumToUsize(entities.EntityDataEnum, entities.EntityDataEnum.PositionY);
+    var i_health = @intFromEnum(entities.EntityDataEnum.Health);
+    var i_position_x = @intFromEnum(entities.EntityDataEnum.PositionX);
+    var i_position_y = @intFromEnum(entities.EntityDataEnum.PositionY);
     if (attackee[i_health] > 0) {
         had_health = true;
     }
@@ -500,16 +530,16 @@ export fn attackEntity(attackerEntityIndex: u16, attackeeEntityIndex: u16) u16 {
     }
     if (valid_position and attackee[i_health] > 0) {
         attackee[i_health] -= 1;
-        diff_list.append(helpers.enumToU16(DiffListEnum, DiffListEnum.EntityUpdate)) catch unreachable;
+        diff_list.append(@intFromEnum(DiffListEnum.EntityUpdate)) catch unreachable;
         diff_list.append(attackeeEntityIndex) catch unreachable;
     }
 
     if (valid_position and had_health) {
-        return helpers.enumToU16(ReturnEnum, ReturnEnum.None);
+        return @intFromEnum(ReturnEnum.None);
     } else if (!had_health) {
-        return helpers.enumToU16(ReturnEnum, ReturnEnum.NoMoreHealth);
+        return @intFromEnum(ReturnEnum.NoMoreHealth);
     } else {
-        return helpers.enumToU16(ReturnEnum, ReturnEnum.InvalidAttackPosition);
+        return @intFromEnum(ReturnEnum.InvalidAttackPosition);
     }
 }
 export fn getDiffList() ?*u16 {
@@ -519,7 +549,11 @@ export fn getDiffListLen() usize {
     return diff_list.items.len;
 }
 export fn clearDiffList() bool {
-    diff_list.items.len = 0;
+    // diff_list.items.len = 0;
+    // diff_list.deinit();
+    diff_list.clearRetainingCapacity();
+    _ = diff_list_arena.reset(.retain_capacity);
+    // or arena.reset()
     return true;
 }
 
@@ -530,26 +564,123 @@ export fn getDebugLen() usize {
     return debug.items.len;
 }
 export fn clearDebug() bool {
-    debug.items.len = 0;
+    // debug.items.len = 0;
+    // debug.deinit()
+    debug.clearRetainingCapacity();
+    _ = debug_arena.reset(.retain_capacity);
     return true;
 }
 
-const Suit = enum(u16) {
-    clubs = 0,
-    spades = 1,
-    diamonds = 2,
-    hearts = 3,
-    data = 33,
-    pub fn isClubs(self: Suit) bool {
-        return self == Suit.clubs;
-    }
-};
-
-test "enum method" {
-    try std.testing.expect(@intFromEnum(Suit.data) == 33);
-    try std.testing.expect(Suit.spades.isClubs() == Suit.isClubs(.spades));
-    try std.testing.expect(Suit.diamonds.isClubs() == Suit.isClubs(.diamonds));
-    try std.testing.expect(Suit.hearts.isClubs() == Suit.isClubs(.hearts));
-    try std.testing.expect(Suit.spades.isClubs() == Suit.isClubs(.clubs));
+export fn debug_get_data(index: u16) u16 {
+    return debug.items[index];
+}
+export fn debug_get_length() u16 {
+    return @as(u16, @intCast(debug.items.len));
+}
+export fn debug_clear_all() void {
+    debug.clearRetainingCapacity();
+    _ = debug_arena.reset(.retain_capacity);
+}
+test "test_debug_stuff" {
+    debug = ArrayList(u16).init(debug_allocator);
+    debug.append(1) catch unreachable;
+    try std.testing.expect(debug_get_length() == 1);
+    try std.testing.expect(debug_get_data(0) == 1);
+    debug_clear_all();
+    try std.testing.expect(debug_get_length() == 0);
+    try std.testing.expect(debug_get_data(0) == 0);
 }
 
+export fn diff_list_get_data(index: u16) u16 {
+    return diff_list.items[index];
+}
+export fn diff_list_get_length(index: u16) void {
+    _ = index;
+}
+export fn diff_list_clear_all() void {}
+
+test "test_diff_list_stuff" {
+    diff_list = ArrayList(u16).init(diff_list_allocator);
+    diff_list.append(1) catch unreachable;
+    try std.testing.expect(diff_list_get_length(0) == 1);
+    try std.testing.expect(diff_list_get_data(0) == 1);
+    diff_list_clear_all();
+    try std.testing.expect(diff_list_get_length(0) == 0);
+    try std.testing.expect(diff_list_get_data(0) == 0);
+}
+
+export fn viewport_update() void {}
+export fn viewport_get_data(x: u16, y: u16) void {
+    _ = x;
+    _ = y;
+}
+export fn viewport_get_length() void {}
+export fn viewport_clear() void {}
+export fn world_get_data(index: u16, layer: u16, x: u16, y: u16) void {
+    _ = index;
+    _ = layer;
+    _ = x;
+    _ = y;
+}
+export fn world_get_width(index: u16) void {
+    _ = index;
+}
+export fn world_get_height(index: u16) void {
+    _ = index;
+}
+export fn world_get_current_data(layer: u16, x: u16, y: u16) void {
+    _ = layer;
+    _ = x;
+    _ = y;
+}
+export fn world_get_current_size_width() void {}
+export fn world_get_current_size_height() void {}
+export fn entity_set_position(index: u16) void {
+    _ = index;
+}
+export fn entity_move(index: u16) void {
+    _ = index;
+}
+export fn entity_attack(index: u16, entity_attacked_index: u16) void {
+    _ = index;
+    _ = entity_attacked_index;
+}
+export fn entity_get_health(index: u16) void {
+    _ = index;
+}
+export fn entity_get_position_x(index: u16) void {
+    _ = index;
+}
+export fn entity_get_position_y(index: u16) void {
+    _ = index;
+}
+export fn entity_set_health(index: u16) void {
+    _ = index;
+}
+export fn image_get_data(index: u16) void {
+    _ = index;
+}
+export fn image_get_length(index: u16) void {
+    _ = index;
+}
+export fn image_get_width(index: u16) void {
+    _ = index;
+}
+export fn image_get_height(index: u16) void {
+    _ = index;
+}
+export fn camera_get_position() void {}
+export fn camera_set_position(x: u16, y: u16) void {
+    _ = x;
+    _ = y;
+}
+
+test "detect leak" {
+    var list = std.ArrayList(u21).init(std.testing.allocator);
+    // missing `defer list.deinit();`
+    try list.append('☔');
+    // list.items.len = 0;
+    defer list.deinit();
+
+    try std.testing.expect(list.items.len == 1);
+}
