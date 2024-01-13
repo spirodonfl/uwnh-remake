@@ -45,7 +45,7 @@ const importObject = {
     },
 };
 let _GAME = null;
-WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(
+WebAssembly.instantiateStreaming(fetch("/zig-out/lib/game.wasm"), importObject).then(
     (results) => {
         _GAME = results.instance.exports;
         console.log(results);

@@ -4,4 +4,6 @@ images
 *.a
 *.o
 zig-cache
+zig-out
 node-modules
+.vscode
