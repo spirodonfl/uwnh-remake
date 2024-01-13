@@ -40,6 +40,8 @@ const renderer = @import("renderer.zig");
 
 const worlds = @import("worlds.zig");
 const current_world = worlds.current_worlds[0];
+// TODO: Replace _current_world with current_world when ready
+const _current_world = 0;
 
 const entities = @import("entities.zig");
 
@@ -637,40 +639,47 @@ test "test_viewport_stuff" {
     try std.testing.expect(viewport_get_length() == 0);
 }
 
-
+// FUNCTION START
+// name: world_get_data
+// @param world: u16
+// FUNCTION END
 export fn world_get_data(world: u16, layer: u16, x: u16, y: u16) u16 {
-    _ = y;
-    _ = x;
-    _ = layer;
-    _ = world;
-    return 2;
-    // Iterate over worlds.all_worlds
-    // Get first element to get size, read size + 2 (for width && height) * 3 (layers)
-    // That gets you to next world
-    // Read size of next world, continue until "world" var matches world_index
-    // width_of_world = [1]
-    // index = ((y * width_of_world) * layer) + x;
+    var index: u16 = worlds.world_indexes[world];
+    var size: u16 = worlds.world_sizes[world];
+    var width: u16 = worlds.world_dimensions[(world * 2)];
+    index = index + (size * layer);
+    index = index + ((y * width) + x);
+    return worlds.all_worlds[index];
 }
-// export fn world_get_width(index: u16) u16 {
-//     return worlds.current_worlds[index][0];
-// }
-// export fn world_get_height(index: u16) u16 {
-//     return worlds.current_worlds[index][0];
-// }
-// export fn world_get_current_data(layer: u16, x: u16, y: u16) u16 {
-//     var index = ((x * y) * layer) + x;
-//     index += 3;
-//     return current_world[index];
-// }
-// export fn world_get_current_size_width() u16 {
-//     return current_world[0];
-// }
-// export fn world_get_current_size_height() u16 {
-//     return current_world[1];
-// }
-// test "test_world_data" {
-//     try std.testing.expect(world_get_current_size_width() == 4); 
-// }
+export fn world_get_width(world: u16) u16 {
+    return worlds.world_dimensions[(world * 2)];
+}
+export fn world_get_height(world: u16) u16 {
+    return worlds.world_dimensions[(world * 2) + 1];
+}
+export fn current_world_get_data(layer: u16, x: u16, y: u16) u16 {
+    var index: u16 = worlds.world_indexes[_current_world];
+    var size: u16 = worlds.world_sizes[_current_world];
+    var width: u16 = worlds.world_dimensions[(_current_world * 2)];
+    index = index + (size * layer);
+    index = index + ((y * width) + x);
+    return worlds.all_worlds[index];
+
+}
+export fn current_world_get_width() u16 {
+    return worlds.world_dimensions[(_current_world * 2)];
+}
+export fn current_world_get_height() u16 {
+    return worlds.world_dimensions[(_current_world * 2) + 1];
+}
+test "test_world_data" {
+    try std.testing.expect(world_get_data(1, 0, 2, 1) == 99);
+    try std.testing.expect(world_get_width(1) == 3);
+    try std.testing.expect(world_get_height(1) == 3);
+    try std.testing.expect(current_world_get_data(1, 1, 1) == 98);
+    try std.testing.expect(current_world_get_width() == 2);
+    try std.testing.expect(current_world_get_height() == 2);
+}
 
 export fn entity_set_position(index: u16) void {
     _ = index;

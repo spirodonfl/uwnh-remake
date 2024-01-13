@@ -14,22 +14,23 @@ pub const WorldDataEnum = enum(u16) {
 pub const test_world = @import("testworld.zig");
 pub const current_worlds = .{&test_world};
 
-pub const all_worlds: [27]u16 = .{
-    4, 2, 2,
+pub const world_indexes: [2]u16 = .{0, 12};
+pub const world_sizes: [2]u16 = .{4, 9};
+pub const world_dimensions: [4]u16 = .{2, 2, 3, 3};
+pub const all_worlds: [39]u16 = .{
     // Layer 1 (background)
     0, 0,
     0, 0,
     // Layer 2 (collision)
     0, 0,
-    0, 0,
+    0, 98,
     // Layer 3 (NPC)
     0, 0,
     0, 0,
 
-    9, 3, 3,
     // layer 1
     0, 0, 0,
-    0, 0, 0,
+    0, 0, 99,
     0, 0, 0,
     // layer 2
     0, 0, 0,
