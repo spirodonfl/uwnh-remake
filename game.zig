@@ -130,11 +130,13 @@ var diff_list_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 const diff_list_allocator = diff_list_arena.allocator();
 var debug_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 const debug_allocator = debug_arena.allocator();
+var viewport_data_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+const viewport_data_allocator = viewport_data_arena.allocator();
 
 export fn initGame() bool {
     game_images.init();
     diff_list = ArrayList(u16).init(diff_list_allocator);
-    viewport_data = ArrayList(u16).init(allocator);
+    viewport_data = ArrayList(u16).init(viewport_data_allocator);
     debug = ArrayList(u16).init(debug_allocator);
     //current_world.init(allocator);
 
@@ -571,6 +573,7 @@ export fn clearDebug() bool {
     return true;
 }
 
+// ------ NEW FUNCTIONS
 export fn debug_get_data(index: u16) u16 {
     return debug.items[index];
 }
@@ -588,53 +591,82 @@ test "test_debug_stuff" {
     try std.testing.expect(debug_get_data(0) == 1);
     debug_clear_all();
     try std.testing.expect(debug_get_length() == 0);
-    try std.testing.expect(debug_get_data(0) == 0);
+    // try std.testing.expect(debug_get_data(0) == 0);
 }
 
 export fn diff_list_get_data(index: u16) u16 {
     return diff_list.items[index];
 }
-export fn diff_list_get_length(index: u16) void {
-    _ = index;
+export fn diff_list_get_length() u16 {
+    return @as(u16, @intCast(diff_list.items.len));
 }
-export fn diff_list_clear_all() void {}
-
+export fn diff_list_clear_all() void {
+    diff_list.clearRetainingCapacity();
+    _ = diff_list_arena.reset(.retain_capacity);
+}
 test "test_diff_list_stuff" {
     diff_list = ArrayList(u16).init(diff_list_allocator);
     diff_list.append(1) catch unreachable;
-    try std.testing.expect(diff_list_get_length(0) == 1);
+    try std.testing.expect(diff_list_get_length() == 1);
     try std.testing.expect(diff_list_get_data(0) == 1);
     diff_list_clear_all();
-    try std.testing.expect(diff_list_get_length(0) == 0);
-    try std.testing.expect(diff_list_get_data(0) == 0);
+    try std.testing.expect(diff_list_get_length() == 0);
+    // try std.testing.expect(diff_list_get_data(0) == 0);
 }
 
 export fn viewport_update() void {}
-export fn viewport_get_data(x: u16, y: u16) void {
-    _ = x;
-    _ = y;
+export fn viewport_get_data(x: u16, y: u16) u16 {
+    var index = (y * x) + x;
+    return viewport_data.items[index];
 }
-export fn viewport_get_length() void {}
-export fn viewport_clear() void {}
-export fn world_get_data(index: u16, layer: u16, x: u16, y: u16) void {
-    _ = index;
-    _ = layer;
-    _ = x;
-    _ = y;
+export fn viewport_get_length() u16 {
+    return @as(u16, @intCast(viewport_data.items.len));
 }
-export fn world_get_width(index: u16) void {
-    _ = index;
+export fn viewport_clear() void {
+    viewport_data.clearRetainingCapacity();
+    _ = viewport_data_arena.reset(.retain_capacity);
 }
-export fn world_get_height(index: u16) void {
-    _ = index;
+test "test_viewport_stuff" {
+    viewport_data = ArrayList(u16).init(viewport_data_allocator);
+    viewport_data.append(0) catch unreachable;
+    viewport_data.append(1) catch unreachable;
+    // TODO: how would I test viewport_update ?
+    try std.testing.expect(viewport_get_data(1, 0) == 1);
+    try std.testing.expect(viewport_get_length() == 2);
+    viewport_clear();
+    try std.testing.expect(viewport_get_length() == 0);
 }
-export fn world_get_current_data(layer: u16, x: u16, y: u16) void {
-    _ = layer;
-    _ = x;
-    _ = y;
-}
-export fn world_get_current_size_width() void {}
-export fn world_get_current_size_height() void {}
+
+const worlds_test: [2]u16 = .{
+    0,
+    // test comments
+    0};
+// export fn world_get_data(world: u16, layer: u16, x: u16, y: u16) u16 {
+//     var index = ((x * y) * layer) + x;
+//     index += 3;
+//     return worlds.current_worlds[world][index];
+// }
+// export fn world_get_width(index: u16) u16 {
+//     return worlds.current_worlds[index][0];
+// }
+// export fn world_get_height(index: u16) u16 {
+//     return worlds.current_worlds[index][0];
+// }
+// export fn world_get_current_data(layer: u16, x: u16, y: u16) u16 {
+//     var index = ((x * y) * layer) + x;
+//     index += 3;
+//     return current_world[index];
+// }
+// export fn world_get_current_size_width() u16 {
+//     return current_world[0];
+// }
+// export fn world_get_current_size_height() u16 {
+//     return current_world[1];
+// }
+// test "test_world_data" {
+//     try std.testing.expect(world_get_current_size_width() == 4); 
+// }
+
 export fn entity_set_position(index: u16) void {
     _ = index;
 }

@@ -15,3 +15,5 @@ pub const test_world = @import("testworld.zig");
 // TODO: Test if this works better and keeps everything public
 // _ = @import("testworld");
 pub const current_worlds = .{&test_world};
+
+// TODO: Flat worlds array of all worlds
