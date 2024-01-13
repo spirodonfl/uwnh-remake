@@ -12,9 +12,29 @@ pub export fn init() void {
 }
 
 // Note: These bubble out! That's awesome!
+// TODO: Use these pub exports in entities && world && renderer
 pub export fn getImages() u32 {
     return @as(u32, @intCast(@intFromPtr(&images)));
 }
 pub export fn getImage(index: u16) u32 {
     return @as(u32, @intCast(@intFromPtr(&images[index])));
 }
+
+pub const image_indexes: [2]u16 = .{0, 16};
+pub const image_dimensions: [4]u16 = .{2, 2, 3, 3};
+pub const image_sizes: [2]u16 = .{16, 24};
+pub const image_atlas: [40]u16 = .{
+    // Image 1
+    200, 200, 0, 255,
+    200, 200, 0, 255,
+    200, 200, 0, 255,
+    200, 200, 0, 255,
+
+    // Image 2
+    100, 100, 30, 255,
+    100, 100, 30, 255,
+    100, 100, 30, 255,
+    100, 100, 30, 255,
+    100, 100, 30, 255,
+    100, 100, 30, 255,
+};

@@ -2,47 +2,7 @@
 LOADER.addRequired('wasm');
 
 const importObject = {
-    imports: {
-        getViewportData() {},
-        getViewportDataLen() {},
-        updateEditorViewportData(width, height) {},
-        updateViewportData() {},
-        specialUpdateViewportData() {},
-        getDiffList() {},
-        getDiffListLen() {},
-        clearDiffList() {},
-        initGame() {},
-
-        getDebug() {},
-        getDebugLen() {},
-        clearDebug() {},
-
-        // EDITOR FUNCTIONS HERE
-        editor_deleteCollision(x, y) {},
-        editor_addCollision(x, y) {},
-
-        // GENERAL FUNCTIONS HERE
-        getEntity(entityIndex) {},
-        setEntityPosition(entityIndex, x, y) {},
-        moveEntity(entityIndex, direction) {},
-        // Specifically a memory length call
-        getEntityLength(entityIndex) {},
-        attackEntity(attackerEntityIndex, attackeeEntityIndex) {},
-        getCurrentWorldData(layer, x, y) {},
-        getCurrentWorldSize() {},
-        getWorld(layer) {},
-        getCurrentWorldIndex(layer, x, y) {},
-
-        setViewportSize(width, height) {},
-        getCameraPosition() {},
-        setCameraPosition(direction) {},
-
-        // TEST AREA
-        getTestMemoryPixelBytes() {},
-        getTestMemoryPixelBytesSize() {},
-        getImage(index) {},
-        getImages() {},
-    },
+    imports: _WASM_IMPORTS,
 };
 let _GAME = null;
 WebAssembly.instantiateStreaming(fetch("game.wasm"), importObject).then(

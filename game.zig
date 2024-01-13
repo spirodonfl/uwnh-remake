@@ -681,10 +681,13 @@ test "test_world_data" {
     try std.testing.expect(current_world_get_height() == 2);
 }
 
-export fn entity_set_position(index: u16) void {
+export fn entity_set_position(entity: u16, x: u16, y: u16) void {
+    _ = y;
+    _ = x;
+    _ = entity;
     // TODO: Both in entity array data AND in world npc layer data
     // TODO: Check if entity even belongs in world??
-    _ = index;
+
 }
 export fn entity_move(index: u16) void {
     // TODO: up down left right
@@ -694,38 +697,61 @@ export fn entity_attack(index: u16, entity_attacked_index: u16) void {
     _ = index;
     _ = entity_attacked_index;
 }
-export fn entity_get_health(entity: u16) void {
+export fn entity_get_health(entity: u16) u16 {
     return entities.entities[entities.entity_indexes[entity]]; 
 }
-export fn entity_get_position_x(index: u16) void {
-    _ = index;
+export fn entity_get_position_x(entity: u16) u16 {
+    return entities.entities[entities.entity_indexes[entity] + 1];
 }
-export fn entity_get_position_y(index: u16) void {
-    _ = index;
+export fn entity_get_position_y(entity: u16) u16 {
+    return entities.entities[entities.entity_indexes[entity] + 2];
 }
-export fn entity_set_health(index: u16) void {
-    _ = index;
+export fn entity_set_health(entity: u16, health: u16) void {
+    entities.entities[entities.entity_indexes[entity]] = health; 
 }
 test "test_entities" {
     try std.testing.expect(entity_get_health(0) == 10);
+    entity_set_health(0, 11);
+    try std.testing.expect(entity_get_health(0) == 11);
+    try std.testing.expect(entity_get_position_x(0) == 0);
+    try std.testing.expect(entity_get_position_y(0) == 0);
 }
 
-export fn image_get_data(index: u16) void {
-    _ = index;
+export fn image_get_data(image: u16, cursor: u16) u16 {
+    var index = game_images.image_indexes[image];
+    index = index + cursor;
+    return game_images.image_atlas[index];
 }
-export fn image_get_length(index: u16) void {
-    _ = index;
+export fn image_get_size(image: u16) u16 {
+    return game_images.image_sizes[image];
 }
-export fn image_get_width(index: u16) void {
-    _ = index;
+export fn image_get_width(image: u16) u16 {
+    return game_images.image_dimensions[(image * 2)];
 }
-export fn image_get_height(index: u16) void {
-    _ = index;
+export fn image_get_height(image: u16) u16 {
+    return game_images.image_dimensions[(image * 2) + 1];
 }
-export fn camera_get_position() void {}
+test "test_images" {
+    try std.testing.expect(image_get_data(0, 3) == 255);
+    try std.testing.expect(image_get_size(0) == 16);
+    try std.testing.expect(image_get_width(0) == 2);
+    try std.testing.expect(image_get_height(0) == 2);
+}
+
+export fn camera_get_position_x() u16 {
+    return renderer.camera_position[0];
+}
+export fn camera_get_position_y() u16 {
+    return renderer.camera_position[1];
+}
 export fn camera_set_position(x: u16, y: u16) void {
-    _ = x;
-    _ = y;
+    renderer.camera_position[0] = x;
+    renderer.camera_position[1] = y;
+}
+test "test_camera" {
+    try std.testing.expect(camera_get_position_x() == 0);
+    camera_set_position(0, 3);
+    try std.testing.expect(camera_get_position_y() == 3);
 }
 
 test "detect leak" {
