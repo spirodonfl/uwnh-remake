@@ -682,17 +682,20 @@ test "test_world_data" {
 }
 
 export fn entity_set_position(index: u16) void {
+    // TODO: Both in entity array data AND in world npc layer data
+    // TODO: Check if entity even belongs in world??
     _ = index;
 }
 export fn entity_move(index: u16) void {
+    // TODO: up down left right
     _ = index;
 }
 export fn entity_attack(index: u16, entity_attacked_index: u16) void {
     _ = index;
     _ = entity_attacked_index;
 }
-export fn entity_get_health(index: u16) void {
-    _ = index;
+export fn entity_get_health(entity: u16) void {
+    return entities.entities[entities.entity_indexes[entity]]; 
 }
 export fn entity_get_position_x(index: u16) void {
     _ = index;
@@ -703,6 +706,10 @@ export fn entity_get_position_y(index: u16) void {
 export fn entity_set_health(index: u16) void {
     _ = index;
 }
+test "test_entities" {
+    try std.testing.expect(entity_get_health(0) == 10);
+}
+
 export fn image_get_data(index: u16) void {
     _ = index;
 }
