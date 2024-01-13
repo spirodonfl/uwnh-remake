@@ -12,6 +12,7 @@ pub fn build(b: *Builder) void {
         },
         .optimize = .ReleaseSmall,
     });
+    game.rdynamic = true;
 
     b.installArtifact(game);
 

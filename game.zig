@@ -637,15 +637,20 @@ test "test_viewport_stuff" {
     try std.testing.expect(viewport_get_length() == 0);
 }
 
-const worlds_test: [2]u16 = .{
-    0,
-    // test comments
-    0};
-// export fn world_get_data(world: u16, layer: u16, x: u16, y: u16) u16 {
-//     var index = ((x * y) * layer) + x;
-//     index += 3;
-//     return worlds.current_worlds[world][index];
-// }
+
+export fn world_get_data(world: u16, layer: u16, x: u16, y: u16) u16 {
+    _ = y;
+    _ = x;
+    _ = layer;
+    _ = world;
+    return 2;
+    // Iterate over worlds.all_worlds
+    // Get first element to get size, read size + 2 (for width && height) * 3 (layers)
+    // That gets you to next world
+    // Read size of next world, continue until "world" var matches world_index
+    // width_of_world = [1]
+    // index = ((y * width_of_world) * layer) + x;
+}
 // export fn world_get_width(index: u16) u16 {
 //     return worlds.current_worlds[index][0];
 // }

@@ -12,8 +12,31 @@ pub const WorldDataEnum = enum(u16) {
 };
 
 pub const test_world = @import("testworld.zig");
-// TODO: Test if this works better and keeps everything public
-// _ = @import("testworld");
 pub const current_worlds = .{&test_world};
 
-// TODO: Flat worlds array of all worlds
+pub const all_worlds: [27]u16 = .{
+    4, 2, 2,
+    // Layer 1 (background)
+    0, 0,
+    0, 0,
+    // Layer 2 (collision)
+    0, 0,
+    0, 0,
+    // Layer 3 (NPC)
+    0, 0,
+    0, 0,
+
+    9, 3, 3,
+    // layer 1
+    0, 0, 0,
+    0, 0, 0,
+    0, 0, 0,
+    // layer 2
+    0, 0, 0,
+    0, 0, 0,
+    0, 0, 0,
+    // layer 3
+    0, 0, 0,
+    0, 0, 0,
+    0, 0, 0,
+};
