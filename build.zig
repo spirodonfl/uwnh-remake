@@ -14,4 +14,7 @@ pub fn build(b: *Builder) void {
     });
 
     b.installArtifact(game);
+
+    const copy_output_to_root = b.addInstallBinFile(game.getEmittedBin(), "../../game.wasm");
+    b.getInstallStep().dependOn(&copy_output_to_root.step);
 }
