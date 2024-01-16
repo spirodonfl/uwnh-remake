@@ -10,7 +10,7 @@ const ArrayList = std.ArrayList;
 //     };
 //     std.debug.print("xs={u}\n", .{u_strs});
 // }
-// 
+//
 // fn toUnicodeSlice(bytes: []const u8) []const u21 {
 //     comptime {
 //         if (!std.unicode.utf8ValidateSlice(bytes)) @panic("invalid utf8");
@@ -26,13 +26,13 @@ const ArrayList = std.ArrayList;
 // std.mem.startsWith(u8, "Haystack stuff", "needle")
 
 pub fn main() !void {
-    var file = try std.fs.cwd().openFile("game.zig", .{});
+    var file = try std.fs.cwd().openFile("game/game.zig", .{});
     defer file.close();
 
     var buf_reader = std.io.bufferedReader(file.reader());
     var in_stream = buf_reader.reader();
 
-    const PP_file = try std.fs.cwd().createFile("js.bindings.js", .{.read = true});
+    const PP_file = try std.fs.cwd().createFile("web/scripts/js.bindings.js", .{ .read = true });
     try PP_file.writeAll("export const _WASM_IMPORTS = {\n");
     defer PP_file.close();
 

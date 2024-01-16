@@ -7,3 +7,4 @@ zig-cache
 zig-out
 node-modules
 .vscode
+web/scripts/js.bindings.js
