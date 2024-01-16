@@ -33,7 +33,7 @@ pub fn main() !void {
     var in_stream = buf_reader.reader();
 
     const PP_file = try std.fs.cwd().createFile("js.bindings.js", .{.read = true});
-    try PP_file.writeAll("var _WASM_IMPORTS = {\n");
+    try PP_file.writeAll("export const _WASM_IMPORTS = {\n");
     defer PP_file.close();
 
     var buf: [1024]u8 = undefined;
