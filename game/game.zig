@@ -756,67 +756,45 @@ test "test_camera" {
 
 var editor_entities_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 const editor_entities_allocator = editor_entities_arena.allocator();
-var editor_entities: ArrayList(u32) = undefined;
+var editor_entities: ArrayList(u16) = undefined;
+var editor_entities_modifications_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+const editor_entities_modifications_allocator = editor_entities_modifications_arena.allocator();
+var editor_entities_modifications: ArrayList(u16) = undefined;
 export fn initEditor() void {
-    editor_entities = ArrayList(u32).init(editor_entities_allocator);
+    editor_entities = ArrayList(u16).init(editor_entities_allocator);
+    editor_entities_modifications = ArrayList(u16).init(editor_entities_modifications_allocator);
 }
 export fn editor_modifyEntityHealth(entity: u16, health: u16) void {
-    _ = health;
-    _ = entity;
-    // TODO: Make sure entity being referenced is not a NEW entity, only in existence within editor, as opposed to modifying original
-    // editor_entities.append(entity);
-    // editor_entities.append(1);
-    // editor_entities.append(0); // health array index, TODO: use enum
-    // editor_entities.append(health);
-    // TODO: What if this entity already has modifications, how do you append to existing modifications or remove modifications previously done for the same data/attribute?
-    // Answer: Possibly break this out into multiple arrays, one for entity_index+#_of_modified_entries, one for modified_indexes and values
-    // MAYBE
-
-    // Lookup arrays
-    // modified_things = [indexes, modified_attributes_index(optional), #of_modified_attributes]
-    // modified_attributes = [0:health, ...] // Does attribute index match an enum
-    // modified_values = [] // modified_attributes array index would just match modified_values
-    // every time we edit an attribute
-    // -> [thing_index, which_attribute, modified_value]
-
-    // var entity_index: u16 = 0;
-    // var have_modification: bool = false;
-    // for (editor_entities, 0..) |value, i| {
-    //     if (i == entity_index + 1) {
-    //         // attribute
-    //         if (value == 0) {
-    //             // matches health enum
-    //             // modify value on next i
-    //             have_modification = true;
-    //         } 
-    //     }
-    //     else if (i == entity_index + 2) {
-    //         // value
-    //         if (have_modification) {
-    //             value = health;
-    //         }
-    //     }
-    //     else {
-    //         entity_index = i;
-    //         if (value == entity) {
-    //             // HIT
-    //         }
-    //     }
-    // }
-    // We did not find attribute modification, we must insert it
-}
-test "test_array_skippage" {
-    var test_array: [8]u16 = .{0, 1, 2, 3, 4, 5, 6, 7};
-    var _value: u16 = 0;
-    for (test_array, 0..) |value, i| {
-        if (i < 6) {
-            continue;
+    // if entity <= world.entities length then we are manipulating
+    // an existing/precompiled entity, so we store modification of that entity here
+    // else if entity > world.entities, it means we are trying to reference an editor
+    // entity (ephemeral) so simply modify that original set of data
+    
+    if (entity > entities.entity_indexes.len) {
+        var offset: u16 = entity - @as(u16, @intCast(entities.entity_indexes.len));
+        offset = offset * 3;
+        offset = offset + (helpers.enumToU16(entities.EntityDataEnum, entities.EntityDataEnum.Health) + 1); 
+        editor_entities.items[offset] = health;
+    } else {
+        var i: usize = 0;
+        var have_modification: bool = false;
+        while (i < editor_entities_modifications.items.len) {
+            if (i == entity) {
+                var value = editor_entities_modifications.items[(i + 1)];
+                if (value == helpers.enumToU16(entities.EntityDataEnum, entities.EntityDataEnum.Health)) {
+                    // Matches health enum
+                    editor_entities_modifications.items[(i + 2)] = health;
+                    have_modification = true;
+                }
+            }
+            i += 2; // default # to skip because entity_i = [attribute, modified_value]
         }
-        if (i >= 6) {
-            _value = value;
+        if (!have_modification) {
+            editor_entities_modifications.append(entity) catch unreachable;
+            editor_entities_modifications.append(helpers.enumToU16(entities.EntityDataEnum, entities.EntityDataEnum.Health)) catch unreachable;
+            editor_entities_modifications.append(health) catch unreachable;
         }
     }
-    try std.testing.expect(_value == 7);
 }
 // TODO: EDITOR FUNCTIONS
 // Copy editor_addCollision and editor_removeCollision
@@ -846,66 +824,20 @@ test "test_array_skippage" {
 // - Images
 // -- Create New Image
 // -- Edit Existing Image
-
-export fn editor_create_entity_npc(health: u16) void {
-    _ = health;
-
-    // entities.entities
-    // append new record (array) to entities.entities
-    // add new index to entities.entity_index (currently 0, 3, 6)
-    // we have to find a way to resize the existing arrays to include the new entries especially because we've hard coded their initial array sizes
-    // WAYS YOU COULD DO THIS
-    // - Create a new array with original array length + new size
-    // - Iterate over previous array, append to new array, then add new data to new array
-    // ANOTHER WAY
-    // - Hold a dynamic array for editor purposes (ArrayList)
-    // - Store all editor data in dynamic array
-    // - When you call functions like "get_entity" for the renderer, you have to make sure you also pass along / check the editor arrays
-    // - BENEFIT: you can dump your editor modifications and go back to original + you can export your editor data via the front-end (js_convert_to_zig.js) and then re-compile with new data
-    // ANOTHER WAY
-    // - Resize existing statically compiled arrays on the fly
-    // - Update data
-    // - BENEFIT: no separate/duplicate/extra editor memory is required
-    //
-    // Chosen to do -> editor arrays as add-ons to original arrays
-    // When editor passes an index/reference to entity (or other item) you want to reference, you simply check length of original game array and, if greater than that, assume it must be editor, check editor array offset by original (index - original_array_length = editor_array_index)
-    // BOOM EMERIL
-    // 
-    // LAST STEP -> figure out what kind of data we want to be using for editor
-    // DECISION: ArrayList
-    // var editor_entities_array = std.ArrayList(u32).init(allocator);
-    // init_editor function ??
-    // deinit_editor -> for when you decide to reset all your data
-    // individual deinit_editor_functions -> for when you decide to remove stuff you've created like new entities and whatnot (individual editor denits)
-    //
-    // Store indexes like entities_indexes against where entities live in a big flat array
-    //
-    // What if, in editor, you make a change to an original game entity/world/other data and then you want to restore it without reloading the whole game??
-    // Two options
-    // - diff
-    // -- Keep track of original data I've diffed
-    // -- store diffs in some kind of array
-    // -- reference diffs every time you ask for original data
-    // -- [health, x, y] -> in editor, you only changed health -> editor_diff_array -> [entity_index, how_many_things_have_you_diffed, index_of_original_diff_value(i.e: 0 for health), diffed_value(i.e: 10)]
-    // - dupe
-    // -- dupe original, keep original in dupe, modify original (PREFERRED)
-    // -- dupe original, keep original as original, return duped modified when asking for data
-    //
-    // Chosen to do -> diff
-    // because you will only ever have functions return a single value for any piece of original data you're asking for which means your editor can just check for available diff values given entity/item/image/whatever and against the array index and return the diff value instead of original
-    // Then you also don't have to duplicate large arrays for only one or two changes, for example
-    //
-    // DIFF STRUCTURE
-    // ArrayList per data (editor_worlds, editor_entities, editor_images)
-    // [index_of_thing_being_diffed, #_of_diffs, array_index, diff_value, ...end_of_#_of_diffs, index_of_thing_being_diffed]
+export fn editor_createEntityNpc(health: u16) void {
+    // TODO: Iterate enum cases to fill this out instead of hard coding
+    editor_entities.append(health); // health
+    editor_entities.append(0); // x
+    editor_entities.append(1); // y
 }
-export fn editor_edit_entity_npc_health(entity: u16, health: u16) void {
-    _ = health;
+export fn editor_duplicateEntityNpc(entity: u16) void {
     _ = entity;
-}
-// export fn editor_editNpcStat(entity: u16, stat: u16) void {}
-export fn editor_duplicate_entity_npc(entity: u16) void {
-    _ = entity;
+
+    // TODO: Get values from either entities.entities (if entity <= entities.entities.len)
+    // otherwise
+    // Get values from editor_entities
+    // iterate values
+    // append to editor_entities
 }
 
 test "detect leak" {
