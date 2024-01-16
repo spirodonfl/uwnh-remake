@@ -761,6 +761,8 @@ export fn initEditor() void {
     editor_entities = ArrayList(u32).init(editor_entities_allocator);
 }
 export fn editor_modifyEntityHealth(entity: u16, health: u16) void {
+    _ = health;
+    _ = entity;
     // TODO: Make sure entity being referenced is not a NEW entity, only in existence within editor, as opposed to modifying original
     // editor_entities.append(entity);
     // editor_entities.append(1);
@@ -777,30 +779,30 @@ export fn editor_modifyEntityHealth(entity: u16, health: u16) void {
     // every time we edit an attribute
     // -> [thing_index, which_attribute, modified_value]
 
-    var entity_index = 0;
-    var have_modification: bool = false;
-    for (editor_entities, 0..) |value, i| {
-        if (i == entity_index + 1) {
-            // attribute
-            if (value == 0) {
-                // matches health enum
-                // modify value on next i
-                have_modification = true;
-            } 
-        }
-        else if (i == entity_index + 2) {
-            // value
-            if (have_modification) {
-                value = health;
-            }
-        }
-        else {
-            entity_index = i;
-            if (value == entity) {
-                // HIT
-            }
-        }
-    }
+    // var entity_index: u16 = 0;
+    // var have_modification: bool = false;
+    // for (editor_entities, 0..) |value, i| {
+    //     if (i == entity_index + 1) {
+    //         // attribute
+    //         if (value == 0) {
+    //             // matches health enum
+    //             // modify value on next i
+    //             have_modification = true;
+    //         } 
+    //     }
+    //     else if (i == entity_index + 2) {
+    //         // value
+    //         if (have_modification) {
+    //             value = health;
+    //         }
+    //     }
+    //     else {
+    //         entity_index = i;
+    //         if (value == entity) {
+    //             // HIT
+    //         }
+    //     }
+    // }
     // We did not find attribute modification, we must insert it
 }
 test "test_array_skippage" {
