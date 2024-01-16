@@ -1,10 +1,10 @@
-export function eventBus() {
-  this.registered = {};
+function EVENTBUS() {
+    this.registered = {};
 }
-eventBus.prototype.addEventListener = function (name, callback) {
-  if (!this.registered[name]) this.registered[name] = [];
-  this.registered[name].push(callback);
-};
-eventBus.prototype.triggerEvent = function (name, args) {
-  this.registered[name]?.forEach((fnc) => fnc.apply(this, args));
-};
+EVENTBUS.prototype.addEventListener = function (name, callback) {
+    if (!this.registered[name]) this.registered[name] = [];
+    this.registered[name].push(callback);
+}
+EVENTBUS.prototype.triggerEvent = function (name, args) {
+    this.registered[name]?.forEach(fnc => fnc.apply(this, args));
+}

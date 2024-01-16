@@ -54,9 +54,4 @@ var _WASM_IMPORTS = {
     camera_get_position_x() {},
     camera_get_position_y() {},
     camera_set_position(x, y) {},
-    initEditor() {},
-    editor_modifyEntityHealth(entity, health) {},
-    editor_create_entity_npc(health) {},
-    editor_edit_entity_npc_health(entity, health) {},
-    editor_duplicate_entity_npc(entity) {},
 };
