@@ -1,14 +1,21 @@
+const game = @import("game.zig");
+const helpers = @import("helpers.zig");
+const entities = game.entities;
+
+const std = @import("std");
+const ArrayList = std.ArrayList;
+
 var editor_entities_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 const editor_entities_allocator = editor_entities_arena.allocator();
 var editor_entities: ArrayList(u16) = undefined;
 var editor_entities_modifications_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 const editor_entities_modifications_allocator = editor_entities_modifications_arena.allocator();
 var editor_entities_modifications: ArrayList(u16) = undefined;
-export fn initEditor() void {
+pub fn init() void {
     editor_entities = ArrayList(u16).init(editor_entities_allocator);
     editor_entities_modifications = ArrayList(u16).init(editor_entities_modifications_allocator);
 }
-export fn editor_modifyEntityHealth(entity: u16, health: u16) void {
+export fn modifyEntityHealth(entity: u16, health: u16) void {
     // if entity <= world.entities length then we are manipulating
     // an existing/precompiled entity, so we store modification of that entity here
     // else if entity > world.entities, it means we are trying to reference an editor

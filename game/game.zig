@@ -13,15 +13,13 @@ const std = @import("std");
 const ArrayList = std.ArrayList;
 
 const helpers = @import("helpers.zig");
-
 const renderer = @import("renderer.zig");
-
 const worlds = @import("worlds.zig");
 const current_world = worlds.current_worlds[0];
 // TODO: Replace _current_world with current_world when ready
 const _current_world = 0;
 
-const entities = @import("entities.zig");
+pub const entities = @import("entities.zig");
 
 const DiffListEnum = enum(u16) {
     EntityMovement = 0,
@@ -128,6 +126,8 @@ const debug_allocator = debug_arena.allocator();
 var viewport_data_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 const viewport_data_allocator = viewport_data_arena.allocator();
 
+// @wasm
+// pub fn initGame() bool {
 export fn initGame() bool {
     diff_list = ArrayList(u16).init(diff_list_allocator);
     viewport_data = ArrayList(u16).init(viewport_data_allocator);
