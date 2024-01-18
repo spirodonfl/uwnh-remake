@@ -7,7 +7,7 @@ pub fn build(b: *Builder) void {
 
     const game = b.addSharedLibrary(.{
         .name = "game",
-        .root_source_file = .{ .path = "game/game.zig" },
+        .root_source_file = .{ .path = "game/wasm.zig" },
         .target = .{
             .cpu_arch = .wasm32,
             .os_tag = .freestanding,

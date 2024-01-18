@@ -251,7 +251,7 @@ WebAssembly.instantiateStreaming(fetch("/wasm/game.wasm"), importObject).then(
                 _GAME.clearDebug();
             },
             initGame: function() {
-                console.log('initGame', _GAME.initGame());
+                console.log('initGame', _GAME.game_initGame());
             },
         };
         LOADER.loaded('wasm');

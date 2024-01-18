@@ -2,18 +2,25 @@ const game = @import("game.zig");
 const helpers = @import("helpers.zig");
 const entities = game.entities;
 
+// TODO: Store arrays for modifications of original data
+// TODO: Store arrays for NEW data that only exists in editor
+// TODO: functions that generate new merged enums and/or other appropriate data so they can be re-compiled or baked back into the game
+
 const std = @import("std");
 const ArrayList = std.ArrayList;
 
-var editor_entities_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-const editor_entities_allocator = editor_entities_arena.allocator();
-var editor_entities: ArrayList(u16) = undefined;
+var editor_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+var editor_entities = ArrayList(u16).init(editor_arena.allocator());
 var editor_entities_modifications_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 const editor_entities_modifications_allocator = editor_entities_modifications_arena.allocator();
 var editor_entities_modifications: ArrayList(u16) = undefined;
 pub fn init() void {
-    editor_entities = ArrayList(u16).init(editor_entities_allocator);
     editor_entities_modifications = ArrayList(u16).init(editor_entities_modifications_allocator);
+}
+pub fn deinit() void {
+    editor_arena.clearRetainingCapacity();
+    _ = editor_arena.reset(.retain_capacity);
+
 }
 export fn modifyEntityHealth(entity: u16, health: u16) void {
     // if entity <= world.entities length then we are manipulating

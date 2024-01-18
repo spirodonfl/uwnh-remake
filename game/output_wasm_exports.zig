@@ -1,3 +1,5 @@
+// TODO: Can we use macros to do these definition exports for wasm functions?
+
 const std = @import("std");
 const mem = @import("std").mem;
 const ArrayList = std.ArrayList;
@@ -5,7 +7,7 @@ var gpa_allocator = std.heap.GeneralPurposeAllocator(.{}){};
 var allocator = gpa_allocator.allocator();
 
 const prefix: []const u8 = "game";
-const files = [_][]const u8{"debug", "diff", "worlds", "entities", "renderer", "viewport"};
+const files = [_][]const u8{"game", "debug", "diff", "worlds", "entities", "renderer", "viewport"};
 
 pub fn main() !void {
     const PP_file = try std.fs.cwd().createFile("game/wasm.zig", .{ .read = true });
@@ -19,8 +21,10 @@ pub fn main() !void {
         var buf_reader = std.io.bufferedReader(file.reader());
         var in_stream = buf_reader.reader();
 
-        const first_line = try std.fmt.allocPrint(allocator, "{s}{s}{s}{s}{s}", .{"const ", file_name, " = @import(\"", file_name, ".zig\");\n"});
-        try PP_file.writeAll(first_line);
+        // const first_line = try std.fmt.allocPrint(allocator, "{s}{s}{s}{s}{s}", .{"const ", file_name, " = @import(\"", file_name, ".zig\");\n"});
+        // TODO: Update other files where you use allocPrint with this
+        try PP_file.writer().print("const {s} = @import(\"{s}.zig\");\n", .{file_name, file_name});
+        // try PP_file.writeAll(first_line);
 
         var buf: [1024]u8 = undefined;
         var is_line_we_want: bool = false;

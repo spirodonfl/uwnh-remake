@@ -1,4 +1,26 @@
-// ZIG 0.11.0
+// Note: make sure to remain on ZIG 0.11.0
+//
+// TODO
+// - Move enums.zig enums to their individual files
+// -- Doing this retains the notion of namespacing so you don't have global enum names that clash
+// - It makes sense for diff/diff_list to have an arena allocator because you want to clear it every loop/frame/tick
+// -- what about viewport? (I think the answer is yes since it can change on the fly)
+// -- what about world/world_data? (I think the answer is also yes since you can load/unload worlds on the fly)
+// -- what about entities? (not the default "template" ones but the scene/world ones yes)
+// - ECS
+// -- array of entities (this serves as IDs?)
+// -- array of entity_types
+// -- array of components attached to entities ... how does this work?
+// --- [0, x.., 0, x..] where every x > 0 and every 0 = another entity
+// --- what about when you use the editor? you'd have to do something like [entity_index_id, add_or_remove_component, which_one]
+// --- then you have a component so then what?
+// --- no you need to keep them separated (like the song)
+// --- you need to queries like...
+// ---- "select * entities that have a health component"
+// ---- "select * entities where type = %"
+// ---- "select health from components where entity = %"
+// ---- seperate array for each component vs entities = entities_with_health_component = [_]u16.{0,3,4,8}...
+// - Go through all files that use "export fn" and convert them or remove them -> build process with // @wasm
 
 // TODO: Scripts
 // Outer array is script line
@@ -28,8 +50,6 @@ const DiffListEnum = enum(u16) {
     Viewport = 3,
     EntityUpdate = 4,
 };
-// TODO: Move diff_list stuff into its own file (?)
-// TODO: diff_list should also contain the viewport coordinates (either the coordinates themselves or the index reference to the world data)
 var diff_list: ArrayList(u16) = undefined;
 var viewport_data: ArrayList(u16) = undefined;
 
@@ -58,32 +78,11 @@ const DirectionsEnum = enum(u16) {
     Up = 2,
     Down = 3,
 };
-const SoundsEnum = enum(u16) {
-    ParticularSong = 0,
-    ParticularSound = 1
-};
-// TODO: Export enums out for editor && renderer to use && reference
-// During editor phase, if you make a change or add something new, you have to re-export
-// Output will merge original (base) + edited stuff
-// You recompile
-// You will have to ensure zig output_definitions can output to proper structures for different editor support (default json)
-// You will have to make sure the editor knows how to merge everything OR, alternatively, have a "JIT" output editor function with the ZIG compiled binary where it will spit out for you
-var string_reference_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-const string_reference_allocator = string_reference_arena.allocator();
-var sound_reference_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-const sound_reference_allocator = sound_reference_arena.allocator();
-var image_reference_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-const image_reference_allocator = image_reference_arena.allocator();
-// TODO: Editor arrays -> [entity_id/thing_id, modified_reference_value]
-// First check if there's a modified value in the editor (iterate editor arrays appropriate to what you're looking for)
-// If not, return original reference value
 
 
 //----------------------------------------
 // EDITOR FUNCTIONS HERE
 //----------------------------------------
-// const editor = @import("editor");
-// TODO: To make the above import work, we need to decouple the reference to the viewport_data so that it can be referenced within the editor.zig file
 export fn editor_deleteCollision(x: u16, y: u16) void {
     var reference_index = viewport_data.items[(y * renderer.viewport_size[0]) + x];
     // Since indexes in viewport_data actually start at 1 (where 0 = empty), we gotta offset this
@@ -126,8 +125,8 @@ const debug_allocator = debug_arena.allocator();
 var viewport_data_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 const viewport_data_allocator = viewport_data_arena.allocator();
 
-// pub fn initGame() bool {
-export fn initGame() bool {
+// @wasm
+pub fn initGame() bool {
     diff_list = ArrayList(u16).init(diff_list_allocator);
     viewport_data = ArrayList(u16).init(viewport_data_allocator);
     debug = ArrayList(u16).init(debug_allocator);

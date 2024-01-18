@@ -50,6 +50,7 @@ pub fn getPositionY(entity: u16) u16 {
 pub fn setHealth(entity: u16, health: u16) void {
     entities[entity_indexes[entity]] = health; 
 }
+// @wasm
 pub fn getImage(entity: u16) u16 {
     return entities[entity_indexes[entity] + 3];
 }
