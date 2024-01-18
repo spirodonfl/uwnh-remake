@@ -126,7 +126,6 @@ const debug_allocator = debug_arena.allocator();
 var viewport_data_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 const viewport_data_allocator = viewport_data_arena.allocator();
 
-// @wasm
 // pub fn initGame() bool {
 export fn initGame() bool {
     diff_list = ArrayList(u16).init(diff_list_allocator);
