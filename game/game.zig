@@ -9,28 +9,6 @@
 // script: [2][3]u8 = .{ .{ 0, 0, 0 }, .{ 0, 0, 0 } };
 // runScript(scriptIndex: u8)
 
-const StringsEnum = enum(u16) {
-    Hello = 0,
-    World = 1,
-};
-const EntitiesEnum = enum(u16) {
-    Player = 0,
-    Enemy = 1,
-    NPC = 2,
-};
-const ImagesEnum = enum(u16) {
-    Atlas = 0,
-    Player = 1,
-};
-const WorldsEnum = enum(u16) {
-    World1 = 0,
-    World2 = 1,
-};
-const ScriptsEnum = enum(u16) {
-    Script1 = 0,
-    Script2 = 1,
-};
-
 const std = @import("std");
 const ArrayList = std.ArrayList;
 
@@ -82,6 +60,26 @@ const DirectionsEnum = enum(u16) {
     Up = 2,
     Down = 3,
 };
+const SoundsEnum = enum(u16) {
+    ParticularSong = 0,
+    ParticularSound = 1
+};
+// TODO: Export enums out for editor && renderer to use && reference
+// During editor phase, if you make a change or add something new, you have to re-export
+// Output will merge original (base) + edited stuff
+// You recompile
+// You will have to ensure zig output_definitions can output to proper structures for different editor support (default json)
+// You will have to make sure the editor knows how to merge everything OR, alternatively, have a "JIT" output editor function with the ZIG compiled binary where it will spit out for you
+var string_reference_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+const string_reference_allocator = string_reference_arena.allocator();
+var sound_reference_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+const sound_reference_allocator = sound_reference_arena.allocator();
+var image_reference_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+const image_reference_allocator = image_reference_arena.allocator();
+// TODO: Editor arrays -> [entity_id/thing_id, modified_reference_value]
+// First check if there's a modified value in the editor (iterate editor arrays appropriate to what you're looking for)
+// If not, return original reference value
+
 
 //----------------------------------------
 // EDITOR FUNCTIONS HERE
@@ -120,8 +118,6 @@ export fn editor_addCollision(x: u16, y: u16) void {
     diff_list.append(y) catch unreachable;
 }
 
-const game_images = @import("images.zig");
-
 //----------------------------------------
 // FUNCTIONS HERE
 //----------------------------------------
@@ -133,7 +129,6 @@ var viewport_data_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 const viewport_data_allocator = viewport_data_arena.allocator();
 
 export fn initGame() bool {
-    game_images.init();
     diff_list = ArrayList(u16).init(diff_list_allocator);
     viewport_data = ArrayList(u16).init(viewport_data_allocator);
     debug = ArrayList(u16).init(debug_allocator);
@@ -570,274 +565,6 @@ export fn clearDebug() bool {
     debug.clearRetainingCapacity();
     _ = debug_arena.reset(.retain_capacity);
     return true;
-}
-
-// ------------------------------------------------------------------------------------------
-// ------ NEW FUNCTIONS
-export fn debug_get_data(index: u16) u16 {
-    return debug.items[index];
-}
-export fn debug_get_length() u16 {
-    return @as(u16, @intCast(debug.items.len));
-}
-export fn debug_clear_all() void {
-    debug.clearRetainingCapacity();
-    _ = debug_arena.reset(.retain_capacity);
-}
-test "test_debug_stuff" {
-    debug = ArrayList(u16).init(debug_allocator);
-    debug.append(1) catch unreachable;
-    try std.testing.expect(debug_get_length() == 1);
-    try std.testing.expect(debug_get_data(0) == 1);
-    debug_clear_all();
-    try std.testing.expect(debug_get_length() == 0);
-    // try std.testing.expect(debug_get_data(0) == 0);
-}
-
-export fn diff_list_get_data(index: u16) u16 {
-    return diff_list.items[index];
-}
-export fn diff_list_get_length() u16 {
-    return @as(u16, @intCast(diff_list.items.len));
-}
-export fn diff_list_clear_all() void {
-    diff_list.clearRetainingCapacity();
-    _ = diff_list_arena.reset(.retain_capacity);
-}
-test "test_diff_list_stuff" {
-    diff_list = ArrayList(u16).init(diff_list_allocator);
-    diff_list.append(1) catch unreachable;
-    try std.testing.expect(diff_list_get_length() == 1);
-    try std.testing.expect(diff_list_get_data(0) == 1);
-    diff_list_clear_all();
-    try std.testing.expect(diff_list_get_length() == 0);
-    // try std.testing.expect(diff_list_get_data(0) == 0);
-}
-
-export fn viewport_update() void {}
-export fn viewport_get_data(x: u16, y: u16) u16 {
-    var index = (y * x) + x;
-    return viewport_data.items[index];
-}
-export fn viewport_get_length() u16 {
-    return @as(u16, @intCast(viewport_data.items.len));
-}
-export fn viewport_clear() void {
-    viewport_data.clearRetainingCapacity();
-    _ = viewport_data_arena.reset(.retain_capacity);
-}
-test "test_viewport_stuff" {
-    viewport_data = ArrayList(u16).init(viewport_data_allocator);
-    viewport_data.append(0) catch unreachable;
-    viewport_data.append(1) catch unreachable;
-    // TODO: how would I test viewport_update ?
-    try std.testing.expect(viewport_get_data(1, 0) == 1);
-    try std.testing.expect(viewport_get_length() == 2);
-    viewport_clear();
-    try std.testing.expect(viewport_get_length() == 0);
-}
-
-// FUNCTION START
-// name: world_get_data
-// @param world: u16
-// FUNCTION END
-export fn world_get_data(world: u16, layer: u16, x: u16, y: u16) u16 {
-    var index: u16 = worlds.world_indexes[world];
-    var size: u16 = worlds.world_sizes[world];
-    var width: u16 = worlds.world_dimensions[(world * 2)];
-    index = index + (size * layer);
-    index = index + ((y * width) + x);
-    return worlds.all_worlds[index];
-}
-export fn world_get_width(world: u16) u16 {
-    return worlds.world_dimensions[(world * 2)];
-}
-export fn world_get_height(world: u16) u16 {
-    return worlds.world_dimensions[(world * 2) + 1];
-}
-export fn current_world_get_data(layer: u16, x: u16, y: u16) u16 {
-    var index: u16 = worlds.world_indexes[_current_world];
-    var size: u16 = worlds.world_sizes[_current_world];
-    var width: u16 = worlds.world_dimensions[(_current_world * 2)];
-    index = index + (size * layer);
-    index = index + ((y * width) + x);
-    return worlds.all_worlds[index];
-}
-export fn current_world_get_width() u16 {
-    return worlds.world_dimensions[(_current_world * 2)];
-}
-export fn current_world_get_height() u16 {
-    return worlds.world_dimensions[(_current_world * 2) + 1];
-}
-test "test_world_data" {
-    try std.testing.expect(world_get_data(1, 0, 2, 1) == 99);
-    try std.testing.expect(world_get_width(1) == 3);
-    try std.testing.expect(world_get_height(1) == 3);
-    try std.testing.expect(current_world_get_data(1, 1, 1) == 98);
-    try std.testing.expect(current_world_get_width() == 2);
-    try std.testing.expect(current_world_get_height() == 2);
-}
-
-export fn entity_set_position(entity: u16, x: u16, y: u16) void {
-    _ = y;
-    _ = x;
-    _ = entity;
-    // TODO: Both in entity array data AND in world npc layer data
-    // TODO: Check if entity even belongs in world??
-
-}
-export fn entity_move(index: u16) void {
-    // TODO: up down left right
-    _ = index;
-}
-export fn entity_attack(index: u16, entity_attacked_index: u16) void {
-    _ = index;
-    _ = entity_attacked_index;
-}
-export fn entity_get_health(entity: u16) u16 {
-    // TODO: Check if editor_entities length > 0
-    // If so, find entity_index (in parameter) and check if modification includes 0, new_health_modified_value
-    // return that instead of original
-    return entities.entities[entities.entity_indexes[entity]]; 
-}
-export fn entity_get_position_x(entity: u16) u16 {
-    return entities.entities[entities.entity_indexes[entity] + 1];
-}
-export fn entity_get_position_y(entity: u16) u16 {
-    return entities.entities[entities.entity_indexes[entity] + 2];
-}
-export fn entity_set_health(entity: u16, health: u16) void {
-    entities.entities[entities.entity_indexes[entity]] = health; 
-}
-test "test_entities" {
-    try std.testing.expect(entity_get_health(0) == 10);
-    entity_set_health(0, 11);
-    try std.testing.expect(entity_get_health(0) == 11);
-    try std.testing.expect(entity_get_position_x(0) == 0);
-    try std.testing.expect(entity_get_position_y(0) == 0);
-}
-
-export fn image_get_data(image: u16, cursor: u16) u16 {
-    var index = game_images.image_indexes[image];
-    index = index + cursor;
-    return game_images.image_atlas[index];
-}
-export fn image_get_size(image: u16) u16 {
-    return game_images.image_sizes[image];
-}
-export fn image_get_width(image: u16) u16 {
-    return game_images.image_dimensions[(image * 2)];
-}
-export fn image_get_height(image: u16) u16 {
-    return game_images.image_dimensions[(image * 2) + 1];
-}
-test "test_images" {
-    try std.testing.expect(image_get_data(0, 3) == 255);
-    try std.testing.expect(image_get_size(0) == 16);
-    try std.testing.expect(image_get_width(0) == 2);
-    try std.testing.expect(image_get_height(0) == 2);
-}
-
-export fn camera_get_position_x() u16 {
-    return renderer.camera_position[0];
-}
-export fn camera_get_position_y() u16 {
-    return renderer.camera_position[1];
-}
-export fn camera_set_position(x: u16, y: u16) void {
-    renderer.camera_position[0] = x;
-    renderer.camera_position[1] = y;
-}
-test "test_camera" {
-    try std.testing.expect(camera_get_position_x() == 0);
-    camera_set_position(0, 3);
-    try std.testing.expect(camera_get_position_y() == 3);
-}
-
-var editor_entities_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-const editor_entities_allocator = editor_entities_arena.allocator();
-var editor_entities: ArrayList(u16) = undefined;
-var editor_entities_modifications_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-const editor_entities_modifications_allocator = editor_entities_modifications_arena.allocator();
-var editor_entities_modifications: ArrayList(u16) = undefined;
-export fn initEditor() void {
-    editor_entities = ArrayList(u16).init(editor_entities_allocator);
-    editor_entities_modifications = ArrayList(u16).init(editor_entities_modifications_allocator);
-}
-export fn editor_modifyEntityHealth(entity: u16, health: u16) void {
-    // if entity <= world.entities length then we are manipulating
-    // an existing/precompiled entity, so we store modification of that entity here
-    // else if entity > world.entities, it means we are trying to reference an editor
-    // entity (ephemeral) so simply modify that original set of data
-    
-    if (entity > entities.entity_indexes.len) {
-        var offset: u16 = entity - @as(u16, @intCast(entities.entity_indexes.len));
-        offset = offset * 3;
-        offset = offset + (helpers.enumToU16(entities.EntityDataEnum, entities.EntityDataEnum.Health) + 1); 
-        editor_entities.items[offset] = health;
-    } else {
-        var i: usize = 0;
-        var have_modification: bool = false;
-        while (i < editor_entities_modifications.items.len) {
-            if (i == entity) {
-                var value = editor_entities_modifications.items[(i + 1)];
-                if (value == helpers.enumToU16(entities.EntityDataEnum, entities.EntityDataEnum.Health)) {
-                    // Matches health enum
-                    editor_entities_modifications.items[(i + 2)] = health;
-                    have_modification = true;
-                }
-            }
-            i += 2; // default # to skip because entity_i = [attribute, modified_value]
-        }
-        if (!have_modification) {
-            editor_entities_modifications.append(entity) catch unreachable;
-            editor_entities_modifications.append(helpers.enumToU16(entities.EntityDataEnum, entities.EntityDataEnum.Health)) catch unreachable;
-            editor_entities_modifications.append(health) catch unreachable;
-        }
-    }
-}
-// TODO: EDITOR FUNCTIONS
-// Copy editor_addCollision and editor_removeCollision
-// - Collision Management
-// - Entity Management
-// -- NPC
-// --- Edit && Create
-// -- Item
-// --- Armor
-// --- Weapons
-// --- Ship stuff (like lime juice)
-// -- Ship
-// - World Management
-// -- Edit && Create World
-// -- Starting locations of entit(ies)
-// -- Layers (?)
-// - Port Management
-// -- Name
-// -- Location in world?
-// - World Management
-// -- Layers
-// -- NPCs
-// -- Collisions
-// -- Backgound
-// -- Foreground
-// -- Extra in between????
-// - Images
-// -- Create New Image
-// -- Edit Existing Image
-export fn editor_createEntityNpc(health: u16) void {
-    // TODO: Iterate enum cases to fill this out instead of hard coding
-    editor_entities.append(health); // health
-    editor_entities.append(0); // x
-    editor_entities.append(1); // y
-}
-export fn editor_duplicateEntityNpc(entity: u16) void {
-    _ = entity;
-
-    // TODO: Get values from either entities.entities (if entity <= entities.entities.len)
-    // otherwise
-    // Get values from editor_entities
-    // iterate values
-    // append to editor_entities
 }
 
 test "detect leak" {

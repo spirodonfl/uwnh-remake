@@ -1,11 +1,22 @@
 const SIZE = 32;
 const SCALE = 2;
+
+// TODO: This can be its own file in the future, ideally somehow imported auto-magically
+const IMAGEENUM = [
+    // zig -> ImagesEnum.PlayerImage
+    'images/ship-1.gif',
+    // zig -> ImagesEnum.NPCImage
+    'images/ship-2.gif',
+    // zig -> ImagesEnum.OceanBGImage
+    'images/ocean-bg-1.gif',
+];
 let DOM = {
     width: 0,
     height: 0,
     __world_rendered: false,
     renderWorld: function () {
         let element_view = document.getElementById('view');
+        element_view.style.backgroundImage = 'url(' + IMAGEENUM[_GAME.current_world_get_data(0, 0, 0)] + ')';
         if (EDITOR.camera_has_changed) {
             var collision_blocks = document.querySelectorAll('.blue');
             for (var c = 0; c < collision_blocks.length; ++c) {
@@ -98,6 +109,7 @@ let DOM = {
                         if (data === 0)
                         {
                             element_entity.classList.add('purple');
+                            element_entity.style.backgroundImage = 'url(' + IMAGEENUM[_GAME.entityGetImage(0)] + ')';
                         }
                         else
                         {
@@ -317,6 +329,7 @@ function animateEntities () {
                                 element_item.setAttribute('data-y', to_coords[1]);
                                 element_item.style.left = (to_coords[0] * (SIZE * SCALE)) + 'px';
                                 element_item.style.top = (to_coords[1] * (SIZE * SCALE)) + 'px';
+                                element_item.style.backgroundImage = 'url(' + IMAGEENUM[_GAME.entityGetImage(0)] + ')';
                             }
                             mode = null;
                         }
