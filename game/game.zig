@@ -1,7 +1,7 @@
 // Note: make sure to remain on ZIG 0.11.0
 //
 // TODO
-// - Move enums.zig enums to their individual files
+// - Move enums.zig enums to their respective files
 // -- Doing this retains the notion of namespacing so you don't have global enum names that clash
 // - It makes sense for diff/diff_list to have an arena allocator because you want to clear it every loop/frame/tick
 // -- what about viewport? (I think the answer is yes since it can change on the fly)
@@ -21,6 +21,7 @@
 // ---- "select health from components where entity = %"
 // ---- seperate array for each component vs entities = entities_with_health_component = [_]u16.{0,3,4,8}...
 // - Go through all files that use "export fn" and convert them or remove them -> build process with // @wasm
+// - Figure out the chain of initializations given new file structure, such as game->init() --->>> editor->init() ---->>>++++ entities->init()
 
 // TODO: Scripts
 // Outer array is script line
