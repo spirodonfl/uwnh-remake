@@ -128,24 +128,22 @@ pub var data: [size]u16 = .{${new_world_data.join(', ')}};
             }
         }
     },
-    __testBitPacked: function () {
+    memoryToBin: function (memory_length, memory_start, file_name) {
         let data_view = new DataView(_GAME.memory.buffer, 0, _GAME.memory.byteLength);
         let data = [];
-        for (let i = 0; i < 256; ++i) {
-            let current_position = _GAME.getEntity(0) + (i * 2);
+        for (let i = 0; i < memory_length; ++i) {
+            let current_position = memory_start + (i * 2);
             data.push(data_view.getUint16(current_position, true));
         }
-        console.log(data);
-        // let binary_data = [];
-        // let blob  = new Blob([new Uint16Array(binary_data)], {type: 'application/octet-stream'});
         let blob = new Blob([new Uint16Array(data)], {type: 'application/octet-stream'});
+        console.log(data);
 
         function download() {
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
 
             link.href = url;
-            link.download = 'test_data.bin';
+            link.download = file_name;
             document.body.appendChild(link);
             link.click();
 
@@ -155,33 +153,23 @@ pub var data: [size]u16 = .{${new_world_data.join(', ')}};
 
         download();
     },
-    __testNotBitPacked: function () {
-        let data_view = new DataView(_GAME.memory.buffer, 0, _GAME.memory.byteLength);
-        let data = '';
-        for (let i = 0; i < 256; ++i) {
-            let current_position = _GAME.getEntity(0) + (i * 2);
-            data += data_view.getUint16(current_position, true) + '';
-        }
-        console.log(data);
-
-        const file = new File([data], 'test_entity_test.zig', {
-            type: 'text/plain',
-        });
-
+    generateBlob: function (data) {
+        return new Blob([new Uint16Array(data)], {type: 'application/octet-stream'});
+    },
+    blobToBin: function(blob, file_name) {
         function download() {
-            const link = document.createElement('a')
-            const url = URL.createObjectURL(file)
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
 
-            link.href = url
-            link.download = file.name
-            document.body.appendChild(link)
-            link.click()
+            link.href = url;
+            link.download = file_name;
+            document.body.appendChild(link);
+            link.click();
 
-            document.body.removeChild(link)
-            window.URL.revokeObjectURL(url)
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
         }
 
         download();
-
     }
 };

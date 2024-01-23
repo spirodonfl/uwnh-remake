@@ -574,21 +574,37 @@ test "detect leak" {
     try std.testing.expect(list.items.len == 1);
 }
 
-// fn readWorldData() {
-//     // ...
-//     // -> convert binary data to world data
-//     // -> load it somewhere
-// }
-fn readEntityData() void {
-    // ... read from entity_0...bin
-    // allocate some memory for it
-    // - how do we determine how much data to allocate
-    // convert the binary data
-    // append binary data into allocated memory
+// @wasm
+pub fn new_initializeGame() void {
+    // read initial game stuff
+    // - one world
+    // -- all layers
+    // - the player
+    // - an npc
+}
+const embeds = @import("embeds.zig");
+const _embeds = @import("_embeds.zig");
+// @wasm
+pub fn new_getWorld() u16 {
+    // var file = embeds.world_zero;
+    var file = _embeds.world_4;
+    var i: usize = 0;
+    var ret: u16 = 0;
+    while (i < file.len) {
+        // LITTLE ENDIAN MODE
+        var tf: u16 = (@as(u16, @intCast(file[i + 1])) << 8) | @as(u16, @intCast(file[i]));
+        // BIG ENDIAN MODE
+        // var tf: u16 = (@as(u16, @intCast(test_file[ii] << 8) | @as(u16, @intCast(test_file[ii + 1]));
+        // std.debug.print("C: {d}\n", .{tf});
+        ret = tf;
+        i += 2;
+    }
+    return ret;
 }
 test "read_dir" {
     var dir = try std.fs.cwd().openIterableDir("game/binaries", .{});
     var it = dir.iterate();
+    var inner_test_worlds = ArrayList(u16).init(allocator);
 
     while (try it.next()) |entry| {
         switch (entry.kind) {
@@ -598,20 +614,34 @@ test "read_dir" {
                 std.debug.print("FIle anem: {s}\n", .{file_name});
                 const file_size = (try f.stat()).size;
                 const reader = f.reader();
-                var memory = try allocator.alloc(u16, (file_size / 2));
-                defer allocator.free(memory);
 
-                var ma_i: usize = 0;
-                while (true) {
-                    const i = reader.readInt(u16, .Little) catch |e| switch (e) {
-                        error.EndOfStream => break,
-                        else => return e,
-                    };
-                    std.debug.print("i={}\n", .{i});
-                    memory[ma_i] = i;
-                    ma_i += 1;
+                if (std.mem.eql(u8, file_name, "game/binaries/world_0_layer_0.bin")) {
+                    while (true) {
+                        const i = reader.readInt(u16, .Little) catch |e| switch (e) {
+                            error.EndOfStream => break,
+                            else => return e,
+                        };
+                        // std.debug.print("i={}\n", .{i});
+                        try inner_test_worlds.append(i);
+                    }
+                    for (inner_test_worlds.items) |inner_value| {
+                        std.debug.print("ITW: {d}\n", .{inner_value});
+                    }
+                } else {
+                    var memory = try allocator.alloc(u16, (file_size / 2));
+                    defer allocator.free(memory);
+
+                    var ma_i: usize = 0;
+                    while (true) {
+                        const i = reader.readInt(u16, .Little) catch |e| switch (e) {
+                            error.EndOfStream => break,
+                            else => return e,
+                        };
+                        // std.debug.print("i={}\n", .{i});
+                        memory[ma_i] = i;
+                        ma_i += 1;
+                    }
                 }
-
             },
             .directory => {
                 // try addFiles(b, exe, name);

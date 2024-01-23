@@ -2,6 +2,12 @@ const game = @import("game.zig");
 export fn game_initGame() bool {
     return game.initGame();
 }
+export fn game_new_initializeGame() void {
+    return game.new_initializeGame();
+}
+export fn game_new_getWorld() u16 {
+    return game.new_getWorld();
+}
 const debug = @import("debug.zig");
 const diff = @import("diff.zig");
 export fn diff_getData(index: u16) u16 {
