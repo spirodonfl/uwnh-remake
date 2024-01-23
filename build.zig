@@ -26,6 +26,9 @@ pub fn build(b: *Builder) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    var files = std.ArrayList([]const u8).init(b.allocator);
+    defer files.deinit();
+
     const game = b.addSharedLibrary(.{
         .name = "game",
         .root_source_file = .{ .path = "game/wasm.zig" },
@@ -37,6 +40,10 @@ pub fn build(b: *Builder) !void {
     });
     game.rdynamic = true;
     try addFiles(b, game, "game/binaries/");
+    // Pass the list of embedded files to the main program
+    var file = b.addOptions();
+    file.addOption([][]const u8, "names", files.items);
+    game.addOptions("embedded_files", file);
     b.installArtifact(game);
 
     const bindgen = b.addExecutable(.{
