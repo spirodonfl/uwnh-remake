@@ -1,8 +1,6 @@
 // Note: make sure to remain on ZIG 0.11.0
 //
 // TODO
-// - Move enums.zig enums to their respective files
-// -- Doing this retains the notion of namespacing so you don't have global enum names that clash
 // - It makes sense for diff/diff_list to have an arena allocator because you want to clear it every loop/frame/tick
 // -- what about viewport? (I think the answer is yes since it can change on the fly)
 // -- what about world/world_data? (I think the answer is also yes since you can load/unload worlds on the fly)
@@ -575,3 +573,38 @@ test "detect leak" {
 
     try std.testing.expect(list.items.len == 1);
 }
+
+test "read_bin" {
+    const f = try std.fs.cwd().openFile("test_data.bin", .{});
+    const reader = f.reader();
+    while (true) {
+        const i = reader.readInt(u16, .Little) catch |e| switch (e) {
+            error.EndOfStream => break,
+            else => return e,
+        };
+        std.debug.print("i={}\n", .{i});
+    }
+}
+
+// fn readTestBinary() !void {
+//     var gpa = generalpurposeallocator;
+//     // defer
+//     const allocator = gpa.allocator();
+// 
+//     const file = std.fs.cwrd().openFile("test_data.bin");
+// // defer
+// //
+//     file.reader().readIntLittle(u16);
+// 
+//     var buffer = std.io.bufferedereader(file.reader(), 0);
+//     const reader = buffer.reader();
+// 
+//     var data = reader.readAllAllocator(allocator);
+//     //defer 
+// //
+//     const num_integers = data.len / @sizeOf(u16);
+//     var i: usize = 0;
+//     while (i < num_integer) : (i += 1) {
+//         const integer = @ptrCast(*u16, data[i * @sizeOf(u16) ..])[0];
+//     }
+// }

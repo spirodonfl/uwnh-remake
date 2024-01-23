@@ -127,5 +127,61 @@ pub var data: [size]u16 = .{${new_world_data.join(', ')}};
                 d[i].remove();
             }
         }
+    },
+    __testBitPacked: function () {
+        let data_view = new DataView(_GAME.memory.buffer, 0, _GAME.memory.byteLength);
+        let data = [];
+        for (let i = 0; i < 256; ++i) {
+            let current_position = _GAME.getEntity(0) + (i * 2);
+            data.push(data_view.getUint16(current_position, true));
+        }
+        console.log(data);
+        // let binary_data = [];
+        // let blob  = new Blob([new Uint16Array(binary_data)], {type: 'application/octet-stream'});
+        let blob = new Blob([new Uint16Array(data)], {type: 'application/octet-stream'});
+
+        function download() {
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+
+            link.href = url;
+            link.download = 'test_data.bin';
+            document.body.appendChild(link);
+            link.click();
+
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        }
+
+        download();
+    },
+    __testNotBitPacked: function () {
+        let data_view = new DataView(_GAME.memory.buffer, 0, _GAME.memory.byteLength);
+        let data = '';
+        for (let i = 0; i < 256; ++i) {
+            let current_position = _GAME.getEntity(0) + (i * 2);
+            data += data_view.getUint16(current_position, true) + '';
+        }
+        console.log(data);
+
+        const file = new File([data], 'test_entity_test.zig', {
+            type: 'text/plain',
+        });
+
+        function download() {
+            const link = document.createElement('a')
+            const url = URL.createObjectURL(file)
+
+            link.href = url
+            link.download = file.name
+            document.body.appendChild(link)
+            link.click()
+
+            document.body.removeChild(link)
+            window.URL.revokeObjectURL(url)
+        }
+
+        download();
+
     }
 };
