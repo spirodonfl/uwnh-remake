@@ -12,16 +12,10 @@
 // if there are changes that need to be taken into account since
 // the last loop/tick/frame
 
-pub const DiffListEnum = enum(u16) {
-    EntityMovement = 0,
-    World = 1,
-    Collision = 2,
-    Viewport = 3,
-    EntityUpdate = 4,
-};
-
 const std = @import("std");
 const ArrayList = std.ArrayList;
+
+const enums = @import("enums.zig");
 
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 
@@ -35,11 +29,17 @@ pub fn getLength() u16 {
     return @as(u16, @intCast(diff_list.items.len));
 }
 // @wasm
+pub fn addData(data: u16) void {
+    diff_list.append(data) catch unreachable;
+}
+// @wasm
 pub fn clearAll() void {
     diff_list.clearRetainingCapacity();
     _ = arena.reset(.retain_capacity);
     // Note: We use "retain capacity" features so we don't have to re-init
 }
+
+// TESTS
 test "test_diff_list_stuff" {
     diff_list = ArrayList(u16).init(arena.allocator());
     diff_list.append(1) catch unreachable;

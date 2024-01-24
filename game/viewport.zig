@@ -5,16 +5,31 @@ var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 const allocator = arena.allocator();
 var data = ArrayList(u16).init(allocator);
 
-pub fn init() void {}
-pub fn update() void {}
+pub var viewport_size: [2]u16 = .{ 0, 0 };
+var viewport_data = ArrayList(u16).init(allocator);
+// @wasm
+pub fn getDataIndex(index: u16) u16 {
+    return viewport_data.items[index];
+}
+// @wasm
+pub fn setDataIndex(index: u16, value: u16) void {
+    viewport_data.items[index] = value;
+}
 // @wasm
 pub fn getData(x: u16, y: u16) u16 {
-    var index = (y * x) + x;
-    return data.items[index];
+    var index = y * viewport_size[0] + x;
+    return getDataIndex(index);
 }
+// @wasm
+pub fn setData(x: u16, y: u16, value: u16) void {
+    var index = y * viewport_size[0] + x;
+    setDataIndex(index, value);
+}
+// @wasm
 pub fn getLength() u16 {
     return @as(u16, @intCast(data.items.len));
 }
+// @wasm
 pub fn clear() void {
     data.clearRetainingCapacity();
     _ = arena.reset(.retain_capacity);
