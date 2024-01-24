@@ -57,19 +57,15 @@ pub fn main() !void {
                     }
                 }
                 
-                try buffer_embeds.appendSlice("    @embedFile(\"binaries/");
-                try buffer_embeds.appendSlice(entry.name);
-                try buffer_embeds.append('"');
-                try buffer_embeds.append(')');
-                try buffer_embeds.append(',');
-                try buffer_embeds.append('\n');
+                try buffer_embeds.writer().print(
+                    \\    @embedFile("binaries/{s}"),
+                    \\
+                , .{entry.name});
 
-                try buffer_names.appendSlice("    ");
-                try buffer_names.append('"');
-                try buffer_names.appendSlice(entry.name);
-                try buffer_names.append('"');
-                try buffer_names.append(',');
-                try buffer_names.append('\n');
+                try buffer_names.writer().print(
+                    \\    "{s}",
+                    \\
+                , .{entry.name});
             },
             .directory => {
                 // try addFiles(b, exe, name);
@@ -78,36 +74,19 @@ pub fn main() !void {
         }
     }
 
-    if (buffer_embeds.items.len > 0) {
-        _ = buffer_embeds.pop();
-        _ = buffer_embeds.pop();
-    }
-    if (buffer_names.items.len > 0) {
-        _ = buffer_names.pop();
-        _ = buffer_names.pop();
-    }
-
     const embeds = try buffer_embeds.toOwnedSlice();
     try PP_file.writeAll(embeds);
 
-    // try PP_file.writer().print(
-    //     \\};
-    // , .{});
-    try PP_file.writeAll("\n};");
-    try PP_file.writeAll("\n");
-    try PP_file.writeAll("\n");
-    try PP_file.writeAll("pub const file_names = [_][]const u8{\n");
     const names = try buffer_names.toOwnedSlice();
-    try PP_file.writeAll(names);
-    try PP_file.writeAll("\n};");
-    try PP_file.writeAll("\n");
-    try PP_file.writeAll("\n");
-    try PP_file.writeAll("pub const total_worlds: u16 = ");
-    try PP_file.writeAll(try std.fmt.allocPrint(allocator, "{d}", .{total_worlds}));
-    try PP_file.writeAll(";");
-    try PP_file.writeAll("\n");
-    try PP_file.writeAll("pub const total_entities: u16 = ");
-    try PP_file.writeAll(try std.fmt.allocPrint(allocator, "{d}", .{total_entities}));
-    try PP_file.writeAll(";");
+    try PP_file.writer().print(
+        \\}};
+        \\
+        \\pub const file_names = [_][]const u8{{
+        \\{s}
+        \\}};
+        \\
+        \\pub const total_worlds: u16 = {d};
+        \\pub const total_entities: u16 = {d};
+    , .{names, total_worlds, total_entities});
 
 }

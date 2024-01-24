@@ -560,11 +560,18 @@ pub fn loadWorld(index: u16) void {
 
 // @wasm
 pub fn getEntityById(id: u16) u16 {
-    const entity_file_name = std.fmt.allocPrint(allocator, "entity_{d}.bin", .{id}) catch unreachable;
-    const file_index = getFileIndexByName(entity_file_name);
-    return readFromEmbeddedFile(file_index, 0, 0);
+    // TODO: Update so this returns the entity type + attached components via ID/ENUM match
+    if (id >= embeds.total_entities) {
+        var offset_index: u16 = id - embeds.total_entities;
+        return editor.entities.items[offset_index];
+    } else {
+        const entity_file_name = std.fmt.allocPrint(allocator, "entity_{d}.bin", .{id}) catch unreachable;
+        const file_index = getFileIndexByName(entity_file_name);
+        return readFromEmbeddedFile(file_index, 0, 0);
+    }
 }
 
+// NOTE: NOT WASM COMPATIBLE
 pub fn getFileIndexByName(name: []const u8) usize {
     var file_index: usize = 0;
     for (embeds.file_names, 0..) |file_name, i| {

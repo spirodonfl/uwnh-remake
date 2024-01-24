@@ -59,7 +59,11 @@ pub fn clearAll() void {
     _ = arena.reset(.retain_capacity);
 }
 
-// pub fn modifyWorld(world: u16, layer: u16, x: u16, y: u16, value: u16) {}
+// pub fn modifyWorld(world: u16, layer: u16, x: u16, y: u16, value: u16) void {
+    // TODO: Get either base world OR editor world and add a modification entry
+    // if editor world, simply update memory
+    // if base world, modification entiry
+// }
 // pub fn modifyEntity() ????????
 
 

@@ -4,7 +4,7 @@ pub var embeds = [_][]const u8{
     @embedFile("binaries/world_0_layer_0.bin"),
     @embedFile("binaries/world_0_layer_1.bin"),
     @embedFile("binaries/world_0_layer_2.bin"),
-    @embedFile("binaries/world_0_size.bin")
+    @embedFile("binaries/world_0_size.bin"),
 };
 
 pub const file_names = [_][]const u8{
@@ -13,7 +13,8 @@ pub const file_names = [_][]const u8{
     "world_0_layer_0.bin",
     "world_0_layer_1.bin",
     "world_0_layer_2.bin",
-    "world_0_size.bin"
+    "world_0_size.bin",
+
 };
 
 pub const total_worlds: u16 = 4;
