@@ -8,3 +8,4 @@ zig-out
 node-modules
 .vscode
 web/scripts/js.bindings.js
+!build-game.sh
