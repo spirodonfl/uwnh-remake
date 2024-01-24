@@ -1,6 +1,66 @@
-// REDO ALL OF THIS GIT GUD NOW
+const std = @import("std");
+const ArrayList = std.ArrayList;
 
+var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+pub var worlds = ArrayList(ArrayList(u16)).init(arena.allocator());
+pub var entities = ArrayList(u16).init(arena.allocator());
+pub var world_layer = ArrayList(u16).init(arena.allocator());
+pub var layers = ArrayList(ArrayList(u16)).init(arena.allocator());
+// @wasm
+pub fn createLayer(width: u16, height: u16, layer_type: u16) void {
+    var total_size: u16 = width * height;
+    var total_size_iteration: u16 = 0;
+    var new_layer = ArrayList(u16).init(arena.allocator());
+    new_layer.append(layer_type) catch unreachable;
+    while (total_size_iteration < total_size) {
+        new_layer.append(0) catch unreachable;
+        total_size += 1;
+    }
+    layers.append(new_layer) catch unreachable;
+}
+// @wasm
+pub fn attachLayerToWorld(world_index: u16, layer_index: u16) void {
+    world_layer.append(world_index) catch unreachable;
+    world_layer.append(layer_index) catch unreachable;
+}
+// @wasm
+pub fn createWorld(width: u16, height: u16) void {
+    var new_world = ArrayList(u16).init(arena.allocator());
+    new_world.append(width) catch unreachable;
+    new_world.append(height) catch unreachable;
+    worlds.append(new_world) catch unreachable;
+}
+// @wasm
+pub fn totalWorlds() u16 {
+    return @as(u16, @intCast(worlds.items.len));
+}
+// @wasm
+pub fn totalEntities() u16 {
+    return @as(u16, @intCast(entities.items.len));
+}
+// @wasm
+pub fn createEntity(entity_type: u16) void {
+    entities.append(entity_type) catch unreachable;
+}
+// @wasm
+pub fn clearWorlds() void {
+    worlds.deinit();
+}
+// @wasm
+pub fn clearEntities() void {
+    entities.deinit();
+}
+// @wasm
+pub fn clearAll() void {
+    worlds.clearRetainingCapacity();
+    entities.clearRetainingCapacity();
+    world_layer.clearRetainingCapacity();
+    layers.clearRetainingCapacity();
+    _ = arena.reset(.retain_capacity);
+}
 
+// pub fn modifyWorld(world: u16, layer: u16, x: u16, y: u16, value: u16) {}
+// pub fn modifyEntity() ????????
 
 
 

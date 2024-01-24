@@ -542,11 +542,14 @@ const ArrayList = std.ArrayList;
 var gpa_allocator = std.heap.GeneralPurposeAllocator(.{}){};
 var allocator = gpa_allocator.allocator();
 
+const enums = @import("enums.zig");
 const embeds = @import("embeds.zig");
 const debug = @import("debug.zig");
 const helpers = @import("helpers.zig");
 const renderer = @import("renderer.zig");
 const diff = @import("diff.zig");
+const editor = @import("editor.zig");
+const viewport = @import("viewport.zig");
 
 var current_world_index: u16 = 0;
 // @wasm
@@ -555,8 +558,25 @@ pub fn loadWorld(index: u16) void {
     // TODO: Update viewport data??
 }
 
-// TODO: Can this be moved to a helper function or something else?
-fn readFromEmbeddedFile(file: []const u8, index: u16, mode: u16) u16 {
+// @wasm
+pub fn getEntityById(id: u16) u16 {
+    const entity_file_name = std.fmt.allocPrint(allocator, "entity_{d}.bin", .{id}) catch unreachable;
+    const file_index = getFileIndexByName(entity_file_name);
+    return readFromEmbeddedFile(file_index, 0, 0);
+}
+
+pub fn getFileIndexByName(name: []const u8) usize {
+    var file_index: usize = 0;
+    for (embeds.file_names, 0..) |file_name, i| {
+        if (std.mem.eql(u8, file_name, name)) {
+            file_index = i;
+        }
+    }
+    return file_index;
+}
+// @wasm
+pub fn readFromEmbeddedFile(file_index: usize, index: u16, mode: u16) u16 {
+    var file = embeds.embeds[file_index];
     const adjusted_index = index * 2;
 
     var pulled_value: u16 = 0;
@@ -572,24 +592,45 @@ fn readFromEmbeddedFile(file: []const u8, index: u16, mode: u16) u16 {
 }
 // @wasm
 pub fn initializeGame() void {
-    // TODO: Set current world to initial world
+    // TODO: ???
 }
 // @wasm
 pub fn getWorld(world: u16, layer: u16, x: u16, y: u16) u16 {
-    const world_layer_file_name = std.fmt.allocPrint(allocator, "world_{d}_layer_{d}.bin", .{world, layer}) catch unreachable;
-    const world_size_file_name = std.fmt.allocPrint(allocator, "world_{d}_size.bin", .{world}) catch unreachable;
-    var world_layer_file_name_index: usize = 0;
-    var world_size_file_index: usize = 0;
-    for (embeds.file_names, 0..) |name, i| {
-        if (std.mem.eql(u8, name, world_layer_file_name)) {
-            world_layer_file_name_index = i;
-        } else if (std.mem.eql(u8, name, world_size_file_name)) {
-            world_size_file_index = i;
+    // TODO: Have editor interject the return here if
+    // - if editor has modifications to "world"
+    if (world >= embeds.total_worlds) {
+        var offset_index: u16 = world - embeds.total_worlds;
+        // iterate over editor.world_layer until you get a match
+        var cursor: u16 = 0;
+        var layer_index: u16 = 0;
+        while (cursor < editor.world_layer.items.len) {
+            var e_world: u16 = editor.world_layer.items[cursor];
+            var e_layer: u16 = editor.world_layer.items[(cursor + 1)];
+            if (e_world == offset_index and e_layer == layer) {
+                layer_index = layer;
+                break;
+            }
+            cursor += 2;
         }
+        var w = editor.worlds.items[offset_index].items[0];
+        var index: u16 = y * w * x;
+        return editor.layers.items[layer_index].items[index];
+    } else {
+        const world_layer_file_name = std.fmt.allocPrint(allocator, "world_{d}_layer_{d}.bin", .{world, layer}) catch unreachable;
+        const world_size_file_name = std.fmt.allocPrint(allocator, "world_{d}_size.bin", .{world}) catch unreachable;
+        var world_layer_file_name_index: usize = 0;
+        var world_size_file_index: usize = 0;
+        for (embeds.file_names, 0..) |name, i| {
+            if (std.mem.eql(u8, name, world_layer_file_name)) {
+                world_layer_file_name_index = i;
+            } else if (std.mem.eql(u8, name, world_size_file_name)) {
+                world_size_file_index = i;
+            }
+        }
+        var w = readFromEmbeddedFile(world_size_file_index, 0, 0);
+        var index: u16 = y * w + x;
+        return readFromEmbeddedFile(world_layer_file_name_index, index, 0);
     }
-    var w = readFromEmbeddedFile(embeds.assets[world_size_file_index], 0, 0);
-    var index: u16 = y * w + x;
-    return readFromEmbeddedFile(embeds.assets[world_layer_file_name_index], index, 0);
 }
 
 test "string_stuff" {
