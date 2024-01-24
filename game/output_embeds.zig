@@ -15,23 +15,11 @@ pub fn main() !void {
     var total_worlds: u16 = 0;
     var total_entities: u16 = 0;
 
-    // try PP_file.writer().print(
-    //     \\pub var assets = [_][]const u8{
-    // , .{});
     try PP_file.writeAll("pub var embeds = [_][]const u8{\n");
 
     while (try it.next()) |entry| {
         switch (entry.kind) {
             .file => {
-                // try PP_file.writer().print(
-                //     \\pub const world_{d} = @embedFile("binaries/{s}");
-                //     \\
-                // , .{world_i, entry.name});
-                // try PP_file.writer().print(
-                //     \\@embedFile("binaries/{s}")
-                // , .{entry.name});
-
-                // Note: Keeping this commented here in case it's useful down the road
                 var underscore = std.mem.split(u8, entry.name[0..entry.name.len], "_");
                 while (underscore.next()) |u| {
                     // std.debug.print("{s}\n", .{u});
