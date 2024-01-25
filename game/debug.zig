@@ -10,6 +10,10 @@ pub fn getData(index: u16) u16 {
     return debug.items[index];
 }
 // @wasm
+pub fn addData(value: u16) void {
+    debug.append(value) catch unreachable;
+}
+// @wasm
 pub fn getLength() u16 {
     return @as(u16, @intCast(debug.items.len));
 }

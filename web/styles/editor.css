@@ -38,11 +38,12 @@ body {
     background-size: var(--scaled-size-px) var(--scaled-size-px);
     background-position: -1px -1px;
     border: 1px solid red;
+    // background-image: url('../images/ocean-bg-1.gif');
 
     position: relative;
 }
 .thing {
-    transform: scale3d(1, 1, 1);
+    /*transform: scale3d(1, 1, 1);*/
     position: absolute;
     width: var(--scaled-size-px);
     height: var(--scaled-size-px);
@@ -55,95 +56,16 @@ body {
     align-self: center;
     justify-self: center;
 }
-.purple {
-    background-size: contain;
-    background-repeat: no-repeat;
-}
-.red { background-color:red; }
-.blue { background-color: blue; }
-.chosen {
-    border: 1px solid pink;
-}
-.editor_block {
-    position: absolute;
-    background-color: rgb(255 255 255 / 10%);
-    width: var(--scaled-size-px);
-    height: var(--scaled-size-px);
-    z-index: 101;
 
-    font-size: 12px;
-    color: white;
-    font-weight: bold;
-    font-family: monospace;
-}
-.editor_block .data {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    font-size: 16px;
-    display: none;
-}
-.editor_block .data.has_value {
-    display: block;
-}
-.editor_block .coordinate {
-    position: absolute;
-    bottom: 0px;
-    left: 0px;
-}
 
-#editor_menu {
-    display: none;
+#stats {
     position: absolute;
-    background-color: gray;
+    width: 100%;
+    background-color: #b5b5b5;
     color: white;
-    padding: 6px;
     z-index: 1001;
     top: 0px;
-    width: 100%;
-    font-family: monospace;
-}
-
-#edit {
-    width: 180px;
-}
-#edit_submenu {
-    background-color: black;
-    position: absolute;
-    padding: 8px;
-}
-#edit_submenu > div {
-    cursor: pointer;
-    margin-bottom: 8px;
-}
-#edit_submenu > div:hover {
-    background-color: rgb(255 255 255 / 30%);
-}
-
-.menu.date {
-    width: 100%;
-    height: calc(var(--scaled-size-px) * 2);
-    position: absolute;
-    top: 0;
-    left: 0;
-    text-align: right;
-    font-size: 2em;
-    color: white;
-    text-shadow: 0 0 2px black, 0 0 2px black, 0 0 2px black;
-    font-family: monospace;
-}
-
-.menu.fullscreen {
-    background-color: rgb(82 159 82 / 90%);
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    z-index: 99;
-    bottom: 0;
-    left: 0;
-    display: none;
-    text-align: center;
+    padding: 10px 10px;
     font-weight: bold;
-    font-size: 2em;
-    color: white;
+    color: black;
 }

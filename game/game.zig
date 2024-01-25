@@ -555,7 +555,40 @@ var current_world_index: u16 = 0;
 // @wasm
 pub fn loadWorld(index: u16) void {
     current_world_index = index;
-    // TODO: Update viewport data??
+    const world_size_file_name = std.fmt.allocPrint(allocator, "world_{d}_size.bin", .{current_world_index}) catch unreachable;
+    var world_size_file_index: usize = 0;
+    for (embeds.file_names, 0..) |name, i| {
+        if (std.mem.eql(u8, name, world_size_file_name)) {
+            world_size_file_index = i;
+        }
+    }
+    var w = readFromEmbeddedFile(world_size_file_index, 0, 0);
+    var h = readFromEmbeddedFile(world_size_file_index, 1, 0);
+
+    if (w < viewport.getSizeWidth()) {
+        var leftover = viewport.getSizeWidth() - w;
+        if (leftover % 2 > 0) {
+            viewport.setPaddingLeft(leftover / 2);
+            viewport.setPaddingRight(leftover / 2 + 1);
+        } else {
+            viewport.setPaddingLeft(leftover / 2);
+            viewport.setPaddingRight(leftover / 2);
+        }
+    }
+    if (h < viewport.getSizeHeight()) {
+        var leftover = viewport.getSizeHeight() - h;
+        if (leftover % 2 > 0) {
+            viewport.setPaddingTop(leftover / 2);
+            viewport.setPaddingBottom(leftover / 2 + 1);
+        } else {
+            viewport.setPaddingTop(leftover / 2);
+            viewport.setPaddingBottom(leftover / 2);
+        }
+    }
+}
+// @wasm
+pub fn getCurrentWorldIndex() u16 {
+    return current_world_index;
 }
 
 // @wasm
@@ -599,12 +632,10 @@ pub fn readFromEmbeddedFile(file_index: usize, index: u16, mode: u16) u16 {
 }
 // @wasm
 pub fn initializeGame() void {
-    // TODO: ???
+    loadWorld(current_world_index);
 }
 // @wasm
-pub fn getWorld(world: u16, layer: u16, x: u16, y: u16) u16 {
-    // TODO: Have editor interject the return here if
-    // - if editor has modifications to "world"
+pub fn getWorldData(world: u16, layer: u16, x: u16, y: u16) u16 {
     if (world >= embeds.total_worlds) {
         var offset_index: u16 = world - embeds.total_worlds;
         // iterate over editor.world_layer until you get a match
@@ -620,9 +651,18 @@ pub fn getWorld(world: u16, layer: u16, x: u16, y: u16) u16 {
             cursor += 2;
         }
         var w = editor.worlds.items[offset_index].items[0];
-        var index: u16 = y * w * x;
+        var index: u16 = y * w * x + 1; // +1 = layer type
         return editor.layers.items[layer_index].items[index];
     } else {
+        for (0..editor.world_modifications.items.len) |wmi| {
+            var edited_world = editor.world_modifications.items[wmi].items[0];
+            var edited_layer = editor.world_modifications.items[wmi].items[1];
+            var edited_x = editor.world_modifications.items[wmi].items[2];
+            var edited_y = editor.world_modifications.items[wmi].items[3];
+            if (edited_world == world and edited_layer == layer and edited_x == x and edited_y == y) {
+                return editor.world_modifications.items[wmi].items[4];
+            }
+        }
         const world_layer_file_name = std.fmt.allocPrint(allocator, "world_{d}_layer_{d}.bin", .{world, layer}) catch unreachable;
         const world_size_file_name = std.fmt.allocPrint(allocator, "world_{d}_size.bin", .{world}) catch unreachable;
         var world_layer_file_name_index: usize = 0;
@@ -638,6 +678,62 @@ pub fn getWorld(world: u16, layer: u16, x: u16, y: u16) u16 {
         var index: u16 = y * w + x;
         return readFromEmbeddedFile(world_layer_file_name_index, index, 0);
     }
+}
+// @wasm
+pub fn getWorldSizeWidth(world: u16) u16 {
+    if (world >= embeds.total_worlds) {
+        var offset_index: u16 = world - embeds.total_worlds;
+        return editor.worlds.items[offset_index].items[0];
+    } else {
+        // TODO: Search for width / height modifications??
+        // for (0..editor.world_modifications.items.len) |wmi| {}
+        const world_size_file_name = std.fmt.allocPrint(allocator, "world_{d}_size.bin", .{world}) catch unreachable;
+        var world_size_file_index: usize = 0;
+        for (embeds.file_names, 0..) |name, i| {
+            if (std.mem.eql(u8, name, world_size_file_name)) {
+                world_size_file_index = i;
+            }
+        }
+        return readFromEmbeddedFile(world_size_file_index, 1, 0);
+    }
+
+}
+// @wasm
+pub fn getWorldSizeHeight(world: u16) u16 {
+    if (world >= embeds.total_worlds) {
+        var offset_index: u16 = world - embeds.total_worlds;
+        return editor.worlds.items[offset_index].items[1];
+    } else {
+        // TODO: Search for width / height modifications??
+        // for (0..editor.world_modifications.items.len) |wmi| {}
+        const world_size_file_name = std.fmt.allocPrint(allocator, "world_{d}_size.bin", .{world}) catch unreachable;
+        var world_size_file_index: usize = 0;
+        for (embeds.file_names, 0..) |name, i| {
+            if (std.mem.eql(u8, name, world_size_file_name)) {
+                world_size_file_index = i;
+            }
+        }
+        return readFromEmbeddedFile(world_size_file_index, 0, 0);
+    }
+}
+
+// @wasm
+pub fn getWorldAtViewport(layer: u16, x: u16, y: u16) u16 {
+    // If there is "world" here, return world data + 1
+    // If there is no "world" here, return 0
+    if (
+        x >= viewport.getPaddingLeft() and
+        y >= viewport.getPaddingTop() and
+        x <= (viewport.getSizeWidth() - viewport.getPaddingRight()) and
+        y <= (viewport.getSizeHeight() - viewport.getPaddingBottom())
+    ) {
+        var world_x = x - viewport.getPaddingLeft();
+        var world_y = y - viewport.getPaddingTop();
+        return getWorldData(current_world_index, layer, world_x, world_y);
+    }
+
+    // return FailureEnum.NoWorldData (65535);
+    @panic("POOPS");
 }
 
 test "string_stuff" {

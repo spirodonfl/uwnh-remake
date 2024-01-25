@@ -1,11 +1,15 @@
 const std = @import("std");
 const ArrayList = std.ArrayList;
 
+const embeds = @import("embeds.zig");
+const debug = @import("debug.zig");
+
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 pub var worlds = ArrayList(ArrayList(u16)).init(arena.allocator());
 pub var entities = ArrayList(u16).init(arena.allocator());
 pub var world_layer = ArrayList(u16).init(arena.allocator());
 pub var layers = ArrayList(ArrayList(u16)).init(arena.allocator());
+pub var world_modifications = ArrayList(ArrayList(u16)).init(arena.allocator());
 // @wasm
 pub fn createLayer(width: u16, height: u16, layer_type: u16) void {
     var total_size: u16 = width * height;
@@ -35,6 +39,10 @@ pub fn totalWorlds() u16 {
     return @as(u16, @intCast(worlds.items.len));
 }
 // @wasm
+pub fn totalLayers() u16 {
+    return @as(u16, @intCast(layers.items.len));
+}
+// @wasm
 pub fn totalEntities() u16 {
     return @as(u16, @intCast(entities.items.len));
 }
@@ -58,12 +66,34 @@ pub fn clearAll() void {
     layers.clearRetainingCapacity();
     _ = arena.reset(.retain_capacity);
 }
-
-// pub fn modifyWorld(world: u16, layer: u16, x: u16, y: u16, value: u16) void {
-    // TODO: Get either base world OR editor world and add a modification entry
-    // if editor world, simply update memory
-    // if base world, modification entiry
-// }
+// @wasm
+pub fn modifyWorldData(world: u16, layer: u16, x: u16, y: u16, new_value: u16) void {
+    if (world >= embeds.total_worlds) {
+        var offset_index: u16 = world - embeds.total_worlds;
+        var w = worlds.items[offset_index].items[0];
+        var cursor: u16 = 0;
+        var world_layer_index: u16 = 0;
+        while (cursor < world_layer.items.len) {
+            var wi = world_layer.items[cursor];
+            var wli = world_layer.items[(cursor + 1)];
+            if (wi == world and wli == layer) {
+                world_layer_index = layer;
+                break;
+            }
+            cursor += 2;
+        }
+        var layer_index: u16 = y * w + x + 1; // +1 because of layer type at beginning
+        layers.items[world_layer_index].items[layer_index] = new_value;
+    } else {
+        var modification = ArrayList(u16).init(arena.allocator());
+        modification.append(world) catch unreachable;
+        modification.append(layer) catch unreachable;
+        modification.append(x) catch unreachable;
+        modification.append(y) catch unreachable;
+        modification.append(new_value) catch unreachable;
+        world_modifications.append(modification) catch unreachable;
+    }
+}
 // pub fn modifyEntity() ????????
 
 

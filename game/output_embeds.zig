@@ -17,9 +17,13 @@ pub fn main() !void {
 
     try PP_file.writeAll("pub var embeds = [_][]const u8{\n");
 
+    var last_world: []const u8 = undefined;
+    var last_entity: []const u8 = undefined;
     while (try it.next()) |entry| {
         switch (entry.kind) {
             .file => {
+                var is_world: bool = false;
+                var is_entity: bool = false;
                 var underscore = std.mem.split(u8, entry.name[0..entry.name.len], "_");
                 while (underscore.next()) |u| {
                     // std.debug.print("{s}\n", .{u});
@@ -28,6 +32,13 @@ pub fn main() !void {
                     var ending_i: u16 = 0;
                     while (ending.next()) |e| {
                         if (ending_i == 0) {
+                            if (is_entity) {
+                                if (!std.mem.eql(u8, u, last_entity)) {
+                                    total_entities += 1;
+                                    last_entity = u;
+                                }
+                                is_entity = false;
+                            }
                             // std.debug.print("{s}\n", .{e});
                             end = e;
                         }
@@ -37,10 +48,17 @@ pub fn main() !void {
                         // Means we got .bin entry
                         // std.debug.print("End: {s}\n", .{end});
                     } else {
+                        if (is_world) {
+                            if (!std.mem.eql(u8, u, last_world)) {
+                                total_worlds += 1;
+                                last_world = u;
+                            }
+                            is_world = false;
+                        }
                         if (std.mem.eql(u8, u, "world")) {
-                            total_worlds += 1;
+                            is_world = true;
                         } else if (std.mem.eql(u8, u, "entity")) {
-                            total_entities += 1;
+                            is_entity = true;
                         }
                     }
                 }

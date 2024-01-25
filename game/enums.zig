@@ -1,9 +1,3 @@
-pub const ImagesEnum = enum(u16) {
-    PlayerImage = 0,
-    NPCImage = 1,
-    OceanBGImage = 2,
-};
-
 pub const StringsEnum = enum(u16) {
     Hello = 0,
     World = 1,

@@ -34,7 +34,7 @@ let STATS = (function () {
             this.current_fps = 1000 / (this.current_time_stamp - this.previous_time_stamp);
 
             // Update every second
-            if (this.elapsed_ms >= 1000)
+            if (this.elapsed_ms >= 1000 && !this.html_element.classList.contains('hide'))
             {
                 this.html_element.innerHTML = this.frames_this_second + 'fps';
                 this.elapsed_ms -= 1000;

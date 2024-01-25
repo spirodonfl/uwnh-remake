@@ -1,3 +1,4 @@
+// TODO: Change this file name to camera. There's nothing else in here but a camera.
 const std = @import("std");
 const ArrayList = std.ArrayList;
 
