@@ -28,15 +28,6 @@ pub fn build(b: *Builder) !void {
     const run_bindgen = b.addRunArtifact(bindgen);
     b.getInstallStep().dependOn(&run_bindgen.step);
 
-    const embeds_bindgen = b.addExecutable(.{
-        .name = "bindgen",
-        .root_source_file = .{ .path = "game/output_embeds.zig" },
-        .target = target,
-        .optimize = optimize,
-    });
-    const run_output_embeds = b.addRunArtifact(embeds_bindgen);
-    b.getInstallStep().dependOn(&run_output_embeds.step);
-
     const copy_output_to_root = b.addInstallBinFile(game.getEmittedBin(), "../../web/wasm/game.wasm");
     b.getInstallStep().dependOn(&copy_output_to_root.step);
 }
