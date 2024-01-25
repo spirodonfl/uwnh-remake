@@ -9,5 +9,5 @@ node-modules
 .vscode
 
 # generated files
-game/_embeds.zig
+game/embeds.zig
 web/scripts/js.bindings.js
