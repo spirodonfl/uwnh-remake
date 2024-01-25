@@ -1,25 +1,27 @@
 const std = @import("std");
 const ArrayList = std.ArrayList;
 
-var debug: ArrayList(u16) = undefined;
+var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+const allocator = arena.allocator();
+var debug = ArrayList(u16).init(allocator);
 
-var debug_arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-const debug_allocator = debug_arena.allocator();
-pub fn init() void {
-    debug = ArrayList(u16).init(debug_allocator);
-}
+// @wasm
 pub fn getData(index: u16) u16 {
     return debug.items[index];
 }
+// @wasm
 pub fn getLength() u16 {
     return @as(u16, @intCast(debug.items.len));
 }
+// @wasm
 pub fn clearAll() void {
     debug.clearRetainingCapacity();
-    _ = debug_arena.reset(.retain_capacity);
+    _ = arena.reset(.retain_capacity);
 }
+
+// TESTS
 test "test_debug_stuff" {
-    debug = ArrayList(u16).init(debug_allocator);
+    debug = ArrayList(u16).init(allocator);
     debug.append(1) catch unreachable;
     try std.testing.expect(getLength() == 1);
     try std.testing.expect(getData(0) == 1);

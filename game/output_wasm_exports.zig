@@ -7,7 +7,7 @@ var gpa_allocator = std.heap.GeneralPurposeAllocator(.{}){};
 var allocator = gpa_allocator.allocator();
 
 const prefix: []const u8 = "game";
-const files = [_][]const u8{"game", "debug", "diff", "worlds", "entities", "renderer", "viewport"};
+const files = [_][]const u8{"debug", "diff", "editor", "game", "renderer", "viewport"};
 
 pub fn main() !void {
     const PP_file = try std.fs.cwd().createFile("game/wasm.zig", .{ .read = true });
