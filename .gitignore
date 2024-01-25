@@ -7,4 +7,7 @@ zig-cache
 zig-out
 node-modules
 .vscode
+
+# generated files
+game/_embeds.zig
 web/scripts/js.bindings.js
