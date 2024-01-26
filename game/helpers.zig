@@ -2,9 +2,11 @@ const std = @import("std");
 
 pub fn multiply(a: u16, b: u16) u16 { return a * b; }
 pub fn add(a: u16, b: u16) u16 { return a + b; }
+// TODO: This seems a bit redunant, remove it?
 pub fn enumToUsize(comptime E: type, value: E) usize {
     return @as(usize, @intFromEnum(value));
 }
+// TODO: This seems a bit redundant, remove it?
 pub fn enumToU16(comptime E: type, value: E) u16 {
     return @intFromEnum(value);
 }

@@ -104,6 +104,12 @@ export fn game_getWorldSizeHeight(world: u16) u16 {
 export fn game_getWorldAtViewport(layer: u16, x: u16, y: u16) u16 {
     return game.getWorldAtViewport(layer, x, y);
 }
+export fn game_input(key: u16) void {
+    return game.input(key);
+}
+export fn game_getHealth() u16 {
+    return game.getHealth();
+}
 const renderer = @import("renderer.zig");
 export fn renderer_getPositionX() u16 {
     return renderer.getPositionX();

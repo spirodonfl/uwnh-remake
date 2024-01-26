@@ -20,6 +20,14 @@
 // ---- seperate array for each component vs entities = entities_with_health_component = [_]u16.{0,3,4,8}...
 // - Go through all files that use "export fn" and convert them or remove them -> build process with // @wasm
 // - Figure out the chain of initializations given new file structure, such as game->init() --->>> editor->init() ---->>>++++ entities->init()
+//
+// Entity -> array of attached components as integer IDs
+// Take an action (function, example: Move(entity_index, direction)
+// - In the function you would check if the entity HAS the component or not
+// - If not, do nothing
+// - Stat based components
+// - entity_{id}_component_{id}.bin -> hold default values
+// -- Alternatively: iterating over an entity at runtime and applying default values to it
 
 // TODO: Scripts
 // Outer array is script line
@@ -265,6 +273,12 @@ pub fn getWorldSizeHeight(world: u16) u16 {
     }
 }
 
+// array of entities with just type like you have now
+// another array file called entity_{id}_components.bin
+// -- indexes determine whether a component is off or on
+// another array file called entity_{id}_component_values.bin
+// -- stores a flat array of all possible values across all components
+// -- ideally when exporting an entity you will go over all the total possible values for all components of the given entity TYPE and then spit out a flat array with all that
 // @wasm
 pub fn getWorldAtViewport(layer: u16, x: u16, y: u16) u16 {
     // TODO: Camera offset and all that
@@ -282,8 +296,45 @@ pub fn getWorldAtViewport(layer: u16, x: u16, y: u16) u16 {
 }
 
 
+const hc = @import("components/health.zig").ComponentHealth;
+var healthComponent = hc{.default_value = 10, .current_value = 10};
+
+// @wasm
+pub fn input(key: u16) void {
+    if (key == 0) {
+        // embeds.embeds[1]
+        healthComponent.addHealth();
+        // purposefully return nothing
+    }
+}
+// @wasm
+pub fn getHealth() u16 {
+    return healthComponent.current_value;
+    // const healthComponent = @import("components/health.zig").ComponentHealth;
+    // healthComponent.init();
+    // healthComponent.setHealth(0, 20);
+    // return healthComponent.getCurrent();
+}
+
+
+
 test "string_stuff" {
     const str = try std.fmt.allocPrint(allocator, "world_{d}_layer_{d}.bin", .{0, 0});
     try std.testing.expect(std.mem.eql(u8, str, "world_0_layer_0.bin") == true);
 }
 
+test "raw_enums" {
+    var enumint: u16 = helpers.enumToU16(enums.WorldsEnum, enums.WorldsEnum.World1);
+    var some_value: u16 = 0;
+    try std.testing.expect(enumint == 0);
+    try std.testing.expect(some_value == @intFromEnum(enums.WorldsEnum.World1));
+}
+
+test "entity_components" {
+    var entity: [3]u16 = .{ 2, 0, 0 };
+    try std.testing.expect(entity[0] == 2);
+    const health = @import("components/health.zig");
+    std.debug.print("\n{s}\n", .{@typeName(health)});
+    // entity[2] = health;
+    // try std.testing.expect(entity[2].default_value == 10);
+}

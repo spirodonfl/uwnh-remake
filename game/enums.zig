@@ -56,3 +56,8 @@ pub const WorldLayersEnum = enum(u16) {
     Entities = 2,
 };
 
+pub const Components = enum(u16) {
+    Health = 0,
+    Movement = 0,
+    // ...
+};
