@@ -26,7 +26,7 @@ const ArrayList = std.ArrayList;
 // std.mem.startsWith(u8, "Haystack stuff", "needle")
 
 pub fn main() !void {
-    var file = try std.fs.cwd().openFile("game/game.zig", .{});
+    var file = try std.fs.cwd().openFile("game/wasm.zig", .{});
     defer file.close();
 
     var buf_reader = std.io.bufferedReader(file.reader());

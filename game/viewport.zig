@@ -14,6 +14,28 @@ pub fn setSize(width: u16, height: u16) void {
     size[1] = height;
 }
 // @wasm
+pub fn initializeViewportData() void {
+    var total_size = size[0] * size[1];
+    for (0..total_size) |i| {
+        _ = i;
+        data.append(0) catch unreachable;
+    }
+}
+// @wasm
+pub fn setData(x: u16, y: u16, value: u16) void {
+    var index = y * size[0] + x;
+    data.items[index] = value;
+}
+// @wasm
+pub fn getData(x: u16, y: u16) u16 {
+    var index = y * size[0] + x;
+    return data.items[index];
+}
+// @wasm
+pub fn getDataByIndex(index: u16) u16 {
+    return data.items[index];
+}
+// @wasm
 pub fn getSizeWidth() u16 {
     return size[0];
 }

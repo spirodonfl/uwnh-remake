@@ -2,7 +2,7 @@ const SIZE = 32;
 const SCALE = 2;
 
 // TODO: This can be its own file in the future, ideally somehow imported auto-magically
-const IMAGEENUM = [
+const ENUM_IMAGES = [
     // zig -> ImagesEnum.PlayerImage
     'images/ship-1.gif',
     // zig -> ImagesEnum.NPCImage
@@ -63,6 +63,9 @@ let DOM = {
     }
 };
 
+// TODO: This is temporary
+let __entities__ = [];
+
 const resizeObserver = new ResizeObserver((entries) => {
     const entry = entries[0];
     // entry.contentRect
@@ -81,46 +84,63 @@ function tick() {
         then = now;
 
         if (!DOM.rendered) {
+            console.log('RENDERING VIEWPORT');
             var y = 0;
             var x = 0;
             var cwi = _GAME.game_getCurrentWorldIndex();
             var layer = 0;
+            // if (DOM.width * DOM.height) !== _GAME.viewport_getLength() // panic
             for (var i = 0; i < (DOM.width * DOM.height); ++i) {
                 var viewport_y = Math.floor(i / DOM.width);
                 var viewport_x = i % DOM.width;
-                console.log({viewport_x, viewport_y});
+                if (_GAME.viewport_getData(viewport_x, viewport_y)) {
+                    var img = ENUM_IMAGES[2];
+                    var el = document.createElement('div');
+                    el.style.backgroundImage = 'url("' + img + '")';
+                    el.style.width = (SIZE * SCALE) + 'px';
+                    el.style.height = (SIZE * SCALE) + 'px';
+                    el.style.position = 'absolute';
+                    el.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
+                    el.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
+                    document.getElementById('view').appendChild(el);
 
-                if (game.viewportHasData(x, y)) {
-                    game.worldGetData(x, y);
-                }        
-
-                // console.log({world_x, world_y});
-                // if (world_x > 0 && world_y > 0) {
-                //     --world_x;
-                //     --world_y;
-                //     var el = document.createElement('div');
-                //     el.style.backgroundColor = 'purple';
-                //     el.style.width = (SIZE * SCALE) + 'px';
-                //     el.style.height = (SIZE * SCALE) + 'px';
-                //     el.style.position = 'absolute';
-                //     el.style.left = (world_x * (SIZE * SCALE)) + 'px';
-                //     el.style.top = (world_y * (SIZE * SCALE)) + 'px';
-                //     document.getElementById('view').appendChild(el);
-                // }
+                    var entity = _GAME.game_getWorldAtViewport(1, viewport_x, viewport_y);
+                    if (entity === 1) {
+                        var img = ENUM_IMAGES[0];
+                        var entity = document.createElement('div');
+                        entity.setAttribute('data-entity-id', 1);
+                        entity.style.backgroundImage = 'url("' + img + '")';
+                        entity.style.width = (SIZE * SCALE) + 'px';
+                        entity.style.height = (SIZE * SCALE) + 'px';
+                        entity.style.position = 'absolute';
+                        entity.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
+                        entity.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
+                        entity.style.zIndex = 1;
+                        document.getElementById('view').appendChild(entity);
+                        __entities__.push([viewport_x, viewport_y]);
+                    }
+                    var collision = _GAME.game_getWorldAtViewport(2, viewport_x, viewport_y);
+                    if (collision === 1) {
+                        var collision = document.createElement('div');
+                        collision.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                        collision.style.width = (SIZE * SCALE) + 'px';
+                        collision.style.height = (SIZE * SCALE) + 'px';
+                        collision.style.position = 'absolute';
+                        collision.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
+                        collision.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
+                        collision.style.zIndex = 1;
+                        document.getElementById('view').appendChild(collision);
+                    }
+                }
             }
             DOM.rendered = true;
         }
-        // _GAME.game_getWorldData(1, 0, _GAME.viewport_getXFromIndex(0), _GAME.viewport_getYFromIndex(0))
-        // TODO: Run other updates/animations here
-        // Check diff list && update that
-        // OR
-        // if first time, do an initial viewport render
     }
 }
 LOADER.events.addEventListener('loaded', function () {
     DOM.sizeView();
-    GAME.setViewportSize(DOM.width, DOM.height);
-    GAME.initializeGame();
+    _GAME.viewport_setSize(DOM.width, DOM.height);
+    _GAME.game_initializeGame();
     INPUT.startListening();
     requestAnimationFrame(tick);
 });

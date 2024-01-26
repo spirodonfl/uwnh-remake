@@ -11,14 +11,17 @@ var EDITOR = {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
     },
-    memoryToBin: function (memory_length, memory_start, file_name) {
+    extractMemory: function (memory_length, memory_start) {
         let data_view = new DataView(_GAME.memory.buffer, 0, _GAME.memory.byteLength);
         let data = [];
         for (let i = 0; i < memory_length; ++i) {
             let current_position = memory_start + (i * 2);
             data.push(data_view.getUint16(current_position, true));
         }
-        let blob = this.generateBlob(data);
+        return data;
+    },
+    memoryToBin: function (memory_length, memory_start, file_name) {
+        let blob = this.generateBlob(this.extractMemory(memory_length, memory_start));
         console.log(data);
 
         this.editorDownload(blob);

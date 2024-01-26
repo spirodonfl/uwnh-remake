@@ -23,6 +23,22 @@ pub fn clearAll() void {
     _ = arena.reset(.retain_capacity);
 }
 
+
+// @wasm
+pub fn testPanic() void {
+    @panic("PANIC");
+}
+// @wasm
+pub fn testBreakpoint() void {
+    @breakpoint();
+}
+// @wasm
+pub fn testTrap() void {
+    @trap();
+}
+// try { _GAME.debug_testBreakpoint(); } catch (e) { console.log(e); }
+// error message showing "unreachable"
+
 // TESTS
 test "test_debug_stuff" {
     debug = ArrayList(u16).init(allocator);

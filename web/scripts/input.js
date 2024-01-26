@@ -27,12 +27,47 @@ var INPUT = {
                 // TODO: show editor UI
             } else if (evt.code === 'KeyW') {
                 // UP
+                if (__entities__.length > 0) {
+                    __entities__[0][1] -= 1;
+                    var element = document.querySelector('[data-entity-id="1"]');
+                    if (element instanceof HTMLElement) {
+                        element.style.left = (__entities__[0][0] * (SIZE * SCALE)) + 'px';
+                        element.style.top = (__entities__[0][1] * (SIZE * SCALE)) + 'px';
+                    }
+                }
+
             } else if (evt.code === 'KeyS') {
                 // DOWN
+                if (__entities__.length > 0) {
+                    __entities__[0][1] += 1;
+                    var element = document.querySelector('[data-entity-id="1"]');
+                    if (element instanceof HTMLElement) {
+                        element.style.left = (__entities__[0][0] * (SIZE * SCALE)) + 'px';
+                        element.style.top = (__entities__[0][1] * (SIZE * SCALE)) + 'px';
+                    }
+                }
             } else if (evt.code === 'KeyA') {
                 // LEFT
+                if (__entities__.length > 0) {
+                    __entities__[0][0] -= 1;
+                    var element = document.querySelector('[data-entity-id="1"]');
+                    if (element instanceof HTMLElement) {
+                        element.style.left = (__entities__[0][0] * (SIZE * SCALE)) + 'px';
+                        element.style.top = (__entities__[0][1] * (SIZE * SCALE)) + 'px';
+                    }
+                }
+
             } else if (evt.code === 'KeyD') {
                 // RIGHT
+                if (__entities__.length > 0) {
+                    __entities__[0][0] += 1;
+                    var element = document.querySelector('[data-entity-id="1"]');
+                    if (element instanceof HTMLElement) {
+                        element.style.left = (__entities__[0][0] * (SIZE * SCALE)) + 'px';
+                        element.style.top = (__entities__[0][1] * (SIZE * SCALE)) + 'px';
+                    }
+                }
+
             } else if (evt.code === 'Space') {
                 // ATTACK
             } else if (evt.code === 'KeyQ') {

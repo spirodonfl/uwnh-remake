@@ -11,6 +11,15 @@ export fn debug_getLength() u16 {
 export fn debug_clearAll() void {
     return debug.clearAll();
 }
+export fn debug_testPanic() void {
+    return debug.testPanic();
+}
+export fn debug_testBreakpoint() void {
+    return debug.testBreakpoint();
+}
+export fn debug_testTrap() void {
+    return debug.testTrap();
+}
 const diff = @import("diff.zig");
 export fn diff_getData(index: u16) u16 {
     return diff.getData(index);
@@ -58,6 +67,15 @@ export fn editor_clearAll() void {
 export fn editor_modifyWorldData(world: u16, layer: u16, x: u16, y: u16, new_value: u16) void {
     return editor.modifyWorldData(world, layer, x, y, new_value);
 }
+export fn editor_resizeWorld(world: u16, width: u16, height: u16) void {
+    return editor.resizeWorld(world, width, height);
+}
+export fn editor_addRowToWorld(world: u16) void {
+    return editor.addRowToWorld(world);
+}
+export fn editor_addColumnToWorld(world: u16) void {
+    return editor.addColumnToWorld(world);
+}
 const game = @import("game.zig");
 export fn game_loadWorld(index: u16) void {
     return game.loadWorld(index);
@@ -99,6 +117,18 @@ export fn renderer_setPosition(x: u16, y: u16) void {
 const viewport = @import("viewport.zig");
 export fn viewport_setSize(width: u16, height: u16) void {
     return viewport.setSize(width, height);
+}
+export fn viewport_initializeViewportData() void {
+    return viewport.initializeViewportData();
+}
+export fn viewport_setData(x: u16, y: u16, value: u16) void {
+    return viewport.setData(x, y, value);
+}
+export fn viewport_getData(x: u16, y: u16) u16 {
+    return viewport.getData(x, y);
+}
+export fn viewport_getDataByIndex(index: u16) u16 {
+    return viewport.getDataByIndex(index);
 }
 export fn viewport_getSizeWidth() u16 {
     return viewport.getSizeWidth();
