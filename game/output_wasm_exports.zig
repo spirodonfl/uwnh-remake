@@ -36,6 +36,16 @@ pub fn main() !void {
             if (is_line_we_want) {
                 was_line_we_want = true;
             } else if (was_line_we_want) {
+                was_line_we_want = false;
+
+                const decl_start = "pub const ";
+                if (std.mem.startsWith(u8, line, decl_start)) {
+                    const line_at_id = line[decl_start.len..];
+                    const id = line_at_id[0 .. std.mem.indexOf(u8, line_at_id, " ").?];
+                    try PP_file.writer().print("pub const {s} = {s}.{0s};\n", .{id, file_name});
+                    continue;
+                }
+
                 // std.debug.print("Line: {s}\n", .{line});
                 // std.debug.print("Test {any}\n", .{std.mem.indexOf(u8, line, ": u16")});
                 const export_line = try std.fmt.allocPrint(allocator, "{s}{s}{s}", .{"export fn ", file_name, "_"});
@@ -93,7 +103,6 @@ pub fn main() !void {
                 try PP_file.writeAll(");\n");
                 try PP_file.writeAll("}");
                 try PP_file.writeAll("\n");
-                was_line_we_want = false;
             }
         }
         file.close();

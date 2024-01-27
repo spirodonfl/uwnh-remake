@@ -77,6 +77,7 @@ export fn editor_addColumnToWorld(world: u16) void {
     return editor.addColumnToWorld(world);
 }
 const game = @import("game.zig");
+pub const std_options = game.std_options;
 export fn game_loadWorld(index: u16) void {
     return game.loadWorld(index);
 }
