@@ -11,3 +11,4 @@ node-modules
 # generated files
 game/embeds.zig
 web/scripts/js.bindings.js
+!build-game.sh
