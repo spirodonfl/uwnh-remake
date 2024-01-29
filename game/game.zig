@@ -103,12 +103,13 @@ extern fn console_log_flush() void;
 
 const Entity = struct {
     internalID: u16,
+    internalIndex: usize,
     pub fn out(self: *Entity) u16 {
+        self.internalIndex = helpers.getEntityFileIndex(self.internalID);
         return self.internalID;
     }
     pub fn pullEntityDataAndDoSomething(self: *Entity) u16 {
-        const entity_file_name_index = helpers.getEntityFileIndex(self.internalID);
-        return readFromEmbeddedFile(entity_file_name_index, 0, 0);
+        return readFromEmbeddedFile(self.internalIndex, 0, 0);
     }
 };
 
