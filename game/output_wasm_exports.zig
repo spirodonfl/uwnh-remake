@@ -10,10 +10,16 @@ const prefix: []const u8 = "game";
 const files = [_][]const u8{"debug", "diff", "editor", "game", "renderer", "viewport"};
 
 pub fn main() !void {
-    const PP_file = try std.fs.cwd().createFile("game/wasm.zig", .{ .read = true });
+    const cmdline_args = (try std.process.argsAlloc(allocator))[1..];
+    if (cmdline_args.len != 1) {
+        std.log.err("expected 1 cmdline arg but got {}", .{cmdline_args.len});
+        std.os.exit(0xff);
+    }
+    const out_file = cmdline_args[0];
+
+    const PP_file = try std.fs.cwd().createFile(out_file, .{ .read = true });
     defer PP_file.close();
 
-    try PP_file.writer().writeAll("pub const panic = @import(\"game.zig\").panic;\n");
     for (files) |file_name| {
         const full_file = try std.fmt.allocPrint(allocator, "{s}/{s}{s}", .{prefix, file_name, ".zig"});
         var file = try std.fs.cwd().openFile(full_file, .{});
@@ -24,7 +30,7 @@ pub fn main() !void {
 
         // const first_line = try std.fmt.allocPrint(allocator, "{s}{s}{s}{s}{s}", .{"const ", file_name, " = @import(\"", file_name, ".zig\");\n"});
         // TODO: Update other files where you use allocPrint with this
-        try PP_file.writer().print("const {s} = @import(\"{s}.zig\");\n", .{file_name, file_name});
+        try PP_file.writer().print("const {s} = @import(\"root\").{0s};\n", .{file_name});
         // try PP_file.writeAll(first_line);
 
         var buf: [1024]u8 = undefined;
