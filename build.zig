@@ -8,6 +8,18 @@ pub fn build(b: *Builder) !void {
     });
     const gen_step = b.addRunArtifact(embed_gen);
 
+    const wasm_exports = blk: {
+        const gen_wasm_exports_zig_exe = b.addExecutable(.{
+            .name = "output_wasm_exports",
+            .root_source_file = .{ .path = "game/output_wasm_exports.zig" },
+        });
+        const gen_wasm_exports_zig = b.addRunArtifact(gen_wasm_exports_zig_exe);
+        const wasm_exports_zig = gen_wasm_exports_zig.addOutputFileArg("wasmexports.zig");
+        break :blk b.createModule(.{
+            .source_file = wasm_exports_zig,
+        });
+    };
+
     const game = b.addSharedLibrary(.{
         .name = "game",
         .root_source_file = .{ .path = "game/wasm.zig" },
@@ -18,6 +30,7 @@ pub fn build(b: *Builder) !void {
         // .optimize = .ReleaseSmall,
         .optimize = .Debug,
     });
+    game.addModule("wasmexports", wasm_exports);
     game.rdynamic = true;
     game.step.dependOn(&gen_step.step);
     b.installArtifact(game);
