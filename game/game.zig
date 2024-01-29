@@ -53,6 +53,51 @@ const diff = @import("diff.zig");
 const editor = @import("editor.zig");
 const viewport = @import("viewport.zig");
 
+// @wasm
+pub const std_options = struct {
+    pub const log_level = .info;
+    pub fn logFn(
+        comptime level: std.log.Level,
+        comptime scope: @Type(.EnumLiteral),
+        comptime format: []const u8,
+        args: anytype,
+    ) void {
+        const prefix = if (scope == .default) ": " else "(" ++ @tagName(scope) ++ "): ";
+        log(level.asText() ++ prefix ++ format, args);
+    }
+};
+
+fn log(comptime format: []const u8, args: anytype) void {
+    const writer = std.io.Writer(void, error{}, console_log_write_zig){ .context = {} };
+    writer.print(format, args) catch @panic("console_log_write failed");
+    console_log_flush();
+}
+
+pub fn panic(
+    msg: []const u8,
+    trace: ?*std.builtin.StackTrace,
+    ret_addr: ?usize,
+) noreturn {
+    log("panic: {s}", .{msg});
+    if (trace) |t| {
+        log("ErrorTrace:", .{});
+        std.debug.dumpStackTrace(t.*);
+    } else {
+        log("ErrorTrace: <none>", .{});
+    }
+    log("StackTrace:", .{});
+    std.debug.dumpCurrentStackTrace(ret_addr);
+    while (true) { @breakpoint(); }
+}
+
+fn console_log_write_zig(context: void, bytes: []const u8) !usize {
+    _ = context;
+    console_log_write(bytes.ptr, bytes.len);
+    return bytes.len;
+}
+extern fn console_log_write(ptr: [*]const u8, len: usize) void;
+extern fn console_log_flush() void;
+
 var current_world_index: u16 = 0;
 // @wasm
 pub fn loadWorld(index: u16) void {
