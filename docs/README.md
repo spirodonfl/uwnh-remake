@@ -2,6 +2,12 @@
 
 An exploration game set in the 1600's mainly using naval ships to travel the world.
 
+# Installing Zig
+
+## Linux
+
+wget https://ziglang.org/download/0.11.0/zig-linux-x86_64-0.11.0.tar.xz -O zig-linux-x86_64-0.11.0.tar.xz && tar -xf zig-linux-x86_64-0.11.0.tar.xz
+
 # Building the zig stuff
 
 ~/zig-linux-x86_64-0.11.0/zig build-lib -O ReleaseSmall -target wasm32-freestanding game.zig -rdynamic -dynamic
