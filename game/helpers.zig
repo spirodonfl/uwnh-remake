@@ -22,12 +22,12 @@ const embeds = @import("embeds.zig");
 var gpa_allocator = std.heap.GeneralPurposeAllocator(.{}){};
 var allocator = gpa_allocator.allocator();
 pub fn getEntityFileIndex(id: u16) usize {
-    const entity_file_name = std.fmt.allocPrint(allocator, "entity_{d}.bin", .{id}) catch unreachable;
-    var entity_file_name_index: usize = 0;
+    const file_name = std.fmt.allocPrint(allocator, "entity_{d}.bin", .{id}) catch unreachable;
+    var file_name_index: usize = 0;
     var found: bool = false;
     for (embeds.file_names, 0..) |name, i| {
-        if (std.mem.eql(u8, name, entity_file_name)) {
-            entity_file_name_index = i;
+        if (std.mem.eql(u8, name, file_name)) {
+            file_name_index = i;
             found = true;
             break;
         }
@@ -36,5 +36,25 @@ pub fn getEntityFileIndex(id: u16) usize {
         std.log.info("Looked for entity file with ID: {d}", .{id});
         @panic("Entity file not found!");
     }
-    return entity_file_name_index;
+    return file_name_index;
 }
+pub fn getWorlFileIndex(id: u16) usize {
+    const file_name = std.fmt.allocPrint(allocator, "world_{d}.bin", .{id}) catch unreachable;
+    var file_name_index: usize = 0;
+    var found: bool = false;
+    for (embeds.file_names, 0..) |name, i| {
+        if (std.mem.eql(u8, name, file_name)) {
+            file_name_index = i;
+            found = true;
+            break;
+        }
+    }
+    if (found == false) {
+        std.log.info("Looked for world file with ID: {d}", .{id});
+        @panic("World file not found!");
+    }
+    return file_name_index;
+}
+// pub fn getWorldLayerFileIndex
+// pub fn getWorldSizeFileIndex
+// Maybe take the two functions above and have them set as a paramter in getWorldFileIndex where you choose the type of file you want to grab the index of

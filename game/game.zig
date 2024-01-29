@@ -103,14 +103,16 @@ extern fn console_log_flush() void;
 
 const Entity = struct {
     internalID: u16,
-    internalIndex: usize,
-    pub fn out(self: *Entity) u16 {
+    internalIndex: usize = 0,
+    pub fn init(self: *Entity) void {
         self.internalIndex = helpers.getEntityFileIndex(self.internalID);
-        return self.internalID;
     }
     pub fn pullEntityDataAndDoSomething(self: *Entity) u16 {
         return readFromEmbeddedFile(self.internalIndex, 0, 0);
     }
+    // pub fn collisionFns
+    // pub fn healthFns
+    // pub fn movementFns
 };
 
 var current_world_index: u16 = 0;
@@ -236,11 +238,14 @@ pub fn readFromEmbeddedFile(file_index: usize, index: u16, mode: u16) u16 {
     return pulled_value;
 }
 var entities_list = ArrayList(Entity).init(gpa_allocator.allocator());
+// entities_with_component_* = arraylist
+// read through entity data, if certain components are turned on or off, create the appropriate struct and add it to the array
 // @wasm
 pub fn initializeGame() void {
     loadWorld(current_world_index);
 
     var new_entity = Entity{ .internalID = 0 };
+    new_entity.init();
     entities_list.append(new_entity) catch unreachable;
 }
 // @wasm
