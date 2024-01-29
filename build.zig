@@ -4,14 +4,14 @@ const Builder = @import("std").build.Builder;
 pub fn build(b: *Builder) !void {
     const embed_gen = b.addExecutable(.{
         .name = "embed_gen",
-        .root_source_file = .{ .path = "game/output_embeds.zig" },
+        .root_source_file = .{ .path = "scripts/output_embeds.zig" },
     });
     const gen_step = b.addRunArtifact(embed_gen);
 
     const wasm_exports = blk: {
         const gen_wasm_exports_zig_exe = b.addExecutable(.{
             .name = "output_wasm_exports",
-            .root_source_file = .{ .path = "game/output_wasm_exports.zig" },
+            .root_source_file = .{ .path = "scripts/output_wasm_exports.zig" },
         });
         const gen_wasm_exports_zig = b.addRunArtifact(gen_wasm_exports_zig_exe);
         const wasm_exports_zig = gen_wasm_exports_zig.addOutputFileArg("wasmexports.zig");
@@ -37,7 +37,7 @@ pub fn build(b: *Builder) !void {
 
     const bindgen = b.addExecutable(.{
         .name = "bindgen",
-        .root_source_file = .{ .path = "game/output_definitions.zig" },
+        .root_source_file = .{ .path = "scripts/output_definitions.zig" },
     });
     const run_bindgen = b.addRunArtifact(bindgen);
     b.getInstallStep().dependOn(&run_bindgen.step);
