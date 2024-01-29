@@ -13,6 +13,7 @@ pub fn main() !void {
     const PP_file = try std.fs.cwd().createFile("game/wasm.zig", .{ .read = true });
     defer PP_file.close();
 
+    try PP_file.writer().writeAll("pub const panic = @import(\"game.zig\").panic;\n");
     for (files) |file_name| {
         const full_file = try std.fmt.allocPrint(allocator, "{s}/{s}{s}", .{prefix, file_name, ".zig"});
         var file = try std.fs.cwd().openFile(full_file, .{});

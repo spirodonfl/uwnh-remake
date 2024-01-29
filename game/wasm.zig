@@ -1,3 +1,4 @@
+pub const panic = @import("game.zig").panic;
 const debug = @import("debug.zig");
 export fn debug_getData(index: u16) u16 {
     return debug.getData(index);
