@@ -7,6 +7,7 @@ zig-cache
 zig-out
 node-modules
 .vscode
+null
 
 # generated files
 game/embeds.zig

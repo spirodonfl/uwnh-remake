@@ -15,7 +15,8 @@ pub fn build(b: *Builder) !void {
             .cpu_arch = .wasm32,
             .os_tag = .freestanding,
         },
-        .optimize = .ReleaseSmall,
+        // .optimize = .ReleaseSmall,
+        .optimize = .Debug,
     });
     game.rdynamic = true;
     game.step.dependOn(&gen_step.step);

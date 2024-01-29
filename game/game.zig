@@ -53,6 +53,7 @@ const diff = @import("diff.zig");
 const editor = @import("editor.zig");
 const viewport = @import("viewport.zig");
 
+// -----------------------------------------------------------------------------------------
 // @wasm
 pub const std_options = struct {
     pub const log_level = .info;
@@ -97,6 +98,19 @@ fn console_log_write_zig(context: void, bytes: []const u8) !usize {
 }
 extern fn console_log_write(ptr: [*]const u8, len: usize) void;
 extern fn console_log_flush() void;
+// -----------------------------------------------------------------------------------------
+
+
+const Entity = struct {
+    internalID: u16,
+    pub fn out(self: *Entity) u16 {
+        return self.internalID;
+    }
+    pub fn pullEntityDataAndDoSomething(self: *Entity) u16 {
+        const entity_file_name_index = helpers.getEntityFileIndex(self.internalID);
+        return readFromEmbeddedFile(entity_file_name_index, 0, 0);
+    }
+};
 
 var current_world_index: u16 = 0;
 // @wasm
@@ -122,6 +136,13 @@ pub fn loadWorld(index: u16) void {
         }
         w = readFromEmbeddedFile(world_size_file_index, 0, 0);
         h = readFromEmbeddedFile(world_size_file_index, 1, 0);
+    }
+
+    // TODO: Remove this when you've properly added some logging/debugging
+    if (1 == 2) {
+        std.log.info("World width: {d}", .{w});
+        std.log.info("World height: {d}", .{h});
+        @panic("WHOA WHOA WHOA ALL HELL BROKE LOOSE AND JOYQUERY CANT KEEP HIS PROMISES>>> BASTARD");
     }
 
     if (w < viewport.getSizeWidth()) {
@@ -213,10 +234,19 @@ pub fn readFromEmbeddedFile(file_index: usize, index: u16, mode: u16) u16 {
 
     return pulled_value;
 }
+var entities_list = ArrayList(Entity).init(gpa_allocator.allocator());
 // @wasm
 pub fn initializeGame() void {
     loadWorld(current_world_index);
+
+    var new_entity = Entity{ .internalID = 0 };
+    entities_list.append(new_entity) catch unreachable;
 }
+// @wasm
+pub fn getEntityOut() u16 {
+    return entities_list.items[0].pullEntityDataAndDoSomething();
+}
+
 // @wasm
 pub fn getWorldData(world: u16, layer: u16, x: u16, y: u16) u16 {
     for (0..editor.new_worlds.items.len) |nw| {
