@@ -163,7 +163,11 @@ pub const WorldDataStruct = struct {
         return layer_index;
     }
     pub fn getLayerEndIndex(self: *WorldDataStruct, layer: u16) u16 {
-        return (self.getLayerIndex(layer) + self.getSize());
+        const layer_index = self.getLayerIndex(layer);
+        const size = self.getSize();
+        std.log.info("layer_end_index {d}",.{layer_index + size});
+        const layer_end_index = layer_index + size;
+        return layer_end_index;
     }
     pub fn getCoordinateData(self: *WorldDataStruct, layer: u16, x: u16, y: u16) u16 {
         var index: u16 = self.getLayerIndex(layer);
