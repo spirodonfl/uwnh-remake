@@ -9,12 +9,16 @@ pub fn build(b: *Builder) !void {
     const gen_step = b.addRunArtifact(embed_gen);
 
     const wasm_exports = blk: {
-        const gen_wasm_exports_zig_exe = b.addExecutable(.{
+        const gen_exe = b.addExecutable(.{
             .name = "output_wasm_exports",
             .root_source_file = .{ .path = "scripts/output_wasm_exports.zig" },
         });
-        const gen_wasm_exports_zig = b.addRunArtifact(gen_wasm_exports_zig_exe);
-        const wasm_exports_zig = gen_wasm_exports_zig.addOutputFileArg("wasmexports.zig");
+        const gen = b.addRunArtifact(gen_exe);
+        const wasm_exports_zig = gen.addOutputFileArg("wasmexports.zig");
+        inline for (&.{"debug", "diff", "editor", "game", "renderer", "viewport"}) |name| {
+            gen.addFileArg(.{ .path = b.pathFromRoot("game/" ++ name ++ ".zig") });
+        }
+
         break :blk b.createModule(.{
             .source_file = wasm_exports_zig,
         });
