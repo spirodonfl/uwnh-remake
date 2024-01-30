@@ -14,7 +14,8 @@ pub var world_layer = ArrayList(u16).init(arena.allocator());
 pub var layers = ArrayList(ArrayList(u16)).init(arena.allocator());
 pub var world_modifications = ArrayList(ArrayList(u16)).init(arena.allocator());
 // TODO: Eventually consider removing new_worlds in favor of worlds
-pub var new_worlds = ArrayList(ArrayList(u16)).init(arena.allocator());
+pub var new_worlds = ArrayList(ArrayList(ArrayList(u16))).init(arena.allocator());
+pub var new_new_worlds = ArrayList(*game.WorldDataStruct).init(arena.allocator());
 // @wasm
 pub fn createLayer(width: u16, height: u16, layer_type: u16) void {
     var total_size: u16 = width * height;
@@ -70,6 +71,7 @@ pub fn clearAll() void {
     world_layer.clearRetainingCapacity();
     layers.clearRetainingCapacity();
     new_worlds.clearRetainingCapacity();
+    new_new_worlds.clearRetainingCapacity();
     _ = arena.reset(.retain_capacity);
 }
 // @wasm
@@ -91,94 +93,50 @@ pub fn resizeWorld(world: u16, width: u16, height: u16) void {
 }
 // @wasm
 pub fn addRowToWorld(world: u16) !void {
-    // TODO: Deal with layers
     if (world < embeds.total_worlds) {
-        var w = game.getWorldSizeWidth(world);
-        var h = game.getWorldSizeHeight(world);
-        h += 1;
-        var already_edited: bool = false;
-        // if (new_worlds.items[world].items.len > 0) {
-        //     already_edited = true;
-        //     // new_worlds.items[world].clearRetainingCapacity();
-        //     var duped_world = ArrayList(ArrayList(u16)).init(arena.allocator());
-        //     var world_size = ArrayList(u16).init(arena.allocator());
-        //     world_size.append(w) catch unreachable;
-        //     world_size.append(h) catch unreachable;
-        //     duped_world.append(world_size) catch unreachable;
-        //     for (0..2) |i| {
-        //         _ = i;
-        //         var layer = ArrayList(u16).init(arena.allocator());
-        //         @memset(layer.addManyAsSlice(w * h) catch unreachable, 0);
-        //         duped_world.append(layer) catch unreachable;
-        //     }
-        //     _ = new_worlds.orderedRemove(world);
-        //     // new_worlds.items[world] = duped_world;
-        //     new_worlds.insertSlice(world, duped_world);
-        // }
-        for (new_worlds.items) |*new_world| {
-            if (new_world.items[0] == world) {
-                new_world.clearRetainingCapacity();
-                already_edited = true;
-                try new_world.append(world);
-                try new_world.append(w);
-                try new_world.append(h);
-                @memset(try new_world.addManyAsSlice(w * h), 0);
+        var is_already_in: bool = false;
+        if (new_new_worlds.items.len > 0) {
+            for (new_new_worlds.items) |n_world| {
+                if (n_world.getIndex() == world) {
+                    n_world.addRow();
+                    is_already_in = true;
+                    break;
+                }
             }
         }
-        if (already_edited == false) {
-            var new_world = ArrayList(u16).init(arena.allocator());
-            new_world.append(world) catch unreachable;
-            new_world.append(w) catch unreachable;
-            new_world.append(h) catch unreachable;
-            @memset(new_world.addManyAsSlice(w * h) catch unreachable, 0);
-            new_worlds.append(new_world) catch unreachable;
-
-            // var duped_world = ArrayList(ArrayList(u16)).init(arena.allocator());
-            // var world_size = ArrayList(u16).init(arena.allocator());
-            // world_size.append(w) catch unreachable;
-            // world_size.append(h) catch unreachable;
-            // duped_world.append(world_size) catch unreachable;
-            // for (0..2) |i| {
-            //     _ = i;
-            //     var layer = ArrayList(u16).init(arena.allocator());
-            //     @memset(layer.addManyAsSlice(w * h) catch unreachable, 0);
-            //     duped_world.append(layer) catch unreachable;
-            // }
-            // new_worlds.items[world] = duped_world;
+        if (is_already_in == false) {
+            game.worlds_list.items[world].readDataFromEmbedded();
+            game.worlds_list.items[world].addRow();
+            try new_new_worlds.append(&game.worlds_list.items[world]);
         }
+    } else {
+        // TODO: Means that we have stuff in the editor as entirely new world
     }
     viewport.clear();
-    // viewport.initializeViewportData();
     game.loadWorld(world);
 }
 // @wasm
-pub fn addColumnToWorld(world: u16) void {
-    // TODO: If world exists already in editor.new_worlds, modify it instead of duping
+pub fn addColumnToWorld(world: u16) !void {
     if (world < embeds.total_worlds) {
-        var w = game.getWorldSizeWidth(world);
-        var h = game.getWorldSizeHeight(world);
-        w += 1;
-        var already_edited: bool = false;
-        for (new_worlds.items) |*new_world| {
-            if (new_world.items[0] == world) {
-                new_world.clearRetainingCapacity();
-                already_edited = true;
-                new_world.append(world) catch unreachable;
-                new_world.append(w) catch unreachable;
-                new_world.append(h) catch unreachable;
-                @memset(new_world.addManyAsSlice(w * h) catch unreachable, 0);
+        var is_already_in: bool = false;
+        if (new_new_worlds.items.len > 0) {
+            for (new_new_worlds.items) |n_world| {
+                if (n_world.getIndex() == world) {
+                    n_world.addColumn();
+                    is_already_in = true;
+                    break;
+                }
             }
         }
-        if (already_edited == false) {
-            var new_world = ArrayList(u16).init(arena.allocator());
-            new_world.append(world) catch unreachable;
-            new_world.append(w) catch unreachable;
-            new_world.append(h) catch unreachable;
-            @memset(new_world.addManyAsSlice(w * h) catch unreachable, 0);
-            new_worlds.append(new_world) catch unreachable;
+        if (is_already_in == false) {
+            game.worlds_list.items[world].readDataFromEmbedded();
+            game.worlds_list.items[world].addColumn();
+            try new_new_worlds.append(&game.worlds_list.items[world]);
         }
+    } else {
+        // TODO: Means that we have stuff in the editor as entirely new world
     }
-    // @panic("STOP");
+
     viewport.clear();
     // viewport.initializeViewportData();
     game.loadWorld(world);
@@ -188,9 +146,10 @@ pub fn addColumnToWorld(world: u16) void {
 // @wasm
 pub fn getWorldMemoryLocation(world: u16) usize {
     if (world < embeds.total_worlds) {
-        for (new_worlds.items, 0..) |new_world, i| {
-            if (new_world.items[0] == world) {
-                return @intFromPtr(&new_worlds.items[i].items[0]);
+        for (new_worlds.items, 0..) |*new_world, i| {
+            _ = new_world;
+            if (i == world) {
+                return @intFromPtr(&new_worlds.items[i]);
             }
         }
         const file_index = helpers.getWorlFileIndex(world);
@@ -201,14 +160,46 @@ pub fn getWorldMemoryLocation(world: u16) usize {
 // @wasm
 pub fn getWorldMemoryLength(world: u16) usize {
     if (world < embeds.total_worlds) {
-        for (new_worlds.items, 0..) |new_world, i| {
-            if (new_world.items[0] == world) {
-                return new_worlds.items[i].items.len;
+        for (new_worlds.items, 0..) |*new_world, i| {
+            if (i == world) {
+                var w = new_world.items[0].items[0];
+                var h = new_world.items[0].items[1];
+                var size = w * h;
+                return size * new_worlds.items[i].items.len - 1;
             }
         }
         const file_index = helpers.getWorlFileIndex(world);
         return embeds.embeds[file_index].len;
     }
     @panic("Unhandled world memory check");
+}
+
+
+test "nested_arraylist_tests" {
+    var duped_world = ArrayList(ArrayList(u16)).init(arena.allocator());
+    var world_size = ArrayList(u16).init(arena.allocator());
+    try world_size.append(0);
+    try world_size.append(1);
+    var layer_one = ArrayList(u16).init(arena.allocator());
+    try layer_one.append(2);
+    try layer_one.append(3);
+    try duped_world.append(world_size);
+    try duped_world.append(layer_one);
+    try std.testing.expect(duped_world.items.len == 2);
+    try std.testing.expect(duped_world.items[1].items[0] == 2);
+    var layer_two = ArrayList(u16).init(arena.allocator());
+    try layer_two.append(4);
+    try layer_two.append(5);
+    try duped_world.append(layer_two);
+    // ---------
+    duped_world.items[1].clearAndFree();
+    // layer_two.clearAndFree();
+    _ = duped_world.orderedRemove(1);
+    // ---------
+    var layer_three = ArrayList(u16).init(arena.allocator());
+    try layer_three.append(6);
+    try layer_three.append(7);
+    // ---------
+    try duped_world.insert(1, layer_three);
 }
 
