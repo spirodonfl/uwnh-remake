@@ -351,7 +351,6 @@ pub fn loadWorld(index: u16) void {
         }
     }
     if (!in_editor) {
-        std.log.info("World not in editor", .{});
         w = worlds_list.items[current_world_index].getWidth();
         h = worlds_list.items[current_world_index].getHeight();
     }
@@ -381,7 +380,6 @@ pub fn loadWorld(index: u16) void {
     viewport.initializeViewportData();
     var x: u16 = 0;
     var y: u16 = 0;
-    std.log.info("Viewport w/h {d} {d}", .{w, h});
     for (0..viewport.getLength()) |i| {
         _ = i;
         if (
@@ -453,11 +451,9 @@ pub fn getEntityOut() u16 {
 
 // @wasm
 pub fn getWorldData(world: u16, layer: u16, x: u16, y: u16) u16 {
-    std.log.info("getWorldData called", .{});
     if (editor.new_new_worlds.items.len > 0) {
         for (editor.new_new_worlds.items) |nw| {
             if (nw.getIndex() == world) {
-                std.log.info("getWorldData EDITOR MODE", .{});
                 return nw.getCoordinateData(layer, x, y);
             }
         }
