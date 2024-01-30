@@ -6,6 +6,7 @@ const embeds = @import("embeds.zig");
 const debug = @import("debug.zig");
 const viewport = @import("viewport.zig");
 const helpers = @import("helpers.zig");
+const diff = @import("diff.zig");
 
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 pub var worlds = ArrayList(ArrayList(u16)).init(arena.allocator());
@@ -98,6 +99,7 @@ pub fn addRowToWorld(world: u16) !void {
         if (new_new_worlds.items.len > 0) {
             for (new_new_worlds.items) |n_world| {
                 if (n_world.getIndex() == world) {
+                    diff.addData(0);
                     n_world.addRow();
                     is_already_in = true;
                     break;
@@ -105,6 +107,7 @@ pub fn addRowToWorld(world: u16) !void {
             }
         }
         if (is_already_in == false) {
+            diff.addData(0);
             game.worlds_list.items[world].readDataFromEmbedded();
             game.worlds_list.items[world].addRow();
             try new_new_worlds.append(&game.worlds_list.items[world]);
@@ -122,6 +125,7 @@ pub fn addColumnToWorld(world: u16) !void {
         if (new_new_worlds.items.len > 0) {
             for (new_new_worlds.items) |n_world| {
                 if (n_world.getIndex() == world) {
+                    diff.addData(0);
                     n_world.addColumn();
                     is_already_in = true;
                     break;
@@ -129,6 +133,7 @@ pub fn addColumnToWorld(world: u16) !void {
             }
         }
         if (is_already_in == false) {
+            diff.addData(0);
             game.worlds_list.items[world].readDataFromEmbedded();
             game.worlds_list.items[world].addColumn();
             try new_new_worlds.append(&game.worlds_list.items[world]);
@@ -146,10 +151,11 @@ pub fn addColumnToWorld(world: u16) !void {
 // @wasm
 pub fn getWorldMemoryLocation(world: u16) usize {
     if (world < embeds.total_worlds) {
-        for (new_worlds.items, 0..) |*new_world, i| {
-            _ = new_world;
-            if (i == world) {
-                return @intFromPtr(&new_worlds.items[i]);
+        for (new_new_worlds.items) |*new_world| {
+            if (new_world.getIndex() == world) {
+                if (new_world.has_data == true) {
+                    return @intFromPtr(&new_world.data);
+                }
             }
         }
         const file_index = helpers.getWorlFileIndex(world);
@@ -160,12 +166,12 @@ pub fn getWorldMemoryLocation(world: u16) usize {
 // @wasm
 pub fn getWorldMemoryLength(world: u16) usize {
     if (world < embeds.total_worlds) {
-        for (new_worlds.items, 0..) |*new_world, i| {
-            if (i == world) {
-                var w = new_world.items[0].items[0];
-                var h = new_world.items[0].items[1];
+         for (new_new_worlds.items) |*new_world| {
+            if (new_world.getIndex() == world) {
+                var w = new_world.getWidth();
+                var h = new_world.getHeight();
                 var size = w * h;
-                return size * new_worlds.items[i].items.len - 1;
+                return size * new_world.getSize();
             }
         }
         const file_index = helpers.getWorlFileIndex(world);

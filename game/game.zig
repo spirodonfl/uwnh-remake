@@ -129,7 +129,7 @@ pub const WorldDataStruct = struct {
         } else {
             index = self.embedded.readData(0, 0);
         }
-        std.log.info("index {d}",.{index});
+        // std.log.info("index {d}",.{index});
         return index;
     }
     pub fn getWidth(self: *WorldDataStruct) u16 {
@@ -139,7 +139,7 @@ pub const WorldDataStruct = struct {
         } else {
             width = self.embedded.readData(1, 0);
         }
-        std.log.info("width {d}",.{width});
+        // std.log.info("width {d}",.{width});
         return width;
     }
     pub fn getHeight(self: *WorldDataStruct) u16 {
@@ -149,23 +149,23 @@ pub const WorldDataStruct = struct {
         } else {
             height = self.embedded.readData(2, 0);
         }
-        std.log.info("height {d}",.{height});
+        // std.log.info("height {d}",.{height});
         return height;
     }
     pub fn getSize(self: *WorldDataStruct) u16 {
         const size = self.getWidth() * self.getHeight();
-        std.log.info("size {d}",.{size});
+        // std.log.info("size {d}",.{size});
         return size;
     }
     pub fn getLayerIndex(self: *WorldDataStruct, layer: u16) u16 {
         const layer_index = self.offset + (layer * self.getSize());
-        std.log.info("offset {d} layer {d} layer_index {d}",.{self.offset, layer, layer_index});
+        // std.log.info("offset {d} layer {d} layer_index {d}",.{self.offset, layer, layer_index});
         return layer_index;
     }
     pub fn getLayerEndIndex(self: *WorldDataStruct, layer: u16) u16 {
         const layer_index = self.getLayerIndex(layer);
         const size = self.getSize();
-        std.log.info("layer_end_index {d}",.{layer_index + size});
+        // std.log.info("layer_end_index {d}",.{layer_index + size});
         const layer_end_index = layer_index + size;
         return layer_end_index;
     }
@@ -173,11 +173,14 @@ pub const WorldDataStruct = struct {
         var index: u16 = self.getLayerIndex(layer);
         index += y * self.getWidth();
         index += x;
+        var data: u16 = undefined;
         if (self.has_data == true) {
-            return self.data[index];
+            data = self.data[index];
         } else {
-            return self.embedded.readData(index, 0);
+            data = self.embedded.readData(index, 0);
         }
+        // std.log.info("getCoordinateData {d}",.{data});
+        return data;
     }
     pub fn setData(self: *WorldDataStruct, data: []u16) void {
         self.has_data = true;
@@ -210,7 +213,7 @@ pub const WorldDataStruct = struct {
             var row:u16 = 0;
             var new_data_i: u16 = self.offset;
             for (self.data[self.offset..], 0..) |value, i| {
-                if (i - (i * row) == width) {
+                if (i - (width * row) == width) {
                     row += 1;
                 }
                 new_data[new_data_i] = value;
@@ -219,7 +222,7 @@ pub const WorldDataStruct = struct {
                     for (0..width) |new_layer_i| {
                         _ = new_layer_i;
                         new_data_i += 1;
-                        new_data[new_data_i] = 0;
+                        new_data[new_data_i] = value;
                     }
                 }
                 new_data_i += 1;
@@ -238,7 +241,7 @@ pub const WorldDataStruct = struct {
         if (self.has_data == true) {
             const width = self.getWidth();
             const height = self.getHeight();
-            const new_size = self.data.len + (width * self.layers) + self.offset;
+            const new_size = self.data.len + (height * self.layers) + self.offset;
             // TODO: this should be the editor arena allocator and then cleared as such
             // self.data.clearAndFree();
             var new_data = allocator.alloc(u16, new_size) catch unreachable;
@@ -250,11 +253,13 @@ pub const WorldDataStruct = struct {
             var row:u16 = 0;
             var new_data_i: u16 = self.offset;
             for (self.data[self.offset..], 0..) |value, i| {
-                new_data[new_data_i] = value;
-                if (i - (i * row) == width) {
+                if (i - (width * row) == width) {
                     new_data[new_data_i] = 0;
+                    new_data_i += 1;
                     row += 1;
                 }
+                new_data[new_data_i] = value;
+
                 if (row == height) {
                     layer += 1;
                 }
@@ -305,7 +310,7 @@ pub const EmbeddedDataStruct = struct {
     pub fn readData(self: *EmbeddedDataStruct, index: u16, mode: u16) u16 {
         var file = embeds.embeds[self.file_index];
         const adjusted_index = index * 2;
-        std.log.info("readData {d}",.{adjusted_index});
+        // std.log.info("readData {d}",.{adjusted_index});
         var pulled_value: u16 = 0;
         // TODO: Enum the modes
         if (mode == 0) {

@@ -83,6 +83,23 @@ function tick() {
         delta = Math.min(interval, delta + now - then - interval);
         then = now;
 
+        if (_GAME.diff_getLength() > 0) {
+            // TODO: Should make this a special number to force a redraw
+            if (_GAME.diff_getData(0) === 0) {
+                console.log('CLEARING VIEWPORT');
+                DOM.rendered = false;
+                var player = false;
+                if (player = document.getElementById('the_player')) {
+                    player.remove();
+                }
+                var collisions = document.getElementsByClassName('collision');
+                for (var i = 0; i < collisions.length; ++i) {
+                    collisions[i].remove();
+                }
+            }
+            _GAME.diff_clearAll();
+        }
+
         if (!DOM.rendered) {
             console.log('RENDERING VIEWPORT');
             var y = 0;
@@ -108,6 +125,8 @@ function tick() {
                     if (entity === 1) {
                         var img = ENUM_IMAGES[0];
                         var entity = document.createElement('div');
+                        entity.id = 'the_player';
+                        entity.setAttribute('data-time', then);
                         entity.setAttribute('data-entity-id', 1);
                         entity.style.backgroundImage = 'url("' + img + '")';
                         entity.style.width = (SIZE * SCALE) + 'px';
@@ -122,6 +141,7 @@ function tick() {
                     var collision = _GAME.game_getWorldAtViewport(2, viewport_x, viewport_y);
                     if (collision === 1) {
                         var collision = document.createElement('div');
+                        collision.classList.add('collision');
                         collision.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
                         collision.style.width = (SIZE * SCALE) + 'px';
                         collision.style.height = (SIZE * SCALE) + 'px';

@@ -15,6 +15,11 @@
         <link rel="stylesheet" type="text/css" href="styles/editor.css" />
     </head>
     <body>
+        <div id="editor">
+            <div>Current World: <span id="world_name">Test</span></div>
+            <div style="padding: 10px; cursor: pointer;" onclick="_GAME.editor_addRowToWorld(0);">Add Row</div>
+            <div style="padding: 10px; cursor: pointer;" onclick="_GAME.editor_addColumnToWorld(0);">Add Column</div>
+        </div>
         <div id="stats"></div>
         <div id="view">
             <div id="clickable_view"></div>
