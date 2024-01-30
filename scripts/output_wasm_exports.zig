@@ -64,7 +64,13 @@ pub fn main() !void {
                 try PP_file.writeAll("(");
                 const end = std.mem.indexOf(u8, line, ")").?;
                 const squirelly = std.mem.indexOf(u8, line, "{").?;
-                const return_type = std.mem.trimLeft(u8, line[end..squirelly], ")");
+                const return_type: struct { without_error: []const u8, has_error: bool} = blk: {
+                    const return_type_part = std.mem.trimLeft(u8, line[end..squirelly], ")");
+                    const return_type_full = std.mem.trimLeft(u8, return_type_part, " ");
+                    if (std.mem.startsWith(u8, return_type_full, "!"))
+                        break :blk .{ .without_error = return_type_full[1..], .has_error = true };
+                    break :blk .{ .without_error = return_type_full, .has_error = false };
+                };
                 var iter = std.mem.split(u8, line[start..end], ",");
                 var param_index: u8 = 0;
                 var param_list: ArrayList([]const u8) = ArrayList([]const u8).init(allocator);
@@ -93,7 +99,7 @@ pub fn main() !void {
                     param_index += 1;
                 }
                 try PP_file.writeAll(")");
-                try PP_file.writeAll(return_type);
+                try PP_file.writeAll(return_type.without_error);
                 try PP_file.writeAll("{\n");
                 const return_line = try std.fmt.allocPrint(allocator, "{s}{s}{s}", .{"    return ", file_name, "."});
                 try PP_file.writeAll(return_line);
@@ -107,7 +113,11 @@ pub fn main() !void {
                         try PP_file.writeAll(param);
                     }
                 }
-                try PP_file.writeAll(");\n");
+                const catch_clause: []const u8 = if (return_type.has_error)
+                    " catch |e| game.uncaughtError(e)"
+                else
+                    "";
+                try PP_file.writer().print("){s};\n", .{catch_clause});
                 try PP_file.writeAll("}");
                 try PP_file.writeAll("\n");
             }
