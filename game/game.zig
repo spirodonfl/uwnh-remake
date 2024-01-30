@@ -91,6 +91,18 @@ pub fn panic(
     while (true) { @breakpoint(); }
 }
 
+pub fn uncaughtError(err: anytype) noreturn {
+    log("uncaught error: {s}", .{@errorName(err)});
+    if (@errorReturnTrace()) |t| {
+        log("ErrorTrace:", .{});
+        std.debug.dumpStackTrace(t.*);
+    } else {
+        log("ErrorTrace: <none>", .{});
+    }
+    while (true) { @breakpoint(); }
+}
+
+
 fn console_log_write_zig(context: void, bytes: []const u8) !usize {
     _ = context;
     console_log_write(bytes.ptr, bytes.len);
@@ -241,12 +253,12 @@ var entities_list = ArrayList(Entity).init(gpa_allocator.allocator());
 // entities_with_component_* = arraylist
 // read through entity data, if certain components are turned on or off, create the appropriate struct and add it to the array
 // @wasm
-pub fn initializeGame() void {
+pub fn initializeGame() !void {
     loadWorld(current_world_index);
 
     var new_entity = Entity{ .internalID = 0 };
     new_entity.init();
-    entities_list.append(new_entity) catch unreachable;
+    try entities_list.append(new_entity);
 }
 // @wasm
 pub fn getEntityOut() u16 {
