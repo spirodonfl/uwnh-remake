@@ -268,6 +268,11 @@ pub fn getWorldData(world: u16, layer: u16, x: u16, y: u16) u16 {
             return editor.new_worlds.items[nw].items[index];
         }
     }
+    // if (editor.new_worlds.items[world].items.len > 0) {
+    //     var w = editor.new_worlds.items[world].items[0].items[1];
+    //     var index: u16 = y * w + x;
+    //     return editor.new_worlds.items[world].items[layer + 1].items[index];
+    // }
     if (world >= embeds.total_worlds) {
         var offset_index: u16 = world - embeds.total_worlds;
         // iterate over editor.world_layer until you get a match
@@ -318,6 +323,9 @@ pub fn getWorldSizeWidth(world: u16) u16 {
             return editor.new_worlds.items[nw].items[1];
         }
     }
+    // if (editor.new_worlds.items[world].items.len > 0) {
+    //     return editor.new_worlds.items[world].items[0].items[0];
+    // }
     if (world >= embeds.total_worlds) {
         var offset_index: u16 = world - embeds.total_worlds;
         return editor.worlds.items[offset_index].items[0];
@@ -342,6 +350,9 @@ pub fn getWorldSizeHeight(world: u16) u16 {
             return editor.new_worlds.items[nw].items[2];
         }
     }
+    // if (editor.new_worlds.items[world].items.len > 0) {
+    //     return editor.new_worlds.items[world].items[0].items[1];
+    // }
     if (world >= embeds.total_worlds) {
         var offset_index: u16 = world - embeds.total_worlds;
         return editor.worlds.items[offset_index].items[1];

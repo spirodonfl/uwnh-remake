@@ -40,7 +40,7 @@ pub fn createWorld(width: u16, height: u16) void {
     worlds.append(new_world) catch unreachable;
 }
 // @wasm
-pub fn totalWorlds() u16 {
+pub fn totalWorlds() !u16 {
     return @as(u16, @intCast(worlds.items.len));
 }
 // @wasm
@@ -97,6 +97,24 @@ pub fn addRowToWorld(world: u16) !void {
         var h = game.getWorldSizeHeight(world);
         h += 1;
         var already_edited: bool = false;
+        // if (new_worlds.items[world].items.len > 0) {
+        //     already_edited = true;
+        //     // new_worlds.items[world].clearRetainingCapacity();
+        //     var duped_world = ArrayList(ArrayList(u16)).init(arena.allocator());
+        //     var world_size = ArrayList(u16).init(arena.allocator());
+        //     world_size.append(w) catch unreachable;
+        //     world_size.append(h) catch unreachable;
+        //     duped_world.append(world_size) catch unreachable;
+        //     for (0..2) |i| {
+        //         _ = i;
+        //         var layer = ArrayList(u16).init(arena.allocator());
+        //         @memset(layer.addManyAsSlice(w * h) catch unreachable, 0);
+        //         duped_world.append(layer) catch unreachable;
+        //     }
+        //     _ = new_worlds.orderedRemove(world);
+        //     // new_worlds.items[world] = duped_world;
+        //     new_worlds.insertSlice(world, duped_world);
+        // }
         for (new_worlds.items) |*new_world| {
             if (new_world.items[0] == world) {
                 new_world.clearRetainingCapacity();
@@ -115,7 +133,6 @@ pub fn addRowToWorld(world: u16) !void {
             @memset(new_world.addManyAsSlice(w * h) catch unreachable, 0);
             new_worlds.append(new_world) catch unreachable;
 
-            // TODO: This sucks for appending the world with the right world index and searching for it
             // var duped_world = ArrayList(ArrayList(u16)).init(arena.allocator());
             // var world_size = ArrayList(u16).init(arena.allocator());
             // world_size.append(w) catch unreachable;
@@ -127,7 +144,7 @@ pub fn addRowToWorld(world: u16) !void {
             //     @memset(layer.addManyAsSlice(w * h) catch unreachable, 0);
             //     duped_world.append(layer) catch unreachable;
             // }
-            // new_worlds.append(duped_world) catch unreachable;
+            // new_worlds.items[world] = duped_world;
         }
     }
     viewport.clear();
