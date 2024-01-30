@@ -151,7 +151,7 @@ pub fn addColumnToWorld(world: u16) !void {
 // @wasm
 pub fn getWorldMemoryLocation(world: u16) usize {
     if (world < embeds.total_worlds) {
-        for (new_new_worlds.items) |*new_world| {
+        for (new_new_worlds.items) |new_world| {
             if (new_world.getIndex() == world) {
                 if (new_world.has_data == true) {
                     return @intFromPtr(&new_world.data);
@@ -166,7 +166,7 @@ pub fn getWorldMemoryLocation(world: u16) usize {
 // @wasm
 pub fn getWorldMemoryLength(world: u16) usize {
     if (world < embeds.total_worlds) {
-         for (new_new_worlds.items) |*new_world| {
+         for (new_new_worlds.items) |new_world| {
             if (new_world.getIndex() == world) {
                 var w = new_world.getWidth();
                 var h = new_world.getHeight();
