@@ -10,16 +10,21 @@ const prefix: []const u8 = "game";
 
 pub fn main() !void {
     const cmdline_args = (try std.process.argsAlloc(allocator))[1..];
-    if (cmdline_args.len < 1) {
-        std.log.err("expected at least 1 cmdline arg", .{});
+    if (cmdline_args.len < 2) {
+        std.log.err("expected at least 2 cmdline args", .{});
         std.os.exit(0xff);
     }
-    const out_file = cmdline_args[0];
+    const out_file_zig = cmdline_args[0];
+    const out_file_js = cmdline_args[1];
 
-    const PP_file = try std.fs.cwd().createFile(out_file, .{ .read = true });
+    const PP_file = try std.fs.cwd().createFile(out_file_zig, .{ .read = true });
     defer PP_file.close();
+    const js_file = try std.fs.cwd().createFile(out_file_js, .{});
+    defer js_file.close();
+    const js_writer = js_file.writer();
+    try js_writer.writeAll("const _WASM_IMPORTS = {\n");
 
-    for (cmdline_args[1..]) |full_file| {
+    for (cmdline_args[2..]) |full_file| {
         const base_name = std.fs.path.basename(full_file);
         const file_name = base_name[0 .. base_name.len - 4];
         var file = try std.fs.cwd().openFile(full_file, .{});
@@ -60,6 +65,7 @@ pub fn main() !void {
                 const start = std.mem.indexOf(u8, line, "(").?;
                 const fn_name = line[7..start];
                 // std.debug.print("FN NAME: {s}\n", .{fn_name});
+                try js_writer.print("    {s}_{s}(", .{file_name, fn_name});
                 try PP_file.writeAll(fn_name);
                 try PP_file.writeAll("(");
                 const end = std.mem.indexOf(u8, line, ")").?;
@@ -113,6 +119,11 @@ pub fn main() !void {
                         try PP_file.writeAll(param);
                     }
                 }
+                for (param_list.items, 0..) |name, i| {
+                    const sep: []const u8 = if (i == 0) "" else ", ";
+                    try js_writer.print("{s}{s}", .{sep, name});
+                }
+                try js_writer.writeAll(") {},\n");
                 const catch_clause: []const u8 = if (return_type.has_error)
                     " catch |e| game.uncaughtError(e)"
                 else
@@ -124,4 +135,6 @@ pub fn main() !void {
         }
         file.close();
     }
+
+    try js_writer.writeAll("};\n");
 }
