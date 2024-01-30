@@ -15,6 +15,7 @@ pub fn build(b: *Builder) !void {
         });
         const gen = b.addRunArtifact(gen_exe);
         const wasm_exports_zig = gen.addOutputFileArg("wasmexports.zig");
+        gen.addArg(b.pathFromRoot("web/scripts/js.bindings.js"));
         inline for (&.{"debug", "diff", "editor", "game", "renderer", "viewport"}) |name| {
             gen.addFileArg(.{ .path = b.pathFromRoot("game/" ++ name ++ ".zig") });
         }
@@ -38,13 +39,6 @@ pub fn build(b: *Builder) !void {
     game.rdynamic = true;
     game.step.dependOn(&gen_step.step);
     b.installArtifact(game);
-
-    const bindgen = b.addExecutable(.{
-        .name = "bindgen",
-        .root_source_file = .{ .path = "scripts/output_definitions.zig" },
-    });
-    const run_bindgen = b.addRunArtifact(bindgen);
-    b.getInstallStep().dependOn(&run_bindgen.step);
 
     const copy_output_to_root = b.addInstallBinFile(game.getEmittedBin(), "../../web/wasm/game.wasm");
     b.getInstallStep().dependOn(&copy_output_to_root.step);
