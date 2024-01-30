@@ -141,13 +141,6 @@ pub fn loadWorld(index: u16) void {
         h = readFromEmbeddedFile(world_size_file_index, 1, 0);
     }
 
-    // TODO: Remove this when you've properly added some logging/debugging
-    if (1 == 2) {
-        std.log.info("World width: {d}", .{w});
-        std.log.info("World height: {d}", .{h});
-        @panic("WHOA WHOA WHOA ALL HELL BROKE LOOSE AND JOYQUERY CANT KEEP HIS PROMISES>>> BASTARD");
-    }
-
     if (w < viewport.getSizeWidth()) {
         var leftover = viewport.getSizeWidth() - w;
         if (leftover % 2 > 0) {
@@ -326,7 +319,7 @@ pub fn getWorldSizeWidth(world: u16) u16 {
                 world_size_file_index = i;
             }
         }
-        return readFromEmbeddedFile(world_size_file_index, 1, 0);
+        return readFromEmbeddedFile(world_size_file_index, 0, 0);
     }
 
 }
@@ -350,7 +343,7 @@ pub fn getWorldSizeHeight(world: u16) u16 {
                 world_size_file_index = i;
             }
         }
-        return readFromEmbeddedFile(world_size_file_index, 0, 0);
+        return readFromEmbeddedFile(world_size_file_index, 1, 0);
     }
 }
 

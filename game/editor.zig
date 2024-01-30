@@ -5,6 +5,7 @@ const game = @import("game.zig");
 const embeds = @import("embeds.zig");
 const debug = @import("debug.zig");
 const viewport = @import("viewport.zig");
+const helpers = @import("helpers.zig");
 
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 pub var worlds = ArrayList(ArrayList(u16)).init(arena.allocator());
@@ -68,6 +69,7 @@ pub fn clearAll() void {
     entities.clearRetainingCapacity();
     world_layer.clearRetainingCapacity();
     layers.clearRetainingCapacity();
+    new_worlds.clearRetainingCapacity();
     _ = arena.reset(.retain_capacity);
 }
 // @wasm
@@ -87,32 +89,49 @@ pub fn resizeWorld(world: u16, width: u16, height: u16) void {
     _ = width;
     _ = world;
 }
-// TODO: Fix an issue where adding two many expansions breaks the render
 // @wasm
 pub fn addRowToWorld(world: u16) void {
-    // TODO: If world exists already in editor.new_worlds, modify it instead of duping
+    // TODO: Deal with layers
     if (world < embeds.total_worlds) {
         var w = game.getWorldSizeWidth(world);
         var h = game.getWorldSizeHeight(world);
-        var size = w * h;
-        var new_world = ArrayList(u16).init(arena.allocator());
-        new_world.append(world) catch unreachable;
-        new_world.append(game.getWorldSizeWidth(world)) catch unreachable;
-        new_world.append(game.getWorldSizeHeight(world) + 1) catch unreachable;
-        for (0..size) |i| {
-            var x = @as(u16, @intCast(i % w));
-            var y = @as(u16, @intCast(i / w));
+        h += 1;
+        var already_edited: bool = false;
+        for (new_worlds.items) |*new_world| {
+            if (new_world.items[0] == world) {
+                new_world.clearRetainingCapacity();
+                already_edited = true;
+                new_world.append(world) catch unreachable;
+                new_world.append(w) catch unreachable;
+                new_world.append(h) catch unreachable;
+                @memset(new_world.addManyAsSlice(w * h) catch unreachable, 0);
+            }
+        }
+        if (already_edited == false) {
+            var new_world = ArrayList(u16).init(arena.allocator());
+            new_world.append(world) catch unreachable;
+            new_world.append(w) catch unreachable;
+            new_world.append(h) catch unreachable;
+            @memset(new_world.addManyAsSlice(w * h) catch unreachable, 0);
+            new_worlds.append(new_world) catch unreachable;
 
-            new_world.append(game.getWorldData(world, 0, x, y)) catch unreachable;
+            // TODO: This sucks for appending the world with the right world index and searching for it
+            // var duped_world = ArrayList(ArrayList(u16)).init(arena.allocator());
+            // var world_size = ArrayList(u16).init(arena.allocator());
+            // world_size.append(w) catch unreachable;
+            // world_size.append(h) catch unreachable;
+            // duped_world.append(world_size) catch unreachable;
+            // for (0..2) |i| {
+            //     _ = i;
+            //     var layer = ArrayList(u16).init(arena.allocator());
+            //     @memset(layer.addManyAsSlice(w * h) catch unreachable, 0);
+            //     duped_world.append(layer) catch unreachable;
+            // }
+            // new_worlds.append(duped_world) catch unreachable;
         }
-        for (0..w) |i| {
-            _ = i;
-            new_world.append(0) catch unreachable;
-        }
-        new_worlds.append(new_world) catch unreachable;
     }
     viewport.clear();
-    viewport.initializeViewportData();
+    // viewport.initializeViewportData();
     game.loadWorld(world);
 }
 // @wasm
@@ -121,23 +140,58 @@ pub fn addColumnToWorld(world: u16) void {
     if (world < embeds.total_worlds) {
         var w = game.getWorldSizeWidth(world);
         var h = game.getWorldSizeHeight(world);
-        var new_world = ArrayList(u16).init(arena.allocator());
-        new_world.append(world) catch unreachable;
-        new_world.append(game.getWorldSizeWidth(world) + 1) catch unreachable;
-        new_world.append(game.getWorldSizeHeight(world)) catch unreachable;
-        for (0..h) |hi| {
-            _ = hi;
-            for (0..w) |wi| {
-                _ = wi;
-                new_world.append(0) catch unreachable;
+        w += 1;
+        var already_edited: bool = false;
+        for (new_worlds.items) |*new_world| {
+            if (new_world.items[0] == world) {
+                new_world.clearRetainingCapacity();
+                already_edited = true;
+                new_world.append(world) catch unreachable;
+                new_world.append(w) catch unreachable;
+                new_world.append(h) catch unreachable;
+                @memset(new_world.addManyAsSlice(w * h) catch unreachable, 0);
             }
-            new_world.append(0) catch unreachable;
         }
-        new_worlds.append(new_world) catch unreachable;
+        if (already_edited == false) {
+            var new_world = ArrayList(u16).init(arena.allocator());
+            new_world.append(world) catch unreachable;
+            new_world.append(w) catch unreachable;
+            new_world.append(h) catch unreachable;
+            @memset(new_world.addManyAsSlice(w * h) catch unreachable, 0);
+            new_worlds.append(new_world) catch unreachable;
+        }
     }
+    // @panic("STOP");
     viewport.clear();
-    viewport.initializeViewportData();
+    // viewport.initializeViewportData();
     game.loadWorld(world);
 }
 // pub fn modifyEntity() ????????
+
+// @wasm
+pub fn getWorldMemoryLocation(world: u16) usize {
+    if (world < embeds.total_worlds) {
+        for (new_worlds.items, 0..) |new_world, i| {
+            if (new_world.items[0] == world) {
+                return @intFromPtr(&new_worlds.items[i].items[0]);
+            }
+        }
+        const file_index = helpers.getWorlFileIndex(world);
+        return @intFromPtr(&embeds.embeds[file_index]);
+    }
+    @panic("Unhandled world memory check");
+}
+// @wasm
+pub fn getWorldMemoryLength(world: u16) usize {
+    if (world < embeds.total_worlds) {
+        for (new_worlds.items, 0..) |new_world, i| {
+            if (new_world.items[0] == world) {
+                return new_worlds.items[i].items.len;
+            }
+        }
+        const file_index = helpers.getWorlFileIndex(world);
+        return embeds.embeds[file_index].len;
+    }
+    @panic("Unhandled world memory check");
+}
 

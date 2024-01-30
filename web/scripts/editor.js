@@ -11,7 +11,7 @@ var EDITOR = {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
     },
-    extractMemory: function (memory_length, memory_start) {
+    extractMemory: function (memory_start, memory_length) {
         let data_view = new DataView(_GAME.memory.buffer, 0, _GAME.memory.byteLength);
         let data = [];
         for (let i = 0; i < memory_length; ++i) {
@@ -20,7 +20,7 @@ var EDITOR = {
         }
         return data;
     },
-    memoryToBin: function (memory_length, memory_start, file_name) {
+    memoryToBin: function (memory_start, memory_length, file_name) {
         let blob = this.generateBlob(this.extractMemory(memory_length, memory_start));
         console.log(data);
 
@@ -29,4 +29,20 @@ var EDITOR = {
     generateBlob: function (data) {
         return new Blob([new Uint16Array(data)], {type: 'application/octet-stream'});
     },
+    __tests: function (which) {
+        if (which == 0) {
+            _GAME.editor_addColumnToWorld(0);
+            DOM.rendered = false;
+            var __location = _GAME.editor_getWorldMemoryLocation(0);
+            var __length = _GAME.editor_getWorldMemoryLength(0);
+            var __memory = EDITOR.extractMemory(__location, __length);
+            var sub_memory = __memory.slice(3, __memory.length);
+            var blob_memory = EDITOR.generateBlob(sub_memory);
+            EDITOR.editorDownload(blob_memory, "world_0_layer_0.bin");
+            EDITOR.editorDownload(blob_memory, "world_0_layer_1.bin");
+            EDITOR.editorDownload(blob_memory, "world_0_layer_2.bin");
+            var size_blob = EDITOR.generateBlob([__memory[1], __memory[2]]);
+            EDITOR.editorDownload(size_blob, "world_0_size.bin");
+        }
+    }
 };
