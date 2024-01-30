@@ -123,44 +123,56 @@ pub const WorldDataStruct = struct {
         self.embedded = embedded;
     }
     pub fn getIndex(self: *WorldDataStruct) u16 {
+        var index: u16 = undefined;
         if (self.has_data == true) {
-            return self.data[0];
+            index = self.data[0];
         } else {
-            return self.embedded.readData(0, 0);
+            index = self.embedded.readData(0, 0);
         }
+        std.log.info("index {d}",.{index});
+        return index;
     }
     pub fn getWidth(self: *WorldDataStruct) u16 {
+        var width: u16 = undefined;
         if (self.has_data == true) {
-            return self.data[1];
+            width = self.data[1];
         } else {
-            return self.embedded.readData(1, 0);
+            width = self.embedded.readData(1, 0);
         }
+        std.log.info("width {d}",.{width});
+        return width;
     }
     pub fn getHeight(self: *WorldDataStruct) u16 {
+        var height: u16 = undefined;
         if (self.has_data == true) {
-            return self.data[2];
+            height = self.data[2];
         } else {
-            return self.embedded.readData(2, 0);
+            height = self.embedded.readData(2, 0);
         }
+        std.log.info("height {d}",.{height});
+        return height;
     }
     pub fn getSize(self: *WorldDataStruct) u16 {
-        return self.getWidth() * self.getHeight();
+        const size = self.getWidth() * self.getHeight();
+        std.log.info("size {d}",.{size});
+        return size;
     }
     pub fn getLayerIndex(self: *WorldDataStruct, layer: u16) u16 {
-        return (self.offset + (layer * self.getSize()));
+        const layer_index = self.offset + (layer * self.getSize());
+        std.log.info("offset {d} layer {d} layer_index {d}",.{self.offset, layer, layer_index});
+        return layer_index;
     }
     pub fn getLayerEndIndex(self: *WorldDataStruct, layer: u16) u16 {
         return (self.getLayerIndex(layer) + self.getSize());
     }
     pub fn getCoordinateData(self: *WorldDataStruct, layer: u16, x: u16, y: u16) u16 {
+        var index: u16 = self.getLayerIndex(layer);
+        index += y * self.getWidth();
+        index += x;
         if (self.has_data == true) {
-            var index: u16 = self.getLayerIndex(layer);
-            index += y * self.getWidth();
-            index += x;
             return self.data[index];
         } else {
-            // TODO: THIS
-            return 0;
+            return self.embedded.readData(index, 0);
         }
     }
     pub fn setData(self: *WorldDataStruct, data: []u16) void {
@@ -289,7 +301,7 @@ pub const EmbeddedDataStruct = struct {
     pub fn readData(self: *EmbeddedDataStruct, index: u16, mode: u16) u16 {
         var file = embeds.embeds[self.file_index];
         const adjusted_index = index * 2;
-
+        std.log.info("readData {d}",.{adjusted_index});
         var pulled_value: u16 = 0;
         // TODO: Enum the modes
         if (mode == 0) {

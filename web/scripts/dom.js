@@ -104,7 +104,7 @@ function tick() {
                     el.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
                     document.getElementById('view').appendChild(el);
 
-                    var entity = _GAME.game_getWorldAtViewport(0, viewport_x, viewport_y);
+                    var entity = _GAME.game_getWorldAtViewport(1, viewport_x, viewport_y);
                     if (entity === 1) {
                         var img = ENUM_IMAGES[0];
                         var entity = document.createElement('div');
@@ -119,7 +119,7 @@ function tick() {
                         document.getElementById('view').appendChild(entity);
                         __entities__.push([viewport_x, viewport_y]);
                     }
-                    var collision = _GAME.game_getWorldAtViewport(1, viewport_x, viewport_y);
+                    var collision = _GAME.game_getWorldAtViewport(2, viewport_x, viewport_y);
                     if (collision === 1) {
                         var collision = document.createElement('div');
                         collision.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
