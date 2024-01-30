@@ -90,7 +90,7 @@ pub fn resizeWorld(world: u16, width: u16, height: u16) void {
     _ = world;
 }
 // @wasm
-pub fn addRowToWorld(world: u16) void {
+pub fn addRowToWorld(world: u16) !void {
     // TODO: Deal with layers
     if (world < embeds.total_worlds) {
         var w = game.getWorldSizeWidth(world);
@@ -101,10 +101,10 @@ pub fn addRowToWorld(world: u16) void {
             if (new_world.items[0] == world) {
                 new_world.clearRetainingCapacity();
                 already_edited = true;
-                new_world.append(world) catch unreachable;
-                new_world.append(w) catch unreachable;
-                new_world.append(h) catch unreachable;
-                @memset(new_world.addManyAsSlice(w * h) catch unreachable, 0);
+                try new_world.append(world);
+                try new_world.append(w);
+                try new_world.append(h);
+                @memset(try new_world.addManyAsSlice(w * h), 0);
             }
         }
         if (already_edited == false) {
