@@ -7,12 +7,11 @@ var gpa_allocator = std.heap.GeneralPurposeAllocator(.{}){};
 var allocator = gpa_allocator.allocator();
 
 const prefix: []const u8 = "game";
-const files = [_][]const u8{"debug", "diff", "editor", "game", "renderer", "viewport"};
 
 pub fn main() !void {
     const cmdline_args = (try std.process.argsAlloc(allocator))[1..];
-    if (cmdline_args.len != 1) {
-        std.log.err("expected 1 cmdline arg but got {}", .{cmdline_args.len});
+    if (cmdline_args.len < 1) {
+        std.log.err("expected at least 1 cmdline arg", .{});
         std.os.exit(0xff);
     }
     const out_file = cmdline_args[0];
@@ -20,8 +19,9 @@ pub fn main() !void {
     const PP_file = try std.fs.cwd().createFile(out_file, .{ .read = true });
     defer PP_file.close();
 
-    for (files) |file_name| {
-        const full_file = try std.fmt.allocPrint(allocator, "{s}/{s}{s}", .{prefix, file_name, ".zig"});
+    for (cmdline_args[1..]) |full_file| {
+        const base_name = std.fs.path.basename(full_file);
+        const file_name = base_name[0 .. base_name.len - 4];
         var file = try std.fs.cwd().openFile(full_file, .{});
         // defer file.close();
 
