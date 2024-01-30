@@ -476,7 +476,6 @@ pub fn getWorldData(world: u16, layer: u16, x: u16, y: u16) u16 {
         var index: u16 = y * w * x + 1; // +1 = layer type
         return editor.layers.items[layer_index].items[index];
     } else {
-        std.log.info("getWorldData {d} {d} {d} {d}", .{world, layer, x, y});
         return worlds_list.items[world].getCoordinateData(layer, x, y);
     }
 }
