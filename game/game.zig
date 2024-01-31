@@ -248,7 +248,8 @@ pub const WorldDataStruct = struct {
         if (self.has_data == true) {
             const width = self.getWidth();
             const height = self.getHeight();
-            const new_size = self.data.len + (height * self.layers) + self.offset;
+            const new_size = self.data.len + (height * self.layers);
+            std.log.info("new_size {d}",.{new_size});
             // TODO: this should be the editor arena allocator and then cleared as such
             // self.data.clearAndFree();
             var new_data = allocator.alloc(u16, new_size) catch unreachable;
@@ -272,13 +273,15 @@ pub const WorldDataStruct = struct {
                 }
                 new_data_i += 1;
             }
+            std.log.info("new_data_i {d}",.{new_data_i});
+            std.log.info("new_data.len {d}",.{new_data.len});
 
             // TODO: What to do with the old memory????
             // Free old data if necessary
             // allocator.free(self.data);
 
             // Update the data slice to point to the new array
-            self.setData(new_data[0..new_size]);
+            self.setData(new_data[0..]);
         }
     }
 

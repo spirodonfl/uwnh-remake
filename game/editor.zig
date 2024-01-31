@@ -172,10 +172,7 @@ pub fn getWorldMemoryLength(world: u16) usize {
     if (world < embeds.total_worlds) {
          for (new_new_worlds.items) |new_world| {
             if (new_world.getIndex() == world) {
-                var w = new_world.getWidth();
-                var h = new_world.getHeight();
-                var size = w * h;
-                return size * new_world.getSize();
+                return new_world.data.len;
             }
         }
         if (game.worlds_list.at(world).has_data == false) {
