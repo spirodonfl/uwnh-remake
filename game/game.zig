@@ -216,21 +216,23 @@ pub const WorldDataStruct = struct {
     }
     // TODO: This is really an editor function and should go into an editor specific area if possible
     pub fn addColumn(self: *WorldDataStruct) !void {
-        // resize data
-        const new_len = self.data.items.len + (self.getHeight() * self.layers);
-        try self.data.resize(gpa_allocator.allocator(), new_len);
-        // slice at start of first column
-        var slice = self.data.items[3..][self.getWidth() * self.layers..];
-        // adjust width
-        self.data.items[1] += 1;
-        const stride = self.getWidth() * self.layers;
-        while(slice.len > stride) : (slice = slice[stride..]) {
-            std.mem.copyBackwards(u16,
-                slice[self.layers..], 
-                slice[0..slice.len - self.layers],
-            );
-            // write column
-            @memset(slice[0..self.layers], 0);
+        if (self.has_data) {
+            // resize data
+            const new_len = self.data.items.len + (self.getHeight() * self.layers);
+            try self.data.resize(gpa_allocator.allocator(), new_len);
+            // slice at start of first column
+            var slice = self.data.items[3..][self.getWidth() * self.layers..];
+            // adjust width
+            self.data.items[1] += 1;
+            const stride = self.getWidth() * self.layers;
+            while(slice.len > stride) : (slice = slice[stride..]) {
+                std.mem.copyBackwards(u16,
+                    slice[self.layers..], 
+                    slice[0..slice.len - self.layers],
+                );
+                // write column
+                @memset(slice[0..self.layers], 0);
+            }
         }
     }
 };
