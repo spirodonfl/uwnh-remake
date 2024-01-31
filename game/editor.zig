@@ -108,9 +108,9 @@ pub fn addRowToWorld(world: u16) !void {
         }
         if (is_already_in == false) {
             diff.addData(0);
-            game.worlds_list.items[world].readDataFromEmbedded();
-            game.worlds_list.items[world].addRow();
-            try new_new_worlds.append(&game.worlds_list.items[world]);
+            game.worlds_list.at(world).readDataFromEmbedded();
+            game.worlds_list.at(world).addRow();
+            try new_new_worlds.append(game.worlds_list.at(world));
         }
     } else {
         // TODO: Means that we have stuff in the editor as entirely new world
@@ -134,9 +134,9 @@ pub fn addColumnToWorld(world: u16) !void {
         }
         if (is_already_in == false) {
             diff.addData(0);
-            game.worlds_list.items[world].readDataFromEmbedded();
-            game.worlds_list.items[world].addColumn();
-            try new_new_worlds.append(&game.worlds_list.items[world]);
+            game.worlds_list.at(world).readDataFromEmbedded();
+            game.worlds_list.at(world).addColumn();
+            try new_new_worlds.append(game.worlds_list.at(world));
         }
     } else {
         // TODO: Means that we have stuff in the editor as entirely new world
@@ -154,13 +154,14 @@ pub fn getWorldMemoryLocation(world: u16) usize {
         for (new_new_worlds.items) |new_world| {
             if (new_world.getIndex() == world) {
                 if (new_world.has_data == true) {
-                    return @intFromPtr(&new_world.data);
+                    return new_world.data[0];
                 }
             }
         }
-        game.worlds_list.items[world].readDataFromEmbedded();
-        const game_world = game.worlds_list.items[world];
-        return @intFromPtr(&game_world.data);
+        if (game.worlds_list.at(world).has_data == false) {
+            game.worlds_list.at(world).readDataFromEmbedded();
+        }
+        return game.worlds_list.at(world).data[0];
         // const file_index = helpers.getWorldFileIndex(world);
         // return @intFromPtr(&embeds.embeds[file_index]);
     }
@@ -177,8 +178,10 @@ pub fn getWorldMemoryLength(world: u16) usize {
                 return size * new_world.getSize();
             }
         }
-        game.worlds_list.items[world].readDataFromEmbedded();
-        return game.worlds_list.items[world].data.len;
+        if (game.worlds_list.at(world).has_data == false) {
+            game.worlds_list.at(world).readDataFromEmbedded();
+        }
+        return game.worlds_list.at(world).data.len;
         // const file_index = helpers.getWorldFileIndex(world);
         // return embeds.embeds[file_index].len;
     }

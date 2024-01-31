@@ -187,13 +187,19 @@ pub const WorldDataStruct = struct {
         self.data = data;
     }
     pub fn readDataFromEmbedded(self: *WorldDataStruct) void {
+        // TODO: Add a "force" option to do it even if self.has_data == true
         var max: u16 = self.embedded.getLength();
         max = max / 2; // Note: because the embedded file is using 32-bit or something like that, so you gotta divide
+        std.log.info("max {d}",.{max});
+        std.log.info("file_index {d}",.{self.embedded.file_index});
         var new_data = allocator.alloc(u16, max) catch unreachable;
         for (0..max) |i| {
             var i_converted = @as(u16, @intCast(i));
-            new_data[i_converted] = self.embedded.readData(i_converted, 0);
+            const value = self.embedded.readData(i_converted, 0);
+            std.log.info("value {d}",.{value});
+            new_data[i_converted] = value;
         }
+        // allocator.free(self.data);
         self.setData(new_data[0..]);
     }
     // TODO: This is really an editor function and should go into an editor specific area if possible
@@ -339,7 +345,8 @@ const Entity = struct {
 };
 
 pub var entities_list = ArrayList(Entity).init(gpa_allocator.allocator());
-pub var worlds_list = ArrayList(WorldDataStruct).init(gpa_allocator.allocator());
+// pub var worlds_list = ArrayList(WorldDataStruct).init(gpa_allocator.allocator());
+pub var worlds_list = std.SegmentedList(WorldDataStruct, 32){};
 pub var current_world_index: u16 = 0;
 
 // @wasm
@@ -347,7 +354,7 @@ pub fn initializeGame() !void {
     for (0..embeds.total_worlds) |i| {
         var embedded_data_struct = EmbeddedDataStruct{};
         _ = try embedded_data_struct.findIndexByFileName(0, @as(u16, @intCast(i)));
-        try worlds_list.append(WorldDataStruct{.embedded = embedded_data_struct});
+        try worlds_list.append(gpa_allocator.allocator(), WorldDataStruct{.embedded = embedded_data_struct});
     }
     loadWorld(current_world_index);
 
@@ -372,8 +379,10 @@ pub fn loadWorld(index: u16) void {
         }
     }
     if (!in_editor) {
-        w = worlds_list.items[current_world_index].getWidth();
-        h = worlds_list.items[current_world_index].getHeight();
+        // w = worlds_list.items[current_world_index].getWidth();
+        // h = worlds_list.items[current_world_index].getHeight();
+        w = worlds_list.at(current_world_index).getWidth();
+        h = worlds_list.at(current_world_index).getHeight();
     }
 
     if (w < viewport.getSizeWidth()) {
@@ -427,7 +436,8 @@ pub fn getCurrentWorldIndex() u16 {
 }
 // @wasm
 pub fn getCurrentWorldWidth() u16 {
-    return worlds_list.items[current_world_index].getWidth();
+    // return worlds_list.items[current_world_index].getWidth();
+    return worlds_list.at(current_world_index).getWidth();
 }
 
 // @wasm
@@ -501,7 +511,8 @@ pub fn getWorldData(world: u16, layer: u16, x: u16, y: u16) u16 {
         var index: u16 = y * w * x + 1; // +1 = layer type
         return editor.layers.items[layer_index].items[index];
     } else {
-        return worlds_list.items[world].getCoordinateData(layer, x, y);
+        // return worlds_list.items[world].getCoordinateData(layer, x, y);
+        return worlds_list.at(world).getCoordinateData(layer, x, y);
     }
 }
 
