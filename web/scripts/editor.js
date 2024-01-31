@@ -1,4 +1,17 @@
 var EDITOR = {
+    addCollision: function () {
+        // this.last_clicked_coordinates
+        // _GAME.editor_addCollisionToWorld(this.last_clicked_coordinates[0], this.last_clicked_coordinates[1]);
+        var translated_x = _GAME.game_translateViewportXToWorldX(this.last_clicked_coordinates[0]);
+        var translated_y = _GAME.game_translateViewportYToWorldY(this.last_clicked_coordinates[1]);
+        _GAME.game_setWorldData(0, 2, translated_x, translated_y, 1);
+    },
+    removeCollision: function () {
+        // TODO: Detect if there's already a collision here because we don't want the zig functions underneath to execute things like readdatafromembedded every time we run this
+        var translated_x = _GAME.game_translateViewportXToWorldX(this.last_clicked_coordinates[0]);
+        var translated_y = _GAME.game_translateViewportYToWorldY(this.last_clicked_coordinates[1]);
+        _GAME.game_setWorldData(0, 2, translated_x, translated_y, 0);
+    },
     addLog: function (msg) {
         var log = document.getElementById('editor_console');
         log.innerHTML += msg + '\n';

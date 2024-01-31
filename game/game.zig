@@ -471,6 +471,8 @@ pub fn getWorldData(world: u16, layer: u16, x: u16, y: u16) u16 {
 }
 // @wasm
 pub fn setWorldData(world: u16, layer: u16, x: u16, y: u16, value: u16) !void {
+    // TODO: Actually figure out instances where you truly need to add this diff
+    diff.addData(0);
     if (editor.new_new_worlds.items.len > 0) {
         for (editor.new_new_worlds.items) |nw| {
             if (nw.getIndex() == world) {
@@ -517,11 +519,11 @@ pub fn getWorldAtViewport(layer: u16, x: u16, y: u16) u16 {
     return 0;
 }
 // @wasm
-pub fn translateViewportXoWorldX(x: u16) u16 {
+pub fn translateViewportXToWorldX(x: u16) u16 {
     return x - viewport.getPaddingLeft();
 }
 // @wasm
-pub fn translateViewportYoWorldY(y: u16) u16 {
+pub fn translateViewportYToWorldY(y: u16) u16 {
     return y - viewport.getPaddingTop();
 }
 
