@@ -113,12 +113,20 @@ function tick() {
                 if (_GAME.viewport_getData(viewport_x, viewport_y)) {
                     var img = ENUM_IMAGES[2];
                     var el = document.createElement('div');
+                    el.classList.add('bg-tile');
                     el.style.backgroundImage = 'url("' + img + '")';
                     el.style.width = (SIZE * SCALE) + 'px';
                     el.style.height = (SIZE * SCALE) + 'px';
                     el.style.position = 'absolute';
                     el.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
                     el.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
+                    el.dataset.x = viewport_x;
+                    el.dataset.y = viewport_y;
+                    // TODO: Do not depend on border on bg-tile, instead, have another "editor" layer over top of everything and then draw some bg opacity or something
+                    // Note: Until you do the above TODO, trying *moving* the player and then clicking. It won't work. Because you have to re-render the whole viewport.
+                    if (EDITOR.last_clicked_coordinates && EDITOR.last_clicked_coordinates[0] === viewport_x && EDITOR.last_clicked_coordinates[1] === viewport_y) {
+                        el.style.border = '1px solid red';
+                    }
                     document.getElementById('view').appendChild(el);
 
                     var entity = _GAME.game_getWorldAtViewport(1, viewport_x, viewport_y);
@@ -135,6 +143,8 @@ function tick() {
                         entity.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
                         entity.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
                         entity.style.zIndex = 1;
+                        entity.dataset.x = viewport_x;
+                        entity.dataset.y = viewport_y;
                         document.getElementById('view').appendChild(entity);
                         __entities__.push([viewport_x, viewport_y]);
                     }
@@ -149,6 +159,8 @@ function tick() {
                         collision.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
                         collision.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
                         collision.style.zIndex = 1;
+                        collision.dataset.x = viewport_x;
+                        collision.dataset.y = viewport_y;
                         document.getElementById('view').appendChild(collision);
                     }
                 }
@@ -175,11 +187,16 @@ window.addEventListener('load', function () {
         console.log('click', x, y);
         EDITOR.last_clicked_coordinates = [x, y];
         // TODO: if you move the camera around after you clicked, you need to re-click or update coordinates
-        var clicked_element = document.querySelector('div.thing[data-x="' + x + '"][data-y="' + y + '"]');
+        var clicked_element = document.querySelector('div.bg-tile[data-x="' + x + '"][data-y="' + y + '"]');
         console.log(clicked_element);
         if (clicked_element) {
-            if (clicked_element.classList.contains('thing')) {
-                console.log('CLICKED A THING', element);
+            if (clicked_element.classList.contains('bg-tile')) {
+                console.log('CLICKED A THING', clicked_element);
+                var bg_tiles = document.getElementsByClassName('bg-tile');
+                for (var i = 0; i < bg_tiles.length; ++i) {
+                    bg_tiles[i].style.border = 'none';
+                }
+                clicked_element.style.border = '1px solid red';
             }
         }
     });

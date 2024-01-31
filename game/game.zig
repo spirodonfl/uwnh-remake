@@ -501,12 +501,6 @@ pub fn setWorldData(world: u16, layer: u16, x: u16, y: u16, value: u16) !void {
     }
 }
 
-// array of entities with just type like you have now
-// another array file called entity_{id}_components.bin
-// -- indexes determine whether a component is off or on
-// another array file called entity_{id}_component_values.bin
-// -- stores a flat array of all possible values across all components
-// -- ideally when exporting an entity you will go over all the total possible values for all components of the given entity TYPE and then spit out a flat array with all that
 // @wasm
 pub fn getWorldAtViewport(layer: u16, x: u16, y: u16) u16 {
     // TODO: Camera offset and all that
@@ -521,6 +515,14 @@ pub fn getWorldAtViewport(layer: u16, x: u16, y: u16) u16 {
         return getWorldData(current_world_index, layer, world_x, world_y); 
     }
     return 0;
+}
+// @wasm
+pub fn translateViewportXoWorldX(x: u16) u16 {
+    return x - viewport.getPaddingLeft();
+}
+// @wasm
+pub fn translateViewportYoWorldY(y: u16) u16 {
+    return y - viewport.getPaddingTop();
 }
 
 

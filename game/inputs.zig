@@ -32,6 +32,11 @@ fn inputMovePlayer(operation: u16) !void {
             var intended_collision_value = game.getWorldData(game.current_world_index, 2, intended_x, intended_y);
             if (intended_value == 0 and intended_collision_value == 0) {
                 // TODO: Cannot be reading in data from embed && updating duplicate data. Way too memory intensive. Should be editing a different set of data like the original entity struct. That means loading the entities with their initial positions and then updating the positions in the entity struct.
+                // Options:
+                // - Duplicate the layer?
+                // -- Duplicate npc/player layer and then keep the copy as "active"
+                // -- worlddatastruct -> add active layer for npc/player
+                // -- any time getworlddata references layer 1 (aka: player/npc layer), return "active" layer
                 try game.setWorldData(game.current_world_index, 1, x, y, 0);
                 try game.setWorldData(game.current_world_index, 1, intended_x, intended_y, 1);
             }
@@ -39,7 +44,6 @@ fn inputMovePlayer(operation: u16) !void {
             break;
         }
     }
-
 }
 
 // @wasm
