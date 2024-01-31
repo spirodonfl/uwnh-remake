@@ -464,14 +464,14 @@ pub fn getWorldData(world: u16, layer: u16, x: u16, y: u16) u16 {
 // @wasm
 pub fn setWorldData(world: u16, layer: u16, x: u16, y: u16, value: u16) !void {
     // TODO: Actually figure out instances where you truly need to add this diff
-    diff.addData(0);
-    if (editor.new_new_worlds.items.len > 0) {
-        for (editor.new_new_worlds.items) |nw| {
-            if (nw.getIndex() == world) {
-                try nw.setCoordinateData(layer, x, y, value);
-            }
+    try diff.addData(0);
+    
+    for (editor.new_new_worlds.items) |nw| {
+        if (nw.getIndex() == world) {
+            try nw.setCoordinateData(layer, x, y, value);
         }
     }
+    
     if (world >= embeds.total_worlds) {
         var offset_index: u16 = world - embeds.total_worlds;
         // iterate over editor.world_layer until you get a match
