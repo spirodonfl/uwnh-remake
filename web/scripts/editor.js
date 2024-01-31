@@ -26,7 +26,6 @@ var EDITOR = {
     },
     memoryToBin: function (memory_start, memory_length, file_name) {
         let blob = this.generateBlob(this.extractMemory(memory_length, memory_start));
-        console.log(data);
 
         this.editorDownload(blob);
     },

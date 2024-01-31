@@ -149,19 +149,19 @@ pub fn addColumnToWorld(world: u16) !void {
 // pub fn modifyEntity() ????????
 
 // @wasm
-pub fn getWorldMemoryLocation(world: u16) usize {
+pub fn getWorldMemoryLocation(world: u16) *u16 {
     if (world < embeds.total_worlds) {
         for (new_new_worlds.items) |new_world| {
             if (new_world.getIndex() == world) {
                 if (new_world.has_data == true) {
-                    return new_world.data[0];
+                    return &new_world.data[0];
                 }
             }
         }
         if (game.worlds_list.at(world).has_data == false) {
             game.worlds_list.at(world).readDataFromEmbedded();
         }
-        return @intFromPtr(&game.worlds_list.at(world).data[0]);
+        return &game.worlds_list.at(world).data[0];
         // const file_index = helpers.getWorldFileIndex(world);
         // return @intFromPtr(&embeds.embeds[file_index]);
     }
