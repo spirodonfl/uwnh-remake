@@ -114,7 +114,7 @@ extern fn console_log_flush() void;
 
 pub const WorldDataStruct = struct {
     offset: u16 = 3,
-    data: []u16 = undefined,
+    data: std.ArrayListUnmanaged(u16) = .{},
     layers: u16 = 3,
     has_data: bool = false,
     // TODO: You tried to pass a pointer to the embedded data so you don't have duplicate data BUT then the pointer was only updating a single instance of EmbeddedDataStruct (and then self.index in that struct was incrementing and going out of bounds)
@@ -123,32 +123,27 @@ pub const WorldDataStruct = struct {
         self.embedded = embedded;
     }
     pub fn getIndex(self: *WorldDataStruct) u16 {
-        var index: u16 = undefined;
-        if (self.has_data == true) {
-            index = self.data[0];
-        } else {
-            index = self.embedded.readData(0, 0);
-        }
+        const index = if (self.has_data)
+            self.data.items[0]
+        else
+            self.embedded.readData(0, 0);
+        
         // std.log.info("index {d}",.{index});
         return index;
     }
     pub fn getWidth(self: *WorldDataStruct) u16 {
-        var width: u16 = undefined;
-        if (self.has_data == true) {
-            width = self.data[1];
-        } else {
-            width = self.embedded.readData(1, 0);
-        }
+        const width = if (self.has_data)
+            self.data.items[1]
+        else 
+            self.embedded.readData(1, 0);
         // std.log.info("width {d}",.{width});
         return width;
     }
     pub fn getHeight(self: *WorldDataStruct) u16 {
-        var height: u16 = undefined;
-        if (self.has_data == true) {
-            height = self.data[2];
-        } else {
-            height = self.embedded.readData(2, 0);
-        }
+        const height = if (self.has_data)
+            self.data.items[2]
+        else
+            self.embedded.readData(2, 0);
         // std.log.info("height {d}",.{height});
         return height;
     }
@@ -173,112 +168,58 @@ pub const WorldDataStruct = struct {
         var index: u16 = self.getLayerIndex(layer);
         index += y * self.getWidth();
         index += x;
-        var data: u16 = undefined;
-        if (self.has_data == true) {
-            data = self.data[index];
-        } else {
-            data = self.embedded.readData(index, 0);
-        }
+        const data = if (self.has_data)
+            self.data.items[index]
+        else
+            self.embedded.readData(index, 0);
         // std.log.info("getCoordinateData {d}",.{data});
         return data;
     }
-    pub fn setData(self: *WorldDataStruct, data: []u16) void {
-        self.has_data = true;
-        self.data = data;
-    }
-    pub fn readDataFromEmbedded(self: *WorldDataStruct) void {
-        // TODO: Add a "force" option to do it even if self.has_data == true
+    pub fn readDataFromEmbedded(self: *WorldDataStruct) !void {
+        // TODO: Add a "force" option to do it even if self.has_data
         var max: u16 = self.embedded.getLength();
         max = max / 2; // Note: because the embedded file is using 32-bit or something like that, so you gotta divide
         // std.log.info("max {d}",.{max});
         // std.log.info("file_index {d}",.{self.embedded.file_index});
-        var new_data = allocator.alloc(u16, max) catch unreachable;
+        try self.data.resize(gpa_allocator.allocator(), max);
         for (0..max) |i| {
             var i_converted = @as(u16, @intCast(i));
             const value = self.embedded.readData(i_converted, 0);
             // std.log.info("value {d}",.{value});
-            new_data[i_converted] = value;
+            self.data.items[i_converted] = value;
             // std.log.info("new_data[i] {d}",.{new_data[i]});
         }
-        // allocator.free(self.data);
-        self.setData(new_data[0..]);
+        self.has_data = true;
     }
     // TODO: This is really an editor function and should go into an editor specific area if possible
-    pub fn addRow(self: *WorldDataStruct) void {
-        if (self.has_data == true) {
-            const width = self.getWidth();
-            const height = self.getHeight();
-            const new_size = self.data.len + (width * self.layers) + self.offset;
-            // TODO: this should be the editor arena allocator and then cleared as such
-            // self.data.clearAndFree();
-            var new_data = allocator.alloc(u16, new_size) catch unreachable;
-
-            new_data[0] = self.data[0];
-            new_data[1] = self.data[1];
-            new_data[2] = self.data[2] + 1;
-            var layer: u16 = 0;
-            var row:u16 = 0;
-            var new_data_i: u16 = self.offset;
-            for (self.data[self.offset..], 0..) |value, i| {
-                if (i - (width * row) == width) {
-                    row += 1;
-                }
-                new_data[new_data_i] = value;
-                if (row == height) {
-                    layer += 1;
-                    for (0..width) |new_layer_i| {
-                        _ = new_layer_i;
-                        new_data_i += 1;
-                        new_data[new_data_i] = value;
-                    }
-                }
-                new_data_i += 1;
-            }
-
-            // TODO: What to do with the old memory????
-            // Free old data if necessary
-            // allocator.free(self.data);
-
-            // Update the data slice to point to the new array
-            self.setData(new_data[0..new_size]);
+    pub fn addRow(self: *WorldDataStruct) !void {
+        if (self.has_data) {
+            self.data.items[2] += 1;
+            try self.data.appendNTimes(
+                gpa_allocator.allocator(), 
+                0,
+                self.getWidth() * self.layers);
         }
     }
     // TODO: This is really an editor function and should go into an editor specific area if possible
-    pub fn addColumn(self: *WorldDataStruct) void {
-        if (self.has_data == true) {
-            const width = self.getWidth();
-            const height = self.getHeight();
-            const new_size = self.data.len + (height * self.layers);
-            // std.log.info("new_size {d}",.{new_size});
-            // TODO: this should be the editor arena allocator and then cleared as such
-            // self.data.clearAndFree();
-            var new_data = allocator.alloc(u16, new_size) catch unreachable;
-
-            new_data[0] = self.data[0];
-            new_data[1] = self.data[1] + 1;
-            new_data[2] = self.data[2];
-            var inner_offset: u16 = 0;
-            for (0..self.data.len) |i| {
-                if (i < self.offset) { continue; }
-                new_data[i + inner_offset] = self.data[i];
-                if ((i - self.offset) % width == 0) {
-                    // std.log.info("i {d}",.{i});
-                    new_data[i + inner_offset + 1] = 0;
-                    // std.log.info("new_data[i + inner_offset + 1] {d}",.{(i + inner_offset + 1)});
-                    inner_offset += 1;
-                }
-            }
-            // std.log.info("new_data.len {d}",.{new_data.len});
-
-            // TODO: What to do with the old memory????
-            // Free old data if necessary
-            // allocator.free(self.data);
-
-            // Update the data slice to point to the new array
-            self.setData(new_data[0..]);
+    pub fn addColumn(self: *WorldDataStruct) !void {
+        // resize data
+        const new_len = self.data.items.len + (self.getHeight() * self.layers);
+        try self.data.resize(gpa_allocator.allocator(), new_len);
+        // slice at start of first column
+        var slice = self.data.items[3..][self.getWidth() * self.layers..];
+        // adjust width
+        self.data.items[1] += 1;
+        const stride = self.getWidth() * self.layers;
+        while(slice.len > stride) : (slice = slice[stride..]) {
+            std.mem.copyBackwards(u16,
+                slice[self.layers..], 
+                slice[0..slice.len - self.layers],
+            );
+            // write column
+            @memset(slice[0..self.layers], 0);
         }
     }
-
 };
 test "world_data_struct" {
     var world_data: [3]u16 = .{0, 3, 3};
@@ -561,7 +502,7 @@ pub fn getHealth() u16 {
 
 test "string_stuff" {
     const str = try std.fmt.allocPrint(allocator, "world_{d}_layer_{d}.bin", .{0, 0});
-    try std.testing.expect(std.mem.eql(u8, str, "world_0_layer_0.bin") == true);
+    try std.testing.expect(std.mem.eql(u8, str, "world_0_layer_0.bin"));
 }
 
 test "raw_enums" {
