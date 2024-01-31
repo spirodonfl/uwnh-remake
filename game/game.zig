@@ -190,15 +190,15 @@ pub const WorldDataStruct = struct {
         // TODO: Add a "force" option to do it even if self.has_data == true
         var max: u16 = self.embedded.getLength();
         max = max / 2; // Note: because the embedded file is using 32-bit or something like that, so you gotta divide
-        std.log.info("max {d}",.{max});
-        std.log.info("file_index {d}",.{self.embedded.file_index});
+        // std.log.info("max {d}",.{max});
+        // std.log.info("file_index {d}",.{self.embedded.file_index});
         var new_data = allocator.alloc(u16, max) catch unreachable;
         for (0..max) |i| {
             var i_converted = @as(u16, @intCast(i));
             const value = self.embedded.readData(i_converted, 0);
-            std.log.info("value {d}",.{value});
+            // std.log.info("value {d}",.{value});
             new_data[i_converted] = value;
-            std.log.info("new_data[i] {d}",.{new_data[i]});
+            // std.log.info("new_data[i] {d}",.{new_data[i]});
         }
         // allocator.free(self.data);
         self.setData(new_data[0..]);

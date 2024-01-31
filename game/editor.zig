@@ -161,7 +161,7 @@ pub fn getWorldMemoryLocation(world: u16) usize {
         if (game.worlds_list.at(world).has_data == false) {
             game.worlds_list.at(world).readDataFromEmbedded();
         }
-        return game.worlds_list.at(world).data[0];
+        return @intFromPtr(&game.worlds_list.at(world).data[0]);
         // const file_index = helpers.getWorldFileIndex(world);
         // return @intFromPtr(&embeds.embeds[file_index]);
     }
