@@ -249,7 +249,7 @@ pub const WorldDataStruct = struct {
             const width = self.getWidth();
             const height = self.getHeight();
             const new_size = self.data.len + (height * self.layers);
-            std.log.info("new_size {d}",.{new_size});
+            // std.log.info("new_size {d}",.{new_size});
             // TODO: this should be the editor arena allocator and then cleared as such
             // self.data.clearAndFree();
             var new_data = allocator.alloc(u16, new_size) catch unreachable;
@@ -257,25 +257,18 @@ pub const WorldDataStruct = struct {
             new_data[0] = self.data[0];
             new_data[1] = self.data[1] + 1;
             new_data[2] = self.data[2];
-            var layer: u16 = 0;
-            var row:u16 = 0;
-            var new_data_i: u16 = self.offset;
-            for (self.data[self.offset..], 0..) |value, i| {
-                if (i - (width * row) == width) {
-                    new_data[new_data_i] = 0;
-                    new_data_i += 1;
-                    row += 1;
+            var inner_offset: u16 = 0;
+            for (0..self.data.len) |i| {
+                if (i < self.offset) { continue; }
+                new_data[i + inner_offset] = self.data[i];
+                if ((i - self.offset) % width == 0) {
+                    // std.log.info("i {d}",.{i});
+                    new_data[i + inner_offset + 1] = 0;
+                    // std.log.info("new_data[i + inner_offset + 1] {d}",.{(i + inner_offset + 1)});
+                    inner_offset += 1;
                 }
-                new_data[new_data_i] = value;
-
-                if (row == height) {
-                    layer += 1;
-                    row = 0;
-                }
-                new_data_i += 1;
             }
-            std.log.info("new_data_i {d}",.{new_data_i});
-            std.log.info("new_data.len {d}",.{new_data.len});
+            // std.log.info("new_data.len {d}",.{new_data.len});
 
             // TODO: What to do with the old memory????
             // Free old data if necessary

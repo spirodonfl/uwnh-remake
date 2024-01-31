@@ -25,9 +25,9 @@ var EDITOR = {
         return data;
     },
     memoryToBin: function (memory_start, memory_length, file_name) {
-        let blob = this.generateBlob(this.extractMemory(memory_length, memory_start));
+        let blob = this.generateBlob(this.extractMemory(memory_start, memory_length));
 
-        this.editorDownload(blob);
+        this.editorDownload(blob, file_name);
     },
     generateBlob: function (data) {
         return new Blob([new Uint16Array(data)], {type: 'application/octet-stream'});
