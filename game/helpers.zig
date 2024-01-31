@@ -38,7 +38,7 @@ pub fn getEntityFileIndex(id: u16) usize {
     }
     return file_name_index;
 }
-pub fn getWorlFileIndex(id: u16) usize {
+pub fn getWorldFileIndex(id: u16) usize {
     const file_name = std.fmt.allocPrint(allocator, "world_{d}.bin", .{id}) catch unreachable;
     var file_name_index: usize = 0;
     var found: bool = false;

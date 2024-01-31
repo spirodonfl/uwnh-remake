@@ -159,6 +159,8 @@ function tick() {
 }
 LOADER.events.addEventListener('loaded', function () {
     DOM.sizeView();
+    EDITOR.addLog('Viewport Width: ' + DOM.width);
+    EDITOR.addLog('Viewport Height: ' + DOM.height);
     _GAME.viewport_setSize(DOM.width, DOM.height);
     _GAME.game_initializeGame();
     INPUT.startListening();

@@ -1,4 +1,8 @@
 var EDITOR = {
+    addLog: function (msg) {
+        var log = document.getElementById('editor_console');
+        log.innerHTML += msg + '\n';
+    },
     editorDownload: function (data, file_name) {
         const link = document.createElement('a');
         const url = URL.createObjectURL(data);

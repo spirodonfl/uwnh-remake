@@ -158,8 +158,11 @@ pub fn getWorldMemoryLocation(world: u16) usize {
                 }
             }
         }
-        const file_index = helpers.getWorlFileIndex(world);
-        return @intFromPtr(&embeds.embeds[file_index]);
+        game.worlds_list.items[world].readDataFromEmbedded();
+        const game_world = game.worlds_list.items[world];
+        return @intFromPtr(&game_world.data);
+        // const file_index = helpers.getWorldFileIndex(world);
+        // return @intFromPtr(&embeds.embeds[file_index]);
     }
     @panic("Unhandled world memory check");
 }
@@ -174,8 +177,10 @@ pub fn getWorldMemoryLength(world: u16) usize {
                 return size * new_world.getSize();
             }
         }
-        const file_index = helpers.getWorlFileIndex(world);
-        return embeds.embeds[file_index].len;
+        game.worlds_list.items[world].readDataFromEmbedded();
+        return game.worlds_list.items[world].data.len;
+        // const file_index = helpers.getWorldFileIndex(world);
+        // return embeds.embeds[file_index].len;
     }
     @panic("Unhandled world memory check");
 }

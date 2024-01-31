@@ -425,6 +425,10 @@ pub fn loadWorld(index: u16) void {
 pub fn getCurrentWorldIndex() u16 {
     return current_world_index;
 }
+// @wasm
+pub fn getCurrentWorldWidth() u16 {
+    return worlds_list.items[current_world_index].getWidth();
+}
 
 // @wasm
 pub fn getEntityById(id: u16) u16 {

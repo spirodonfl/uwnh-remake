@@ -2,6 +2,7 @@
     <head>
         <title>TEST</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script type="text/javascript" src="scripts/console.log.js"></script>
         <script type="text/javascript" src="scripts/js.bindings.js"></script>
         <script type="text/javascript" src="scripts/stats.js"></script>
         <script type="text/javascript" src="scripts/input.js"></script>
@@ -12,13 +13,20 @@
         <script type="text/javascript" src="scripts/game.js"></script>
         <script type="text/javascript" src="scripts/editor.js"></script>
         <script type="text/javascript" src="scripts/dom.js"></script>
+        <script type="text/javascript" src="scripts/draggable.js"></script>
         <link rel="stylesheet" type="text/css" href="styles/editor.css" />
     </head>
     <body>
-        <div id="editor">
-            <div>Current World: <span id="world_name">Test</span></div>
-            <div style="padding: 10px; cursor: pointer;" onclick="_GAME.editor_addRowToWorld(0);">Add Row</div>
-            <div style="padding: 10px; cursor: pointer;" onclick="_GAME.editor_addColumnToWorld(0);">Add Column</div>
+        <div class="editor draggable">
+            <div class="draggable-header draggable-handle">&nbsp;</div>
+            <div class="title">Current World: 0</div>
+            <div class="btn" onclick="_GAME.editor_addRowToWorld(0);">Add Row</div>
+            <div class="btn" onclick="_GAME.editor_addColumnToWorld(0);">Add Column</div>
+            <div class="btn" onclick="EDITOR.memoryToBin(_GAME.editor_getWorldMemoryLocation(0), _GAME.editor_getWorldMemoryLength(0), 'test.bin');">Extract Data</div>
+        </div>
+        <div class="editor console draggable">
+            <div class="draggable-header draggable-handle">&nbsp;</div>
+            <textarea id="editor_console"></textarea>
         </div>
         <div id="stats"></div>
         <div id="view">

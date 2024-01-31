@@ -9,6 +9,13 @@ var INPUT = {
     startListening: function() {
         window.addEventListener('keyup', function (evt) {
             console.log(evt);
+            EDITOR.addLog('Keyboard Code: ' + evt.code);
+            EDITOR.addLog('Keyboard Key: ' + evt.key);
+            EDITOR.addLog('Keyboard Shift: ' + evt.shiftKey);
+            EDITOR.addLog('Keyboard Ctrl: ' + evt.ctrlKey);
+            EDITOR.addLog('Keyboard Alt: ' + evt.altKey);
+            EDITOR.addLog('Keyboard Meta: ' + evt.metaKey);
+            EDITOR.addLog('Keyboard KeyCode: ' + evt.keyCode);
             // TODO: If EDITOR.enabled
             // -- Separate input path that takes precedence
             
