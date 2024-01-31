@@ -8,7 +8,6 @@ const diff = @import("diff.zig");
 // @wasm
 pub fn inputUp() !void {
     std.log.info("inputUp", .{});
-    if (true) { @panic("POOP"); }
     var world = game.worlds_list.at(game.current_world_index);
     var w = world.getWidth();
     var h = world.getHeight();
