@@ -198,6 +198,7 @@ pub const WorldDataStruct = struct {
             const value = self.embedded.readData(i_converted, 0);
             std.log.info("value {d}",.{value});
             new_data[i_converted] = value;
+            std.log.info("new_data[i] {d}",.{new_data[i]});
         }
         // allocator.free(self.data);
         self.setData(new_data[0..]);
