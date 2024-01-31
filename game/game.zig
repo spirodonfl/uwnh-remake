@@ -52,6 +52,7 @@ const renderer = @import("renderer.zig");
 const diff = @import("diff.zig");
 const editor = @import("editor.zig");
 const viewport = @import("viewport.zig");
+// const inputs = @import("inputs.zig");
 
 // -----------------------------------------------------------------------------------------
 // @wasm
@@ -175,8 +176,20 @@ pub const WorldDataStruct = struct {
         // std.log.info("getCoordinateData {d}",.{data});
         return data;
     }
+    pub fn setCoordinateData(self: *WorldDataStruct, layer: u16, x: u16, y: u16, value: u16) !void {
+        try self.readDataFromEmbedded();
+        var index: u16 = self.getLayerIndex(layer);
+        index += y * self.getWidth();
+        index += x;
+        if (self.has_data) {
+            self.data.items[index] = value;
+        }
+    }
     pub fn readDataFromEmbedded(self: *WorldDataStruct) !void {
         // TODO: Add a "force" option to do it even if self.has_data
+        if (self.has_data) {
+            return;
+        }
         var max: u16 = self.embedded.getLength();
         max = max / 2; // Note: because the embedded file is using 32-bit or something like that, so you gotta divide
         // std.log.info("max {d}",.{max});
@@ -454,6 +467,37 @@ pub fn getWorldData(world: u16, layer: u16, x: u16, y: u16) u16 {
         return worlds_list.at(world).getCoordinateData(layer, x, y);
     }
 }
+// @wasm
+pub fn setWorldData(world: u16, layer: u16, x: u16, y: u16, value: u16) !void {
+    if (editor.new_new_worlds.items.len > 0) {
+        for (editor.new_new_worlds.items) |nw| {
+            if (nw.getIndex() == world) {
+                try nw.setCoordinateData(layer, x, y, value);
+            }
+        }
+    }
+    if (world >= embeds.total_worlds) {
+        var offset_index: u16 = world - embeds.total_worlds;
+        // iterate over editor.world_layer until you get a match
+        var cursor: u16 = 0;
+        var layer_index: u16 = 0;
+        while (cursor < editor.world_layer.items.len) {
+            var e_world: u16 = editor.world_layer.items[cursor];
+            var e_layer: u16 = editor.world_layer.items[(cursor + 1)];
+            if (e_world == offset_index and e_layer == layer) {
+                layer_index = layer;
+                break;
+            }
+            cursor += 2;
+        }
+        var w = editor.worlds.items[offset_index].items[0];
+        var index: u16 = y * w * x + 1; // +1 = layer type
+        editor.layers.items[layer_index].items[index] = value;
+    } else {
+        // worlds_list.items[world].setCoordinateData(layer, x, y, value);
+        try worlds_list.at(world).setCoordinateData(layer, x, y, value);
+    }
+}
 
 // array of entities with just type like you have now
 // another array file called entity_{id}_components.bin
@@ -481,14 +525,6 @@ pub fn getWorldAtViewport(layer: u16, x: u16, y: u16) u16 {
 const hc = @import("components/health.zig").ComponentHealth;
 var healthComponent = hc{.default_value = 10, .current_value = 10};
 
-// @wasm
-pub fn input(key: u16) void {
-    if (key == 0) {
-        // embeds.embeds[1]
-        healthComponent.addHealth();
-        // purposefully return nothing
-    }
-}
 // @wasm
 pub fn getHealth() u16 {
     return healthComponent.current_value;

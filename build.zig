@@ -16,7 +16,7 @@ pub fn build(b: *Builder) !void {
         const gen = b.addRunArtifact(gen_exe);
         const wasm_exports_zig = gen.addOutputFileArg("wasmexports.zig");
         gen.addArg(b.pathFromRoot("web/scripts/js.bindings.js"));
-        inline for (&.{"debug", "diff", "editor", "game", "renderer", "viewport"}) |name| {
+        inline for (&.{"debug", "diff", "editor", "inputs", "game", "renderer", "viewport"}) |name| {
             gen.addFileArg(.{ .path = b.pathFromRoot("game/" ++ name ++ ".zig") });
         }
 
