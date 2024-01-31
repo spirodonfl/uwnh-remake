@@ -100,7 +100,7 @@ pub fn addRowToWorld(world: u16) !void {
             for (new_new_worlds.items) |n_world| {
                 if (n_world.getIndex() == world) {
                     diff.addData(0);
-                    n_world.addRow();
+                    try n_world.addRow();
                     is_already_in = true;
                     break;
                 }
@@ -108,8 +108,8 @@ pub fn addRowToWorld(world: u16) !void {
         }
         if (is_already_in == false) {
             diff.addData(0);
-            game.worlds_list.at(world).readDataFromEmbedded();
-            game.worlds_list.at(world).addRow();
+            try game.worlds_list.at(world).readDataFromEmbedded();
+            try game.worlds_list.at(world).addRow();
             try new_new_worlds.append(game.worlds_list.at(world));
         }
     } else {
@@ -126,7 +126,7 @@ pub fn addColumnToWorld(world: u16) !void {
             for (new_new_worlds.items) |n_world| {
                 if (n_world.getIndex() == world) {
                     diff.addData(0);
-                    n_world.addColumn();
+                    try n_world.addColumn();
                     is_already_in = true;
                     break;
                 }
@@ -134,8 +134,8 @@ pub fn addColumnToWorld(world: u16) !void {
         }
         if (is_already_in == false) {
             diff.addData(0);
-            game.worlds_list.at(world).readDataFromEmbedded();
-            game.worlds_list.at(world).addColumn();
+            try game.worlds_list.at(world).readDataFromEmbedded();
+            try game.worlds_list.at(world).addColumn();
             try new_new_worlds.append(game.worlds_list.at(world));
         }
     } else {
@@ -149,36 +149,36 @@ pub fn addColumnToWorld(world: u16) !void {
 // pub fn modifyEntity() ????????
 
 // @wasm
-pub fn getWorldMemoryLocation(world: u16) *u16 {
+pub fn getWorldMemoryLocation(world: u16) !*u16 {
     if (world < embeds.total_worlds) {
         for (new_new_worlds.items) |new_world| {
             if (new_world.getIndex() == world) {
                 if (new_world.has_data == true) {
-                    return &new_world.data[0];
+                    return &new_world.data.items[0];
                 }
             }
         }
         if (game.worlds_list.at(world).has_data == false) {
-            game.worlds_list.at(world).readDataFromEmbedded();
+            try game.worlds_list.at(world).readDataFromEmbedded();
         }
-        return &game.worlds_list.at(world).data[0];
+        return &game.worlds_list.at(world).data.items[0];
         // const file_index = helpers.getWorldFileIndex(world);
         // return @intFromPtr(&embeds.embeds[file_index]);
     }
     @panic("Unhandled world memory check");
 }
 // @wasm
-pub fn getWorldMemoryLength(world: u16) usize {
+pub fn getWorldMemoryLength(world: u16) !usize {
     if (world < embeds.total_worlds) {
          for (new_new_worlds.items) |new_world| {
             if (new_world.getIndex() == world) {
-                return new_world.data.len;
+                return new_world.data.items.len;
             }
         }
         if (game.worlds_list.at(world).has_data == false) {
-            game.worlds_list.at(world).readDataFromEmbedded();
+            try game.worlds_list.at(world).readDataFromEmbedded();
         }
-        return game.worlds_list.at(world).data.len;
+        return game.worlds_list.at(world).data.items.len;
         // const file_index = helpers.getWorldFileIndex(world);
         // return embeds.embeds[file_index].len;
     }
