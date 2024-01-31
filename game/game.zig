@@ -270,6 +270,7 @@ pub const WorldDataStruct = struct {
 
                 if (row == height) {
                     layer += 1;
+                    row = 0;
                 }
                 new_data_i += 1;
             }
