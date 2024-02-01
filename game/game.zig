@@ -233,6 +233,7 @@ pub const WorldDataStruct = struct {
                 // write column
                 @memset(slice[0..self.layers], 0);
             }
+            if (slice.len > 0) @memset(slice, 0);
         }
     }
 };
