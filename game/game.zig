@@ -207,6 +207,7 @@ pub const WorldDataStruct = struct {
     // TODO: This is really an editor function and should go into an editor specific area if possible
     pub fn addRow(self: *WorldDataStruct) !void {
         if (self.has_data) {
+            // TODO: init w/ initCapacity(new_size), then use appendAssumeCapacity instead of append
             var new_data: std.ArrayListUnmanaged(u16) = .{};
             var current_offset: u16 = self.offset - 1;
             for (self.data.items, 0..) |item, i| {
@@ -236,6 +237,7 @@ pub const WorldDataStruct = struct {
     // TODO: This is really an editor function and should go into an editor specific area if possible
     pub fn addColumn(self: *WorldDataStruct) !void {
         if (self.has_data) {
+            // TODO: init w/ initCapacity(new_size), then use appendAssumeCapacity instead of append
             var new_data: std.ArrayListUnmanaged(u16) = .{};
             var current_offset: u16 = self.offset - 1;
             for (self.data.items, 0..) |item, i| {
