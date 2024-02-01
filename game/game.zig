@@ -207,38 +207,56 @@ pub const WorldDataStruct = struct {
     // TODO: This is really an editor function and should go into an editor specific area if possible
     pub fn addRow(self: *WorldDataStruct) !void {
         if (self.has_data) {
-            self.data.items[2] += 1;
-            try self.data.appendNTimes(
-                gpa_allocator.allocator(), 
-                0,
-                self.getWidth() * self.layers);
+            var new_data: std.ArrayListUnmanaged(u16) = .{};
+            var current_offset: u16 = self.offset - 1;
+            for (self.data.items, 0..) |item, i| {
+                if (i == 0) {
+                    try new_data.append(allocator, item);
+                } else if (i == 1) {
+                    try new_data.append(allocator, item);
+                } else if (i == 2) {
+                    try new_data.append(allocator, item + 1);
+                } else {
+                    try new_data.append(allocator, item);
+                    var leftover: u16 = @as(u16, @intCast(i)) - current_offset;
+                    var layer_size = self.getWidth() * self.getHeight();
+                    if (leftover % layer_size == 0) {
+                        try new_data.appendNTimes(
+                            allocator, 
+                            0,
+                            self.getWidth());
+                        current_offset = @intCast(i);
+                    }
+                }
+            }
+            self.data.clearAndFree(allocator);
+            self.data = new_data;
         }
     }
     // TODO: This is really an editor function and should go into an editor specific area if possible
     pub fn addColumn(self: *WorldDataStruct) !void {
         if (self.has_data) {
-            // resize data
-            const new_len = self.data.items.len + (self.getHeight() * self.layers);
-            try self.data.resize(gpa_allocator.allocator(), new_len);
-            // slice at start of first column
-            var slice = self.data.items[3..][self.getWidth() * self.layers..];
-            // adjust width
-            self.data.items[1] += 1;
-            const stride = self.getWidth() * self.layers;
-            while(slice.len > stride) : (slice = slice[stride..]) {
-                std.mem.copyBackwards(u16,
-                    slice[self.layers..], 
-                    slice[0..slice.len - self.layers],
-                );
-                // write column
-                @memset(slice[0..self.layers], 0);
+            var new_data: std.ArrayListUnmanaged(u16) = .{};
+            var current_offset: u16 = self.offset - 1;
+            for (self.data.items, 0..) |item, i| {
+                if (i == 0) {
+                    try new_data.append(allocator, item);
+                } else if (i == 1) {
+                    try new_data.append(allocator, item + 1);
+                } else if (i == 2) {
+                    try new_data.append(allocator, item);
+                } else {
+                    try new_data.append(allocator, item);
+                    // Figure out if we're at the end of a row and add a 0
+                    var leftover: u16 = @as(u16, @intCast(i)) - current_offset;
+                    if (leftover % self.getWidth() == 0) {
+                        try new_data.append(allocator, 0);
+                        current_offset = @intCast(i);
+                    }
+                }
             }
-            
-            std.mem.copyBackwards(u16,
-                slice[self.layers..], 
-                slice[0..slice.len - self.layers],
-            );
-            @memset(slice[0..self.layers], 0);
+            self.data.clearAndFree(allocator);
+            self.data = new_data;
         }
     }
 };
