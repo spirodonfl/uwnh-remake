@@ -46,19 +46,10 @@ var EDITOR = {
         return new Blob([new Uint16Array(data)], {type: 'application/octet-stream'});
     },
     __tests: function (which) {
-        if (which == 0) {
-            _GAME.editor_addColumnToWorld(0);
-            DOM.rendered = false;
-            var __location = _GAME.editor_getWorldMemoryLocation(0);
-            var __length = _GAME.editor_getWorldMemoryLength(0);
-            var __memory = EDITOR.extractMemory(__location, __length);
-            var sub_memory = __memory.slice(3, __memory.length);
-            var blob_memory = EDITOR.generateBlob(sub_memory);
-            EDITOR.editorDownload(blob_memory, "world_0_layer_0.bin");
-            EDITOR.editorDownload(blob_memory, "world_0_layer_1.bin");
-            EDITOR.editorDownload(blob_memory, "world_0_layer_2.bin");
-            var size_blob = EDITOR.generateBlob([__memory[1], __memory[2]]);
-            EDITOR.editorDownload(size_blob, "world_0_size.bin");
+        if (which === 1) {
+            EDITOR.memoryToBin(_GAME.editor_getEntityMemoryLocation(0), _GAME.editor_getEntityMemoryLength(0), "entity_1.bin");
+        } else if (which === 0) {
+            EDITOR.memoryToBin(_GAME.editor_getWorldMemoryLocation(0), _GAME.editor_getWorldMemoryLength(0), "world_0.bin");
         }
     }
 };

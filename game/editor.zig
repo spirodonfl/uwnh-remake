@@ -59,6 +59,9 @@ pub fn createEntity(entity_type: u16) void {
     _ = entity_type;
     // TODO: Actually implement this
     // entities.append(entity_type) catch unreachable;
+    // try game.entities_list.append(game.gpa_allocator.allocator(), .{});
+    // TODO: Init an entity with an initial set of data
+    // try game.entities_list.at(game.entities_list.len).loadComponents();
 }
 // @wasm
 pub fn clearWorlds() void {
@@ -209,35 +212,5 @@ pub fn getEntityMemoryLength(entity: u16) !usize {
         return game.entities_list.at(entity).data.items.len;
     }
     @panic("Unhandled world memory check");
-}
-
-
-
-test "nested_arraylist_tests" {
-    var duped_world = ArrayList(ArrayList(u16)).init(arena.allocator());
-    var world_size = ArrayList(u16).init(arena.allocator());
-    try world_size.append(0);
-    try world_size.append(1);
-    var layer_one = ArrayList(u16).init(arena.allocator());
-    try layer_one.append(2);
-    try layer_one.append(3);
-    try duped_world.append(world_size);
-    try duped_world.append(layer_one);
-    try std.testing.expect(duped_world.items.len == 2);
-    try std.testing.expect(duped_world.items[1].items[0] == 2);
-    var layer_two = ArrayList(u16).init(arena.allocator());
-    try layer_two.append(4);
-    try layer_two.append(5);
-    try duped_world.append(layer_two);
-    // ---------
-    duped_world.items[1].clearAndFree();
-    // layer_two.clearAndFree();
-    _ = duped_world.orderedRemove(1);
-    // ---------
-    var layer_three = ArrayList(u16).init(arena.allocator());
-    try layer_three.append(6);
-    try layer_three.append(7);
-    // ---------
-    try duped_world.insert(1, layer_three);
 }
 

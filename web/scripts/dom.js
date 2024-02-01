@@ -91,6 +91,10 @@ function tick() {
                 if (player = document.getElementById('the_player')) {
                     player.remove();
                 }
+                var npcs = document.querySelectorAll('.npc');
+                for (var i = 0; i < npcs.length; ++i) {
+                    npcs[i].remove();
+                }
                 var collisions = document.querySelectorAll('.collision');
                 for (var i = 0; i < collisions.length; ++i) {
                     collisions[i].remove();
@@ -145,6 +149,24 @@ function tick() {
                         entity.setAttribute('data-time', then);
                         entity.setAttribute('data-entity-id', 1);
                         entity.style.backgroundImage = 'url("' + img + '")';
+                        entity.style.width = (SIZE * SCALE) + 'px';
+                        entity.style.height = (SIZE * SCALE) + 'px';
+                        entity.style.position = 'absolute';
+                        entity.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
+                        entity.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
+                        entity.style.zIndex = 1;
+                        entity.dataset.x = viewport_x;
+                        entity.dataset.y = viewport_y;
+                        document.getElementById('view').appendChild(entity);
+                        __entities__.push([viewport_x, viewport_y]);
+                    } else if (entity === 2) {
+                        var img = ENUM_IMAGES[1];
+                        var entity = document.createElement('div');
+                        entity.classList.add('npc');
+                        entity.setAttribute('data-time', then);
+                        entity.setAttribute('data-entity-id', 2);
+                        entity.style.backgroundImage = 'url("' + img + '")';
+                        entity.style.backgroundSize = 'cover';
                         entity.style.width = (SIZE * SCALE) + 'px';
                         entity.style.height = (SIZE * SCALE) + 'px';
                         entity.style.position = 'absolute';
