@@ -10,7 +10,8 @@ const diff = @import("diff.zig");
 
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 pub var worlds = ArrayList(ArrayList(u16)).init(arena.allocator());
-pub var entities = ArrayList(u16).init(arena.allocator());
+// pub var entities = ArrayList(u16).init(arena.allocator());
+pub var entities = ArrayList(*game.EntityDataStruct).init(arena.allocator());
 pub var world_layer = ArrayList(u16).init(arena.allocator());
 pub var layers = ArrayList(ArrayList(u16)).init(arena.allocator());
 pub var world_modifications = ArrayList(ArrayList(u16)).init(arena.allocator());
@@ -55,7 +56,9 @@ pub fn totalEntities() u16 {
 }
 // @wasm
 pub fn createEntity(entity_type: u16) void {
-    entities.append(entity_type) catch unreachable;
+    _ = entity_type;
+    // TODO: Actually implement this
+    // entities.append(entity_type) catch unreachable;
 }
 // @wasm
 pub fn clearWorlds() void {
@@ -174,6 +177,40 @@ pub fn getWorldMemoryLength(world: u16) !usize {
     }
     @panic("Unhandled world memory check");
 }
+
+// @wasm
+pub fn getEntityMemoryLocation(entity: u16) !*u16 {
+    if (entity < embeds.total_entities) {
+        for (entities.items) |editor_entity| {
+            if (editor_entity.getIndex() == entity) {
+                if (editor_entity.has_data) {
+                    return &editor_entity.data.items[0];
+                }
+            }
+        }
+        if (game.entities_list.at(entity).has_data == false) {
+            try game.entities_list.at(entity).readDataFromEmbedded();
+        }
+        return &game.entities_list.at(entity).data.items[0];
+    }
+    @panic("Unhandled world memory check");
+}
+// @wasm
+pub fn getEntityMemoryLength(entity: u16) !usize {
+    if (entity < embeds.total_entities) {
+         for (entities.items) |editor_entity| {
+            if (editor_entity.getIndex() == entity) {
+                return editor_entity.data.items.len;
+            }
+        }
+        if (game.entities_list.at(entity).has_data == false) {
+            try game.entities_list.at(entity).readDataFromEmbedded();
+        }
+        return game.entities_list.at(entity).data.items.len;
+    }
+    @panic("Unhandled world memory check");
+}
+
 
 
 test "nested_arraylist_tests" {

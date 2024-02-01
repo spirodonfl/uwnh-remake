@@ -294,22 +294,70 @@ pub const EmbeddedDataStruct = struct {
         return pulled_value;
     }
 };
-const Entity = struct {
-    internalID: u16,
-    internalIndex: usize = 0,
-    pub fn init(self: *Entity) void {
-        self.internalIndex = helpers.getEntityFileIndex(self.internalID);
+const ComponentHealth = @import("components/health.zig").ComponentHealth;
+pub const EntityDataStruct = struct {
+    offset: u16 = 3,
+    data: std.ArrayListUnmanaged(u16) = .{},
+    has_data: bool = false,
+    embedded: EmbeddedDataStruct = undefined,
+    health: ComponentHealth = undefined,
+    pub fn setEmbedded(self: *EntityDataStruct, embedded: EmbeddedDataStruct) void {
+        self.embedded = embedded;
     }
-    pub fn pullEntityDataAndDoSomething(self: *Entity) u16 {
-        return readFromEmbeddedFile(self.internalIndex, 0, 0);
+    pub fn getIndex(self: *EntityDataStruct) u16 {
+        const index = if (self.has_data)
+            self.data.items[0]
+        else
+            self.embedded.readData(0, .Little);
+        
+        // std.log.info("index {d}",.{index});
+        return index;
+    }
+    pub fn readDataFromEmbedded(self: *EntityDataStruct) !void {
+        // TODO: Add a "force" option to do it even if self.has_data
+        if (self.has_data) {
+            return;
+        }
+        var max: u16 = self.embedded.getLength();
+        max = max / 2; // Note: because the embedded file is using 32-bit or something like that, so you gotta divide
+        // std.log.info("max {d}",.{max});
+        // std.log.info("file_index {d}",.{self.embedded.file_index});
+        try self.data.resize(gpa_allocator.allocator(), max);
+        for (0..max) |i| {
+            var i_converted = @as(u16, @intCast(i));
+            const value = self.embedded.readData(i_converted, .Little);
+            // std.log.info("value {d}",.{value});
+            self.data.items[i_converted] = value;
+            // std.log.info("new_data[i] {d}",.{new_data[i]});
+        }
+        self.has_data = true;
+    }
+    pub fn loadComponents(self: *EntityDataStruct) !void {
+        if (!self.has_data) {
+            try self.readDataFromEmbedded();
+        }
+        if (self.data.items[1] == 33) {
+            self.health = ComponentHealth{.default_value = 10, .current_value = self.data.items[2]};
+            std.log.info("health component found", .{});
+        }
     }
     // pub fn collisionFns
     // pub fn healthFns
     // pub fn movementFns
 };
+// @wasm
+pub fn entityIncrementHealth(entity: u16) u16 {
+    // TODO: Add a check to make sure this entity has health component loaded
+    entities_list.at(entity).health.incrementHealth();
+    return entities_list.at(entity).health.current_value;
+}
+// @wasm
+pub fn entityGetHealth(entity: u16) u16 {
+    // TODO: Add a check to make sure this entity has health component loaded
+    return entities_list.at(entity).health.current_value;
+}
 
-pub var entities_list = ArrayList(Entity).init(gpa_allocator.allocator());
-// pub var worlds_list = ArrayList(WorldDataStruct).init(gpa_allocator.allocator());
+pub var entities_list = std.SegmentedList(EntityDataStruct, 32){};
 pub var worlds_list = std.SegmentedList(WorldDataStruct, 32){};
 pub var current_world_index: u16 = 0;
 
@@ -320,11 +368,13 @@ pub fn initializeGame() !void {
         _ = try embedded_data_struct.findIndexByFileName(.world, @intCast(i));
         try worlds_list.append(gpa_allocator.allocator(), .{.embedded = embedded_data_struct});
     }
+    for (0..embeds.total_entities) |i| {
+        var embedded_data_struct = EmbeddedDataStruct{};
+        _ = try embedded_data_struct.findIndexByFileName(.entity, @intCast(i));
+        try entities_list.append(gpa_allocator.allocator(), .{.embedded = embedded_data_struct});
+        try entities_list.at(i).loadComponents();
+    }
     loadWorld(current_world_index);
-
-    var new_entity = Entity{ .internalID = 0 };
-    new_entity.init();
-    try entities_list.append(new_entity);
 }
 
 // @wasm
@@ -404,19 +454,6 @@ pub fn getCurrentWorldWidth() u16 {
     return worlds_list.at(current_world_index).getWidth();
 }
 
-// @wasm
-pub fn getEntityById(id: u16) u16 {
-    // TODO: Update so this returns the entity type + attached components via ID/ENUM match
-    if (id >= embeds.total_entities) {
-        var offset_index: u16 = id - embeds.total_entities;
-        return editor.entities.items[offset_index];
-    } else {
-        const entity_file_name = std.fmt.allocPrint(allocator, "entity_{d}.bin", .{id}) catch unreachable;
-        const file_index = getFileIndexByName(entity_file_name);
-        return readFromEmbeddedFile(file_index, 0, 0);
-    }
-}
-
 // NOTE: NOT WASM COMPATIBLE
 pub fn getFileIndexByName(name: []const u8) usize {
     var file_index: usize = 0;
@@ -442,10 +479,6 @@ pub fn readFromEmbeddedFile(file_index: usize, index: u16, mode: u16) u16 {
     }
 
     return pulled_value;
-}
-// @wasm
-pub fn getEntityOut() u16 {
-    return entities_list.items[0].pullEntityDataAndDoSomething();
 }
 
 // @wasm
@@ -537,21 +570,8 @@ pub fn translateViewportYToWorldY(y: u16) u16 {
     return y - viewport.getPaddingTop();
 }
 
-
-const hc = @import("components/health.zig").ComponentHealth;
-var healthComponent = hc{.default_value = 10, .current_value = 10};
-
-// @wasm
-pub fn getHealth() u16 {
-    return healthComponent.current_value;
-    // const healthComponent = @import("components/health.zig").ComponentHealth;
-    // healthComponent.init();
-    // healthComponent.setHealth(0, 20);
-    // return healthComponent.getCurrent();
-}
-
-
-
+// --------------------------------------
+// TESTS
 test "string_stuff" {
     const str = try std.fmt.allocPrint(allocator, "world_{d}_layer_{d}.bin", .{0, 0});
     try std.testing.expect(std.mem.eql(u8, str, "world_0_layer_0.bin"));
