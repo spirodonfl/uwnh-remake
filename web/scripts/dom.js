@@ -76,7 +76,6 @@ let then = performance.now();
 const interval = 1000 / 30;
 let delta = 0;
 function tick() {
-    requestAnimationFrame(tick);
     STATS.checkFPS();
     let now = performance.now();
     if (now - then >= interval - delta) {
@@ -84,17 +83,26 @@ function tick() {
         then = now;
 
         if (_GAME.diff_getLength() > 0) {
+            DOM.rendered = false;
             // TODO: Should make this a special number to force a redraw
             if (_GAME.diff_getData(0) === 0) {
                 console.log('CLEARING VIEWPORT');
-                DOM.rendered = false;
                 var player = false;
                 if (player = document.getElementById('the_player')) {
                     player.remove();
                 }
-                var collisions = document.getElementsByClassName('collision');
+                var collisions = document.querySelectorAll('.collision');
                 for (var i = 0; i < collisions.length; ++i) {
                     collisions[i].remove();
+                }
+                var bg_tiles_removed = 0;
+                // NOTE: getElementsByClassName does a LIVE update of DOM elements so when you go to remove them you don't always have access to the elements you grabbed initially
+                var bg_tiles = document.querySelectorAll('.bg-tile');
+                for (var i = 0; i < bg_tiles.length; ++i) {
+                    if (bg_tiles[i] instanceof HTMLElement) {
+                        ++bg_tiles_removed;
+                        bg_tiles[i].remove();
+                    }
                 }
             }
             _GAME.diff_clearAll();
@@ -168,6 +176,7 @@ function tick() {
             DOM.rendered = true;
         }
     }
+    requestAnimationFrame(tick);
 }
 LOADER.events.addEventListener('loaded', function () {
     DOM.sizeView();
@@ -188,13 +197,15 @@ window.addEventListener('load', function () {
         EDITOR.last_clicked_coordinates = [x, y];
         // TODO: if you move the camera around after you clicked, you need to re-click or update coordinates
         var clicked_element = document.querySelector('div.bg-tile[data-x="' + x + '"][data-y="' + y + '"]');
-        console.log(clicked_element);
+        // console.log(clicked_element);
         if (clicked_element) {
             if (clicked_element.classList.contains('bg-tile')) {
-                console.log('CLICKED A THING', clicked_element);
-                var bg_tiles = document.getElementsByClassName('bg-tile');
+                // console.log('CLICKED A THING', clicked_element);
+                var bg_tiles = document.querySelectorAll('.bg-tile');
                 for (var i = 0; i < bg_tiles.length; ++i) {
-                    bg_tiles[i].style.border = 'none';
+                    if (bg_tiles[i] instanceof HTMLElement) {
+                        bg_tiles[i].style.border = 'none';
+                    }
                 }
                 clicked_element.style.border = '1px solid red';
             }
