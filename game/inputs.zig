@@ -40,7 +40,7 @@ fn inputMovePlayer(operation: u16) !void {
                 try game.setWorldData(game.current_world_index, 1, x, y, 0);
                 try game.setWorldData(game.current_world_index, 1, intended_x, intended_y, 1);
             }
-            diff.addData(0);
+            try diff.addData(0);
             break;
         }
     }

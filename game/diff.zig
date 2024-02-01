@@ -26,17 +26,16 @@ pub fn getData(index: u16) u16 {
 }
 // @wasm
 pub fn getLength() u16 {
-    return @as(u16, @intCast(diff_list.items.len));
+    return @intCast(diff_list.items.len);
 }
 // @wasm
-pub fn addData(data: u16) void {
-    diff_list.append(data) catch unreachable;
+pub fn addData(data: u16) !void {
+    try diff_list.append(data);
 }
 // @wasm
 pub fn clearAll() void {
     diff_list.clearRetainingCapacity();
-    _ = arena.reset(.retain_capacity);
-    // Note: We use "retain capacity" features so we don't have to re-init
+    // Note: arena.reset(.retain_capacity) does nothing because we haven't freed any memory
 }
 
 // TESTS
