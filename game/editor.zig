@@ -95,19 +95,14 @@ pub fn resizeWorld(world: u16, width: u16, height: u16) void {
 // @wasm
 pub fn addRowToWorld(world: u16) !void {
     if (world < embeds.total_worlds) {
-        var is_already_in: bool = false;
-        if (new_new_worlds.items.len > 0) {
-            for (new_new_worlds.items) |n_world| {
-                if (n_world.getIndex() == world) {
-                    diff.addData(0);
-                    try n_world.addRow();
-                    is_already_in = true;
-                    break;
-                }
+        for (new_new_worlds.items) |n_world| {
+            if (n_world.getIndex() == world) {
+                try diff.addData(0);
+                try n_world.addRow();
+                break;
             }
-        }
-        if (is_already_in == false) {
-            diff.addData(0);
+        } else { // not found. get here when loop goes through all items
+            try diff.addData(0);
             try game.worlds_list.at(world).readDataFromEmbedded();
             try game.worlds_list.at(world).addRow();
             try new_new_worlds.append(game.worlds_list.at(world));
@@ -121,19 +116,14 @@ pub fn addRowToWorld(world: u16) !void {
 // @wasm
 pub fn addColumnToWorld(world: u16) !void {
     if (world < embeds.total_worlds) {
-        var is_already_in: bool = false;
-        if (new_new_worlds.items.len > 0) {
-            for (new_new_worlds.items) |n_world| {
-                if (n_world.getIndex() == world) {
-                    diff.addData(0);
-                    try n_world.addColumn();
-                    is_already_in = true;
-                    break;
-                }
+        for (new_new_worlds.items) |n_world| {
+            if (n_world.getIndex() == world) {
+                try diff.addData(0);
+                try n_world.addColumn();
+                break;
             }
-        }
-        if (is_already_in == false) {
-            diff.addData(0);
+        } else { // not found. get here when loop goes through all items
+            try diff.addData(0);
             try game.worlds_list.at(world).readDataFromEmbedded();
             try game.worlds_list.at(world).addColumn();
             try new_new_worlds.append(game.worlds_list.at(world));
@@ -153,7 +143,7 @@ pub fn getWorldMemoryLocation(world: u16) !*u16 {
     if (world < embeds.total_worlds) {
         for (new_new_worlds.items) |new_world| {
             if (new_world.getIndex() == world) {
-                if (new_world.has_data == true) {
+                if (new_world.has_data) {
                     return &new_world.data.items[0];
                 }
             }

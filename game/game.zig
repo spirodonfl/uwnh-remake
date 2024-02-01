@@ -127,7 +127,7 @@ pub const WorldDataStruct = struct {
         const index = if (self.has_data)
             self.data.items[0]
         else
-            self.embedded.readData(0, 0);
+            self.embedded.readData(0, .Little);
         
         // std.log.info("index {d}",.{index});
         return index;
@@ -136,7 +136,7 @@ pub const WorldDataStruct = struct {
         const width = if (self.has_data)
             self.data.items[1]
         else 
-            self.embedded.readData(1, 0);
+            self.embedded.readData(1, .Little);
         // std.log.info("width {d}",.{width});
         return width;
     }
@@ -144,7 +144,7 @@ pub const WorldDataStruct = struct {
         const height = if (self.has_data)
             self.data.items[2]
         else
-            self.embedded.readData(2, 0);
+            self.embedded.readData(2, .Little);
         // std.log.info("height {d}",.{height});
         return height;
     }
@@ -172,7 +172,7 @@ pub const WorldDataStruct = struct {
         const data = if (self.has_data)
             self.data.items[index]
         else
-            self.embedded.readData(index, 0);
+            self.embedded.readData(index, .Little);
         // std.log.info("getCoordinateData {d}",.{data});
         return data;
     }
@@ -197,7 +197,7 @@ pub const WorldDataStruct = struct {
         try self.data.resize(gpa_allocator.allocator(), max);
         for (0..max) |i| {
             var i_converted = @as(u16, @intCast(i));
-            const value = self.embedded.readData(i_converted, 0);
+            const value = self.embedded.readData(i_converted, .Little);
             // std.log.info("value {d}",.{value});
             self.data.items[i_converted] = value;
             // std.log.info("new_data[i] {d}",.{new_data[i]});
@@ -233,6 +233,12 @@ pub const WorldDataStruct = struct {
                 // write column
                 @memset(slice[0..self.layers], 0);
             }
+            
+            std.mem.copyBackwards(u16,
+                slice[self.layers..], 
+                slice[0..slice.len - self.layers],
+            );
+            @memset(slice[0..self.layers], 0);
         }
     }
 };
@@ -241,25 +247,21 @@ test "world_data_struct" {
     var world_data_struct = WorldDataStruct{.data = world_data[0..], .embedded = embeds.embeds[2]};
     try std.testing.expect(world_data_struct.getWidth() == 3);
 }
+pub const DataType = enum { world, entity };
 pub const EmbeddedDataStruct = struct {
     file_index: u16 = undefined,
     // TODO: Eventually, deal with breaking up data into separate binary files or other chunking mechanisms
-    pub fn findIndexByFileName(self: *EmbeddedDataStruct, data_type: u16, index: u16) !bool {
-        var file_name: []u8 = undefined;
-        // TODO: Enum these
-        if (data_type == 0) {
-            // WORLD
-            file_name = try std.fmt.allocPrint(allocator, "world_{d}.bin", .{index});
-        } else if (data_type == 1) {
-            // ENTITY
-            file_name = try std.fmt.allocPrint(allocator, "entity_{d}.bin", .{index});
-        }
-        if (file_name.len > 0) {
-            for (embeds.file_names, 0..) |name, i| {
-                if (std.mem.eql(u8, name, file_name)) {
-                    self.file_index = @as(u16, @intCast(i));
-                    return true;
-                }
+    pub fn findIndexByFileName(self: *EmbeddedDataStruct, data_type: DataType, index: u16) !bool {
+        var buf: [256]u8 = undefined;
+        const file_name = switch (data_type) {
+            .world => try std.fmt.bufPrint(&buf, "world_{d}.bin", .{index}),
+            .entity => try std.fmt.bufPrint(&buf, "entity_{d}.bin", .{index}),
+        };
+
+        for (embeds.file_names, 0..) |name, i| {
+            if (std.mem.eql(u8, name, file_name)) {
+                self.file_index = @intCast(i);
+                return true;
             }
         }
         return false;
@@ -267,20 +269,10 @@ pub const EmbeddedDataStruct = struct {
     pub fn getLength(self: *EmbeddedDataStruct) u16 {
         return @as(u16, @intCast(embeds.embeds[self.file_index].len));
     }
-    pub fn readData(self: *EmbeddedDataStruct, index: u16, mode: u16) u16 {
-        var file = embeds.embeds[self.file_index];
-        const adjusted_index = index * 2;
-        // std.log.info("readData {d}",.{adjusted_index});
-        var pulled_value: u16 = 0;
-        // TODO: Enum the modes
-        if (mode == 0) {
-            // Little Endian Mode
-            pulled_value = (@as(u16, @intCast(file[adjusted_index + 1])) << 8 | @as(u16, @intCast(file[adjusted_index])));
-        } else if (mode == 1) {
-            // Big Endian Mode
-            pulled_value = (@as(u16, @intCast(file[adjusted_index])) << 8 | @as(u16, @intCast(file[adjusted_index + 1])));
-        }
-
+    pub fn readData(self: *EmbeddedDataStruct, index: u16, endian: std.builtin.Endian) u16 {
+        // std.log.info("readData({})", .{index});
+        const filebytes = embeds.embeds[self.file_index];
+        const pulled_value =  std.mem.readInt(u16, filebytes[index * 2..][0..2], endian);
         return pulled_value;
     }
 };
@@ -307,8 +299,8 @@ pub var current_world_index: u16 = 0;
 pub fn initializeGame() !void {
     for (0..embeds.total_worlds) |i| {
         var embedded_data_struct = EmbeddedDataStruct{};
-        _ = try embedded_data_struct.findIndexByFileName(0, @as(u16, @intCast(i)));
-        try worlds_list.append(gpa_allocator.allocator(), WorldDataStruct{.embedded = embedded_data_struct});
+        _ = try embedded_data_struct.findIndexByFileName(.world, @intCast(i));
+        try worlds_list.append(gpa_allocator.allocator(), .{.embedded = embedded_data_struct});
     }
     loadWorld(current_world_index);
 
@@ -472,14 +464,14 @@ pub fn getWorldData(world: u16, layer: u16, x: u16, y: u16) u16 {
 // @wasm
 pub fn setWorldData(world: u16, layer: u16, x: u16, y: u16, value: u16) !void {
     // TODO: Actually figure out instances where you truly need to add this diff
-    diff.addData(0);
-    if (editor.new_new_worlds.items.len > 0) {
-        for (editor.new_new_worlds.items) |nw| {
-            if (nw.getIndex() == world) {
-                try nw.setCoordinateData(layer, x, y, value);
-            }
+    try diff.addData(0);
+    
+    for (editor.new_new_worlds.items) |nw| {
+        if (nw.getIndex() == world) {
+            try nw.setCoordinateData(layer, x, y, value);
         }
     }
+    
     if (world >= embeds.total_worlds) {
         var offset_index: u16 = world - embeds.total_worlds;
         // iterate over editor.world_layer until you get a match
