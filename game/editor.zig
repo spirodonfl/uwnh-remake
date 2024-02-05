@@ -9,15 +9,18 @@ const helpers = @import("helpers.zig");
 const diff = @import("diff.zig");
 
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+pub var modified_worlds = ArrayList(*game.WorldDataStruct).init(arena.allocator());
+pub var editor_worlds = ArrayList(*game.WorldDataStruct).init(arena.allocator());
+// TODO: Replace this with "modified_worlds"
 pub var worlds = ArrayList(ArrayList(u16)).init(arena.allocator());
 // pub var entities = ArrayList(u16).init(arena.allocator());
+// TODO: modified_entities && editor_entities
 pub var entities = ArrayList(*game.EntityDataStruct).init(arena.allocator());
 pub var world_layer = ArrayList(u16).init(arena.allocator());
 pub var layers = ArrayList(ArrayList(u16)).init(arena.allocator());
 pub var world_modifications = ArrayList(ArrayList(u16)).init(arena.allocator());
 // TODO: Eventually consider removing new_worlds in favor of worlds
 pub var new_worlds = ArrayList(ArrayList(ArrayList(u16))).init(arena.allocator());
-pub var new_new_worlds = ArrayList(*game.WorldDataStruct).init(arena.allocator());
 // @wasm
 pub fn createLayer(width: u16, height: u16, layer_type: u16) void {
     var total_size: u16 = width * height;
@@ -78,7 +81,7 @@ pub fn clearAll() void {
     world_layer.clearRetainingCapacity();
     layers.clearRetainingCapacity();
     new_worlds.clearRetainingCapacity();
-    new_new_worlds.clearRetainingCapacity();
+    modified_worlds.clearRetainingCapacity();
     _ = arena.reset(.retain_capacity);
 }
 // @wasm
@@ -101,7 +104,7 @@ pub fn resizeWorld(world: u16, width: u16, height: u16) void {
 // @wasm
 pub fn addRowToWorld(world: u16) !void {
     if (world < embeds.total_worlds) {
-        for (new_new_worlds.items) |n_world| {
+        for (modified_worlds.items) |n_world| {
             if (n_world.getIndex() == world) {
                 try diff.addData(0);
                 try n_world.addRow();
@@ -111,7 +114,7 @@ pub fn addRowToWorld(world: u16) !void {
             try diff.addData(0);
             try game.worlds_list.at(world).readDataFromEmbedded();
             try game.worlds_list.at(world).addRow();
-            try new_new_worlds.append(game.worlds_list.at(world));
+            try modified_worlds.append(game.worlds_list.at(world));
         }
     } else {
         // TODO: Means that we have stuff in the editor as entirely new world
@@ -122,7 +125,7 @@ pub fn addRowToWorld(world: u16) !void {
 // @wasm
 pub fn addColumnToWorld(world: u16) !void {
     if (world < embeds.total_worlds) {
-        for (new_new_worlds.items) |n_world| {
+        for (modified_worlds.items) |n_world| {
             if (n_world.getIndex() == world) {
                 try diff.addData(0);
                 try n_world.addColumn();
@@ -132,7 +135,7 @@ pub fn addColumnToWorld(world: u16) !void {
             try diff.addData(0);
             try game.worlds_list.at(world).readDataFromEmbedded();
             try game.worlds_list.at(world).addColumn();
-            try new_new_worlds.append(game.worlds_list.at(world));
+            try modified_worlds.append(game.worlds_list.at(world));
         }
     } else {
         // TODO: Means that we have stuff in the editor as entirely new world
@@ -147,7 +150,7 @@ pub fn addColumnToWorld(world: u16) !void {
 // @wasm
 pub fn getWorldMemoryLocation(world: u16) !*u16 {
     if (world < embeds.total_worlds) {
-        for (new_new_worlds.items) |new_world| {
+        for (modified_worlds.items) |new_world| {
             if (new_world.getIndex() == world) {
                 if (new_world.has_data) {
                     return &new_world.data.items[0];
@@ -166,7 +169,7 @@ pub fn getWorldMemoryLocation(world: u16) !*u16 {
 // @wasm
 pub fn getWorldMemoryLength(world: u16) !usize {
     if (world < embeds.total_worlds) {
-         for (new_new_worlds.items) |new_world| {
+         for (modified_worlds.items) |new_world| {
             if (new_world.getIndex() == world) {
                 return new_world.data.items.len;
             }

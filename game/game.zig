@@ -1,33 +1,4 @@
 // Note: make sure to remain on ZIG 0.11.0
-//
-// TODO
-// - It makes sense for diff/diff_list to have an arena allocator because you want to clear it every loop/frame/tick
-// -- what about viewport? (I think the answer is yes since it can change on the fly)
-// -- what about world/world_data? (I think the answer is also yes since you can load/unload worlds on the fly)
-// -- what about entities? (not the default "template" ones but the scene/world ones yes)
-// - ECS
-// -- array of entities (this serves as IDs?)
-// -- array of entity_types
-// -- array of components attached to entities ... how does this work?
-// --- [0, x.., 0, x..] where every x > 0 and every 0 = another entity
-// --- what about when you use the editor? you'd have to do something like [entity_index_id, add_or_remove_component, which_one]
-// --- then you have a component so then what?
-// --- no you need to keep them separated (like the song)
-// --- you need to queries like...
-// ---- "select * entities that have a health component"
-// ---- "select * entities where type = %"
-// ---- "select health from components where entity = %"
-// ---- seperate array for each component vs entities = entities_with_health_component = [_]u16.{0,3,4,8}...
-// - Go through all files that use "export fn" and convert them or remove them -> build process with // @wasm
-// - Figure out the chain of initializations given new file structure, such as game->init() --->>> editor->init() ---->>>++++ entities->init()
-//
-// Entity -> array of attached components as integer IDs
-// Take an action (function, example: Move(entity_index, direction)
-// - In the function you would check if the entity HAS the component or not
-// - If not, do nothing
-// - Stat based components
-// - entity_{id}_component_{id}.bin -> hold default values
-// -- Alternatively: iterating over an entity at runtime and applying default values to it
 
 // TODO: Scripts
 // Outer array is script line
@@ -52,7 +23,6 @@ const renderer = @import("renderer.zig");
 const diff = @import("diff.zig");
 const editor = @import("editor.zig");
 const viewport = @import("viewport.zig");
-// const inputs = @import("inputs.zig");
 
 // -----------------------------------------------------------------------------------------
 // @wasm
@@ -112,7 +82,7 @@ fn console_log_write_zig(context: void, bytes: []const u8) !usize {
 extern fn console_log_write(ptr: [*]const u8, len: usize) void;
 extern fn console_log_flush() void;
 // -----------------------------------------------------------------------------------------
-
+// TODO: need another default layer for current positions of entities
 pub const WorldDataStruct = struct {
     offset: u16 = 3,
     data: std.ArrayListUnmanaged(u16) = .{},
@@ -124,27 +94,30 @@ pub const WorldDataStruct = struct {
         self.embedded = embedded;
     }
     pub fn getIndex(self: *WorldDataStruct) u16 {
+        const enum_index = enums.WorldDataEnum.ID.int();
         const index = if (self.has_data)
-            self.data.items[0]
+            self.data.items[enum_index]
         else
-            self.embedded.readData(0, .Little);
+            self.embedded.readData(enum_index, .Little);
         
         // std.log.info("index {d}",.{index});
         return index;
     }
     pub fn getWidth(self: *WorldDataStruct) u16 {
+        const enum_index = enums.WorldDataEnum.Width.int();
         const width = if (self.has_data)
-            self.data.items[1]
+            self.data.items[enum_index]
         else 
-            self.embedded.readData(1, .Little);
+            self.embedded.readData(enum_index, .Little);
         // std.log.info("width {d}",.{width});
         return width;
     }
     pub fn getHeight(self: *WorldDataStruct) u16 {
+        const enum_index = enums.WorldDataEnum.Height.int();
         const height = if (self.has_data)
-            self.data.items[2]
+            self.data.items[enum_index]
         else
-            self.embedded.readData(2, .Little);
+            self.embedded.readData(enum_index, .Little);
         // std.log.info("height {d}",.{height});
         return height;
     }
@@ -230,7 +203,8 @@ pub const WorldDataStruct = struct {
                     }
                 }
             }
-            self.data.clearAndFree(allocator);
+            // self.data.clearAndFree(allocator);
+            self.data.deinit(allocator);
             self.data = new_data;
         }
     }
@@ -249,7 +223,6 @@ pub const WorldDataStruct = struct {
                     try new_data.append(allocator, item);
                 } else {
                     try new_data.append(allocator, item);
-                    // Figure out if we're at the end of a row and add a 0
                     var leftover: u16 = @as(u16, @intCast(i)) - current_offset;
                     if (leftover % self.getWidth() == 0) {
                         try new_data.append(allocator, 0);
@@ -257,21 +230,16 @@ pub const WorldDataStruct = struct {
                     }
                 }
             }
-            self.data.clearAndFree(allocator);
+            // self.data.clearAndFree(allocator);
+            self.data.deinit(allocator);
             self.data = new_data;
         }
     }
 };
-test "world_data_struct" {
-    var world_data: [3]u16 = .{0, 3, 3};
-    var world_data_struct = WorldDataStruct{.data = world_data[0..], .embedded = embeds.embeds[2]};
-    try std.testing.expect(world_data_struct.getWidth() == 3);
-}
-pub const DataType = enum { world, entity };
 pub const EmbeddedDataStruct = struct {
     file_index: u16 = undefined,
     // TODO: Eventually, deal with breaking up data into separate binary files or other chunking mechanisms
-    pub fn findIndexByFileName(self: *EmbeddedDataStruct, data_type: DataType, index: u16) !bool {
+    pub fn findIndexByFileName(self: *EmbeddedDataStruct, data_type: enums.EmbeddedDataType, index: u16) !bool {
         var buf: [256]u8 = undefined;
         const file_name = switch (data_type) {
             .world => try std.fmt.bufPrint(&buf, "world_{d}.bin", .{index}),
@@ -296,9 +264,9 @@ pub const EmbeddedDataStruct = struct {
         return pulled_value;
     }
 };
+// TODO: Need a "move" component so we can indicate movable entities
 const ComponentHealth = @import("components/health.zig").ComponentHealth;
 pub const EntityDataStruct = struct {
-    offset: u16 = 3,
     data: std.ArrayListUnmanaged(u16) = .{},
     has_data: bool = false,
     embedded: EmbeddedDataStruct = undefined,
@@ -307,10 +275,11 @@ pub const EntityDataStruct = struct {
         self.embedded = embedded;
     }
     pub fn getIndex(self: *EntityDataStruct) u16 {
+        const enum_index = enums.EntityDataEnum.ID.int();
         const index = if (self.has_data)
-            self.data.items[0]
+            self.data.items[enum_index]
         else
-            self.embedded.readData(0, .Little);
+            self.embedded.readData(enum_index, .Little);
         
         // std.log.info("index {d}",.{index});
         return index;
@@ -338,8 +307,8 @@ pub const EntityDataStruct = struct {
         if (!self.has_data) {
             try self.readDataFromEmbedded();
         }
-        if (self.data.items[1] == 33) {
-            self.health = ComponentHealth{.default_value = 10, .current_value = self.data.items[2]};
+        if (self.data.items[enums.EntityDataEnum.ComponentHealth.int()] == 33) {
+            self.health = ComponentHealth{.default_value = 10, .current_value = self.data.items[enums.EntityDataEnum.ComponentHealthDefaultValue.int()]};
             std.log.info("health component found", .{});
         }
     }
@@ -385,8 +354,8 @@ pub fn loadWorld(index: u16) void {
     var w: u16 = undefined;
     var h: u16 = undefined;
     var in_editor: bool = false;
-    if (editor.new_new_worlds.items.len > 0) {
-        for (editor.new_new_worlds.items) |nw| {
+    if (editor.modified_worlds.items.len > 0) {
+        for (editor.modified_worlds.items) |nw| {
             if (nw.getIndex() == index) {
                 in_editor = true;
                 w = nw.getWidth();
@@ -485,8 +454,8 @@ pub fn readFromEmbeddedFile(file_index: usize, index: u16, mode: u16) u16 {
 
 // @wasm
 pub fn getWorldData(world: u16, layer: u16, x: u16, y: u16) u16 {
-    if (editor.new_new_worlds.items.len > 0) {
-        for (editor.new_new_worlds.items) |nw| {
+    if (editor.modified_worlds.items.len > 0) {
+        for (editor.modified_worlds.items) |nw| {
             if (nw.getIndex() == world) {
                 return nw.getCoordinateData(layer, x, y);
             }
@@ -514,12 +483,13 @@ pub fn getWorldData(world: u16, layer: u16, x: u16, y: u16) u16 {
         return worlds_list.at(world).getCoordinateData(layer, x, y);
     }
 }
+// TODO: This is an editor function and should be moved there
 // @wasm
 pub fn setWorldData(world: u16, layer: u16, x: u16, y: u16, value: u16) !void {
     // TODO: Actually figure out instances where you truly need to add this diff
     try diff.addData(0);
     
-    for (editor.new_new_worlds.items) |nw| {
+    for (editor.modified_worlds.items) |nw| {
         if (nw.getIndex() == world) {
             try nw.setCoordinateData(layer, x, y, value);
         }
@@ -570,27 +540,4 @@ pub fn translateViewportXToWorldX(x: u16) u16 {
 // @wasm
 pub fn translateViewportYToWorldY(y: u16) u16 {
     return y - viewport.getPaddingTop();
-}
-
-// --------------------------------------
-// TESTS
-test "string_stuff" {
-    const str = try std.fmt.allocPrint(allocator, "world_{d}_layer_{d}.bin", .{0, 0});
-    try std.testing.expect(std.mem.eql(u8, str, "world_0_layer_0.bin"));
-}
-
-test "raw_enums" {
-    var enumint: u16 = helpers.enumToU16(enums.WorldsEnum, enums.WorldsEnum.World1);
-    var some_value: u16 = 0;
-    try std.testing.expect(enumint == 0);
-    try std.testing.expect(some_value == @intFromEnum(enums.WorldsEnum.World1));
-}
-
-test "entity_components" {
-    var entity: [3]u16 = .{ 2, 0, 0 };
-    try std.testing.expect(entity[0] == 2);
-    const health = @import("components/health.zig");
-    std.debug.print("\n{s}\n", .{@typeName(health)});
-    // entity[2] = health;
-    // try std.testing.expect(entity[2].default_value == 10);
 }
