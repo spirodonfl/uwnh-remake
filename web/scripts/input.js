@@ -34,16 +34,16 @@ var INPUT = {
                 // TODO: show editor UI
             } else if (evt.code === 'KeyW') {
                 // UP
-                _GAME.inputs_inputUp();
+                _GAME.inputs_inputUp(0);
             } else if (evt.code === 'KeyS') {
                 // DOWN
-                _GAME.inputs_inputDown();
+                _GAME.inputs_inputDown(0);
             } else if (evt.code === 'KeyA') {
                 // LEFT
-                _GAME.inputs_inputLeft();
+                _GAME.inputs_inputLeft(0);
             } else if (evt.code === 'KeyD') {
                 // RIGHT
-                _GAME.inputs_inputRight();
+                _GAME.inputs_inputRight(0);
             } else if (evt.code === 'Space') {
                 // ATTACK
             } else if (evt.code === 'KeyQ') {

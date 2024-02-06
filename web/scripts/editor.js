@@ -14,7 +14,7 @@ var EDITOR = {
     },
     addLog: function (msg) {
         var log = document.getElementById('editor_console');
-        log.innerHTML += msg + '\n';
+        // log.innerHTML += msg + '\n';
     },
     editorDownload: function (data, file_name) {
         const link = document.createElement('a');

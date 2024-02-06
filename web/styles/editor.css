@@ -142,3 +142,10 @@ body {
     background-color: rgb(65 65 65);
     color: rgb(221 221 221);
 }
+
+.health {
+    color: red;
+    font-size: 1.5em;
+    font-weight: bold;
+    text-shadow: 0 0 1px black, 0 0 1px black, 0 0 1px black;
+}

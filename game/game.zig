@@ -323,6 +323,42 @@ pub fn entityIncrementHealth(entity: u16) u16 {
     return entities_list.at(entity).health.current_value;
 }
 // @wasm
+pub fn entityDecrementHealth(entity: u16) u16 {
+    // TODO: Add a check to make sure this entity has health component loaded
+    entities_list.at(entity).health.decrementHealth();
+    return entities_list.at(entity).health.current_value;
+}
+// @wasm
+pub fn entityAttack(entity: u16, target: u16) !void {
+    var target_coords: [2]u16 = .{0, 0};
+    var entity_coords: [2]u16 = .{0, 0};
+    // Determine if entity is next to target
+    // If so, decrement target health
+    var world = worlds_list.at(current_world_index);
+    var w = world.getWidth();
+    var h = world.getHeight();
+    var size = w * h;
+    for (0..size) |i| {
+        var x: u16 = @as(u16, @intCast(i % w));
+        var y: u16 = @as(u16, @intCast(i / w));
+        var value = getWorldData(current_world_index, 1, x, y);
+        if (value == (entity + 1)) {
+            entity_coords = .{x, y};
+        } else if (value == (target + 1)) {
+            target_coords = .{x, y};
+        }
+    }
+
+    if (
+        (entity_coords[0] == target_coords[0] and (entity_coords[1] == target_coords[1] + 1 or entity_coords[1] == target_coords[1] - 1)) or
+        (entity_coords[1] == target_coords[1] and (entity_coords[0] == target_coords[0] + 1 or entity_coords[0] == target_coords[0] - 1))
+    ) {
+        try diff.addData(0);
+        _ = entityDecrementHealth(target);
+    }
+}
+
+// @wasm
 pub fn entityGetHealth(entity: u16) u16 {
     // TODO: Add a check to make sure this entity has health component loaded
     return entities_list.at(entity).health.current_value;

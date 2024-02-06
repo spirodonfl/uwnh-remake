@@ -9,6 +9,7 @@ const ENUM_IMAGES = [
     'images/ship-2.gif',
     // zig -> ImagesEnum.OceanBGImage
     'images/ocean-bg-1.gif',
+    'images/matisse-ship-1-removebg-preview.png',
 ];
 let DOM = {
     width: 0,
@@ -157,10 +158,16 @@ function tick() {
                         entity.style.zIndex = 1;
                         entity.dataset.x = viewport_x;
                         entity.dataset.y = viewport_y;
+                        var health_element = document.createElement('div');
+                        health_element.classList.add('health');
+                        // Note: current entity - 1
+                        health_element.innerHTML = _GAME.game_entityGetHealth(0);
+                        entity.appendChild(health_element);
+
                         document.getElementById('view').appendChild(entity);
                         __entities__.push([viewport_x, viewport_y]);
                     } else if (entity === 2) {
-                        var img = ENUM_IMAGES[1];
+                        var img = ENUM_IMAGES[3];
                         var entity = document.createElement('div');
                         entity.classList.add('npc');
                         entity.setAttribute('data-time', then);
@@ -175,6 +182,11 @@ function tick() {
                         entity.style.zIndex = 1;
                         entity.dataset.x = viewport_x;
                         entity.dataset.y = viewport_y;
+                        var health_element = document.createElement('div');
+                        health_element.classList.add('health');
+                        // Note: current entity - 1
+                        health_element.innerHTML = _GAME.game_entityGetHealth(1);
+                        entity.appendChild(health_element);
                         document.getElementById('view').appendChild(entity);
                         __entities__.push([viewport_x, viewport_y]);
                     }
