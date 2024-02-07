@@ -46,7 +46,7 @@ fn inputMovePlayer(operation: u16) !void {
     }
 }
 
-fn inputMoveEntity(operation: u16) !void {
+fn inputMoveEntity(entity: u16, operation: u16) !void {
     var world = game.worlds_list.at(game.current_world_index);
     var w = world.getWidth();
     var h = world.getHeight();
@@ -55,8 +55,11 @@ fn inputMoveEntity(operation: u16) !void {
         var x: u16 = @as(u16, @intCast(i % w));
         var y: u16 = @as(u16, @intCast(i / w));
         var value = game.getWorldData(game.current_world_index, 1, x, y);
-        if (value == 2) {
-            std.log.info("Found player at ({}, {})", .{x, y});
+        if (value > 0) {
+            std.log.info("!!Found entity {d} at ({}, {})", .{value, x, y});
+        }
+        if (value == (entity + 1)) {
+            std.log.info("Found entity {d} at ({}, {})", .{value, x, y});
             var intended_x = x;
             var intended_y = y;
             if (operation == 0 and y > 0) {
@@ -80,7 +83,7 @@ fn inputMoveEntity(operation: u16) !void {
                 // -- worlddatastruct -> add active layer for npc/player
                 // -- any time getworlddata references layer 1 (aka: player/npc layer), return "active" layer
                 try game.setWorldData(game.current_world_index, 1, x, y, 0);
-                try game.setWorldData(game.current_world_index, 1, intended_x, intended_y, 2);
+                try game.setWorldData(game.current_world_index, 1, intended_x, intended_y, (entity + 1));
             }
             try diff.addData(0);
             break;
@@ -95,7 +98,7 @@ pub fn inputUp(entity: u16) !void {
     if (entity == 0) {
         try inputMovePlayer(0);
     } else {
-        try inputMoveEntity(0);
+        try inputMoveEntity(entity, 0);
     }
 }
 // @wasm
@@ -104,7 +107,7 @@ pub fn inputDown(entity: u16) !void {
     if (entity == 0) {
         try inputMovePlayer(1);
     } else {
-        try inputMoveEntity(1);
+        try inputMoveEntity(entity, 1);
     }
 }
 // @wasm
@@ -113,7 +116,7 @@ pub fn inputLeft(entity: u16) !void {
     if (entity == 0) {
         try inputMovePlayer(2);
     } else {
-        try inputMoveEntity(2);
+        try inputMoveEntity(entity, 2);
     }
 }
 // @wasm
@@ -122,6 +125,6 @@ pub fn inputRight(entity: u16) !void {
     if (entity == 0) {
         try inputMovePlayer(3);
     } else {
-        try inputMoveEntity(3);
+        try inputMoveEntity(entity, 3);
     }
 }

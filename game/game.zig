@@ -342,9 +342,14 @@ pub fn entityAttack(entity: u16, target: u16) !void {
         var x: u16 = @as(u16, @intCast(i % w));
         var y: u16 = @as(u16, @intCast(i / w));
         var value = getWorldData(current_world_index, 1, x, y);
+        if (value > 0) {
+            std.log.info("(A) Found entity {d} {d} {d} at {d}, {d}", .{value, (entity + 1), (target + 1), x, y});
+        }
         if (value == (entity + 1)) {
+            std.log.info("(B) FOUND ENTITY", .{});
             entity_coords = .{x, y};
         } else if (value == (target + 1)) {
+            std.log.info("(B) FOUND TARGET", .{});
             target_coords = .{x, y};
         }
     }

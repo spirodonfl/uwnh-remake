@@ -189,7 +189,31 @@ function tick() {
                         entity.appendChild(health_element);
                         document.getElementById('view').appendChild(entity);
                         __entities__.push([viewport_x, viewport_y]);
+                    } else if (entity === 3) {
+                        var img = ENUM_IMAGES[3];
+                        var entity = document.createElement('div');
+                        entity.classList.add('npc');
+                        entity.setAttribute('data-time', then);
+                        entity.setAttribute('data-entity-id', 2);
+                        entity.style.backgroundImage = 'url("' + img + '")';
+                        entity.style.backgroundSize = 'cover';
+                        entity.style.width = (SIZE * SCALE) + 'px';
+                        entity.style.height = (SIZE * SCALE) + 'px';
+                        entity.style.position = 'absolute';
+                        entity.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
+                        entity.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
+                        entity.style.zIndex = 1;
+                        entity.dataset.x = viewport_x;
+                        entity.dataset.y = viewport_y;
+                        var health_element = document.createElement('div');
+                        health_element.classList.add('health');
+                        // Note: current entity - 1
+                        health_element.innerHTML = _GAME.game_entityGetHealth(2);
+                        entity.appendChild(health_element);
+                        document.getElementById('view').appendChild(entity);
+                        __entities__.push([viewport_x, viewport_y]);
                     }
+
                     var collision = _GAME.game_getWorldAtViewport(2, viewport_x, viewport_y);
                     if (collision === 1) {
                         var collision = document.createElement('div');
@@ -221,29 +245,29 @@ LOADER.events.addEventListener('loaded', function () {
     INPUT.startListening();
     requestAnimationFrame(tick);
 
-    for (var i = 0; i < 5; ++i) {
-        _GAME.editor_addRowToWorld(0);
-    }
-    for (var i = 2; i < 8; ++i) {
-        EDITOR.last_clicked_coordinates = [i, 6];
-        EDITOR.addCollision();
-    }
-    EDITOR.last_clicked_coordinates = [3, 7];
-    EDITOR.addCollision();
-    EDITOR.last_clicked_coordinates = [3, 8];
-    EDITOR.addCollision();
-    EDITOR.last_clicked_coordinates = [3, 9];
-    EDITOR.addCollision();
-    EDITOR.last_clicked_coordinates = [3, 11];
-    EDITOR.addCollision();
-    EDITOR.last_clicked_coordinates = [6, 7];
-    EDITOR.addCollision();
-    EDITOR.last_clicked_coordinates = [6, 8];
-    EDITOR.addCollision();
-    EDITOR.last_clicked_coordinates = [6, 9];
-    EDITOR.addCollision();
-    EDITOR.last_clicked_coordinates = [6, 11];
-    EDITOR.addCollision();
+    // for (var i = 0; i < 5; ++i) {
+    //     _GAME.editor_addRowToWorld(0);
+    // }
+    // for (var i = 2; i < 8; ++i) {
+    //     EDITOR.last_clicked_coordinates = [i, 6];
+    //     EDITOR.addCollision();
+    // }
+    // EDITOR.last_clicked_coordinates = [3, 7];
+    // EDITOR.addCollision();
+    // EDITOR.last_clicked_coordinates = [3, 8];
+    // EDITOR.addCollision();
+    // EDITOR.last_clicked_coordinates = [3, 9];
+    // EDITOR.addCollision();
+    // EDITOR.last_clicked_coordinates = [3, 11];
+    // EDITOR.addCollision();
+    // EDITOR.last_clicked_coordinates = [6, 7];
+    // EDITOR.addCollision();
+    // EDITOR.last_clicked_coordinates = [6, 8];
+    // EDITOR.addCollision();
+    // EDITOR.last_clicked_coordinates = [6, 9];
+    // EDITOR.addCollision();
+    // EDITOR.last_clicked_coordinates = [6, 11];
+    // EDITOR.addCollision();
 });
 window.addEventListener('load', function () {
     var element_view = document.getElementById('view');

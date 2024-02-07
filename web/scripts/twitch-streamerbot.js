@@ -47,6 +47,10 @@ function connectws() {
             // TODO: !move u2r2d!
             // TODO: Per user ships
             // check for events to trigger
+            // TODO: Raiders spawn a new ship, health points are equal to # of raiders, go kill raider ship
+            // Good idea from Elco - keep current count of viewers in cache, after raid, compare new count, diff = # of raiders
+            // TODO: !spawn command for chat users who WANT to participate
+            // TODO: Queue system for spawn/respawn in case of massive user count
             if (wsdata.event.source === 'Twitch') {
                 if (wsdata.event.type === 'Sub' || wsdata.event.type === 'ReSub') {
                     // alert(`trigger sub event for ${wsdata.data.displayName}`);
@@ -130,6 +134,26 @@ function connectws() {
                         if (_GAME) {
                             _GAME.game_entityAttack(1, 0);
                         }
+                    } else if (wsdata.data.message.message === '!dup') {
+                        if (_GAME) {
+                            _GAME.inputs_inputUp(2);
+                        }
+                    } else if (wsdata.data.message.message === '!ddown') {
+                        if (_GAME) {
+                            _GAME.inputs_inputDown(2);
+                        }
+                    } else if (wsdata.data.message.message === '!dleft') {
+                        if (_GAME) {
+                            _GAME.inputs_inputLeft(2);
+                        }
+                    } else if (wsdata.data.message.message === '!dright') {
+                        if (_GAME) {
+                            _GAME.inputs_inputRight(2);
+                        }
+                    } else if (wsdata.data.message.message === '!dattack') {
+                        if (_GAME) {
+                            _GAME.game_entityAttack(2, 0);
+                        }
                     }
 
                     var reset_game = false;
@@ -141,7 +165,12 @@ function connectws() {
                         alert_element.innerHTML = `PLAYER 1 WON! GAME OVER!`;
                         alert_element.style.display = 'flex';
                         reset_game = true;
+                    } else if (_GAME.game_entityGetHealth(2) <= 0) {
+                        alert_element.innerHTML = `PLAYER 3 WON! GAME OVER!`;
+                        alert_element.style.display = 'flex';
+                        reset_game = true;
                     }
+
                     if (reset_game) {
                         setTimeout(function () {
                             window.location.reload();
