@@ -51,5 +51,15 @@ var EDITOR = {
         } else if (which === 0) {
             EDITOR.memoryToBin(_GAME.editor_getWorldMemoryLocation(0), _GAME.editor_getWorldMemoryLength(0), "world_0.bin");
         }
+    },
+    updateEntityName: function (entity_id, new_name) {
+        var entity_name = document.getElementById('entity_name_' + entity_id);
+        console.log('EDITOR: ', entity_name);
+        entity_name.innerHTML = new_name;
+    },
+    updateShipEditorName: function (entity_id, name) {
+        var ship_editor_name = document.getElementById('ship_' + entity_id);
+        console.log('EDITOR: ', ship_editor_name);
+        ship_editor_name.innerHTML = name;
     }
 };

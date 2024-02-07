@@ -15,5 +15,8 @@ pub const ComponentHealth = struct {
             self.current_value -= 1;
         }
     }
+    pub fn setHealth(self: *ComponentHealth, value: u16) void {
+        self.current_value = value;
+    }
 };
 

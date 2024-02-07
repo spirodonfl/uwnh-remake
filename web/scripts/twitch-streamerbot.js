@@ -1,4 +1,6 @@
 var twitch_streamerbot_ws = null;
+var SHIPS_TO_PLAYER = [null, null, null, null, null];
+var PLAYERS_CRIT_BUFF = [0, 0, 0, 0, 0];
 function connectws() {
     if ("WebSocket" in window) {
         const twitch_streamerbot_ws = new WebSocket("ws://127.0.0.1:8080/");
@@ -21,6 +23,7 @@ function connectws() {
                 }
             ));
         };
+        // TODO: Rate throttle the messages
         twitch_streamerbot_ws.onmessage = function (event) {
             // grab message and parse JSON
             const msg = event.data;
@@ -51,6 +54,10 @@ function connectws() {
             // Good idea from Elco - keep current count of viewers in cache, after raid, compare new count, diff = # of raiders
             // TODO: !spawn command for chat users who WANT to participate
             // TODO: Queue system for spawn/respawn in case of massive user count
+            // TODO: Add sea mines
+            // TODO: damage = Math.floor(Math.random() * 10);
+            // TODO: ARENA - level up with viewer minutes, visit merchants by spending channel points to upgrade your player, then challenge players at top of leaderboard
+            // TODO: During emote only, use channel points to send commands
             if (wsdata.event.source === 'Twitch') {
                 if (wsdata.event.type === 'Sub' || wsdata.event.type === 'ReSub') {
                     // alert(`trigger sub event for ${wsdata.data.displayName}`);
@@ -86,6 +93,13 @@ function connectws() {
                     }, 1000);
                 } else if (wsdata.event.type === 'Cheer') {
                     // alert(`trigger cheer event for ${wsdata.data.message.displayName} ${wsdata.data.message.bits}`);
+                    var bits = wsdata.data.message.bits;
+                    if (bits >= 5) {
+                        var player_index = SHIPS_TO_PLAYER.indexOf(wsdata.data.message.displayName);
+                        if (player_index !== -1) {
+                            PLAYERS_CRIT_BUFF[player_index] = true;
+                        }
+                    }
                     alert_element.innerHTML = `THANK YOU FOR THE CHEER! ${wsdata.data.message.displayName} ${wsdata.data.message.bits}`;
                     setTimeout(function() {
                         alert_element.style.display = 'none';
@@ -94,88 +108,133 @@ function connectws() {
                     // alert(`trigger chat message event for ${wsdata.data.message.displayName} ${wsdata.data.message.message}`);
                     // alert_element.innerHTML = `${wsdata.data.message.displayName} says: ${wsdata.data.message.message}`;
                     // alert_element.style.display = 'flex';
-                    if (wsdata.data.message.message === '!up') {
+                    if (wsdata.data.message.message === '!up' || wsdata.data.message.message === '!u') {
                         if (_GAME) {
-                            _GAME.inputs_inputUp(0);
+                            // Get the current player matching against PLAYER_TO_SHIP, get index of PLAYER_TO_SHIP, then call inputs_inputUp with that index
+                            var player_index = SHIPS_TO_PLAYER.indexOf(wsdata.data.message.displayName);
+                            if (player_index !== -1) {
+                                _GAME.inputs_inputUp(player_index);
+                            }
+                            // _GAME.inputs_inputUp(0);
                         }
-                    } else if (wsdata.data.message.message === '!down') {
+                    } else if (wsdata.data.message.message === '!down' || wsdata.data.message.message === '!d') {
                         if (_GAME) {
-                            _GAME.inputs_inputDown(0);
+                            var player_index = SHIPS_TO_PLAYER.indexOf(wsdata.data.message.displayName);
+                            if (player_index !== -1) {
+                                _GAME.inputs_inputDown(player_index);
+                            }
+                            // _GAME.inputs_inputDown(0);
                         }
-                    } else if (wsdata.data.message.message === '!left') {
+                    } else if (wsdata.data.message.message === '!left' || wsdata.data.message.message === '!l') {
                         if (_GAME) {
-                            _GAME.inputs_inputLeft(0);
+                            var player_index = SHIPS_TO_PLAYER.indexOf(wsdata.data.message.displayName);
+                            if (player_index !== -1) {
+                                _GAME.inputs_inputLeft(player_index);
+                            }
+                            // _GAME.inputs_inputLeft(0);
                         }
-                    } else if (wsdata.data.message.message === '!right') {
+                    } else if (wsdata.data.message.message === '!right' || wsdata.data.message.message === '!r') {
                         if (_GAME) {
-                            _GAME.inputs_inputRight(0);
+                            var player_index = SHIPS_TO_PLAYER.indexOf(wsdata.data.message.displayName);
+                            if (player_index !== -1) {
+                                _GAME.inputs_inputRight(player_index);
+                            }
+                            // _GAME.inputs_inputRight(0);
                         }
-                    } else if (wsdata.data.message.message === '!attack') {
+                    } else if (wsdata.data.message.message === '!attack' || wsdata.data.message.message === '!a') {
                         if (_GAME) {
-                            _GAME.game_entityAttack(0, 1);
+                            var player_index = SHIPS_TO_PLAYER.indexOf(wsdata.data.message.displayName);
+                            var have_crit = PLAYERS_CRIT_BUFF[player_index];
+                            if (have_crit) {
+                                // Javascript match random chance to set to true or false
+                                PLAYERS_CRIT_BUFF[player_index] = Math.random() < 0.5;
+                            }
+                            if (player_index !== -1) {
+                                // Only attack the other two players from SHIPS_TO_PLAYER
+                                for (var i = 0; i < SHIPS_TO_PLAYER.length; i++) {
+                                    if (i !== player_index && _GAME.game_entityGetHealth(i) > 0) {
+                                        _GAME.game_entityAttack(player_index, i, have_crit);
+                                    }
+                                }
+                            }
+                            // _GAME.game_entityAttack(0, 1);
+                            // _GAME.game_entityAttack(0, 2);
                         }
-                    } else if (wsdata.data.message.message === '!cup') {
-                        if (_GAME) {
-                            _GAME.inputs_inputUp(1);
+                    } else if (wsdata.data.message.message === '!spawn') {
+                        // First make sure the player isn't already in the game
+                        var player_index = SHIPS_TO_PLAYER.indexOf(wsdata.data.message.displayName);
+                        if (player_index < 0) {
+                            for (var i = 0; i < SHIPS_TO_PLAYER.length; i++) {
+                                if (SHIPS_TO_PLAYER[i] === null) {
+                                    SHIPS_TO_PLAYER[i] = wsdata.data.message.displayName;
+                                    EDITOR.updateEntityName(i + 1, wsdata.data.message.displayName);
+                                    EDITOR.updateShipEditorName(i + 1, wsdata.data.message.displayName);
+                                    _GAME.game_entitySetHealth(i, 8);
+                                    _GAME.diff_addData(0);
+                                    break;
+                                }
+                            }
                         }
-                    } else if (wsdata.data.message.message === '!cdown') {
-                        if (_GAME) {
-                            _GAME.inputs_inputDown(1);
+                    } else if (wsdata.data.message.message.startsWith('!done')) {
+                        var player_index = SHIPS_TO_PLAYER.indexOf(wsdata.data.message.displayName);
+                        if (player_index !== -1) {
+                            SHIPS_TO_PLAYER[player_index] = null;
+                            EDITOR.updateEntityName(player_index + 1, '[EMPTY]');
+                            EDITOR.updateShipEditorName(player_index + 1, '[EMPTY]');
+                            _GAME.diff_addData(0);
                         }
-                    } else if (wsdata.data.message.message === '!cleft') {
-                        if (_GAME) {
-                            _GAME.inputs_inputLeft(1);
+                    } else if (wsdata.data.message.message.startsWith('!despawn')) {
+                        if (wsdata.data.message.role >= 2) {
+                            var split = wsdata.data.message.message.split(' ');
+                            if (split.length === 2) {
+                                var ship_number = parseInt(split[1]);
+                                if (ship_number >= 1) {
+                                    ship_number -= 1;
+                                    if (ship_number >= 0 && ship_number < SHIPS_TO_PLAYER.length) {
+                                        SHIPS_TO_PLAYER[ship_number] = null;
+                                        EDITOR.updateEntityName(ship_number + 1, '[EMPTY]');
+                                        EDITOR.updateShipEditorName(ship_number + 1, '[EMPTY]');
+                                        _GAME.diff_addData(0);
+                                    }
+                                }
+                            }
                         }
-                    } else if (wsdata.data.message.message === '!cright') {
-                        if (_GAME) {
-                            _GAME.inputs_inputRight(1);
-                        }
-                    } else if (wsdata.data.message.message === '!cattack') {
-                        if (_GAME) {
-                            _GAME.game_entityAttack(1, 0);
-                        }
-                    } else if (wsdata.data.message.message === '!dup') {
-                        if (_GAME) {
-                            _GAME.inputs_inputUp(2);
-                        }
-                    } else if (wsdata.data.message.message === '!ddown') {
-                        if (_GAME) {
-                            _GAME.inputs_inputDown(2);
-                        }
-                    } else if (wsdata.data.message.message === '!dleft') {
-                        if (_GAME) {
-                            _GAME.inputs_inputLeft(2);
-                        }
-                    } else if (wsdata.data.message.message === '!dright') {
-                        if (_GAME) {
-                            _GAME.inputs_inputRight(2);
-                        }
-                    } else if (wsdata.data.message.message === '!dattack') {
-                        if (_GAME) {
-                            _GAME.game_entityAttack(2, 0);
-                        }
-                    }
-
-                    var reset_game = false;
-                    if (_GAME.game_entityGetHealth(0) <= 0) {
-                        alert_element.innerHTML = `PLAYER 2 WON! GAME OVER!`;
-                        alert_element.style.display = 'flex';
-                        reset_game = true;
-                    } else if (_GAME.game_entityGetHealth(1) <= 0) {
-                        alert_element.innerHTML = `PLAYER 1 WON! GAME OVER!`;
-                        alert_element.style.display = 'flex';
-                        reset_game = true;
-                    } else if (_GAME.game_entityGetHealth(2) <= 0) {
-                        alert_element.innerHTML = `PLAYER 3 WON! GAME OVER!`;
-                        alert_element.style.display = 'flex';
-                        reset_game = true;
-                    }
-
-                    if (reset_game) {
-                        setTimeout(function () {
+                    } else if (wsdata.data.message.message === '!reset') {
+                        if (wsdata.data.message.role >= 2) {
                             window.location.reload();
-                        }, 3000);
+                        }
                     }
+
+                    for (var i = 0; i < SHIPS_TO_PLAYER.length; i++) {
+                        if (_GAME.game_entityGetHealth(i) <= 0) {
+                            SHIPS_TO_PLAYER[i] = null;
+                            document.querySelector('[data-entity-id="' + (i + 1) + '"]').classList.add('juicy__shake__2');
+                            EDITOR.updateEntityName(i + 1, '[EMPTY]');
+                            EDITOR.updateShipEditorName(i + 1, '[EMPTY]');
+                            _GAME.diff_addData(0);
+                        }
+                    }
+
+                    // var reset_game = false;
+                    // if (_GAME.game_entityGetHealth(0) <= 0 && _GAME.game_entityGetHealth(1) <= 0) {
+                    //     alert_element.innerHTML = `PLAYER 3 WON! GAME OVER!`;
+                    //     alert_element.style.display = 'flex';
+                    //     reset_game = true;
+                    // } else if (_GAME.game_entityGetHealth(1) <= 0 && _GAME.game_entityGetHealth(2) <= 0) {
+                    //     alert_element.innerHTML = `PLAYER 1 WON! GAME OVER!`;
+                    //     alert_element.style.display = 'flex';
+                    //     reset_game = true;
+                    // } else if (_GAME.game_entityGetHealth(0) <= 0 && _GAME.game_entityGetHealth(2) <= 0) {
+                    //     alert_element.innerHTML = `PLAYER 2 WON! GAME OVER!`;
+                    //     alert_element.style.display = 'flex';
+                    //     reset_game = true;
+                    // }
+
+                    // if (reset_game) {
+                    //     setTimeout(function () {
+                    //         window.location.reload();
+                    //     }, 3000);
+                    // }
                 }
             }
         };

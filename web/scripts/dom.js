@@ -10,6 +10,7 @@ const ENUM_IMAGES = [
     // zig -> ImagesEnum.OceanBGImage
     'images/ocean-bg-1.gif',
     'images/matisse-ship-1-removebg-preview.png',
+    'images/ship-4.png',
 ];
 let DOM = {
     width: 0,
@@ -85,11 +86,12 @@ function tick() {
 
         if (_GAME.diff_getLength() > 0) {
             DOM.rendered = false;
+            __entities__ = [];
             // TODO: Should make this a special number to force a redraw
             if (_GAME.diff_getData(0) === 0) {
                 console.log('CLEARING VIEWPORT');
                 var player = false;
-                if (player = document.getElementById('the_player')) {
+                if (player = document.querySelector('#the_player')) {
                     player.remove();
                 }
                 var npcs = document.querySelectorAll('.npc');
@@ -142,14 +144,26 @@ function tick() {
                     }
                     document.getElementById('view').appendChild(el);
 
-                    var entity = _GAME.game_getWorldAtViewport(1, viewport_x, viewport_y);
-                    if (entity === 1) {
+                    var entity_id = _GAME.game_getWorldAtViewport(1, viewport_x, viewport_y);
+                    if (entity_id > 0) {
                         var img = ENUM_IMAGES[0];
+                        if (entity_id === 2) {
+                            img = ENUM_IMAGES[3];
+                        }
+                        if (entity_id >= 3) {
+                            img = ENUM_IMAGES[4];
+                        }
                         var entity = document.createElement('div');
-                        entity.id = 'the_player';
+                        if (entity_id === 1) {
+                            entity.id = 'the_player';
+                        } else {
+                            entity.classList.add('npc');
+                            entity.id = 'npc_' + entity_id;
+                        }
                         entity.setAttribute('data-time', then);
-                        entity.setAttribute('data-entity-id', 1);
+                        entity.setAttribute('data-entity-id', entity_id);
                         entity.style.backgroundImage = 'url("' + img + '")';
+                        entity.style.backgroundSize = 'cover';
                         entity.style.width = (SIZE * SCALE) + 'px';
                         entity.style.height = (SIZE * SCALE) + 'px';
                         entity.style.position = 'absolute';
@@ -161,57 +175,23 @@ function tick() {
                         var health_element = document.createElement('div');
                         health_element.classList.add('health');
                         // Note: current entity - 1
-                        health_element.innerHTML = _GAME.game_entityGetHealth(0);
+                        health_element.innerHTML = _GAME.game_entityGetHealth((entity_id - 1));
                         entity.appendChild(health_element);
+                        var name_element = document.createElement('div');
+                        name_element.id = 'entity_name_' + entity_id;
+                        name_element.classList.add('name');
+                        name_element.innerHTML = 'Entity ' + entity_id;
+                        // TODO: This is a hack, but it's a good hack for now, to get player names from websocket integration
+                        if (typeof SHIPS_TO_PLAYER !== 'undefined') {
+                            var player_index = SHIPS_TO_PLAYER[(entity_id - 1)];
+                            if (player_index !== null) {
+                                name_element.innerHTML = player_index;
+                            }
+                        }
+                        entity.appendChild(name_element);
+                        document.getElementById('view').appendChild(entity);
+                        __entities__.push([viewport_x, viewport_y]);
 
-                        document.getElementById('view').appendChild(entity);
-                        __entities__.push([viewport_x, viewport_y]);
-                    } else if (entity === 2) {
-                        var img = ENUM_IMAGES[3];
-                        var entity = document.createElement('div');
-                        entity.classList.add('npc');
-                        entity.setAttribute('data-time', then);
-                        entity.setAttribute('data-entity-id', 2);
-                        entity.style.backgroundImage = 'url("' + img + '")';
-                        entity.style.backgroundSize = 'cover';
-                        entity.style.width = (SIZE * SCALE) + 'px';
-                        entity.style.height = (SIZE * SCALE) + 'px';
-                        entity.style.position = 'absolute';
-                        entity.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
-                        entity.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
-                        entity.style.zIndex = 1;
-                        entity.dataset.x = viewport_x;
-                        entity.dataset.y = viewport_y;
-                        var health_element = document.createElement('div');
-                        health_element.classList.add('health');
-                        // Note: current entity - 1
-                        health_element.innerHTML = _GAME.game_entityGetHealth(1);
-                        entity.appendChild(health_element);
-                        document.getElementById('view').appendChild(entity);
-                        __entities__.push([viewport_x, viewport_y]);
-                    } else if (entity === 3) {
-                        var img = ENUM_IMAGES[3];
-                        var entity = document.createElement('div');
-                        entity.classList.add('npc');
-                        entity.setAttribute('data-time', then);
-                        entity.setAttribute('data-entity-id', 2);
-                        entity.style.backgroundImage = 'url("' + img + '")';
-                        entity.style.backgroundSize = 'cover';
-                        entity.style.width = (SIZE * SCALE) + 'px';
-                        entity.style.height = (SIZE * SCALE) + 'px';
-                        entity.style.position = 'absolute';
-                        entity.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
-                        entity.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
-                        entity.style.zIndex = 1;
-                        entity.dataset.x = viewport_x;
-                        entity.dataset.y = viewport_y;
-                        var health_element = document.createElement('div');
-                        health_element.classList.add('health');
-                        // Note: current entity - 1
-                        health_element.innerHTML = _GAME.game_entityGetHealth(2);
-                        entity.appendChild(health_element);
-                        document.getElementById('view').appendChild(entity);
-                        __entities__.push([viewport_x, viewport_y]);
                     }
 
                     var collision = _GAME.game_getWorldAtViewport(2, viewport_x, viewport_y);
@@ -245,29 +225,11 @@ LOADER.events.addEventListener('loaded', function () {
     INPUT.startListening();
     requestAnimationFrame(tick);
 
-    // for (var i = 0; i < 5; ++i) {
-    //     _GAME.editor_addRowToWorld(0);
-    // }
-    // for (var i = 2; i < 8; ++i) {
-    //     EDITOR.last_clicked_coordinates = [i, 6];
-    //     EDITOR.addCollision();
-    // }
-    // EDITOR.last_clicked_coordinates = [3, 7];
-    // EDITOR.addCollision();
-    // EDITOR.last_clicked_coordinates = [3, 8];
-    // EDITOR.addCollision();
-    // EDITOR.last_clicked_coordinates = [3, 9];
-    // EDITOR.addCollision();
-    // EDITOR.last_clicked_coordinates = [3, 11];
-    // EDITOR.addCollision();
-    // EDITOR.last_clicked_coordinates = [6, 7];
-    // EDITOR.addCollision();
-    // EDITOR.last_clicked_coordinates = [6, 8];
-    // EDITOR.addCollision();
-    // EDITOR.last_clicked_coordinates = [6, 9];
-    // EDITOR.addCollision();
-    // EDITOR.last_clicked_coordinates = [6, 11];
-    // EDITOR.addCollision();
+    _GAME.game_entitySetHealth(0, 8);
+    _GAME.game_entitySetHealth(1, 8);
+    _GAME.game_entitySetHealth(2, 8);
+    _GAME.game_entitySetHealth(3, 8);
+    _GAME.game_entitySetHealth(4, 8);
 });
 window.addEventListener('load', function () {
     var element_view = document.getElementById('view');

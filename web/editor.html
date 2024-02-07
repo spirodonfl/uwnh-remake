@@ -16,9 +16,10 @@
         <script type="text/javascript" src="scripts/draggable.js"></script>
         <script type="text/javascript" src="scripts/twitch-streamerbot.js"></script>
         <link rel="stylesheet" type="text/css" href="styles/editor.css" />
+        <link rel="stylesheet" type="text/css" href="styles/juice-it-animations.css" />
     </head>
     <body>
-        <div class="editor draggable">
+        <div class="editor draggable hide">
             <div class="draggable-header draggable-handle">&nbsp;</div>
             <div class="title">Current World: 0</div>
             <div class="btn" onclick="_GAME.editor_addRowToWorld(0);">Add Row</div>
@@ -27,9 +28,18 @@
             <div class="btn" onclick="EDITOR.removeCollision();">Remove Collision</div>
             <div class="btn" onclick="EDITOR.memoryToBin(_GAME.editor_getWorldMemoryLocation(0), _GAME.editor_getWorldMemoryLength(0), 'world_0.bin');">Extract Data</div>
         </div>
-        <div class="editor console draggable">
+        <div class="editor console draggable hide">
             <div class="draggable-header draggable-handle">&nbsp;</div>
             <textarea id="editor_console"></textarea>
+        </div>
+        <div class="editor draggable">
+            <div class="draggable-header draggable-handle">&nbsp;</div>
+            <div class="title">CURRENT SHIPS</div>
+            <div id="ship_1">[EMPTY]</div>
+            <div id="ship_2">[EMPTY]</div>
+            <div id="ship_3">[EMPTY]</div>
+            <div id="ship_4">[EMPTY]</div>
+            <div id="ship_5">[EMPTY]</div>
         </div>
         <div id="stats"></div>
         <div id="view">

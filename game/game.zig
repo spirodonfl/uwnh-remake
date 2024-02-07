@@ -329,7 +329,7 @@ pub fn entityDecrementHealth(entity: u16) u16 {
     return entities_list.at(entity).health.current_value;
 }
 // @wasm
-pub fn entityAttack(entity: u16, target: u16) !void {
+pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !void {
     var target_coords: [2]u16 = .{0, 0};
     var entity_coords: [2]u16 = .{0, 0};
     // Determine if entity is next to target
@@ -359,7 +359,13 @@ pub fn entityAttack(entity: u16, target: u16) !void {
         (entity_coords[1] == target_coords[1] and (entity_coords[0] == target_coords[0] + 1 or entity_coords[0] == target_coords[0] - 1))
     ) {
         try diff.addData(0);
-        _ = entityDecrementHealth(target);
+        if (crit_buff) {
+            _ = entityDecrementHealth(target);
+            _ = entityDecrementHealth(target);
+            _ = entityDecrementHealth(target);
+        } else {
+            _ = entityDecrementHealth(target);
+        }
     }
 }
 
@@ -367,6 +373,11 @@ pub fn entityAttack(entity: u16, target: u16) !void {
 pub fn entityGetHealth(entity: u16) u16 {
     // TODO: Add a check to make sure this entity has health component loaded
     return entities_list.at(entity).health.current_value;
+}
+// @wasm
+pub fn entitySetHealth(entity: u16, value: u16) !void {
+    try diff.addData(0);
+    entities_list.at(entity).health.setHealth(value);
 }
 
 pub var entities_list = std.SegmentedList(EntityDataStruct, 32){};

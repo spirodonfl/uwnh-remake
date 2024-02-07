@@ -28,8 +28,10 @@ var INPUT = {
             // Note: This has to be up top so it's captured before the other KeyD is captured for moving the player around
             if (evt.code === 'KeyD' && evt.shiftKey === true) {
                 // DELETE COLLISION BLOCK
+                EDITOR.removeCollision();
             } else if (evt.code === 'KeyA' && evt.shiftKey === true) {
                 // ADD COLLISION BLOCK
+                EDITOR.addCollision();
             } else if (evt.code === 'KeyE' && evt.shiftKey === true) {
                 // TODO: show editor UI
             } else if (evt.code === 'KeyW') {
