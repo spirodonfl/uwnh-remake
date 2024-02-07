@@ -15,7 +15,7 @@ pub var editor_worlds = ArrayList(*game.WorldDataStruct).init(arena.allocator())
 pub var worlds = ArrayList(ArrayList(u16)).init(arena.allocator());
 // pub var entities = ArrayList(u16).init(arena.allocator());
 // TODO: modified_entities && editor_entities
-pub var entities = ArrayList(*game.EntityDataStruct).init(arena.allocator());
+pub var entities = ArrayList(game.EntityDataStruct).init(arena.allocator());
 pub var world_layer = ArrayList(u16).init(arena.allocator());
 pub var layers = ArrayList(ArrayList(u16)).init(arena.allocator());
 pub var world_modifications = ArrayList(ArrayList(u16)).init(arena.allocator());
@@ -58,13 +58,30 @@ pub fn totalEntities() u16 {
     return @as(u16, @intCast(entities.items.len));
 }
 // @wasm
-pub fn createEntity(entity_type: u16) void {
-    _ = entity_type;
+pub fn createEntity(entity_type: u16) !void {
     // TODO: Actually implement this
     // entities.append(entity_type) catch unreachable;
     // try game.entities_list.append(game.gpa_allocator.allocator(), .{});
     // TODO: Init an entity with an initial set of data
     // try game.entities_list.at(game.entities_list.len).loadComponents();
+    std.log.info("Creating entity of type {d}", .{entity_type});
+    // TODO: This is a manual hack. Probably not a good idea
+    var data: std.ArrayListUnmanaged(u16) = .{};
+    // TODO: Should we really be using the game.gpa_allocator here?
+    try data.append(game.gpa_allocator.allocator(), @as(u16, @intCast(entities.items.len + 1)));
+    try data.append(game.gpa_allocator.allocator(), 33);
+    try data.append(game.gpa_allocator.allocator(), 44);
+    var new_entity = game.EntityDataStruct{
+        .has_data = true,
+        .data = data,
+        .type = entity_type,
+    };
+    try entities.append(new_entity);
+    try entities.items[entities.items.len - 1].loadComponents();
+}
+// @wasm
+pub fn getEntityType(entity: u16) u16 {
+    return @as(u16, @intCast(entities.items[entity].type));
 }
 // @wasm
 pub fn clearWorlds() void {
@@ -187,7 +204,7 @@ pub fn getWorldMemoryLength(world: u16) !usize {
 // @wasm
 pub fn getEntityMemoryLocation(entity: u16) !*u16 {
     if (entity < embeds.total_entities) {
-        for (entities.items) |editor_entity| {
+        for (entities.items) |*editor_entity| {
             if (editor_entity.getIndex() == entity) {
                 if (editor_entity.has_data) {
                     return &editor_entity.data.items[0];
@@ -204,7 +221,7 @@ pub fn getEntityMemoryLocation(entity: u16) !*u16 {
 // @wasm
 pub fn getEntityMemoryLength(entity: u16) !usize {
     if (entity < embeds.total_entities) {
-         for (entities.items) |editor_entity| {
+         for (entities.items) |*editor_entity| {
             if (editor_entity.getIndex() == entity) {
                 return editor_entity.data.items.len;
             }

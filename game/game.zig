@@ -267,10 +267,14 @@ pub const EmbeddedDataStruct = struct {
 // TODO: Need a "move" component so we can indicate movable entities
 const ComponentHealth = @import("components/health.zig").ComponentHealth;
 pub const EntityDataStruct = struct {
+    type: u16 = 0,
     data: std.ArrayListUnmanaged(u16) = .{},
     has_data: bool = false,
     embedded: EmbeddedDataStruct = undefined,
     health: ComponentHealth = undefined,
+    pub fn getType(self: *EntityDataStruct) u16 {
+        return @as(u16, @intCast(self.type));
+    }
     pub fn setEmbedded(self: *EntityDataStruct, embedded: EmbeddedDataStruct) void {
         self.embedded = embedded;
     }
@@ -307,9 +311,10 @@ pub const EntityDataStruct = struct {
         if (!self.has_data) {
             try self.readDataFromEmbedded();
         }
+        // TODO: Change this component check value
         if (self.data.items[enums.EntityDataEnum.ComponentHealth.int()] == 33) {
             self.health = ComponentHealth{.default_value = 10, .current_value = self.data.items[enums.EntityDataEnum.ComponentHealthDefaultValue.int()]};
-            std.log.info("health component found", .{});
+            // std.log.info("health component found", .{});
         }
     }
     // pub fn collisionFns
@@ -319,12 +324,23 @@ pub const EntityDataStruct = struct {
 // @wasm
 pub fn entityIncrementHealth(entity: u16) u16 {
     // TODO: Add a check to make sure this entity has health component loaded
+    if (entity >= entities_list.len) {
+        var offset_index = entity - entities_list.len;
+        editor.entities.items[offset_index].health.incrementHealth();
+        return editor.entities.items[offset_index].health.current_value;
+    }
     entities_list.at(entity).health.incrementHealth();
     return entities_list.at(entity).health.current_value;
 }
 // @wasm
 pub fn entityDecrementHealth(entity: u16) u16 {
     // TODO: Add a check to make sure this entity has health component loaded
+    if (entity >= entities_list.len) {
+        var offset_index = entity - entities_list.len;
+        editor.entities.items[offset_index].health.decrementHealth();
+        return editor.entities.items[offset_index].health.current_value;
+    }
+
     entities_list.at(entity).health.decrementHealth();
     return entities_list.at(entity).health.current_value;
 }
@@ -342,21 +358,28 @@ pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !void {
         var x: u16 = @as(u16, @intCast(i % w));
         var y: u16 = @as(u16, @intCast(i / w));
         var value = getWorldData(current_world_index, 1, x, y);
-        if (value > 0) {
-            std.log.info("(A) Found entity {d} {d} {d} at {d}, {d}", .{value, (entity + 1), (target + 1), x, y});
-        }
         if (value == (entity + 1)) {
-            std.log.info("(B) FOUND ENTITY", .{});
             entity_coords = .{x, y};
         } else if (value == (target + 1)) {
-            std.log.info("(B) FOUND TARGET", .{});
             target_coords = .{x, y};
         }
     }
 
+    var target_plus_one_y = target_coords[1] + 1;
+    // TODO: If plus one is greater than height, then don't add one
+    var target_minus_one_y = target_coords[1] - 1;
+    if (target_coords[1] > 0) {
+        target_minus_one_y = target_coords[1] - 1;
+    }
+    var target_plus_one_x = target_coords[0] + 1;
+    // TODO: If plus one is greater than width, then don't add one
+    var target_minus_one_x = target_coords[0];
+    if (target_coords[0] > 0) {
+        target_minus_one_x = target_coords[0] - 1;
+    }
     if (
-        (entity_coords[0] == target_coords[0] and (entity_coords[1] == target_coords[1] + 1 or entity_coords[1] == target_coords[1] - 1)) or
-        (entity_coords[1] == target_coords[1] and (entity_coords[0] == target_coords[0] + 1 or entity_coords[0] == target_coords[0] - 1))
+        (entity_coords[0] == target_coords[0] and (entity_coords[1] == target_plus_one_y or entity_coords[1] == target_minus_one_y)) or
+        (entity_coords[1] == target_coords[1] and (entity_coords[0] == target_plus_one_x or entity_coords[0] == target_minus_one_x))
     ) {
         try diff.addData(0);
         if (crit_buff) {
@@ -371,11 +394,29 @@ pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !void {
 
 // @wasm
 pub fn entityGetHealth(entity: u16) u16 {
+    if (entity >= entities_list.len) {
+        var offset_index = entity - entities_list.len;
+        return editor.entities.items[offset_index].health.current_value;
+    }
     // TODO: Add a check to make sure this entity has health component loaded
     return entities_list.at(entity).health.current_value;
 }
 // @wasm
+pub fn entityGetType(entity: u16) u16 {
+    if (entity >= entities_list.len) {
+        var offset_index = entity - entities_list.len;
+        return editor.entities.items[offset_index].getType();
+    }
+    // TODO: Add a check to make sure this entity has health component loaded
+    return entities_list.at(entity).getType();
+}
+// @wasm
 pub fn entitySetHealth(entity: u16, value: u16) !void {
+    if (entity >= entities_list.len) {
+        var offset_index = entity - entities_list.len;
+        return editor.entities.items[offset_index].health.setHealth(value);
+    }
+
     try diff.addData(0);
     entities_list.at(entity).health.setHealth(value);
 }
@@ -394,7 +435,11 @@ pub fn initializeGame() !void {
     for (0..embeds.total_entities) |i| {
         var embedded_data_struct = EmbeddedDataStruct{};
         _ = try embedded_data_struct.findIndexByFileName(.entity, @intCast(i));
-        try entities_list.append(gpa_allocator.allocator(), .{.embedded = embedded_data_struct});
+        // TODO: Actually put the type into the embedded data
+        try entities_list.append(gpa_allocator.allocator(), .{
+            .embedded = embedded_data_struct,
+            .type = 0,
+        });
         try entities_list.at(i).loadComponents();
     }
     loadWorld(current_world_index);
@@ -587,9 +632,26 @@ pub fn getWorldAtViewport(layer: u16, x: u16, y: u16) u16 {
 }
 // @wasm
 pub fn translateViewportXToWorldX(x: u16) u16 {
-    return x - viewport.getPaddingLeft();
+    // TODO: Camera offset and all that
+    if (
+        x >= viewport.getPaddingLeft() and
+        x < (viewport.getSizeWidth() - viewport.getPaddingRight()) and
+    ) {
+        var world_x = x - viewport.getPaddingLeft();
+        return world_x;
+    }
+    return 0;
+
 }
 // @wasm
 pub fn translateViewportYToWorldY(y: u16) u16 {
-    return y - viewport.getPaddingTop();
+    // TODO: Camera offset and all that
+    if (
+        y >= viewport.getPaddingTop() and
+        y < (viewport.getSizeHeight() - viewport.getPaddingBottom())
+    ) {
+        var world_y = y - viewport.getPaddingTop();
+        return world_y;
+    }
+    return 0;
 }

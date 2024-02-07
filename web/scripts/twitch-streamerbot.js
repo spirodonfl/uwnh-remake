@@ -58,6 +58,13 @@ function connectws() {
             // TODO: damage = Math.floor(Math.random() * 10);
             // TODO: ARENA - level up with viewer minutes, visit merchants by spending channel points to upgrade your player, then challenge players at top of leaderboard
             // TODO: During emote only, use channel points to send commands
+            // TODO: Game mode where kraken chases you and you have to survive and put blockers in the way
+            // TODO: Move to XY and autopath to it
+            // TODO: !direction that persists across frames with a !stop
+            // TODO: !poops command drops yoshi eggs in water
+            // TODO: sounds, like screaming
+            // TODO: red sea when you sink
+            // TODO: redeem channel points / rewards for being the kraken
             if (wsdata.event.source === 'Twitch') {
                 if (wsdata.event.type === 'Sub' || wsdata.event.type === 'ReSub') {
                     // alert(`trigger sub event for ${wsdata.data.displayName}`);
@@ -155,6 +162,7 @@ function connectws() {
                                     if (i !== player_index && _GAME.game_entityGetHealth(i) > 0) {
                                         _GAME.game_entityAttack(player_index, i, have_crit);
                                     }
+                                    _GAME.game_entityAttack(player_index, 9-1, have_crit);
                                 }
                             }
                             // _GAME.game_entityAttack(0, 1);
@@ -203,6 +211,10 @@ function connectws() {
                         if (wsdata.data.message.role >= 2) {
                             window.location.reload();
                         }
+                    } else if (wsdata.data.message.message === '!kraken') {
+                        if (wsdata.data.message.role >= 2) {
+                            ENABLE_KRAKEN();
+                        }
                     }
 
                     for (var i = 0; i < SHIPS_TO_PLAYER.length; i++) {
@@ -214,27 +226,9 @@ function connectws() {
                             _GAME.diff_addData(0);
                         }
                     }
-
-                    // var reset_game = false;
-                    // if (_GAME.game_entityGetHealth(0) <= 0 && _GAME.game_entityGetHealth(1) <= 0) {
-                    //     alert_element.innerHTML = `PLAYER 3 WON! GAME OVER!`;
-                    //     alert_element.style.display = 'flex';
-                    //     reset_game = true;
-                    // } else if (_GAME.game_entityGetHealth(1) <= 0 && _GAME.game_entityGetHealth(2) <= 0) {
-                    //     alert_element.innerHTML = `PLAYER 1 WON! GAME OVER!`;
-                    //     alert_element.style.display = 'flex';
-                    //     reset_game = true;
-                    // } else if (_GAME.game_entityGetHealth(0) <= 0 && _GAME.game_entityGetHealth(2) <= 0) {
-                    //     alert_element.innerHTML = `PLAYER 2 WON! GAME OVER!`;
-                    //     alert_element.style.display = 'flex';
-                    //     reset_game = true;
-                    // }
-
-                    // if (reset_game) {
-                    //     setTimeout(function () {
-                    //         window.location.reload();
-                    //     }, 3000);
-                    // }
+                    if (_GAME.game_entityGetHealth((9-1)) <= 0) {
+                        DISABLE_KRAKEN();
+                    }
                 }
             }
         };
@@ -242,5 +236,8 @@ function connectws() {
 }
 
 window.addEventListener('load', function() {
-    connectws();
+    var hash = location.hash.substr(1);
+    if (hash && hash === 'twitch') {
+        connectws();
+    }
 });

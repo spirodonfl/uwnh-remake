@@ -14,7 +14,6 @@ fn inputMovePlayer(operation: u16) !void {
         var y: u16 = @as(u16, @intCast(i / w));
         var value = game.getWorldData(game.current_world_index, 1, x, y);
         if (value == 1) {
-            std.log.info("Found player at ({}, {})", .{x, y});
             var intended_x = x;
             var intended_y = y;
             if (operation == 0 and y > 0) {
@@ -30,6 +29,12 @@ fn inputMovePlayer(operation: u16) !void {
             _ = intended_index;
             var intended_value = game.getWorldData(game.current_world_index, 1, intended_x, intended_y);
             var intended_collision_value = game.getWorldData(game.current_world_index, 2, intended_x, intended_y);
+            if (intended_value == 99) {
+                try game.setWorldData(game.current_world_index, 1, x, y, 0);
+                game.entities_list.at(0).health.setHealth(8);
+                intended_collision_value = 0;
+                intended_value = 0;
+            }
             if (intended_value == 0 and intended_collision_value == 0) {
                 // TODO: Cannot be reading in data from embed && updating duplicate data. Way too memory intensive. Should be editing a different set of data like the original entity struct. That means loading the entities with their initial positions and then updating the positions in the entity struct.
                 // Options:
@@ -55,11 +60,7 @@ fn inputMoveEntity(entity: u16, operation: u16) !void {
         var x: u16 = @as(u16, @intCast(i % w));
         var y: u16 = @as(u16, @intCast(i / w));
         var value = game.getWorldData(game.current_world_index, 1, x, y);
-        if (value > 0) {
-            std.log.info("!!Found entity {d} at ({}, {})", .{value, x, y});
-        }
         if (value == (entity + 1)) {
-            std.log.info("Found entity {d} at ({}, {})", .{value, x, y});
             var intended_x = x;
             var intended_y = y;
             if (operation == 0 and y > 0) {
@@ -75,6 +76,12 @@ fn inputMoveEntity(entity: u16, operation: u16) !void {
             _ = intended_index;
             var intended_value = game.getWorldData(game.current_world_index, 1, intended_x, intended_y);
             var intended_collision_value = game.getWorldData(game.current_world_index, 2, intended_x, intended_y);
+            if (intended_value == 99) {
+                try game.setWorldData(game.current_world_index, 1, x, y, 0);
+                game.entities_list.at(0).health.setHealth(8);
+                intended_collision_value = 0;
+                intended_value = 0;
+            }
             if (intended_value == 0 and intended_collision_value == 0) {
                 // TODO: Cannot be reading in data from embed && updating duplicate data. Way too memory intensive. Should be editing a different set of data like the original entity struct. That means loading the entities with their initial positions and then updating the positions in the entity struct.
                 // Options:

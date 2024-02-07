@@ -11,7 +11,31 @@ const ENUM_IMAGES = [
     'images/ocean-bg-1.gif',
     'images/matisse-ship-1-removebg-preview.png',
     'images/ship-4.png',
+    'images/EvilOctopus.png'
 ];
+
+// x, y, health, on/off
+var OCTOPUS = [13, 5, 20, false];
+function ENABLE_KRAKEN() {
+    _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 0);
+    OCTOPUS[0] = 13;
+    OCTOPUS[1] = 5;
+    OCTOPUS[2] = 20;
+    OCTOPUS[3] = true;
+    _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
+    _GAME.game_entitySetHealth((9-1), 44);
+    _GAME.diff_addData(0);
+}
+function DISABLE_KRAKEN() {
+    _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 0);
+    OCTOPUS[0] = 13;
+    OCTOPUS[1] = 5;
+    OCTOPUS[2] = 20;
+    OCTOPUS[3] = false;
+    _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
+}
+
+
 let DOM = {
     width: 0,
     height: 0,
@@ -98,6 +122,14 @@ function tick() {
                 for (var i = 0; i < npcs.length; ++i) {
                     npcs[i].remove();
                 }
+                var evil_octopuses = document.querySelectorAll('.evil-octopus');
+                for (var i = 0; i < evil_octopuses.length; ++i) {
+                    evil_octopuses[i].remove();
+                }
+                var health_restores = document.querySelectorAll('.health-restore');
+                for (var i = 0; i < health_restores.length; ++i) {
+                    health_restores[i].remove();
+                }
                 var collisions = document.querySelectorAll('.collision');
                 for (var i = 0; i < collisions.length; ++i) {
                     collisions[i].remove();
@@ -146,52 +178,108 @@ function tick() {
 
                     var entity_id = _GAME.game_getWorldAtViewport(1, viewport_x, viewport_y);
                     if (entity_id > 0) {
-                        var img = ENUM_IMAGES[0];
-                        if (entity_id === 2) {
-                            img = ENUM_IMAGES[3];
+                        var entity_type = _GAME.game_entityGetType((entity_id -1));
+                        if (entity_type > 0) {
+                            console.log('ET/ID', entity_type, entity_id);
                         }
-                        if (entity_id >= 3) {
-                            img = ENUM_IMAGES[4];
-                        }
-                        var entity = document.createElement('div');
-                        if (entity_id === 1) {
-                            entity.id = 'the_player';
-                        } else {
-                            entity.classList.add('npc');
-                            entity.id = 'npc_' + entity_id;
-                        }
-                        entity.setAttribute('data-time', then);
-                        entity.setAttribute('data-entity-id', entity_id);
-                        entity.style.backgroundImage = 'url("' + img + '")';
-                        entity.style.backgroundSize = 'cover';
-                        entity.style.width = (SIZE * SCALE) + 'px';
-                        entity.style.height = (SIZE * SCALE) + 'px';
-                        entity.style.position = 'absolute';
-                        entity.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
-                        entity.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
-                        entity.style.zIndex = 1;
-                        entity.dataset.x = viewport_x;
-                        entity.dataset.y = viewport_y;
-                        var health_element = document.createElement('div');
-                        health_element.classList.add('health');
-                        // Note: current entity - 1
-                        health_element.innerHTML = _GAME.game_entityGetHealth((entity_id - 1));
-                        entity.appendChild(health_element);
-                        var name_element = document.createElement('div');
-                        name_element.id = 'entity_name_' + entity_id;
-                        name_element.classList.add('name');
-                        name_element.innerHTML = 'Entity ' + entity_id;
-                        // TODO: This is a hack, but it's a good hack for now, to get player names from websocket integration
-                        if (typeof SHIPS_TO_PLAYER !== 'undefined') {
-                            var player_index = SHIPS_TO_PLAYER[(entity_id - 1)];
-                            if (player_index !== null) {
-                                name_element.innerHTML = player_index;
+                        if (entity_type === 99) {
+                            var entity = document.createElement('div');
+                            entity.classList.add('health-restore');
+                            entity.style.width = (SIZE * SCALE) + 'px';
+                            entity.style.height = (SIZE * SCALE) + 'px';
+                            entity.style.position = 'absolute';
+                            entity.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
+                            entity.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
+                            entity.style.zIndex = 1;
+                            entity.dataset.x = viewport_x;
+                            entity.dataset.y = viewport_y;
+                            var health_element = document.createElement('div');
+                            health_element.style.width = '100%';
+                            health_element.style.height = '100%';
+                            health_element.style.color = 'black';
+                            health_element.style.textAlign = 'center';
+                            health_element.style.fontWeight = 'bold';
+                            health_element.style.fontSize = '2em';
+                            health_element.innerHTML = 'H';
+                            entity.appendChild(health_element);
+                            document.getElementById('view').appendChild(entity);
+                        } else if (entity_type === 98) {
+                            OCTOPUS[0] = _GAME.game_translateViewportXToWorldX(viewport_x);
+                            OCTOPUS[1] = _GAME.game_translateViewportYToWorldY(viewport_y);
+                            var img = ENUM_IMAGES[5];
+                            var entity = document.createElement('div');
+                            entity.classList.add('evil-octopus');
+                            entity.style.backgroundImage = 'url("' + img + '")';
+                            entity.style.backgroundSize = 'cover';
+                            entity.style.width = (SIZE * SCALE) + 'px';
+                            entity.style.height = (SIZE * SCALE) + 'px';
+                            entity.style.position = 'absolute';
+                            entity.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
+                            entity.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
+                            entity.style.zIndex = 1;
+                            if (OCTOPUS[3] === false) {
+                                entity.style.display = 'none';
                             }
+                            entity.dataset.x = viewport_x;
+                            entity.dataset.y = viewport_y;
+                            var health_element = document.createElement('div');
+                            health_element.classList.add('health');
+                            // Note: current entity - 1
+                            health_element.innerHTML = _GAME.game_entityGetHealth((entity_id - 1));
+                            entity.appendChild(health_element);
+                            var name_element = document.createElement('div');
+                            name_element.id = 'entity_name_' + entity_id;
+                            name_element.classList.add('name');
+                            name_element.innerHTML = 'KRAKEN';
+                            entity.appendChild(name_element);
+                            document.getElementById('view').appendChild(entity);
+                        } else if (entity_id > 0) {
+                            var img = ENUM_IMAGES[0];
+                            if (entity_id === 2) {
+                                img = ENUM_IMAGES[3];
+                            }
+                            if (entity_id >= 3) {
+                                img = ENUM_IMAGES[4];
+                            }
+                            var entity = document.createElement('div');
+                            if (entity_id === 1) {
+                                entity.id = 'the_player';
+                            } else {
+                                entity.classList.add('npc');
+                                entity.id = 'npc_' + entity_id;
+                            }
+                            entity.setAttribute('data-time', then);
+                            entity.setAttribute('data-entity-id', entity_id);
+                            entity.style.backgroundImage = 'url("' + img + '")';
+                            entity.style.backgroundSize = 'cover';
+                            entity.style.width = (SIZE * SCALE) + 'px';
+                            entity.style.height = (SIZE * SCALE) + 'px';
+                            entity.style.position = 'absolute';
+                            entity.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
+                            entity.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
+                            entity.style.zIndex = 1;
+                            entity.dataset.x = viewport_x;
+                            entity.dataset.y = viewport_y;
+                            var health_element = document.createElement('div');
+                            health_element.classList.add('health');
+                            // Note: current entity - 1
+                            health_element.innerHTML = _GAME.game_entityGetHealth((entity_id - 1));
+                            entity.appendChild(health_element);
+                            var name_element = document.createElement('div');
+                            name_element.id = 'entity_name_' + entity_id;
+                            name_element.classList.add('name');
+                            name_element.innerHTML = 'Entity ' + entity_id;
+                            // TODO: This is a hack, but it's a good hack for now, to get player names from websocket integration
+                            if (typeof SHIPS_TO_PLAYER !== 'undefined') {
+                                var player_index = SHIPS_TO_PLAYER[(entity_id - 1)];
+                                if (player_index !== null) {
+                                    name_element.innerHTML = player_index;
+                                }
+                            }
+                            entity.appendChild(name_element);
+                            document.getElementById('view').appendChild(entity);
+                            __entities__.push([viewport_x, viewport_y]);
                         }
-                        entity.appendChild(name_element);
-                        document.getElementById('view').appendChild(entity);
-                        __entities__.push([viewport_x, viewport_y]);
-
                     }
 
                     var collision = _GAME.game_getWorldAtViewport(2, viewport_x, viewport_y);
@@ -216,6 +304,28 @@ function tick() {
     }
     requestAnimationFrame(tick);
 }
+function randomInterval(callback, min, max) {
+    const randomNum = (max, min = 0) => Math.random() * (max - min) + min;
+
+    let targetTime = randomNum(min, max);
+    let lastInvoke = performance.now();
+
+    const stop = () => targetTime = null
+
+    const rando_tick = () => {
+        if (!targetTime) return;
+
+        if (performance.now() - lastInvoke > targetTime) {
+            lastInvoke = performance.now();
+            targetTime = randomNum(min, max);
+            callback && typeof callback === "function" && callback(stop);
+        }
+
+        requestAnimationFrame(rando_tick)
+    }
+
+    rando_tick();
+}
 LOADER.events.addEventListener('loaded', function () {
     DOM.sizeView();
     EDITOR.addLog('Viewport Width: ' + DOM.width);
@@ -223,13 +333,65 @@ LOADER.events.addEventListener('loaded', function () {
     _GAME.viewport_setSize(DOM.width, DOM.height);
     _GAME.game_initializeGame();
     INPUT.startListening();
-    requestAnimationFrame(tick);
 
     _GAME.game_entitySetHealth(0, 8);
     _GAME.game_entitySetHealth(1, 8);
     _GAME.game_entitySetHealth(2, 8);
     _GAME.game_entitySetHealth(3, 8);
     _GAME.game_entitySetHealth(4, 8);
+    // TODO: This is a weird way to initialize (6, 7, 8, 9) but you have to remeber we start at 1, not 0
+    _GAME.editor_createEntity(99);
+    // world #, layer #, x, y, entity_id
+    _GAME.game_setWorldData(0, 1, 5, 0, 6);
+    _GAME.editor_createEntity(99);
+    _GAME.game_setWorldData(0, 1, 12, 5, 7);
+    _GAME.editor_createEntity(99);
+    _GAME.game_setWorldData(0, 1, 21, 10, 8);
+    _GAME.editor_createEntity(98);
+    _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
+
+    requestAnimationFrame(tick);
+
+    randomInterval((stop) => {
+        if (_GAME.game_entityGetHealth(OCTOPUS_INDEX) <= 0 || OCTOPUS[3] === true) {
+            // TODO: so much hack, get rid of this
+            var OCTOPUS_INDEX = 9-1;
+            var directions = [0, 1, 2, 3];
+            let randomIndex = Math.floor(Math.random() * directions.length);
+            let randomDirection = directions[randomIndex];
+            if (randomDirection === 0) {
+                _GAME.inputs_inputLeft(OCTOPUS_INDEX);
+            } else if (randomDirection === 1) {
+                _GAME.inputs_inputRight(OCTOPUS_INDEX);
+            } else if (randomDirection === 2) {
+                _GAME.inputs_inputDown(OCTOPUS_INDEX);
+            } else if (randomDirection === 3) {
+                _GAME.inputs_inputUp(OCTOPUS_INDEX);
+            }
+            for (var i = 0; i < 4; ++i) {
+                _GAME.game_entityAttack(OCTOPUS_INDEX, i);
+                _GAME.game_entityAttack(OCTOPUS_INDEX, i);
+                _GAME.game_entityAttack(OCTOPUS_INDEX, i);
+            }
+        } else {
+            var evil_octopus = document.querySelector('.evil-octopus');
+            _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 0);
+            OCTOPUS[0] = 0;
+            OCTOPUS[1] = 0;
+            _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
+            evil_octopus.style.display = 'none';
+        }
+        // else stop();
+    }, 1000, 2000);
+
+    randomInterval((stop) => {
+        _GAME.game_setWorldData(0, 1, 5, 0, 6);
+        _GAME.game_setWorldData(0, 1, 12, 5, 7);
+        _GAME.game_setWorldData(0, 1, 21, 10, 8);
+        // if (stopCondition) {
+        //     stop();
+        // }
+    }, 500000, 600000);
 });
 window.addEventListener('load', function () {
     var element_view = document.getElementById('view');

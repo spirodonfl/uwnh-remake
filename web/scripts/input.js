@@ -48,7 +48,11 @@ var INPUT = {
                 _GAME.inputs_inputRight(0);
             } else if (evt.code === 'Space') {
                 // ATTACK
-                _GAME.game_entityAttack(0, 1);
+                _GAME.game_entityAttack(0, 8);
+                    if (_GAME.game_entityGetHealth((9-1)) <= 0) {
+                        DISABLE_KRAKEN();
+                    }
+
             } else if (evt.code === 'KeyQ') {
                 // FULL SCREEN MENU
             } else if (evt.code === 'ArrowUp') {
