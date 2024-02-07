@@ -220,6 +220,30 @@ LOADER.events.addEventListener('loaded', function () {
     _GAME.game_initializeGame();
     INPUT.startListening();
     requestAnimationFrame(tick);
+
+    for (var i = 0; i < 5; ++i) {
+        _GAME.editor_addRowToWorld(0);
+    }
+    for (var i = 2; i < 8; ++i) {
+        EDITOR.last_clicked_coordinates = [i, 6];
+        EDITOR.addCollision();
+    }
+    EDITOR.last_clicked_coordinates = [3, 7];
+    EDITOR.addCollision();
+    EDITOR.last_clicked_coordinates = [3, 8];
+    EDITOR.addCollision();
+    EDITOR.last_clicked_coordinates = [3, 9];
+    EDITOR.addCollision();
+    EDITOR.last_clicked_coordinates = [3, 11];
+    EDITOR.addCollision();
+    EDITOR.last_clicked_coordinates = [6, 7];
+    EDITOR.addCollision();
+    EDITOR.last_clicked_coordinates = [6, 8];
+    EDITOR.addCollision();
+    EDITOR.last_clicked_coordinates = [6, 9];
+    EDITOR.addCollision();
+    EDITOR.last_clicked_coordinates = [6, 11];
+    EDITOR.addCollision();
 });
 window.addEventListener('load', function () {
     var element_view = document.getElementById('view');

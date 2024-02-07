@@ -131,6 +131,22 @@ function connectws() {
                             _GAME.game_entityAttack(1, 0);
                         }
                     }
+
+                    var reset_game = false;
+                    if (_GAME.game_entityGetHealth(0) <= 0) {
+                        alert_element.innerHTML = `PLAYER 2 WON! GAME OVER!`;
+                        alert_element.style.display = 'flex';
+                        reset_game = true;
+                    } else if (_GAME.game_entityGetHealth(1) <= 0) {
+                        alert_element.innerHTML = `PLAYER 1 WON! GAME OVER!`;
+                        alert_element.style.display = 'flex';
+                        reset_game = true;
+                    }
+                    if (reset_game) {
+                        setTimeout(function () {
+                            window.location.reload();
+                        }, 3000);
+                    }
                 }
             }
         };
