@@ -367,7 +367,7 @@ pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !void {
 
     var target_plus_one_y = target_coords[1] + 1;
     // TODO: If plus one is greater than height, then don't add one
-    var target_minus_one_y = target_coords[1] - 1;
+    var target_minus_one_y = target_coords[1];
     if (target_coords[1] > 0) {
         target_minus_one_y = target_coords[1] - 1;
     }
@@ -635,7 +635,7 @@ pub fn translateViewportXToWorldX(x: u16) u16 {
     // TODO: Camera offset and all that
     if (
         x >= viewport.getPaddingLeft() and
-        x < (viewport.getSizeWidth() - viewport.getPaddingRight()) and
+        x < (viewport.getSizeWidth() - viewport.getPaddingRight())
     ) {
         var world_x = x - viewport.getPaddingLeft();
         return world_x;

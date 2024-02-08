@@ -25,6 +25,38 @@ function ENABLE_KRAKEN() {
     _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
     _GAME.game_entitySetHealth((9-1), 44);
     _GAME.diff_addData(0);
+    randomInterval((stop) => {
+        if (_GAME.game_entityGetHealth(OCTOPUS_INDEX) <= 0 || OCTOPUS[3] === true) {
+            // TODO: so much hack, get rid of this
+            var OCTOPUS_INDEX = 9-1;
+            var directions = [0, 1, 2, 3];
+            let randomIndex = Math.floor(Math.random() * directions.length);
+            let randomDirection = directions[randomIndex];
+            if (randomDirection === 0) {
+                _GAME.inputs_inputLeft(OCTOPUS_INDEX);
+            } else if (randomDirection === 1) {
+                _GAME.inputs_inputRight(OCTOPUS_INDEX);
+            } else if (randomDirection === 2) {
+                _GAME.inputs_inputDown(OCTOPUS_INDEX);
+            } else if (randomDirection === 3) {
+                _GAME.inputs_inputUp(OCTOPUS_INDEX);
+            }
+            for (var i = 0; i < 4; ++i) {
+                _GAME.game_entityAttack(OCTOPUS_INDEX, i);
+                _GAME.game_entityAttack(OCTOPUS_INDEX, i);
+                _GAME.game_entityAttack(OCTOPUS_INDEX, i);
+            }
+        } else {
+            var evil_octopus = document.querySelector('.evil-octopus');
+            _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 0);
+            OCTOPUS[0] = 0;
+            OCTOPUS[1] = 0;
+            _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
+            evil_octopus.style.display = 'none';
+            stop();
+        }
+        // else stop();
+    }, 1000, 2000);
 }
 function DISABLE_KRAKEN() {
     _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 0);
@@ -113,7 +145,7 @@ function tick() {
             __entities__ = [];
             // TODO: Should make this a special number to force a redraw
             if (_GAME.diff_getData(0) === 0) {
-                console.log('CLEARING VIEWPORT');
+                // console.log('CLEARING VIEWPORT');
                 var player = false;
                 if (player = document.querySelector('#the_player')) {
                     player.remove();
@@ -148,7 +180,7 @@ function tick() {
         }
 
         if (!DOM.rendered) {
-            console.log('RENDERING VIEWPORT');
+            // console.log('RENDERING VIEWPORT');
             var y = 0;
             var x = 0;
             var cwi = _GAME.game_getCurrentWorldIndex();
@@ -179,9 +211,6 @@ function tick() {
                     var entity_id = _GAME.game_getWorldAtViewport(1, viewport_x, viewport_y);
                     if (entity_id > 0) {
                         var entity_type = _GAME.game_entityGetType((entity_id -1));
-                        if (entity_type > 0) {
-                            console.log('ET/ID', entity_type, entity_id);
-                        }
                         if (entity_type === 99) {
                             var entity = document.createElement('div');
                             entity.classList.add('health-restore');
@@ -351,38 +380,6 @@ LOADER.events.addEventListener('loaded', function () {
     _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
 
     requestAnimationFrame(tick);
-
-    randomInterval((stop) => {
-        if (_GAME.game_entityGetHealth(OCTOPUS_INDEX) <= 0 || OCTOPUS[3] === true) {
-            // TODO: so much hack, get rid of this
-            var OCTOPUS_INDEX = 9-1;
-            var directions = [0, 1, 2, 3];
-            let randomIndex = Math.floor(Math.random() * directions.length);
-            let randomDirection = directions[randomIndex];
-            if (randomDirection === 0) {
-                _GAME.inputs_inputLeft(OCTOPUS_INDEX);
-            } else if (randomDirection === 1) {
-                _GAME.inputs_inputRight(OCTOPUS_INDEX);
-            } else if (randomDirection === 2) {
-                _GAME.inputs_inputDown(OCTOPUS_INDEX);
-            } else if (randomDirection === 3) {
-                _GAME.inputs_inputUp(OCTOPUS_INDEX);
-            }
-            for (var i = 0; i < 4; ++i) {
-                _GAME.game_entityAttack(OCTOPUS_INDEX, i);
-                _GAME.game_entityAttack(OCTOPUS_INDEX, i);
-                _GAME.game_entityAttack(OCTOPUS_INDEX, i);
-            }
-        } else {
-            var evil_octopus = document.querySelector('.evil-octopus');
-            _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 0);
-            OCTOPUS[0] = 0;
-            OCTOPUS[1] = 0;
-            _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
-            evil_octopus.style.display = 'none';
-        }
-        // else stop();
-    }, 1000, 2000);
 
     randomInterval((stop) => {
         _GAME.game_setWorldData(0, 1, 5, 0, 6);
