@@ -240,12 +240,6 @@ pub const WorldDataStruct = struct {
         if (self.has_data) {
             var row_size = self.getWidth();
             var layer_size = row_size * self.getHeight();
-            var new_layer_size = layer_size - row_size;
-            _ = new_layer_size;
-            var current_offset: u16 = self.offset - 1;
-            _ = current_offset;
-            var current_layer: u16 = 1;
-            _ = current_layer;
             var total_rows = layer_size / row_size;
             var current_row: u16 = 0;
             var current_column: u16 = 0;
@@ -280,7 +274,6 @@ pub const WorldDataStruct = struct {
                 }
             }
 
-            std.log.info("removeRowFromWorld -> new_data.len {d}",.{new_data.items.len});
             self.data.deinit(allocator);
             self.data = new_data;
         }
@@ -288,7 +281,8 @@ pub const WorldDataStruct = struct {
     pub fn removeColumn(self: *WorldDataStruct) !void {
         if (self.has_data) {
             var row_size = self.getWidth();
-            var current_offset: u16 = self.offset - 1;
+            var current_row: u16 = 0;
+            var current_column: u16 = 0;
             // For any layer, at the end of each layer, remove a row of row_size
             var new_data: std.ArrayListUnmanaged(u16) = .{};
             for (self.data.items, 0..) |item, i| {
@@ -299,13 +293,13 @@ pub const WorldDataStruct = struct {
                 } else if (i == 2) {
                     try new_data.append(allocator, item);
                 } else {
-                    var leftover: u16 = @as(u16, @intCast(i)) - current_offset;
-                    if (leftover % row_size == 0) {
-                        // Remove a column
-                        // std.log.info("removeColumn {d}",.{i});
-                        current_offset = @intCast(i);
-                    } else {
+                    if (current_column < row_size - 1) {
                         try new_data.append(allocator, item);
+                    }
+                    current_column += 1;
+                    if (current_column == row_size) {
+                        current_column = 0;
+                        current_row += 1;
                     }
                 }
             }
