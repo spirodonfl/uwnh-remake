@@ -1,4 +1,26 @@
 var EDITOR = {
+    last_clicked_coordinates: [0, 0],
+    last_npc_selected: 0,
+    removeNPC: function () {
+        var x = EDITOR.last_clicked_coordinates[0] - _GAME.viewport_getPaddingLeft();
+        var y = EDITOR.last_clicked_coordinates[1] - _GAME.viewport_getPaddingTop();
+        var current_value = _GAME.game_getWorldData(0, 1, x, y);
+        if (current_value > 0) {
+            this.last_npc_selected = current_value;
+            _GAME.game_setWorldData(0, 1, x, y, 0);
+        }
+    },
+    addNPC: function (npc_id) {
+        var x = EDITOR.last_clicked_coordinates[0] - _GAME.viewport_getPaddingLeft();
+        var y = EDITOR.last_clicked_coordinates[1] - _GAME.viewport_getPaddingTop();
+        var current_value = _GAME.game_getWorldData(0, 1, x, y);
+        if (npc_id !== null && npc_id !== undefined) {
+            this.last_npc_selected = npc_id;
+        }
+        if (current_value == 0 && this.last_npc_selected > 0) {
+            _GAME.game_setWorldData(0, 1, x, y, this.last_npc_selected);
+        }
+    },
     addCollision: function () {
         // this.last_clicked_coordinates
         // _GAME.editor_addCollisionToWorld(this.last_clicked_coordinates[0], this.last_clicked_coordinates[1]);
