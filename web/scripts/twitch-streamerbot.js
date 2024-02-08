@@ -172,7 +172,8 @@ function connectws() {
             // TODO: !poops command drops yoshi eggs in water
             // TODO: sounds, like screaming
             // TODO: red sea when you sink
-            // TODO: redeem channel points / rewards for being the kraken
+            // TODO: !anchor(!a) stops you -> but (!x) for attack -> movement contiunous (!udlr) auto sails that direction
+            // TODO: Icebergs random!
             if (wsdata.event.source === 'Twitch') {
                 if (wsdata.data.message && wsdata.data.message.displayName) {
                     wsdata.data.message.displayName = wsdata.data.message.displayName.toLowerCase();

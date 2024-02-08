@@ -162,6 +162,52 @@ pub fn addColumnToWorld(world: u16) !void {
     // viewport.initializeViewportData();
     game.loadWorld(world);
 }
+// @wasm
+pub fn removeRowFromWorld(world: u16) !void {
+    if (world < embeds.total_worlds) {
+        for (modified_worlds.items) |n_world| {
+            if (n_world.getIndex() == world) {
+                try diff.addData(0);
+                try n_world.removeRow();
+                break;
+            }
+        } else { // not found. get here when loop goes through all items
+            try diff.addData(0);
+            try game.worlds_list.at(world).readDataFromEmbedded();
+            try game.worlds_list.at(world).removeRow();
+            try modified_worlds.append(game.worlds_list.at(world));
+        }
+    } else {
+        // TODO: Means that we have stuff in the editor as entirely new world
+    }
+
+    viewport.clear();
+    // viewport.initializeViewportData();
+    game.loadWorld(world);
+}
+// @wasm
+pub fn removeColumnFromWorld(world: u16) !void {
+    if (world < embeds.total_worlds) {
+        for (modified_worlds.items) |n_world| {
+            if (n_world.getIndex() == world) {
+                try diff.addData(0);
+                try n_world.removeColumn();
+                break;
+            }
+        } else { // not found. get here when loop goes through all items
+            try diff.addData(0);
+            try game.worlds_list.at(world).readDataFromEmbedded();
+            try game.worlds_list.at(world).removeColumn();
+            try modified_worlds.append(game.worlds_list.at(world));
+        }
+    } else {
+        // TODO: Means that we have stuff in the editor as entirely new world
+    }
+
+    viewport.clear();
+    // viewport.initializeViewportData();
+    game.loadWorld(world);
+}
 // pub fn modifyEntity() ????????
 
 // @wasm

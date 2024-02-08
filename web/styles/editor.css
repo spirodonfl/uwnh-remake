@@ -61,8 +61,6 @@ body {
     background-size: var(--scaled-size-px) var(--scaled-size-px);
     background-position: -1px -1px;
     border: 1px solid red;
-    // background-image: url('../images/ocean-bg-1.gif');
-
     position: relative;
 }
 .thing {
