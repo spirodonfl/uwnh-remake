@@ -307,8 +307,8 @@ function tick() {
                             }
                             entity.appendChild(name_element);
                             document.getElementById('view').appendChild(entity);
-                            __entities__.push([viewport_x, viewport_y]);
                         }
+                        __entities__.push([viewport_x, viewport_y]);
                     }
 
                     var collision = _GAME.game_getWorldAtViewport(2, viewport_x, viewport_y);
