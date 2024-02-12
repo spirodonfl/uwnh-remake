@@ -11,7 +11,8 @@ const ENUM_IMAGES = [
     'images/ocean-bg-1.gif',
     'images/matisse-ship-1-removebg-preview.png',
     'images/ship-4.png',
-    'images/EvilOctopus.png'
+    'images/EvilOctopus.png',
+    'images/ocaml-big.png',
 ];
 
 // x, y, health, on/off
@@ -31,20 +32,22 @@ function ENABLE_KRAKEN() {
             var OCTOPUS_INDEX = 9-1;
             var directions = [0, 1, 2, 3];
             let randomIndex = Math.floor(Math.random() * directions.length);
-            let randomDirection = directions[randomIndex];
-            if (randomDirection === 0) {
-                _GAME.inputs_inputLeft(OCTOPUS_INDEX);
-            } else if (randomDirection === 1) {
-                _GAME.inputs_inputRight(OCTOPUS_INDEX);
-            } else if (randomDirection === 2) {
-                _GAME.inputs_inputDown(OCTOPUS_INDEX);
-            } else if (randomDirection === 3) {
-                _GAME.inputs_inputUp(OCTOPUS_INDEX);
-            }
-            for (var i = 0; i < 4; ++i) {
-                _GAME.game_entityAttack(OCTOPUS_INDEX, i);
-                _GAME.game_entityAttack(OCTOPUS_INDEX, i);
-                _GAME.game_entityAttack(OCTOPUS_INDEX, i);
+            if (!KRAKEN_PLAYER) {
+                let randomDirection = directions[randomIndex];
+                if (randomDirection === 0) {
+                    _GAME.inputs_inputLeft(OCTOPUS_INDEX);
+                } else if (randomDirection === 1) {
+                    _GAME.inputs_inputRight(OCTOPUS_INDEX);
+                } else if (randomDirection === 2) {
+                    _GAME.inputs_inputDown(OCTOPUS_INDEX);
+                } else if (randomDirection === 3) {
+                    _GAME.inputs_inputUp(OCTOPUS_INDEX);
+                }
+                for (var i = 0; i < 4; ++i) {
+                    _GAME.game_entityAttack(OCTOPUS_INDEX, i);
+                    _GAME.game_entityAttack(OCTOPUS_INDEX, i);
+                    _GAME.game_entityAttack(OCTOPUS_INDEX, i);
+                }
             }
         } else {
             var evil_octopus = document.querySelector('.evil-octopus');
@@ -235,7 +238,7 @@ function tick() {
                         } else if (entity_type === 98) {
                             OCTOPUS[0] = _GAME.game_translateViewportXToWorldX(viewport_x);
                             OCTOPUS[1] = _GAME.game_translateViewportYToWorldY(viewport_y);
-                            var img = ENUM_IMAGES[5];
+                            var img = ENUM_IMAGES[6];
                             var entity = document.createElement('div');
                             entity.classList.add('evil-octopus');
                             entity.style.backgroundImage = 'url("' + img + '")';
@@ -259,7 +262,7 @@ function tick() {
                             var name_element = document.createElement('div');
                             name_element.id = 'entity_name_' + entity_id;
                             name_element.classList.add('name');
-                            name_element.innerHTML = 'KRAKEN';
+                            name_element.innerHTML = 'OCAML';
                             entity.appendChild(name_element);
                             document.getElementById('view').appendChild(entity);
                         } else if (entity_id > 0) {
@@ -370,25 +373,19 @@ LOADER.events.addEventListener('loaded', function () {
     _GAME.game_entitySetHealth(4, 8);
     // TODO: This is a weird way to initialize (6, 7, 8, 9) but you have to remeber we start at 1, not 0
     _GAME.editor_createEntity(99);
+    _GAME.game_entitySetHealth(5, 0);
     // world #, layer #, x, y, entity_id
     _GAME.game_setWorldData(0, 1, 5, 0, 6);
     _GAME.editor_createEntity(99);
+    _GAME.game_entitySetHealth(6, 0);
     _GAME.game_setWorldData(0, 1, 12, 5, 7);
     _GAME.editor_createEntity(99);
+    _GAME.game_entitySetHealth(7, 0);
     _GAME.game_setWorldData(0, 1, 21, 10, 8);
     _GAME.editor_createEntity(98);
     _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
 
     requestAnimationFrame(tick);
-
-    randomInterval((stop) => {
-        _GAME.game_setWorldData(0, 1, 5, 0, 6);
-        _GAME.game_setWorldData(0, 1, 12, 5, 7);
-        _GAME.game_setWorldData(0, 1, 21, 10, 8);
-        // if (stopCondition) {
-        //     stop();
-        // }
-    }, 500000, 600000);
 });
 window.addEventListener('load', function () {
     var element_view = document.getElementById('view');

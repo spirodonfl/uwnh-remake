@@ -2,24 +2,8 @@ var twitch_streamerbot_ws = null;
 var SHIPS_TO_PLAYER = [null, null, null, null, null];
 var PLAYERS_CRIT_BUFF = [0, 0, 0, 0, 0];
 var LEADERBOARD = {};
+var KRAKEN_PLAYER = null;
 function addToLeaderboard(user) {
-    LEADERBOARD = Object.fromEntries(
-        Object.entries(LEADERBOARD).sort(([,a],[,b]) => b-a)
-    );
-    var leaderboard_element = document.getElementById('leaderboard');
-    if (leaderboard_element) {
-        var leaderboard_html = '';
-        for (var key in LEADERBOARD) {
-            if (LEADERBOARD.hasOwnProperty(key)) {
-                leaderboard_html += `<div>${key}: ${LEADERBOARD[key]}</div>`;
-            }
-        }
-        leaderboard_element.innerHTML = leaderboard_html;
-    }
-    // https://spirodon.games/leaderboard
-    // {increment_score: {user: "", inc: n}}
-    // - TO RESET just increment by a negative number
-    // https://github.com/ryanwinchester/twitch_gameserver/blob/main/lib/twitch_gameserver_web/game_socket.ex#L143-L150
     if (rd_streamerbot_ws) {
         rd_streamerbot_ws.send(JSON.stringify({
             increment_score: {
@@ -28,12 +12,27 @@ function addToLeaderboard(user) {
             }
         }));
     }
+
+    updateLeaderboard();
+
+    // https://spirodon.games/leaderboard
+    // {increment_score: {user: "", inc: n}}
+    // - TO RESET just increment by a negative number
+    // https://github.com/ryanwinchester/twitch_gameserver/blob/main/lib/twitch_gameserver_web/game_socket.ex#L143-L150
+}
+function updateLeaderboard() {
+    if (rd_streamerbot_ws) {
+        rd_streamerbot_ws.send(JSON.stringify({
+            get_leaderboard: 20,
+        }));
+    }
 }
 function killedPlayer(user) {
     LEADERBOARD[user] = LEADERBOARD[user] + 1 || 1;
     addToLeaderboard(user);
 }
 function killedKraken(user) {
+    KRAKEN_PLAYER = null;
     DISABLE_KRAKEN();
     LEADERBOARD[user] = LEADERBOARD[user] + 3 || 3;
     addToLeaderboard(user);
@@ -85,16 +84,25 @@ function handleAttack(user) {
         }
         if (player_index !== -1) {
             // Only attack the other two players from SHIPS_TO_PLAYER
-            for (var i = 0; i < SHIPS_TO_PLAYER.length; i++) {
+            for (var i = 0; i < SHIPS_TO_PLAYER.length; ++i) {
                 if (i !== player_index && _GAME.game_entityGetHealth(i) > 0) {
                     _GAME.game_entityAttack(player_index, i, have_crit);
                     if (_GAME.game_entityGetHealth(i) <= 0) {
+                        // TODO: Implement flush_user command
                         killedPlayer(user);
                     }
                 }
                 _GAME.game_entityAttack(player_index, 9-1, have_crit);
                 if (_GAME.game_entityGetHealth((9-1)) <= 0) {
                     killedKraken(user);
+                }
+            }
+            for (var i = SHIPS_TO_PLAYER.length; i < 8; ++i) {
+                if (
+                    _GAME.game_entityAttack(player_index, i, have_crit) === 1 &&
+                    _GAME.game_entityGetHealth(i) <= 0
+                ) {
+                    _GAME.game_entityIncrementHealth(player_index);
                 }
             }
         }
@@ -136,6 +144,7 @@ function userDespawn(user, role, message) {
             }
         }
     }
+    // TODO: Implement flush_user command
 }
 function userDone(user) {
     if (_GAME) {
@@ -147,6 +156,7 @@ function userDone(user) {
             _GAME.diff_addData(0);
         }
     }
+    // TODO: Implement flush_user command
 }
 var COMMANDS = {
     "up": 0,
@@ -159,86 +169,193 @@ var COMMANDS = {
     "r": 0,
     "attack": 0,
     "a": 0,
-    "spawn": 1,
+    "spawn": 0,
     "despawn": 1,
     "kraken": 1,
     "reset": 1,
     "done": 1,
 };
 var rd_streamerbot_ws = null;
-function connectws() {
-    if ("WebSocket" in window) {
-        rd_streamerbot_ws = new WebSocket("wss://spirodon.games/gamesocket/websocket");
-        rd_streamerbot_ws.onopen = function() {
-            rd_streamerbot_ws.send(JSON.stringify(
-                {
-                    "set_filters": {
-                        "commands": [
-                            "up", "down", "left", "right", "attack", "spawn", "despawn", "kraken"
-                        ],
-                        "matches": [
-                            "^[lurda]+$"
-                        ]
-                    },
-                    "set_rate": 500,
+var waiting_for_ryan = false;
+var waiting_for_ryan_timeout = null;
+function connect_to_ryan() {
+    if (waiting_for_ryan) {
+        setTimeout(function () {
+            console.log('RYANRECONNECT');
+            rd_streamerbot_ws = new WebSocket("wss://spirodon.games/gamesocket/websocket");
+            rd_streamerbot_ws.onerror = function() {
+                rd_streamerbot_ws.close();
+            };
+            rd_streamerbot_ws.onopen = openRyan;
+            rd_streamerbot_ws.onmessage = handleRyan;
+            connect_to_ryan();
+        }, 1000);
+    }
+}
+function openRyan() {
+    console.log('RYANOPEN');
+    waiting_for_ryan = false;
+    clearTimeout(waiting_for_ryan_timeout);
+    updateLeaderboard();
+    rd_streamerbot_ws.send(JSON.stringify(
+        {
+            "set_filters": {
+                "commands": [
+                    "up", "down", "left", "right", "attack", "spawn", "despawn", "kraken", "reset", "done"
+                ],
+                "matches": [
+                    "^[lurda0-9]+$"
+                ]
+            },
+            "set_rate": 500,
+        }
+    ));
+};
+function expandString(input) {
+    return input.replace(/([lurda])(\d+)/g, function(match, p1, p2) {
+        return p1.repeat(Number(p2));
+    });
+}
+function handleRyan(event) {
+    if (event.data) {
+        var data = JSON.parse(event.data);
+        console.log('RYANDATA', data);
+        if (data.errors && data.errors.length > 0) {
+            console.error('RYANERRORS', data.errors);
+        }
+        if (data.data.leaderboard) {
+            var leaderboard_element = document.getElementById('leaderboard');
+            if (leaderboard_element) {
+                var leaderboard_html = '';
+                for (var i = 0; i < data.data.leaderboard.length; i++) {
+                    var key = data.data.leaderboard[i];
+                    leaderboard_html += `<div>${key.user}: ${key.total}</div>`;
                 }
-            ));
-        };
-        rd_streamerbot_ws.onmessage = function (event) {
-            if (event.data) {
-                var data = JSON.parse(event.data);
-                console.log('RYANDATA', data);
-                if (data.errors && data.errors.length > 0) {
-                    console.error('RYANERRORS', data.errors);
-                }
-                if (data.commands) {
-                    for (var i = 0; i < data.commands.length; ++i) {
-                        console.log('RYANCOMMAND', data.commands[i]);
-                        var user = data.commands[i].user.toLowerCase();
-                        var cmd = data.commands[i].cmd;
-                        if (cmd.length >= 1 && COMMANDS[cmd] === 0) {
-                            if (cmd === 'attack') {
-                                handleAttack(user);
-                                continue;
-                            } else if (cmd == 'up') {
-                                handleUp(user);
-                            } else if (cmd == 'down') {
-                                handleDown(user);
-                            } else if (cmd == 'left') {
-                                handleLeft(user);
-                            } else if (cmd == 'right') {
-                                console.log('RYANRIGHT', user);
-                                handleRight(user);
-                            } else if (cmd == 'spawn') {
-                                console.log('RYANSPAWN', user);
-                            } else if (cmd == 'despawn') {
-
-                            } else if (cmd == 'kraken') {
-
-                            } else if (cmd == 'reset') {
-
-                            } else if (cmd == 'done') {
-
+                leaderboard_element.innerHTML = leaderboard_html;
+            }
+        }
+        if (data.data.commands) {
+            for (var i = 0; i < data.data.commands.length; ++i) {
+                console.log('RYANCOMMAND', data.data.commands[i]);
+                var user = data.data.commands[i].user.toLowerCase();
+                if (user.length === 0) { continue; }
+                var cmd = data.data.commands[i].cmd;
+                // Start with specific [full] commands first
+                // Then check for "chained" commands
+                // - should make it easy to read numbers from the chain
+                if (COMMANDS[cmd] === 0) {
+                    if (cmd === 'attack') {
+                        if (KRAKEN_PLAYER === user) {
+                            // TODO: Repetitive code, put in function
+                            for (var i = 0; i < 4; ++i) {
+                                _GAME.game_entityAttack(8, i);
+                                _GAME.game_entityAttack(8, i);
+                                _GAME.game_entityAttack(8, i);
                             }
                         } else {
-                            cmd = cmd.split('');
-                            // console.log(cmd);
-                            if (cmd.length > 1 && user.length > 0) {
-                                // We assume this means a multi-command
-                                for (var j = 0; j < cmd.length; ++j) {
-                                    if (COMMANDS[cmd[j]] === 0) {
-                                        if (cmd[j] === 'u') {
-                                            handleUp(user);
-                                        } else if (cmd[j] === 'd') {
-                                            handleDown(user);
-                                        } else if (cmd[j] === 'l') {
-                                            handleLeft(user);
-                                        } else if (cmd[j] === 'r') {
-                                            handleRight(user);
-                                        } else if (cmd[j] === 'a') {
-                                            handleAttack(user);
-                                        }
+                            handleAttack(user);
+                        }
+                        continue;
+                    } else if (cmd === 'up') {
+                        if (user === KRAKEN_PLAYER) {
+                            _GAME.inputs_inputUp(8);
+                        } else {
+                            handleUp(user);
+                        }
+                        continue;
+                    } else if (cmd === 'down') {
+                        if (user === KRAKEN_PLAYER) {
+                            _GAME.inputs_inputDown(8);
+                        } else {
+                            handleDown(user);
+                        }
+                        continue;
+                    } else if (cmd === 'left') {
+                        if (user === KRAKEN_PLAYER) {
+                            _GAME.inputs_inputLeft(8);
+                        } else {
+                            handleLeft(user);
+                        }
+                        continue;
+                    } else if (cmd === 'right') {
+                        if (user === KRAKEN_PLAYER) {
+                            _GAME.inputs_inputRight(8);
+                        } else {
+                            handleRight(user);
+                        }
+                        continue;
+                    } else if (cmd === 'spawn') {
+                        console.log('RYANSPAWN', user);
+                        userSpawn(user);
+                        continue;
+                    } else if (cmd == 'despawn') {
+                        console.log('RYANDESPAWN', user);
+                        continue;
+                    } else if (cmd == 'kraken') {
+                        console.log('RYANKRAKEN', user);
+                        continue;
+                    } else if (cmd == 'reset') {
+                        console.log('RYANRESET', user);
+                        continue;
+                    } else if (cmd == 'done') {
+                        console.log('RYANDONE', user);
+                        continue;
+                    }
+                }
+
+                // If we've made it this far, it means that we didn't find an EXACT match to a command
+                cmd = expandString(cmd);
+                cmd = cmd.split('');
+                if (cmd.length > 0) {
+                    var last_entry = null;
+                    // We assume this means a multi-command
+                    for (var j = 0; j < cmd.length; ++j) {
+                        if (COMMANDS[cmd[j]] === 0) {
+                            last_entry = cmd[j];
+                            if (cmd[j] === 'u') {
+                                if (KRAKEN_PLAYER === user) {
+                                    _GAME.inputs_inputUp(8);
+                                } else {
+                                    handleUp(user);
+                                }
+                                continue;
+                            } else if (cmd[j] === 'd') {
+                                if (KRAKEN_PLAYER === user) {
+                                    _GAME.inputs_inputDown(8);
+                                } else {
+                                    handleDown(user);
+                                }
+                                continue;
+                            } else if (cmd[j] === 'l') {
+                                if (KRAKEN_PLAYER === user) {
+                                    _GAME.inputs_inputLeft(8);
+                                } else {
+                                    handleLeft(user);
+                                }
+                                continue;
+                            } else if (cmd[j] === 'r') {
+                                if (KRAKEN_PLAYER === user) {
+                                    _GAME.inputs_inputRight(8);
+                                } else {
+                                    handleRight(user);
+                                }
+                                continue;
+                            } else if (cmd[j] === 'a') {
+                                if (KRAKEN_PLAYER === user) {
+                                    // TODO: Repetitive code, put in function
+                                    for (var i = 0; i < 4; ++i) {
+                                        _GAME.game_entityAttack(8, i);
+                                        _GAME.game_entityAttack(8, i);
+                                        _GAME.game_entityAttack(8, i);
                                     }
+                                } else {
+                                    handleAttack(user);
+                                }
+                                continue;
+                            } else if (!isNaN(parseInt(cmd[j]))) {
+                                var number_of_times = parseInt(cmd[j]);
+                                if (last_entry === 'a') {
+                                    // REPEAT attack X times
                                 }
                             }
                         }
@@ -246,6 +363,22 @@ function connectws() {
                 }
             }
         }
+    }
+}
+
+function connectws() {
+    if ("WebSocket" in window) {
+        rd_streamerbot_ws = new WebSocket("wss://spirodon.games/gamesocket/websocket");
+        rd_streamerbot_ws.onerror = function() {
+            rd_streamerbot_ws.close();
+        };
+        rd_streamerbot_ws.onclose = function() {
+            console.log('RYANCLOSED');
+            waiting_for_ryan = true;
+            connect_to_ryan();
+        };
+        rd_streamerbot_ws.onopen = openRyan;
+        rd_streamerbot_ws.onmessage = handleRyan;
 
         const twitch_streamerbot_ws = new WebSocket("ws://127.0.0.1:8080/");
         twitch_streamerbot_ws.onopen = function() {
@@ -306,6 +439,9 @@ function connectws() {
                     }
                     else if (wsdata.data.reward.title === 'Poops') {
                         // TODO: Drop yoshi eggs in the water
+                    }
+                    else if (wsdata.data.reward.title === 'ControlKraken') {
+                        KRAKEN_PLAYER = wsdata.data.user_login;
                     }
                 } else if (wsdata.event.type === 'Raid') {
                     // alert(`trigger raid event for ${wsdata.data.displayName} ${wsdata.data.viewers}`);
@@ -379,7 +515,7 @@ function connectws() {
                         } else if (cmd === 'attack' || cmd === 'a') {
                             // handleAttack(user);
                         } else if (cmd === 'spawn') {
-                            userSpawn(user);
+                            // userSpawn(user);
                         } else if (cmd.startsWith('done')) {
                             userDone(user);
                         } else if (cmd.startsWith('despawn')) {

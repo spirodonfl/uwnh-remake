@@ -418,7 +418,7 @@ pub fn entityDecrementHealth(entity: u16) u16 {
     return entities_list.at(entity).health.current_value;
 }
 // @wasm
-pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !void {
+pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !bool {
     var target_coords: [2]u16 = .{0, 0};
     var entity_coords: [2]u16 = .{0, 0};
     // Determine if entity is next to target
@@ -462,7 +462,10 @@ pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !void {
         } else {
             _ = entityDecrementHealth(target);
         }
+        return true;
     }
+
+    return false;
 }
 
 // @wasm
