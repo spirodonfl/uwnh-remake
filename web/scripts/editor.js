@@ -82,6 +82,11 @@ var EDITOR = {
     updateShipEditorName: function (entity_id, name) {
         var ship_editor_name = document.getElementById('ship_' + entity_id);
         console.log('EDITOR: ', ship_editor_name);
-        ship_editor_name.innerHTML = name;
+        var player_index = SHIPS_TO_PLAYER.indexOf(name);
+        if (player_index !== -1) {
+            ship_editor_name.innerHTML = '<span style="color: ' + SHIPS_TO_PLAYER_COLORCODE[player_index] + '">' + name + '</span>';
+        } else {
+            ship_editor_name.innerHTML = name;
+        }
     }
 };

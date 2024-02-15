@@ -4,15 +4,18 @@ const SCALE = 2;
 // TODO: This can be its own file in the future, ideally somehow imported auto-magically
 const ENUM_IMAGES = [
     // zig -> ImagesEnum.PlayerImage
-    'images/ship-1.gif',
+    'images/ship-1.gif', // 0
     // zig -> ImagesEnum.NPCImage
-    'images/ship-2.gif',
+    'images/ship-2.gif', // 1
     // zig -> ImagesEnum.OceanBGImage
-    'images/ocean-bg-1.gif',
-    'images/matisse-ship-1-removebg-preview.png',
-    'images/ship-4.png',
-    'images/EvilOctopus.png',
-    'images/ocaml-big.png',
+    'images/ocean-bg-1.gif', // 2
+    'images/matisse-ship-1-removebg-preview.png', // 3
+    'images/ship-4.png', // 4
+    'images/EvilOctopus.png', // 5
+    'images/ocaml-big.png', // 6
+    'images/Ship_Spawn.gif', // 7
+    'images/Sea_Tile.gif', // 8
+    'images/Ship_Attack.gif', // 9
 ];
 
 // x, y, health, on/off
@@ -25,41 +28,35 @@ function ENABLE_KRAKEN() {
     OCTOPUS[3] = true;
     _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
     _GAME.game_entitySetHealth((9-1), 44);
+    OCTOPUS[2] = 44;
     _GAME.diff_addData(0);
-    randomInterval((stop) => {
-        if (_GAME.game_entityGetHealth(OCTOPUS_INDEX) <= 0 || OCTOPUS[3] === true) {
-            // TODO: so much hack, get rid of this
-            var OCTOPUS_INDEX = 9-1;
-            var directions = [0, 1, 2, 3];
-            let randomIndex = Math.floor(Math.random() * directions.length);
-            if (!KRAKEN_PLAYER) {
-                let randomDirection = directions[randomIndex];
-                if (randomDirection === 0) {
-                    _GAME.inputs_inputLeft(OCTOPUS_INDEX);
-                } else if (randomDirection === 1) {
-                    _GAME.inputs_inputRight(OCTOPUS_INDEX);
-                } else if (randomDirection === 2) {
-                    _GAME.inputs_inputDown(OCTOPUS_INDEX);
-                } else if (randomDirection === 3) {
-                    _GAME.inputs_inputUp(OCTOPUS_INDEX);
-                }
-                for (var i = 0; i < 4; ++i) {
-                    _GAME.game_entityAttack(OCTOPUS_INDEX, i);
-                    _GAME.game_entityAttack(OCTOPUS_INDEX, i);
-                    _GAME.game_entityAttack(OCTOPUS_INDEX, i);
-                }
+    if (GAME_MODE === 0) {
+        randomInterval((stop) => {
+            if (_GAME.game_entityGetHealth((9-1)) > 0 || OCTOPUS[3] === true) {
+                COMMANDS_TO_FUNCTIONS.autoKraken();
+            } else {
+                var evil_octopus = document.querySelector('.evil-octopus');
+                _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 0);
+                OCTOPUS[0] = 0;
+                OCTOPUS[1] = 0;
+                _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
+                evil_octopus.style.display = 'none';
+                stop();
             }
-        } else {
-            var evil_octopus = document.querySelector('.evil-octopus');
-            _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 0);
-            OCTOPUS[0] = 0;
-            OCTOPUS[1] = 0;
-            _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
-            evil_octopus.style.display = 'none';
-            stop();
+            // else stop();
+        }, 1000, 2000);
+    } else if (GAME_MODE === 1) {
+        var have_players = false;
+        for (var s_my_d = 0; s_my_d < SHIPS_TO_PLAYER.length; ++s_my_d) {
+            if (SHIPS_TO_PLAYER[s_my_d] !== null) {
+                have_players = true;
+                break;
+            }
         }
-        // else stop();
-    }, 1000, 2000);
+        if (!have_players) {
+            COMMANDS_TO_FUNCTIONS.autoKraken();
+        }
+    }
 }
 function DISABLE_KRAKEN() {
     _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 0);
@@ -75,6 +72,37 @@ let DOM = {
     width: 0,
     height: 0,
     rendered: false,
+    frameCallbacks: [],
+    addRunOnFrames: function (frames, callback, clearOnRun) {
+        for (var i = 0; i < this.frameCallbacks.length; ++i) {
+            if (this.frameCallbacks[i] === null) {
+                this.frameCallbacks[i] = [0, frames, callback, clearOnRun];
+                return i;
+            }
+        }
+        this.frameCallbacks.push([0, frames, callback, clearOnRun]);
+        return this.frameCallbacks.length - 1;
+    },
+    removeRunOnFrames: function (index) {
+        this.frameCallbacks[i] = null;
+    },
+    runOnFrames: function () {
+        for (let i = 0; i < this.frameCallbacks.length; ++i) {
+            if (this.frameCallbacks[i] === null) {
+                continue;
+            }
+            ++this.frameCallbacks[i][0];
+            if (this.frameCallbacks[i][0] === this.frameCallbacks[i][1]) {
+                this.frameCallbacks[i][0] = 0;
+                console.log('running frame', this.frameCallbacks[i]);
+                this.frameCallbacks[i][2]();
+                if (this.frameCallbacks[i][3] === true) {
+                    console.log('clearing frame callback');
+                    this.frameCallbacks[i] = null;
+                }
+            }
+        }
+    },
     sizeView: function ()
     {
         // Full height, including the scroll part
@@ -142,6 +170,8 @@ function tick() {
     if (now - then >= interval - delta) {
         delta = Math.min(interval, delta + now - then - interval);
         then = now;
+
+        DOM.runOnFrames();
 
         if (_GAME.diff_getLength() > 0) {
             DOM.rendered = false;
@@ -257,7 +287,14 @@ function tick() {
                             var health_element = document.createElement('div');
                             health_element.classList.add('health');
                             // Note: current entity - 1
-                            health_element.innerHTML = _GAME.game_entityGetHealth((entity_id - 1));
+                            // health_element.innerHTML = _GAME.game_entityGetHealth((entity_id - 1));
+                            // entity.appendChild(health_element);
+                            var health_progress = document.createElement('progress');
+                            health_progress.style.width = (SIZE * SCALE) + 'px';
+                            health_progress.style.setProperty('--health-color', 'purple');
+                            health_progress.max = OCTOPUS[2];
+                            health_progress.value = _GAME.game_entityGetHealth(9-1);
+                            health_element.appendChild(health_progress);
                             entity.appendChild(health_element);
                             var name_element = document.createElement('div');
                             name_element.id = 'entity_name_' + entity_id;
@@ -266,7 +303,8 @@ function tick() {
                             entity.appendChild(name_element);
                             document.getElementById('view').appendChild(entity);
                         } else if (entity_id > 0) {
-                            var img = ENUM_IMAGES[0];
+                            var img = ENUM_IMAGES[4];
+                            // When animation for 7 is done, change this to 4
                             if (entity_id === 2) {
                                 img = ENUM_IMAGES[3];
                             }
@@ -295,7 +333,13 @@ function tick() {
                             var health_element = document.createElement('div');
                             health_element.classList.add('health');
                             // Note: current entity - 1
-                            health_element.innerHTML = _GAME.game_entityGetHealth((entity_id - 1));
+                            // health_element.innerHTML = _GAME.game_entityGetHealth((entity_id - 1));
+                            var health_progress = document.createElement('progress');
+                            health_progress.style.width = (SIZE * SCALE) + 'px';
+                            health_progress.style.setProperty('--health-color', SHIPS_TO_PLAYER_COLORCODE[(entity_id - 1)]);
+                            health_progress.max = 10;
+                            health_progress.value = _GAME.game_entityGetHealth((entity_id - 1));
+                            health_element.appendChild(health_progress);
                             entity.appendChild(health_element);
                             var name_element = document.createElement('div');
                             name_element.id = 'entity_name_' + entity_id;
@@ -304,8 +348,9 @@ function tick() {
                             // TODO: This is a hack, but it's a good hack for now, to get player names from websocket integration
                             if (typeof SHIPS_TO_PLAYER !== 'undefined') {
                                 var player_index = SHIPS_TO_PLAYER[(entity_id - 1)];
-                                if (player_index !== null) {
+                                if (player_index !== -1) {
                                     name_element.innerHTML = player_index;
+                                    entity.style.borderTop = '4px solid ' + SHIPS_TO_PLAYER_COLORCODE[(entity_id - 1)];
                                 }
                             }
                             entity.appendChild(name_element);
@@ -366,11 +411,11 @@ LOADER.events.addEventListener('loaded', function () {
     _GAME.game_initializeGame();
     INPUT.startListening();
 
-    _GAME.game_entitySetHealth(0, 8);
-    _GAME.game_entitySetHealth(1, 8);
-    _GAME.game_entitySetHealth(2, 8);
-    _GAME.game_entitySetHealth(3, 8);
-    _GAME.game_entitySetHealth(4, 8);
+    _GAME.game_entitySetHealth(0, 10);
+    _GAME.game_entitySetHealth(1, 10);
+    _GAME.game_entitySetHealth(2, 10);
+    _GAME.game_entitySetHealth(3, 10);
+    _GAME.game_entitySetHealth(4, 10);
     // TODO: This is a weird way to initialize (6, 7, 8, 9) but you have to remeber we start at 1, not 0
     _GAME.editor_createEntity(99);
     _GAME.game_entitySetHealth(5, 0);

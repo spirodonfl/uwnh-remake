@@ -44,11 +44,12 @@
         <div class="editor draggable twitch">
             <div class="draggable-header draggable-handle">&nbsp;</div>
             <div class="title">CURRENT SHIPS</div>
-            <div id="ship_1">[EMPTY]</div>
-            <div id="ship_2">[EMPTY]</div>
-            <div id="ship_3">[EMPTY]</div>
-            <div id="ship_4">[EMPTY]</div>
-            <div id="ship_5">[EMPTY]</div>
+            <div class="ship_slot" id="ship_1">[EMPTY]</div>
+            <div class="ship_slot" id="ship_2">[EMPTY]</div>
+            <div class="ship_slot" id="ship_3">[EMPTY]</div>
+            <div class="ship_slot" id="ship_4">[EMPTY]</div>
+            <div class="ship_slot" id="ship_5">[EMPTY]</div>
+            <div class="ship_slot" id="ship_6">BOSS</div>
             <div><hr/></div>
             <div class="title">COMMANDS</div>
             <div class="twitch_chat_command">!gamecommands</div>
@@ -71,31 +72,34 @@
             <div class="twitch_chat_command">Attack an "H" to get health</div>
             <div class="twitch_chat_command">Redeem 500 channel points to</div>
             <div class="twitch_chat_command">be the Kraken/Ocaml boss</div>
-            <div><hr/></div>
-            <div class="title">TODO</div>
-            <div class="todo-item">- Smoother chained movements</div>
-            <div class="todo-item">- Update movement (!u8)</div>
-            <div class="todo-item">- Fix initial kraken location block</div>
-            <div class="todo-item">- Queue system for mass users</div>
-            <div class="todo-item">- Add yoshi eggs/poops (blocks/mines)</div>
-            <div class="todo-item">- Challenges</div>
-            <div class="todo-item">- Polls / betting?</div>
-            <div class="todo-item">- Emote only controls</div>
-            <div class="todo-item">- Kraken DBD mode (chases you)</div>
-            <div class="todo-item">- Sounds (like screaming)</div>
-            <div class="todo-item">- Red sea when you sink</div>
-            <div class="todo-item">- Fix death animation</div>
-            <div class="todo-item">- Random icebergs</div>
-            <div class="todo-item">- Autosail in direction (!anchor)</div>
-            <div class="todo-item">- Add more ships</div>
-            <div class="todo-item">- Teams?</div>
-            <div class="todo-item">- Ramming & Whirlpools</div>
-            <div class="todo-item">- Color code ships to users</div>
-            <div class="todo-item">- cmd/redeem show leaderboard</div>
-            <div class="todo-item">- bug - can move w/ 0 HP</div>
-            <div class="todo-item">- bug - leaderboard points</div>
-            <div class="todo-item">- bug - back from the dead</div>
-            <div class="todo-item">- redeem channel points for health</div>
+            <div class="hide">
+                <div><hr/></div>
+                <div class="title">TODO</div>
+                <div class="todo-item">- Smoother chained movements</div>
+                <div class="todo-item">- Fix initial kraken location blockage</div>
+                <div class="todo-item">- Queue system for mass users</div>
+                <div class="todo-item">- Add yoshi eggs/poops (blocks/mines)</div>
+                <div class="todo-item">- Challenges</div>
+                <div class="todo-item">- Polls / betting?</div>
+                <div class="todo-item">- Emote only controls</div>
+                <div class="todo-item">- Kraken DBD mode (chases you)</div>
+                <div class="todo-item">- Sounds (like screaming)</div>
+                <div class="todo-item">- Red sea when you sink</div>
+                <div class="todo-item">- Fix death animation</div>
+                <div class="todo-item">- Random icebergs</div>
+                <div class="todo-item">- Autosail in direction (!anchor)</div>
+                <div class="todo-item">- Add more ships</div>
+                <div class="todo-item">- Teams?</div>
+                <div class="todo-item">- Ramming & Whirlpools</div>
+                <div class="todo-item">- Color code ships to users</div>
+                <div class="todo-item">- bug - leaderboard points</div>
+                <div class="todo-item">- Choose your movement mode (!set vim)</div>
+                <div class="todo-item">- Voter role not able to spawn (RYAN)</div>
+                <div class="todo-item">- When boss killed, ship disappears?</div>
+                <div class="todo-item">- Add combat log</div>
+                <div class="todo-item">- Add tinted color overlay to ships</div>
+                <div class="todo-item">- Ship controls borked when ship dies and someone spawns in later</div>
+            </div>
         </div>
         <div id="stats"></div>
         <div id="view">
