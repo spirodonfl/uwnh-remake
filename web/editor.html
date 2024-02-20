@@ -31,17 +31,21 @@
             <div class="btn" onclick="EDITOR.addCollision();">Add Collision</div>
             <div class="btn" onclick="EDITOR.removeCollision();">Remove Collision</div>
             <div class="btn" onclick="EDITOR.memoryToBin(_GAME.editor_getWorldMemoryLocation(0), _GAME.editor_getWorldMemoryLength(0), 'world_0.bin');">Extract Data</div>
+            <div id="current_asset"><div id="current_asset_img" src=""></div></div>
+            <div id="current_layer"><input type="text" id="current_layer_id" value="0" /></div>
+            <div id="current_data"><input type="text" id="current_data_id" value="0" /></div>
+            <div id="current_editor_mode"></div>
         </div>
         <div class="editor console draggable hide">
             <div class="draggable-header draggable-handle">&nbsp;</div>
             <textarea id="editor_console"></textarea>
         </div>
-        <div class="editor draggable hide twitch leaderboard">
+        <div class="editor draggable hide twitch leaderboard hide">
             <div class="draggable-header draggable-handle">&nbsp;</div>
             <div class="title">LEADERBOARD</div>
             <div id="leaderboard"></div>
         </div>
-        <div id="twitch_sidebar" class="editor draggable twitch">
+        <div id="twitch_sidebar" class="editor draggable twitch hide">
             <div class="draggable-header draggable-handle">&nbsp;</div>
             <div class="title">CURRENT SHIPS</div>
             <div class="ship_slot" id="ship_1">[EMPTY]</div>

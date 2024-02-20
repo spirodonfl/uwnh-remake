@@ -235,6 +235,7 @@ pub const WorldDataStruct = struct {
             self.data = new_data;
         }
     }
+    // TODO: This is really an editor function and should go into an editor specific area if possible
     pub fn removeRow(self: *WorldDataStruct) !void {
         // pub fn removeRow
         if (self.has_data) {
@@ -278,6 +279,7 @@ pub const WorldDataStruct = struct {
             self.data = new_data;
         }
     }
+    // TODO: This is really an editor function and should go into an editor specific area if possible
     pub fn removeColumn(self: *WorldDataStruct) !void {
         if (self.has_data) {
             var row_size = self.getWidth();
@@ -304,6 +306,45 @@ pub const WorldDataStruct = struct {
                 }
             }
 
+            self.data.deinit(allocator);
+            self.data = new_data;
+        }
+    }
+    // TODO: addLayer / removeLayer / duplicateLayer / clearLayer / copyLayer / injectLayer
+    pub fn addLayer(self: *WorldDataStruct) !void {
+        if (self.has_data) {
+            var new_data: std.ArrayListUnmanaged(u16) = .{};
+            for (self.data.items) |item| {
+                try new_data.append(allocator, item);
+            }
+            try new_data.appendNTimes(allocator, 0, self.getSize());
+            // self.data.clearAndFree(allocator);
+            self.data.deinit(allocator);
+            self.data = new_data;
+        }
+    }
+    pub fn injectLayerAfter(self: *WorldDataStruct, layer_index: u16) !void {
+        if (self.has_data) {
+            var new_data: std.ArrayListUnmanaged(u16) = .{};
+            var current_layer: u16 = 0;
+            for (self.data.items, 0..) |item, i| {
+                if (i == 0) {
+                    try new_data.append(allocator, item);
+                } else if (i == 1) {
+                    try new_data.append(allocator, item);
+                } else if (i == 2) {
+                    try new_data.append(allocator, item);
+                } else {
+                    try new_data.append(allocator, item);
+                    if ((i - self.offset) % self.getSize() == 0) {
+                        if (layer_index == current_layer) {
+                            try new_data.appendNTimes(allocator, 0, self.getSize());
+                        }
+                        current_layer += 1;
+                    }
+                }
+            }
+            // self.data.clearAndFree(allocator);
             self.data.deinit(allocator);
             self.data = new_data;
         }

@@ -12,7 +12,7 @@ fn inputMovePlayer(operation: u16) !void {
     for (0..size) |i| {
         var x: u16 = @as(u16, @intCast(i % w));
         var y: u16 = @as(u16, @intCast(i / w));
-        var value = game.getWorldData(game.current_world_index, 1, x, y);
+        var value = game.getWorldData(game.current_world_index, 2, x, y);
         if (value == 1) {
             var intended_x = x;
             var intended_y = y;
@@ -27,10 +27,10 @@ fn inputMovePlayer(operation: u16) !void {
             }
             var intended_index = intended_y * w + intended_x;
             _ = intended_index;
-            var intended_value = game.getWorldData(game.current_world_index, 1, intended_x, intended_y);
-            var intended_collision_value = game.getWorldData(game.current_world_index, 2, intended_x, intended_y);
+            var intended_value = game.getWorldData(game.current_world_index, 2, intended_x, intended_y);
+            var intended_collision_value = game.getWorldData(game.current_world_index, 3, intended_x, intended_y);
             if (intended_value == 99) {
-                try game.setWorldData(game.current_world_index, 1, x, y, 0);
+                try game.setWorldData(game.current_world_index, 2, x, y, 0);
                 game.entities_list.at(0).health.setHealth(8);
                 intended_collision_value = 0;
                 intended_value = 0;
@@ -42,8 +42,8 @@ fn inputMovePlayer(operation: u16) !void {
                 // -- Duplicate npc/player layer and then keep the copy as "active"
                 // -- worlddatastruct -> add active layer for npc/player
                 // -- any time getworlddata references layer 1 (aka: player/npc layer), return "active" layer
-                try game.setWorldData(game.current_world_index, 1, x, y, 0);
-                try game.setWorldData(game.current_world_index, 1, intended_x, intended_y, 1);
+                try game.setWorldData(game.current_world_index, 2, x, y, 0);
+                try game.setWorldData(game.current_world_index, 2, intended_x, intended_y, 1);
             }
             try diff.addData(0);
             break;
@@ -59,7 +59,7 @@ fn inputMoveEntity(entity: u16, operation: u16) !void {
     for (0..size) |i| {
         var x: u16 = @as(u16, @intCast(i % w));
         var y: u16 = @as(u16, @intCast(i / w));
-        var value = game.getWorldData(game.current_world_index, 1, x, y);
+        var value = game.getWorldData(game.current_world_index, 2, x, y);
         if (value == (entity + 1)) {
             var intended_x = x;
             var intended_y = y;
@@ -74,10 +74,10 @@ fn inputMoveEntity(entity: u16, operation: u16) !void {
             }
             var intended_index = intended_y * w + intended_x;
             _ = intended_index;
-            var intended_value = game.getWorldData(game.current_world_index, 1, intended_x, intended_y);
-            var intended_collision_value = game.getWorldData(game.current_world_index, 2, intended_x, intended_y);
+            var intended_value = game.getWorldData(game.current_world_index, 2, intended_x, intended_y);
+            var intended_collision_value = game.getWorldData(game.current_world_index, 3, intended_x, intended_y);
             if (intended_value == 99) {
-                try game.setWorldData(game.current_world_index, 1, x, y, 0);
+                try game.setWorldData(game.current_world_index, 2, x, y, 0);
                 game.entities_list.at(0).health.setHealth(8);
                 intended_collision_value = 0;
                 intended_value = 0;
@@ -89,8 +89,8 @@ fn inputMoveEntity(entity: u16, operation: u16) !void {
                 // -- Duplicate npc/player layer and then keep the copy as "active"
                 // -- worlddatastruct -> add active layer for npc/player
                 // -- any time getworlddata references layer 1 (aka: player/npc layer), return "active" layer
-                try game.setWorldData(game.current_world_index, 1, x, y, 0);
-                try game.setWorldData(game.current_world_index, 1, intended_x, intended_y, (entity + 1));
+                try game.setWorldData(game.current_world_index, 2, x, y, 0);
+                try game.setWorldData(game.current_world_index, 2, intended_x, intended_y, (entity + 1));
             }
             try diff.addData(0);
             break;

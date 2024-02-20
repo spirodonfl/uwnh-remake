@@ -39,6 +39,14 @@ pub fn main() !void {
                                 }
                                 is_entity = false;
                             }
+                            // Use this if you're using world_{d} instead of world_{d}_layer{d}
+                            if (is_world) {
+                                if (!std.mem.eql(u8, u, last_world)) {
+                                    total_worlds += 1;
+                                    last_world = u;
+                                }
+                                is_world = false;
+                            }
                             // std.debug.print("{s}\n", .{e});
                             end = e;
                         }
@@ -48,13 +56,14 @@ pub fn main() !void {
                         // Means we got .bin entry
                         // std.debug.print("End: {s}\n", .{end});
                     } else {
-                        if (is_world) {
-                            if (!std.mem.eql(u8, u, last_world)) {
-                                total_worlds += 1;
-                                last_world = u;
-                            }
-                            is_world = false;
-                        }
+                        // Use this if you're using world_{d}_layer_{d} instead of world_{d}
+                        // if (is_world) {
+                        //     if (!std.mem.eql(u8, u, last_world)) {
+                        //         total_worlds += 1;
+                        //         last_world = u;
+                        //     }
+                        //     is_world = false;
+                        // }
                         if (std.mem.eql(u8, u, "world")) {
                             is_world = true;
                         } else if (std.mem.eql(u8, u, "entity")) {

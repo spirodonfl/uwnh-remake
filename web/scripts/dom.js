@@ -24,7 +24,121 @@ const ENUM_IMAGES = [
     'images/Animated_Water_Tiles_8_Frames.png', // 15
     'images/ground-tiles/island tiles1.png', // 16
     'images/Kraken_7_frames.png', // 17
+    'images/ground-tiles/island tiles17.png',
 ];
+var ATLAS_PNG_FILENAME = 'images/atlas.png';
+var ATLAS_PNG_FILESIZE = [3008, 2304];
+var LAYER_ID_TO_IMAGE = {
+    data: [],
+    /**
+     * Returns the total # of frames this particular set has
+     * @param {number} layer - the layer you want to try and pull from
+     * @param {number} id - the specific ID that you want to grab
+     * @returns {number}
+     */
+    getFrames: function (layer, id) {
+        if (!this.data[layer]) {
+            return 0;
+        }
+        if (!this.data[layer][id]) {
+            return 0;
+        }
+        return this.data[layer][id].length;
+    },
+    /**
+     * Returns the actual string value from ENUM_IMAGES given an ID
+     * @param {number} layer - the layer you want to try and pull from
+     * @param {number} id - the specific ID that you want to grab
+     * @returns {(string|null)}
+     */
+    getImage: function (layer, id) {
+        if (this.getImageId(layer, id) !== null) {
+            return ENUM_IMAGES[this.getImageId(layer, id)];
+        }
+
+        return null;
+    },
+    /**
+     * Returns an image as an ID from ENUM_IMAGES or will return null if nothing exists
+     * @param {number} layer - the layer you want to try and pull from
+     * @param {number} id - the specific ID that you want to grab
+     * @returns {(number|null)}
+     */
+    getImageId: function (layer, id) {
+        if (!this.data[layer]) {
+            this.data[layer] = [];
+        }
+        if (!this.data[layer][id]) {
+            this.data[layer][id] = null;
+        }
+        return this.data[layer][id];
+    },
+    /**
+     * Sets an image as an ID from ENUM_IMAGES
+     * @param {number} layer - the layer you want to set
+     * @param {number} id - the specific ID that you want to set
+     * @param {number} image_id - the ENUM_IMAGES ID you want to set
+     */
+    setImage: function (layer, id, image_id) {
+        if (!this.data[layer]) {
+            this.data[layer] = [];
+        }
+        if (!this.data[layer][id]) {
+            this.data[layer][id] = null;
+        }
+        this.data[layer][id] = image_id;
+    },
+    setImageCoords: function (layer, id, x, y, frames) {
+        if (frames === null || frames === undefined) {
+            frames = 1;
+        }
+        if (!this.data[layer]) {
+            this.data[layer] = [];
+        }
+        if (!this.data[layer][id]) {
+            this.data[layer][id] = null;
+        }
+        // TODO: Careful! This overrides existing values so make sure you add an override function/parameter
+        this.data[layer][id] = [];
+        var current_x = x;
+        var current_y = y;
+        for (var frame = 0; frame < frames; ++frame) {
+            this.data[layer][id].push([current_x, current_y]);
+            current_x += 64;
+            if (current_x >= ATLAS_PNG_FILESIZE[0]) {
+                current_y += 64;
+                current_x = 0;
+            }
+            if (current_y >= ATLAS_PNG_FILESIZE[1]) {
+                console.trace('THIS SHOULD NEVER HAPPEN');
+                current_y = 0;
+            }
+        }
+    },
+    getImageCoords: function (layer, id, frame) {
+        if (frame === null || frame === undefined) {
+            frame = 0;
+        }
+        if (!this.data[layer][id]) {
+            return null;
+        }
+        return this.data[layer][id][frame];
+    }
+};
+// LAYER_ID_TO_IMAGE.setImage(0, 0, 15);
+LAYER_ID_TO_IMAGE.setImageCoords(0, 0, 0, 0, 8);
+LAYER_ID_TO_IMAGE.setImageCoords(1, 200, 2048, 0, 1);
+LAYER_ID_TO_IMAGE.setImageCoords(1, 201, 2560, 0, 1);
+LAYER_ID_TO_IMAGE.setImage(2, 1, 10);
+LAYER_ID_TO_IMAGE.setImage(2, 2, 11);
+LAYER_ID_TO_IMAGE.setImage(2, 3, 12);
+LAYER_ID_TO_IMAGE.setImage(2, 4, 13);
+LAYER_ID_TO_IMAGE.setImage(2, 5, 14);
+
+// TODO: Actually get these values from WASM, not from here
+var BG_TILE = 0;
+var ENTITY_LAYER = 2;
+var COLLISION_LAYER = 3;
 
 // x, y, health, on/off
 var OCTOPUS = [13, 5, 20, false];
@@ -105,7 +219,6 @@ let DOM = {
             }
             ++this.frameCallbacks[i][0];
             if (this.frameCallbacks[i][0] === this.frameCallbacks[i][1]) {
-                console.log('RUNNING FRAME CALLBACKS', this.frameCallbacks[i]);
                 this.frameCallbacks[i][0] = 0;
                 var cb = this.frameCallbacks[i][2];
                 if (this.frameCallbacks[i][3] === true) {
@@ -119,8 +232,7 @@ let DOM = {
             }
         }
     },
-    sizeView: function ()
-    {
+    sizeView: function () {
         // Full height, including the scroll part
         const full_height = Math.max(
             // document.body.scrollHeight,
@@ -165,6 +277,76 @@ let DOM = {
         document.getElementById('clickable_view').style.height = (y * (SIZE * SCALE)) + 'px';
         DOM.width = x;
         DOM.height = y;
+    },
+    generateTileDiv: function (viewport_x, viewport_y, data_id) {
+        var element = document.createElement('div');
+        element.style.width = (SIZE * SCALE) + 'px';
+        element.style.height = (SIZE * SCALE) + 'px';
+        element.style.position = 'absolute';
+        element.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
+        element.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
+        if (data_id !== null && data_id !== undefined) {
+            element.setAttribute('data-id', data_id);
+        }
+
+        element.style.zIndex = 1;
+
+        return element;
+    },
+    addViewportDataToTile: function (element, viewport_x, viewport_y) {
+        element.dataset.x = viewport_x;
+        element.dataset.y = viewport_y;
+    },
+    addAnimationToTile: function (element) {
+        // element.style.setProperty('--animation-frame', '1');
+        // element.style.backgroundPosition = "calc(64px * var(--animation-frame))";
+        element.setAttribute('data-animation-frame', '0');
+    },
+    addLayerToTile: function (element) {
+        element.setAttribute('data-layer-id', 0);
+    },
+    setLayerToTile: function (element, value) {
+        element.setAttribute('data-layer-id', value);
+    },
+    incrementZIndexOfTile: function (element) {
+        var current_z_index = parseInt(element.style.zIndex);
+        ++current_z_index;
+        element.style.zIndex = current_z_index;
+    },
+    setZIndexToTile: function (element, value) {
+        element.style.zIndex = value;
+    },
+    setBackgroundImageOfTile: function (element) {
+        element.style.backgroundImage = 'url("' + ATLAS_PNG_FILENAME + '")';
+        var current_layer = element.getAttribute('data-layer-id');
+        current_layer = parseInt(current_layer);
+        var current_id = element.getAttribute('data-id');
+        current_id = parseInt(current_id);
+        var image_frame_coords = LAYER_ID_TO_IMAGE.getImageCoords(current_layer, current_id, 0);
+        if (image_frame_coords !== null && image_frame_coords !== undefined) {
+            element.style.backgroundPosition = '-' + image_frame_coords[0] + 'px -' + image_frame_coords[1] + 'px';
+        }
+    },
+    setAutoAnimateOnTile: function (element) {
+        element.setAttribute('data-auto-animate', 1);
+        element.setAttribute('data-animation-frame', 0);
+    },
+    animateTile: function (element) {
+        var current_animation_frame = element.getAttribute('data-animation-frame');
+        current_animation_frame = parseInt(current_animation_frame);
+        var current_layer = element.getAttribute('data-layer-id');
+        current_layer = parseInt(current_layer);
+        var current_id = element.getAttribute('data-id');
+        current_id = parseInt(current_id);
+        var intended_animation_frame = current_animation_frame + 1;
+        if (LAYER_ID_TO_IMAGE.getFrames(current_layer, current_id) > 0 && intended_animation_frame >= LAYER_ID_TO_IMAGE.getFrames(current_layer, current_id)) {
+            intended_animation_frame = 0;
+        }
+        var image_frame_coords = LAYER_ID_TO_IMAGE.getImageCoords(current_layer, current_id, intended_animation_frame);
+        if (image_frame_coords !== null && image_frame_coords !== undefined) {
+            element.style.backgroundPosition = '-' + image_frame_coords[0] + 'px -' + image_frame_coords[1] + 'px';
+            element.setAttribute('data-animation-frame', intended_animation_frame);
+        }
     }
 };
 
@@ -233,44 +415,54 @@ function tick() {
             var y = 0;
             var x = 0;
             var cwi = _GAME.game_getCurrentWorldIndex();
-            var layer = 0;
             // if (DOM.width * DOM.height) !== _GAME.viewport_getLength() // panic
             for (var i = 0; i < (DOM.width * DOM.height); ++i) {
                 var viewport_y = Math.floor(i / DOM.width);
                 var viewport_x = i % DOM.width;
                 if (_GAME.viewport_getData(viewport_x, viewport_y)) {
-                    var img = ENUM_IMAGES[15];
-                    var el = document.createElement('div');
-                    el.classList.add('bg-tile');
-                    el.style.backgroundImage = 'url("' + img + '")';
-                    el.style.setProperty('--animation-frame', '1');
-                    el.style.backgroundPosition = "calc(64px * var(--animation-frame))";
-                    el.style.width = (SIZE * SCALE) + 'px';
-                    el.style.height = (SIZE * SCALE) + 'px';
-                    el.style.position = 'absolute';
-                    el.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
-                    el.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
-                    el.dataset.x = viewport_x;
-                    el.dataset.y = viewport_y;
-                    // TODO: Do not depend on border on bg-tile, instead, have another "editor" layer over top of everything and then draw some bg opacity or something
-                    // Note: Until you do the above TODO, trying *moving* the player and then clicking. It won't work. Because you have to re-render the whole viewport.
-                    if (EDITOR.last_clicked_coordinates && EDITOR.last_clicked_coordinates[0] === viewport_x && EDITOR.last_clicked_coordinates[1] === viewport_y) {
-                        el.style.border = '1px solid red';
+                    // Note: We do this so that, down the road, we can offset the layer in case we need that
+                    var layer = 0;
+                    var bg_tile_id = _GAME.game_getWorldAtViewport(layer, viewport_x, viewport_y);
+                    if (bg_tile_id >= 0) {
+                        var el = DOM.generateTileDiv(viewport_x, viewport_y, bg_tile_id);
+                        el.classList.add('bg-tile');
+                        DOM.setLayerToTile(el, layer);
+                        DOM.setAutoAnimateOnTile(el);
+                        DOM.addAnimationToTile(el);
+                        DOM.setBackgroundImageOfTile(el);
+                        DOM.addViewportDataToTile(el, viewport_x, viewport_y);
+                        DOM.setZIndexToTile(el, layer);
+                        document.getElementById('view').appendChild(el);
                     }
-                    document.getElementById('view').appendChild(el);
+                    ++layer;
+                    var bg_tile_id = _GAME.game_getWorldAtViewport(layer, viewport_x, viewport_y);
+                    if (bg_tile_id > 0) {
+                        var el = DOM.generateTileDiv(viewport_x, viewport_y, bg_tile_id);
+                        DOM.setLayerToTile(el, layer);
+                        if (LAYER_ID_TO_IMAGE.getFrames(layer, bg_tile_id) > 0) {
+                            DOM.setAutoAnimateOnTile(el);
+                            DOM.addAnimationToTile(el);
+                        }
+                        DOM.setBackgroundImageOfTile(el);
+                        DOM.addViewportDataToTile(el, viewport_x, viewport_y);
+                        DOM.setZIndexToTile(el, layer);
+                        document.getElementById('view').appendChild(el);
+                    }
 
-                    var entity_id = _GAME.game_getWorldAtViewport(1, viewport_x, viewport_y);
+                    ++layer;
+                    var entity_id = _GAME.game_getWorldAtViewport(ENTITY_LAYER, viewport_x, viewport_y);
                     if (entity_id > 0) {
                         var entity_type = _GAME.game_entityGetType((entity_id -1));
                         if (entity_type === 99) {
                             var entity = document.createElement('div');
+                            DOM.setLayerToTile(entity, ENTITY_LAYER);
                             entity.classList.add('health-restore');
                             entity.style.width = (SIZE * SCALE) + 'px';
                             entity.style.height = (SIZE * SCALE) + 'px';
                             entity.style.position = 'absolute';
                             entity.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
                             entity.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
-                            entity.style.zIndex = 1;
+                            DOM.setZIndexToTile(entity, ENTITY_LAYER);
                             entity.dataset.x = viewport_x;
                             entity.dataset.y = viewport_y;
                             var health_element = document.createElement('div');
@@ -288,6 +480,8 @@ function tick() {
                             OCTOPUS[1] = _GAME.game_translateViewportYToWorldY(viewport_y);
                             var img = ENUM_IMAGES[17];
                             var entity = document.createElement('div');
+                            DOM.setLayerToTile(entity, ENTITY_LAYER);
+                            DOM.setZIndexToTile(entity, ENTITY_LAYER);
                             entity.classList.add('evil-octopus');
                             entity.style.backgroundImage = 'url("' + img + '")';
                             entity.style.backgroundSize = 'cover';
@@ -298,7 +492,6 @@ function tick() {
                             entity.style.position = 'absolute';
                             entity.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
                             entity.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
-                            entity.style.zIndex = 1;
                             if (OCTOPUS[3] === false) {
                                 entity.style.display = 'none';
                             }
@@ -323,7 +516,7 @@ function tick() {
                             entity.appendChild(name_element);
                             document.getElementById('view').appendChild(entity);
                         } else if (entity_id > 0) {
-                            var img = ENUM_IMAGES[15 - entity_id];
+                            var img = LAYER_ID_TO_IMAGE.getImage(2, entity_id);
                             var entity = document.createElement('div');
                             if (entity_id === 1) {
                                 entity.id = 'the_player';
@@ -331,6 +524,8 @@ function tick() {
                                 entity.classList.add('npc');
                                 entity.id = 'npc_' + entity_id;
                             }
+                            DOM.setLayerToTile(entity, ENTITY_LAYER);
+                            DOM.setZIndexToTile(entity, ENTITY_LAYER);
                             entity.setAttribute('data-time', then);
                             entity.setAttribute('data-entity-id', entity_id);
                             entity.style.backgroundImage = 'url("' + img + '")';
@@ -340,7 +535,6 @@ function tick() {
                             entity.style.position = 'absolute';
                             entity.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
                             entity.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
-                            entity.style.zIndex = 1;
                             entity.dataset.x = viewport_x;
                             entity.dataset.y = viewport_y;
                             var health_element = document.createElement('div');
@@ -372,21 +566,21 @@ function tick() {
                         __entities__.push([viewport_x, viewport_y]);
                     }
 
-                    var collision = _GAME.game_getWorldAtViewport(2, viewport_x, viewport_y);
+                    ++layer;
+                    var collision = _GAME.game_getWorldAtViewport(COLLISION_LAYER, viewport_x, viewport_y);
                     if (collision === 1) {
                         var collision = document.createElement('div');
+                        DOM.setLayerToTile(collision, COLLISION_LAYER);
+                        DOM.setZIndexToTile(collision, COLLISION_LAYER);
                         collision.classList.add('collision');
-                        // TODO: Instead of rendering the collision, render the tile underneath and keep the collision invisible
-                        // OR alternatively, set an entity as a blocker entity
-                        // collision.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-                        collision.style.backgroundImage = 'url("' + ENUM_IMAGES[16] + '")';
-                        collision.style.backgroundSize = 'cover';
+                        collision.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                        // collision.style.backgroundImage = 'url("' + ENUM_IMAGES[16] + '")';
+                        // collision.style.backgroundSize = 'cover';
                         collision.style.width = (SIZE * SCALE) + 'px';
                         collision.style.height = (SIZE * SCALE) + 'px';
                         collision.style.position = 'absolute';
                         collision.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
                         collision.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
-                        collision.style.zIndex = 1;
                         collision.dataset.x = viewport_x;
                         collision.dataset.y = viewport_y;
                         document.getElementById('view').appendChild(collision);
@@ -396,6 +590,7 @@ function tick() {
             DOM.rendered = true;
         }
     }
+    EDITOR.showAllTileValues();
     requestAnimationFrame(tick);
 }
 function randomInterval(callback, min, max) {
@@ -422,6 +617,10 @@ function randomInterval(callback, min, max) {
 }
 LOADER.events.addEventListener('loaded', function () {
     DOM.sizeView();
+    // TODO: We should aboslutely be checking for the existence of EDITOR here
+    if (EDITOR) {
+        EDITOR.init();
+    }
     EDITOR.addLog('Viewport Width: ' + DOM.width);
     EDITOR.addLog('Viewport Height: ' + DOM.height);
     _GAME.viewport_setSize(DOM.width, DOM.height);
@@ -472,34 +671,24 @@ LOADER.events.addEventListener('loaded', function () {
                 octopi[o].style.setProperty('--animation-frame', animation_frame);
             }
         }
+
+        var auto_animation_tiles = document.querySelectorAll('div[data-auto-animate="1"]');
+        for (var aat = 0; aat < auto_animation_tiles.length; ++aat) {
+            if (auto_animation_tiles[aat] instanceof HTMLElement) {
+                DOM.animateTile(auto_animation_tiles[aat]);
+            }
+        }
     }, false);
 
     requestAnimationFrame(tick);
 });
 window.addEventListener('load', function () {
-    var element_view = document.getElementById('view');
-    var element_clickable_view = document.getElementById('clickable_view');
-    element_clickable_view.addEventListener('click', function (e) {
-        let x = Math.floor(e.offsetX / (SIZE * SCALE));
-        let y = Math.floor(e.offsetY / (SIZE * SCALE));
-        console.log('click', x, y);
-        EDITOR.last_clicked_coordinates = [x, y];
-        // TODO: if you move the camera around after you clicked, you need to re-click or update coordinates
-        var clicked_element = document.querySelector('div.bg-tile[data-x="' + x + '"][data-y="' + y + '"]');
-        // console.log(clicked_element);
-        if (clicked_element) {
-            if (clicked_element.classList.contains('bg-tile')) {
-                // console.log('CLICKED A THING', clicked_element);
-                var bg_tiles = document.querySelectorAll('.bg-tile');
-                for (var i = 0; i < bg_tiles.length; ++i) {
-                    if (bg_tiles[i] instanceof HTMLElement) {
-                        bg_tiles[i].style.border = 'none';
-                    }
-                }
-                clicked_element.style.border = '1px solid red';
-            }
-        }
-    });
     resizeObserver.observe(document.body);
+    LOADER.addRequired('atlas');
+    var atlas = new Image();
+    atlas.onload = function () {
+        LOADER.loaded('atlas');
+    }
+    atlas.src = ATLAS_PNG_FILENAME;
     LOADER.loaded('window_ready');
 });

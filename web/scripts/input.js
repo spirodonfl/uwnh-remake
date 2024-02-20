@@ -25,12 +25,15 @@ var INPUT = {
                 if (evt.code === 'KeyS') {
                     document.getElementById("stats").classList.toggle('hide');
                 } else if (evt.code === 'Digit0') {
+                    // Game Mode
                     INPUT.MODE = 0;
                     EDITOR.updateInputMode();
                 } else if (evt.code === 'Digit1') {
+                    // Editor Mode
                     INPUT.MODE = 1;
                     EDITOR.updateInputMode();
                 } else if (evt.code === 'Digit2') {
+                    // Twitch Mode
                     INPUT.MODE = 2;
                     EDITOR.updateInputMode();
                 }

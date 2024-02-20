@@ -209,6 +209,44 @@ pub fn removeColumnFromWorld(world: u16) !void {
     game.loadWorld(world);
 }
 // pub fn modifyEntity() ????????
+// @wasm
+pub fn addLayerToWorld(world: u16) !void {
+    if (world < embeds.total_worlds) {
+        for (modified_worlds.items) |n_world| {
+            if (n_world.getIndex() == world) {
+                try diff.addData(0);
+                try n_world.addLayer();
+                break;
+            }
+        } else { // not found. get here when loop goes through all items
+            try diff.addData(0);
+            try game.worlds_list.at(world).readDataFromEmbedded();
+            try game.worlds_list.at(world).addLayer();
+            try modified_worlds.append(game.worlds_list.at(world));
+        }
+    } else {
+        // TODO: Means that we have stuff in the editor as entirely new world
+    }
+}
+// @wasm
+pub fn injectLayerToWorldAfter(world: u16, layer_index: u16) !void {
+    if (world < embeds.total_worlds) {
+        for (modified_worlds.items) |n_world| {
+            if (n_world.getIndex() == world) {
+                try diff.addData(0);
+                try n_world.injectLayerAfter(layer_index);
+                break;
+            }
+        } else { // not found. get here when loop goes through all items
+            try diff.addData(0);
+            try game.worlds_list.at(world).readDataFromEmbedded();
+            try game.worlds_list.at(world).injectLayerAfter(layer_index);
+            try modified_worlds.append(game.worlds_list.at(world));
+        }
+    } else {
+        // TODO: Means that we have stuff in the editor as entirely new world
+    }
+}
 
 // @wasm
 pub fn getWorldMemoryLocation(world: u16) !*u16 {
