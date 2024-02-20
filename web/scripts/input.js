@@ -6,6 +6,8 @@
 // Ok thought about it. Not a branch.
 // You want to have a ***separate*** set of inputs for editor mode vs normal/game mode
 var INPUT = {
+    MODE: 0,
+    MODES: ['Game', 'Editor', 'Twitch'],
     startListening: function() {
         window.addEventListener('keyup', function (evt) {
             console.log(evt);
@@ -22,52 +24,24 @@ var INPUT = {
             if (evt.shiftKey === true) {
                 if (evt.code === 'KeyS') {
                     document.getElementById("stats").classList.toggle('hide');
+                } else if (evt.code === 'Digit0') {
+                    INPUT.MODE = 0;
+                    EDITOR.updateInputMode();
+                } else if (evt.code === 'Digit1') {
+                    INPUT.MODE = 1;
+                    EDITOR.updateInputMode();
+                } else if (evt.code === 'Digit2') {
+                    INPUT.MODE = 2;
+                    EDITOR.updateInputMode();
                 }
             }
 
-            // Note: This has to be up top so it's captured before the other KeyD is captured for moving the player around
-            if (evt.code === 'KeyD' && evt.shiftKey === true) {
-                // DELETE COLLISION BLOCK
-                EDITOR.removeCollision();
-            } else if (evt.code === 'KeyA' && evt.shiftKey === true) {
-                // ADD COLLISION BLOCK
-                EDITOR.addCollision();
-            } else if (evt.code === 'KeyE' && evt.shiftKey === true) {
-                // TODO: show editor UI
-            } else if (evt.code === 'KeyW') {
-                // UP
-                _GAME.inputs_inputUp(0);
-            } else if (evt.code === 'KeyS') {
-                // DOWN
-                _GAME.inputs_inputDown(0);
-            } else if (evt.code === 'KeyA') {
-                // LEFT
-                _GAME.inputs_inputLeft(0);
-            } else if (evt.code === 'KeyD') {
-                // RIGHT
-                _GAME.inputs_inputRight(0);
-            } else if (evt.code === 'Space') {
-                // ATTACK
-                _GAME.game_entityAttack(0, 8);
-                    if (_GAME.game_entityGetHealth((9-1)) <= 0) {
-                        DISABLE_KRAKEN();
-                    }
-
-            } else if (evt.code === 'KeyQ') {
-                // FULL SCREEN MENU
-            } else if (evt.code === 'ArrowUp') {
-                // UPDATE CAMERA AND RE-RENDER VIEWPORT
-            } else if (evt.code === 'ArrowDown') {
-                // UPDATE CAMERA AND RE-RENDER VIEWPORT
-            } else if (evt.code === 'ArrowLeft') {
-                // UPDATE CAMERA AND RE-RENDER VIEWPORT
-            } else if (evt.code === 'ArrowRight') {
-                // UPDATE CAMERA AND RE-RENDER VIEWPORT
-            } else if (evt.code === 'Digit2' && evt.shiftKey === true) {
-                // TURN ON EDITOR MODE
-                // SHOW COLLISION BLOCKs
-                // IF EDITOR MODE ON, TURN IT OFF
-                // HIDE COLLISION BLOCKS
+            if (INPUT.MODE === 0) {
+                GAME.handleInput(evt);
+            } else if (INPUT.MODE === 1) {
+                EDITOR.handleInput(evt);
+            } else if (INPUT.MODE === 2) {
+                TWITCH.handleInput(evt);
             }
         });
     },

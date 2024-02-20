@@ -74,6 +74,29 @@ var EDITOR = {
             EDITOR.memoryToBin(_GAME.editor_getWorldMemoryLocation(0), _GAME.editor_getWorldMemoryLength(0), "world_0.bin");
         }
     },
+    updateInputMode: function () {
+        // This is actually inside of the twitch panel
+        // TODO: Create input_mode as a CLASS so you can put it multiple panels
+        var input_mode = document.getElementById('input_mode');
+        input_mode.innerHTML = INPUT.MODES[INPUT.MODE];
+    },
+    handleInput: function (inputEvent) {
+        if (inputEvent.shiftKey === true) {
+            if (inputEvent.code === 'KeyD') {
+                // DELETE COLLISION BLOCK
+                EDITOR.removeCollision();
+            } else if (inputEvent.code === 'KeyA') {
+                // ADD COLLISION BLOCK
+                EDITOR.addCollision();
+            } else if (inputEvent.code === 'KeyE') {
+                var editor_panel = document.getElementById('editor_panel');
+                editor_panel.classList.toggle('hide');
+            }
+        }
+    },
+
+    // TWITCH EDITOR STUFF
+    // TODO: Should probably move this out to a twitch file of some kind
     updateEntityName: function (entity_id, new_name) {
         var entity_name = document.getElementById('entity_name_' + entity_id);
         console.log('EDITOR: ', entity_name);
@@ -82,11 +105,21 @@ var EDITOR = {
     updateShipEditorName: function (entity_id, name) {
         var ship_editor_name = document.getElementById('ship_' + entity_id);
         console.log('EDITOR: ', ship_editor_name);
-        var player_index = SHIPS_TO_PLAYER.indexOf(name);
+        var player_index = TWITCH.SHIPS_TO_PLAYER.indexOf(name);
         if (player_index !== -1) {
-            ship_editor_name.innerHTML = '<span style="color: ' + SHIPS_TO_PLAYER_COLORCODE[player_index] + '">' + name + '</span>';
+            console.trace('EDITOR: ', TWITCH.SHIPS_TO_PLAYER_COLORCODE[player_index]);
+            ship_editor_name.innerHTML = '<span style="color: ' + TWITCH.SHIPS_TO_PLAYER_COLORCODE[player_index] + '">' + name + '</span>';
         } else {
+            console.trace('EDITOR: NOT FOUND - ', name);
             ship_editor_name.innerHTML = name;
         }
-    }
+    },
+    updateGameMode: function () {
+        var game_mode = document.getElementById('game_mode');
+        if (TWITCH.GAME_MODE === 0) {
+            game_mode.innerHTML = 'Real Time';
+        } else if (TWITCH.GAME_MODE === 1) {
+            game_mode.innerHTML = 'Turn Based';
+        }
+    },
 };

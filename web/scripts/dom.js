@@ -16,45 +16,57 @@ const ENUM_IMAGES = [
     'images/Ship_Spawn.gif', // 7
     'images/Sea_Tile.gif', // 8
     'images/Ship_Attack.gif', // 9
+    'images/Ship_1_64.png', // 10
+    'images/Ship_2_64.png', // 11
+    'images/Ship_3_64.png', // 12
+    'images/Ship_4_64.png', // 13
+    'images/Ship_5_64.png', // 14
+    'images/Animated_Water_Tiles_8_Frames.png', // 15
+    'images/ground-tiles/island tiles1.png', // 16
+    'images/Kraken_7_frames.png', // 17
 ];
 
 // x, y, health, on/off
 var OCTOPUS = [13, 5, 20, false];
 function ENABLE_KRAKEN() {
-    _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 0);
-    OCTOPUS[0] = 13;
-    OCTOPUS[1] = 5;
-    OCTOPUS[2] = 20;
-    OCTOPUS[3] = true;
-    _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
-    _GAME.game_entitySetHealth((9-1), 44);
-    OCTOPUS[2] = 44;
-    _GAME.diff_addData(0);
-    if (GAME_MODE === 0) {
-        randomInterval((stop) => {
-            if (_GAME.game_entityGetHealth((9-1)) > 0 || OCTOPUS[3] === true) {
+    if (!OCTOPUS[3]) {
+        _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 0);
+        OCTOPUS[0] = 13;
+        OCTOPUS[1] = 5;
+        OCTOPUS[2] = 20;
+        OCTOPUS[3] = true;
+        _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
+        _GAME.game_entitySetHealth((9-1), 44);
+        OCTOPUS[2] = 44;
+        _GAME.diff_addData(0);
+        if (TWITCH.GAME_MODE === 0) {
+            randomInterval((stop) => {
+                // TODO: If the kraken is back on we gotta turn this back on too
+                if (TWITCH.GAME_MODE === 1) { stop(); }
+                if (_GAME.game_entityGetHealth((9-1)) > 0 || OCTOPUS[3] === true) {
+                    COMMANDS_TO_FUNCTIONS.autoKraken();
+                } else {
+                    var evil_octopus = document.querySelector('.evil-octopus');
+                    _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 0);
+                    OCTOPUS[0] = 0;
+                    OCTOPUS[1] = 0;
+                    _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
+                    evil_octopus.style.display = 'none';
+                    stop();
+                }
+                // else stop();
+            }, 1000, 2000);
+        } else if (TWITCH.GAME_MODE === 1) {
+            var have_players = false;
+            for (var s_my_d = 0; s_my_d < TWITCH.SHIPS_TO_PLAYER.length; ++s_my_d) {
+                if (TWITCH.SHIPS_TO_PLAYER[s_my_d] !== null) {
+                    have_players = true;
+                    break;
+                }
+            }
+            if (!have_players) {
                 COMMANDS_TO_FUNCTIONS.autoKraken();
-            } else {
-                var evil_octopus = document.querySelector('.evil-octopus');
-                _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 0);
-                OCTOPUS[0] = 0;
-                OCTOPUS[1] = 0;
-                _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
-                evil_octopus.style.display = 'none';
-                stop();
             }
-            // else stop();
-        }, 1000, 2000);
-    } else if (GAME_MODE === 1) {
-        var have_players = false;
-        for (var s_my_d = 0; s_my_d < SHIPS_TO_PLAYER.length; ++s_my_d) {
-            if (SHIPS_TO_PLAYER[s_my_d] !== null) {
-                have_players = true;
-                break;
-            }
-        }
-        if (!have_players) {
-            COMMANDS_TO_FUNCTIONS.autoKraken();
         }
     }
 }
@@ -75,7 +87,7 @@ let DOM = {
     frameCallbacks: [],
     addRunOnFrames: function (frames, callback, clearOnRun) {
         for (var i = 0; i < this.frameCallbacks.length; ++i) {
-            if (this.frameCallbacks[i] === null) {
+            if (this.frameCallbacks[i] === false) {
                 this.frameCallbacks[i] = [0, frames, callback, clearOnRun];
                 return i;
             }
@@ -84,22 +96,26 @@ let DOM = {
         return this.frameCallbacks.length - 1;
     },
     removeRunOnFrames: function (index) {
-        this.frameCallbacks[i] = null;
+        this.frameCallbacks[i] = false;
     },
     runOnFrames: function () {
         for (let i = 0; i < this.frameCallbacks.length; ++i) {
-            if (this.frameCallbacks[i] === null) {
+            if (this.frameCallbacks[i] === false) {
                 continue;
             }
             ++this.frameCallbacks[i][0];
             if (this.frameCallbacks[i][0] === this.frameCallbacks[i][1]) {
+                console.log('RUNNING FRAME CALLBACKS', this.frameCallbacks[i]);
                 this.frameCallbacks[i][0] = 0;
-                console.log('running frame', this.frameCallbacks[i]);
-                this.frameCallbacks[i][2]();
+                var cb = this.frameCallbacks[i][2];
                 if (this.frameCallbacks[i][3] === true) {
-                    console.log('clearing frame callback');
-                    this.frameCallbacks[i] = null;
+                    this.frameCallbacks[i] = false;
                 }
+                // this.frameCallbacks[i][2]();
+                cb();
+                // if (this.frameCallbacks[i][3] === true) {
+                //     this.frameCallbacks[i] = false;
+                // }
             }
         }
     },
@@ -223,10 +239,12 @@ function tick() {
                 var viewport_y = Math.floor(i / DOM.width);
                 var viewport_x = i % DOM.width;
                 if (_GAME.viewport_getData(viewport_x, viewport_y)) {
-                    var img = ENUM_IMAGES[2];
+                    var img = ENUM_IMAGES[15];
                     var el = document.createElement('div');
                     el.classList.add('bg-tile');
                     el.style.backgroundImage = 'url("' + img + '")';
+                    el.style.setProperty('--animation-frame', '1');
+                    el.style.backgroundPosition = "calc(64px * var(--animation-frame))";
                     el.style.width = (SIZE * SCALE) + 'px';
                     el.style.height = (SIZE * SCALE) + 'px';
                     el.style.position = 'absolute';
@@ -268,11 +286,13 @@ function tick() {
                         } else if (entity_type === 98) {
                             OCTOPUS[0] = _GAME.game_translateViewportXToWorldX(viewport_x);
                             OCTOPUS[1] = _GAME.game_translateViewportYToWorldY(viewport_y);
-                            var img = ENUM_IMAGES[6];
+                            var img = ENUM_IMAGES[17];
                             var entity = document.createElement('div');
                             entity.classList.add('evil-octopus');
                             entity.style.backgroundImage = 'url("' + img + '")';
                             entity.style.backgroundSize = 'cover';
+                            entity.style.setProperty('--animation-frame', '1');
+                            entity.style.backgroundPosition = "calc(64px * var(--animation-frame))";
                             entity.style.width = (SIZE * SCALE) + 'px';
                             entity.style.height = (SIZE * SCALE) + 'px';
                             entity.style.position = 'absolute';
@@ -303,14 +323,7 @@ function tick() {
                             entity.appendChild(name_element);
                             document.getElementById('view').appendChild(entity);
                         } else if (entity_id > 0) {
-                            var img = ENUM_IMAGES[4];
-                            // When animation for 7 is done, change this to 4
-                            if (entity_id === 2) {
-                                img = ENUM_IMAGES[3];
-                            }
-                            if (entity_id >= 3) {
-                                img = ENUM_IMAGES[4];
-                            }
+                            var img = ENUM_IMAGES[15 - entity_id];
                             var entity = document.createElement('div');
                             if (entity_id === 1) {
                                 entity.id = 'the_player';
@@ -336,7 +349,7 @@ function tick() {
                             // health_element.innerHTML = _GAME.game_entityGetHealth((entity_id - 1));
                             var health_progress = document.createElement('progress');
                             health_progress.style.width = (SIZE * SCALE) + 'px';
-                            health_progress.style.setProperty('--health-color', SHIPS_TO_PLAYER_COLORCODE[(entity_id - 1)]);
+                            health_progress.style.setProperty('--health-color', TWITCH.SHIPS_TO_PLAYER_COLORCODE[(entity_id - 1)]);
                             health_progress.max = 10;
                             health_progress.value = _GAME.game_entityGetHealth((entity_id - 1));
                             health_element.appendChild(health_progress);
@@ -346,11 +359,11 @@ function tick() {
                             name_element.classList.add('name');
                             name_element.innerHTML = 'Entity ' + entity_id;
                             // TODO: This is a hack, but it's a good hack for now, to get player names from websocket integration
-                            if (typeof SHIPS_TO_PLAYER !== 'undefined') {
-                                var player_index = SHIPS_TO_PLAYER[(entity_id - 1)];
+                            if (typeof TWITCH.SHIPS_TO_PLAYER !== 'undefined') {
+                                var player_index = TWITCH.SHIPS_TO_PLAYER[(entity_id - 1)];
                                 if (player_index !== -1) {
                                     name_element.innerHTML = player_index;
-                                    entity.style.borderTop = '4px solid ' + SHIPS_TO_PLAYER_COLORCODE[(entity_id - 1)];
+                                    entity.style.borderTop = '4px solid ' + TWITCH.SHIPS_TO_PLAYER_COLORCODE[(entity_id - 1)];
                                 }
                             }
                             entity.appendChild(name_element);
@@ -363,7 +376,11 @@ function tick() {
                     if (collision === 1) {
                         var collision = document.createElement('div');
                         collision.classList.add('collision');
-                        collision.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                        // TODO: Instead of rendering the collision, render the tile underneath and keep the collision invisible
+                        // OR alternatively, set an entity as a blocker entity
+                        // collision.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                        collision.style.backgroundImage = 'url("' + ENUM_IMAGES[16] + '")';
+                        collision.style.backgroundSize = 'cover';
                         collision.style.width = (SIZE * SCALE) + 'px';
                         collision.style.height = (SIZE * SCALE) + 'px';
                         collision.style.position = 'absolute';
@@ -429,6 +446,33 @@ LOADER.events.addEventListener('loaded', function () {
     _GAME.game_setWorldData(0, 1, 21, 10, 8);
     _GAME.editor_createEntity(98);
     _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
+
+    DOM.addRunOnFrames(10, function () {
+        var bg_tiles = document.querySelectorAll('.bg-tile');
+        for (var b = 0; b < bg_tiles.length; ++b) {
+            if (bg_tiles[b] instanceof HTMLElement) {
+                var animation_frame = bg_tiles[b].style.getPropertyValue('--animation-frame');
+                animation_frame = parseInt(animation_frame);
+                ++animation_frame;
+                if (animation_frame > 8) {
+                    animation_frame = 1;
+                }
+                bg_tiles[b].style.setProperty('--animation-frame', animation_frame);
+            }
+        }
+        var octopi = document.querySelectorAll('.evil-octopus');
+        for (var o = 0; o < octopi.length; ++o) {
+            if (octopi[o] instanceof HTMLElement) {
+                var animation_frame = octopi[o].style.getPropertyValue('--animation-frame');
+                animation_frame = parseInt(animation_frame);
+                ++animation_frame;
+                if (animation_frame > 7) {
+                    animation_frame = 1;
+                }
+                octopi[o].style.setProperty('--animation-frame', animation_frame);
+            }
+        }
+    }, false);
 
     requestAnimationFrame(tick);
 });

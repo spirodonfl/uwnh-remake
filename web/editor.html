@@ -19,7 +19,7 @@
         <link rel="stylesheet" type="text/css" href="styles/juice-it-animations.css" />
     </head>
     <body>
-        <div class="editor draggable hide">
+        <div id="editor_panel" class="editor draggable hide">
             <div class="draggable-header draggable-handle">&nbsp;</div>
             <div class="title">Current World: 0</div>
             <div class="btn" onclick="_GAME.editor_addRowToWorld(0);">Add Row</div>
@@ -41,7 +41,7 @@
             <div class="title">LEADERBOARD</div>
             <div id="leaderboard"></div>
         </div>
-        <div class="editor draggable twitch">
+        <div id="twitch_sidebar" class="editor draggable twitch">
             <div class="draggable-header draggable-handle">&nbsp;</div>
             <div class="title">CURRENT SHIPS</div>
             <div class="ship_slot" id="ship_1">[EMPTY]</div>
@@ -50,6 +50,12 @@
             <div class="ship_slot" id="ship_4">[EMPTY]</div>
             <div class="ship_slot" id="ship_5">[EMPTY]</div>
             <div class="ship_slot" id="ship_6">BOSS</div>
+            <div><hr/></div>
+            <div class="title">Current Game Mode</div>
+            <div id="game_mode">Real Time</div>
+            <div><hr/></div>
+            <div class="title">Current Input Mode</div>
+            <div id="input_mode">Game</div>
             <div><hr/></div>
             <div class="title">COMMANDS</div>
             <div class="twitch_chat_command">!gamecommands</div>
@@ -63,10 +69,12 @@
             <div class="twitch_chat_command">To attack, stand next to your target</div>
             <div class="twitch_chat_command">Above, below, left or right of target</div>
             <div class="twitch_chat_command">Redeem 2k channel points for a Kraken</div>
+            <div class="twitch_chat_command">Redeem 1k channel points for random map</div>
             <div><hr/></div>
             <div class="twitch_chat_command">[MODS/VIPS]</div>
             <div class="twitch_chat_command">!reset</div>
             <div class="twitch_chat_command">!kraken</div>
+            <div class="twitch_chat_command">!random [seed]</div>
             <div><hr/></div>
             <div class="twitch_chat_command">"H" stands for health</div>
             <div class="twitch_chat_command">Attack an "H" to get health</div>
@@ -91,14 +99,32 @@
                 <div class="todo-item">- Add more ships</div>
                 <div class="todo-item">- Teams?</div>
                 <div class="todo-item">- Ramming & Whirlpools</div>
-                <div class="todo-item">- Color code ships to users</div>
                 <div class="todo-item">- bug - leaderboard points</div>
                 <div class="todo-item">- Choose your movement mode (!set vim)</div>
-                <div class="todo-item">- Voter role not able to spawn (RYAN)</div>
                 <div class="todo-item">- When boss killed, ship disappears?</div>
                 <div class="todo-item">- Add combat log</div>
-                <div class="todo-item">- Add tinted color overlay to ships</div>
-                <div class="todo-item">- Ship controls borked when ship dies and someone spawns in later</div>
+                <div class="todo-item">- When you run !gamecommands, spirodonfl user account spawns and does actions cause it's on that account</div>
+                <div class="todo-item">- Typing the command !kraken moves you one to the right. Not enough filter?</div>
+                <div class="todo-item">- A way to highlight yourself/ship from twitch</div>
+                <div class="todo-item">- If you enter the !done command you get moved DOWN instead of DONE-ed</div>
+                <div class="todo-item">- Attack animation kinda does some screwy stuff and sets your ship to the default image at the end</div>
+                <div class="todo-item">- ATTRIBUTION</div>
+                <div>johnnymarler</div>
+                <div>xpdatabase</div>
+                <div>ateraz</div>
+                <div>diva</div>
+                <div>leostera</div>
+                <div>ryanwinchester</div>
+                <div>twostep</div>
+                <div>hectorjeam</div>
+                <div>adjective</div>
+                <div>blind</div>
+                <div>axolot</div>
+                <div>doclock</div>
+                <div>khalifa</div>
+                <div>rvice</div>
+                <div>laughing panda</div>
+                <div>master snoods</div>
             </div>
         </div>
         <div id="stats"></div>
