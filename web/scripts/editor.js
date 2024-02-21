@@ -10,6 +10,7 @@ var EDITOR = {
     mode: 0,
     mode_as_string: ['Normal', 'Auto Pull Value', 'Show All Values'],
     current_asset_coords: [0, 0],
+    last_clicked_element: null,
     init: function () {
         this.updateEditorModeDisplay();
 
@@ -29,6 +30,16 @@ var EDITOR = {
         this.current_asset_img_el.style.backgroundImage = 'url("' + ATLAS_PNG_FILENAME + '")';
         this.updateCurrentAssetImg();
 
+        this.last_clicked_element = document.createElement('div');
+        this.last_clicked_element.classList.add('hide');
+        this.last_clicked_element.style.width = (SIZE * SCALE) + 'px';
+        this.last_clicked_element.style.height = (SIZE * SCALE) + 'px';
+        this.last_clicked_element.style.position = 'absolute';
+        this.last_clicked_element.style.border = '2px solid red';
+        // TODO: Is there a better way to track & set this?
+        this.last_clicked_element.style.zIndex = 99999;
+        document.getElementById('view').appendChild(this.last_clicked_element);
+
         var element_view = document.getElementById('view');
         var element_clickable_view = document.getElementById('clickable_view');
         element_clickable_view.addEventListener('click', function (e) {
@@ -40,18 +51,9 @@ var EDITOR = {
             }
             // TODO: Better than this, generate a border div element with z-index over top of everything
             // TODO: if you move the camera around after you clicked, you need to re-click or update coordinates
-            var clicked_element = document.querySelector('div.bg-tile[data-x="' + x + '"][data-y="' + y + '"]');
-            if (clicked_element) {
-                if (clicked_element.classList.contains('bg-tile')) {
-                    var bg_tiles = document.querySelectorAll('.bg-tile');
-                    for (var i = 0; i < bg_tiles.length; ++i) {
-                        if (bg_tiles[i] instanceof HTMLElement) {
-                            bg_tiles[i].style.border = 'none';
-                        }
-                    }
-                    clicked_element.style.border = '1px solid red';
-                }
-            }
+            EDITOR.last_clicked_element.classList.remove('hide');
+            EDITOR.last_clicked_element.style.left = (x * (SIZE * SCALE)) + 'px';
+            EDITOR.last_clicked_element.style.top = (y * (SIZE * SCALE)) + 'px';
         });
     },
     updateCurrentAssetImg() {
@@ -121,6 +123,11 @@ var EDITOR = {
     addLog: function (msg) {
         var log = document.getElementById('editor_console');
         // log.innerHTML += msg + '\n';
+    },
+    convertArrayToBlob: function (array) {
+        const json_string = JSON.stringify(array, null, 2);
+        const blob = new Blob([json_string], { type: 'application/json' });
+        return blob;
     },
     editorDownload: function (data, file_name) {
         const link = document.createElement('a');

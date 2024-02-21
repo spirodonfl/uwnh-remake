@@ -304,7 +304,7 @@ var TWITCH = {
                 // * pause the game
                 // * highlighting a specific user/entity
             } else if (event.code === 'KeyP') {
-                THIS.PAUSED = !THIS.PAUSED;
+                TWITCH.PAUSED = !TWITCH.PAUSED;
                 EDITOR.updateGameMode();
             } else if (event.code === 'KeyH') {
                 var twitch_sidebar = document.getElementById('twitch_sidebar');

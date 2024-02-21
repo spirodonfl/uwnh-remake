@@ -125,15 +125,7 @@ var LAYER_ID_TO_IMAGE = {
         return this.data[layer][id][frame];
     }
 };
-// LAYER_ID_TO_IMAGE.setImage(0, 0, 15);
-LAYER_ID_TO_IMAGE.setImageCoords(0, 0, 0, 0, 8);
-LAYER_ID_TO_IMAGE.setImageCoords(1, 200, 2048, 0, 1);
-LAYER_ID_TO_IMAGE.setImageCoords(1, 201, 2560, 0, 1);
-LAYER_ID_TO_IMAGE.setImage(2, 1, 10);
-LAYER_ID_TO_IMAGE.setImage(2, 2, 11);
-LAYER_ID_TO_IMAGE.setImage(2, 3, 12);
-LAYER_ID_TO_IMAGE.setImage(2, 4, 13);
-LAYER_ID_TO_IMAGE.setImage(2, 5, 14);
+// TODO: instead of raw pixel values, use x/y coordinates translated INTO pixel values
 
 // TODO: Actually get these values from WASM, not from here
 var BG_TILE = 0;
@@ -567,23 +559,25 @@ function tick() {
                     }
 
                     ++layer;
-                    var collision = _GAME.game_getWorldAtViewport(COLLISION_LAYER, viewport_x, viewport_y);
-                    if (collision === 1) {
-                        var collision = document.createElement('div');
-                        DOM.setLayerToTile(collision, COLLISION_LAYER);
-                        DOM.setZIndexToTile(collision, COLLISION_LAYER);
-                        collision.classList.add('collision');
-                        collision.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-                        // collision.style.backgroundImage = 'url("' + ENUM_IMAGES[16] + '")';
-                        // collision.style.backgroundSize = 'cover';
-                        collision.style.width = (SIZE * SCALE) + 'px';
-                        collision.style.height = (SIZE * SCALE) + 'px';
-                        collision.style.position = 'absolute';
-                        collision.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
-                        collision.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
-                        collision.dataset.x = viewport_x;
-                        collision.dataset.y = viewport_y;
-                        document.getElementById('view').appendChild(collision);
+                    if (INPUT.MODES[INPUT.MODE] === 'Editor') {
+                        var collision = _GAME.game_getWorldAtViewport(COLLISION_LAYER, viewport_x, viewport_y);
+                        if (collision === 1) {
+                            var collision = document.createElement('div');
+                            DOM.setLayerToTile(collision, COLLISION_LAYER);
+                            DOM.setZIndexToTile(collision, COLLISION_LAYER);
+                            collision.classList.add('collision');
+                            collision.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                            // collision.style.backgroundImage = 'url("' + ENUM_IMAGES[16] + '")';
+                            // collision.style.backgroundSize = 'cover';
+                            collision.style.width = (SIZE * SCALE) + 'px';
+                            collision.style.height = (SIZE * SCALE) + 'px';
+                            collision.style.position = 'absolute';
+                            collision.style.left = (viewport_x * (SIZE * SCALE)) + 'px';
+                            collision.style.top = (viewport_y * (SIZE * SCALE)) + 'px';
+                            collision.dataset.x = viewport_x;
+                            collision.dataset.y = viewport_y;
+                            document.getElementById('view').appendChild(collision);
+                        }
                     }
                 }
             }
@@ -682,13 +676,47 @@ LOADER.events.addEventListener('loaded', function () {
 
     requestAnimationFrame(tick);
 });
+
+
+function loadJsonFile(filePath, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.overrideMimeType('application/json');
+    xhr.open('GET', filePath, true);
+
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+            if (xhr.status === 200) {
+                var jsonData;
+            try {
+                jsonData = JSON.parse(xhr.responseText);
+            } catch (error) {
+                console.error('Error parsing JSON:', error.message);
+            }
+            callback(jsonData);
+        } else {
+            console.error('Failed to fetch JSON file (' + xhr.status + ' ' + xhr.statusText + ')');
+            callback(null);
+        }
+    }
+    };
+
+    xhr.send();
+}
 window.addEventListener('load', function () {
     resizeObserver.observe(document.body);
     LOADER.addRequired('atlas');
+    LOADER.addRequired('layer_id_to_image_json');
     var atlas = new Image();
     atlas.onload = function () {
         LOADER.loaded('atlas');
     }
     atlas.src = ATLAS_PNG_FILENAME;
+    var jsonFilePath = 'json/layer_id_to_image.json';
+    loadJsonFile(jsonFilePath, function(data) {
+        if (data) {
+            LAYER_ID_TO_IMAGE.data = data;
+            LOADER.loaded('layer_id_to_image_json');
+        }
+    });
     LOADER.loaded('window_ready');
 });

@@ -72,9 +72,33 @@
         "y": 0.5
       }
     },
-    "images/KRAKEN.gif": {
+    "images/Island_temporary.png": {
       "frame": {
         "x": 1024,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 64
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "images/KRAKEN.gif": {
+      "frame": {
+        "x": 1088,
         "y": 0,
         "w": 64,
         "h": 64
@@ -98,7 +122,7 @@
     },
     "images/Karken_64.png": {
       "frame": {
-        "x": 1088,
+        "x": 1152,
         "y": 0,
         "w": 64,
         "h": 64
@@ -122,7 +146,7 @@
     },
     "images/Ship_1_64-2.png": {
       "frame": {
-        "x": 1152,
+        "x": 1216,
         "y": 0,
         "w": 64,
         "h": 64
@@ -146,7 +170,7 @@
     },
     "images/Ship_1_64.png": {
       "frame": {
-        "x": 1216,
+        "x": 1280,
         "y": 0,
         "w": 64,
         "h": 64
@@ -170,7 +194,7 @@
     },
     "images/Ship_2_64-3.png": {
       "frame": {
-        "x": 1280,
+        "x": 1344,
         "y": 0,
         "w": 64,
         "h": 64
@@ -194,7 +218,7 @@
     },
     "images/Ship_2_64.png": {
       "frame": {
-        "x": 1344,
+        "x": 1408,
         "y": 0,
         "w": 64,
         "h": 64
@@ -218,7 +242,7 @@
     },
     "images/Ship_3_64.png": {
       "frame": {
-        "x": 1408,
+        "x": 1472,
         "y": 0,
         "w": 64,
         "h": 64
@@ -242,7 +266,7 @@
     },
     "images/Ship_4_64.png": {
       "frame": {
-        "x": 1472,
+        "x": 1536,
         "y": 0,
         "w": 64,
         "h": 64
@@ -266,7 +290,7 @@
     },
     "images/Ship_5_64.png": {
       "frame": {
-        "x": 1536,
+        "x": 1600,
         "y": 0,
         "w": 64,
         "h": 64
@@ -290,7 +314,7 @@
     },
     "images/Ship_64-1.png": {
       "frame": {
-        "x": 1600,
+        "x": 1664,
         "y": 0,
         "w": 64,
         "h": 64
@@ -314,7 +338,7 @@
     },
     "images/Ship_Attack.gif": {
       "frame": {
-        "x": 1664,
+        "x": 1728,
         "y": 0,
         "w": 64,
         "h": 64
@@ -338,7 +362,7 @@
     },
     "images/Ship_Spawn.gif": {
       "frame": {
-        "x": 1728,
+        "x": 1792,
         "y": 0,
         "w": 64,
         "h": 64
@@ -362,7 +386,7 @@
     },
     "images/Tree1 (Custom).png": {
       "frame": {
-        "x": 1792,
+        "x": 1856,
         "y": 0,
         "w": 64,
         "h": 64
@@ -386,7 +410,7 @@
     },
     "images/Tree2 (Custom).png": {
       "frame": {
-        "x": 1856,
+        "x": 1920,
         "y": 0,
         "w": 64,
         "h": 64
@@ -410,7 +434,7 @@
     },
     "images/Tree3 (Custom).png": {
       "frame": {
-        "x": 1920,
+        "x": 1984,
         "y": 0,
         "w": 64,
         "h": 64
@@ -434,7 +458,7 @@
     },
     "images/Tree4 (Custom).png": {
       "frame": {
-        "x": 1984,
+        "x": 2048,
         "y": 0,
         "w": 64,
         "h": 64
@@ -458,7 +482,7 @@
     },
     "images/ground-tiles/island tiles1.png": {
       "frame": {
-        "x": 2048,
+        "x": 2112,
         "y": 0,
         "w": 64,
         "h": 64
@@ -482,7 +506,7 @@
     },
     "images/ground-tiles/island tiles10.png": {
       "frame": {
-        "x": 2112,
+        "x": 2176,
         "y": 0,
         "w": 64,
         "h": 64
@@ -506,7 +530,7 @@
     },
     "images/ground-tiles/island tiles11.png": {
       "frame": {
-        "x": 2176,
+        "x": 2240,
         "y": 0,
         "w": 64,
         "h": 64
@@ -530,7 +554,7 @@
     },
     "images/ground-tiles/island tiles12.png": {
       "frame": {
-        "x": 2240,
+        "x": 2304,
         "y": 0,
         "w": 64,
         "h": 64
@@ -554,7 +578,7 @@
     },
     "images/ground-tiles/island tiles13.png": {
       "frame": {
-        "x": 2304,
+        "x": 2368,
         "y": 0,
         "w": 64,
         "h": 64
@@ -578,7 +602,7 @@
     },
     "images/ground-tiles/island tiles14.png": {
       "frame": {
-        "x": 2368,
+        "x": 2432,
         "y": 0,
         "w": 64,
         "h": 64
@@ -602,7 +626,7 @@
     },
     "images/ground-tiles/island tiles15.png": {
       "frame": {
-        "x": 2432,
+        "x": 2496,
         "y": 0,
         "w": 64,
         "h": 64
@@ -626,7 +650,7 @@
     },
     "images/ground-tiles/island tiles16.png": {
       "frame": {
-        "x": 2496,
+        "x": 2560,
         "y": 0,
         "w": 64,
         "h": 64
@@ -650,7 +674,7 @@
     },
     "images/ground-tiles/island tiles17.png": {
       "frame": {
-        "x": 2560,
+        "x": 2624,
         "y": 0,
         "w": 64,
         "h": 64
@@ -674,7 +698,7 @@
     },
     "images/ground-tiles/island tiles18.png": {
       "frame": {
-        "x": 2624,
+        "x": 2688,
         "y": 0,
         "w": 64,
         "h": 64
@@ -698,7 +722,7 @@
     },
     "images/ground-tiles/island tiles19.png": {
       "frame": {
-        "x": 2688,
+        "x": 2752,
         "y": 0,
         "w": 64,
         "h": 64
@@ -722,7 +746,7 @@
     },
     "images/ground-tiles/island tiles2.png": {
       "frame": {
-        "x": 2752,
+        "x": 2816,
         "y": 0,
         "w": 64,
         "h": 64
@@ -746,7 +770,7 @@
     },
     "images/ground-tiles/island tiles20.png": {
       "frame": {
-        "x": 2816,
+        "x": 2880,
         "y": 0,
         "w": 64,
         "h": 64
@@ -770,7 +794,7 @@
     },
     "images/ground-tiles/island tiles21.png": {
       "frame": {
-        "x": 2880,
+        "x": 2944,
         "y": 0,
         "w": 64,
         "h": 64
@@ -794,8 +818,8 @@
     },
     "images/ground-tiles/island tiles22.png": {
       "frame": {
-        "x": 2944,
-        "y": 0,
+        "x": 0,
+        "y": 64,
         "w": 64,
         "h": 64
       },
@@ -818,7 +842,7 @@
     },
     "images/ground-tiles/island tiles23.png": {
       "frame": {
-        "x": 0,
+        "x": 64,
         "y": 64,
         "w": 64,
         "h": 64
@@ -842,7 +866,7 @@
     },
     "images/ground-tiles/island tiles24.png": {
       "frame": {
-        "x": 64,
+        "x": 128,
         "y": 64,
         "w": 64,
         "h": 64
@@ -866,7 +890,7 @@
     },
     "images/ground-tiles/island tiles25.png": {
       "frame": {
-        "x": 128,
+        "x": 192,
         "y": 64,
         "w": 64,
         "h": 64
@@ -890,7 +914,7 @@
     },
     "images/ground-tiles/island tiles26.png": {
       "frame": {
-        "x": 192,
+        "x": 256,
         "y": 64,
         "w": 64,
         "h": 64
@@ -914,7 +938,7 @@
     },
     "images/ground-tiles/island tiles27.png": {
       "frame": {
-        "x": 256,
+        "x": 320,
         "y": 64,
         "w": 64,
         "h": 64
@@ -938,7 +962,7 @@
     },
     "images/ground-tiles/island tiles28.png": {
       "frame": {
-        "x": 320,
+        "x": 384,
         "y": 64,
         "w": 64,
         "h": 64
@@ -962,7 +986,7 @@
     },
     "images/ground-tiles/island tiles29.png": {
       "frame": {
-        "x": 384,
+        "x": 448,
         "y": 64,
         "w": 64,
         "h": 64
@@ -986,7 +1010,7 @@
     },
     "images/ground-tiles/island tiles3.png": {
       "frame": {
-        "x": 448,
+        "x": 512,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1010,7 +1034,7 @@
     },
     "images/ground-tiles/island tiles30.png": {
       "frame": {
-        "x": 512,
+        "x": 576,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1034,7 +1058,7 @@
     },
     "images/ground-tiles/island tiles31.png": {
       "frame": {
-        "x": 576,
+        "x": 640,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1058,7 +1082,7 @@
     },
     "images/ground-tiles/island tiles32.png": {
       "frame": {
-        "x": 640,
+        "x": 704,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1082,7 +1106,7 @@
     },
     "images/ground-tiles/island tiles33.png": {
       "frame": {
-        "x": 704,
+        "x": 768,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1106,7 +1130,7 @@
     },
     "images/ground-tiles/island tiles34.png": {
       "frame": {
-        "x": 768,
+        "x": 832,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1130,7 +1154,7 @@
     },
     "images/ground-tiles/island tiles35.png": {
       "frame": {
-        "x": 832,
+        "x": 896,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1154,7 +1178,7 @@
     },
     "images/ground-tiles/island tiles36.png": {
       "frame": {
-        "x": 896,
+        "x": 960,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1178,7 +1202,7 @@
     },
     "images/ground-tiles/island tiles37.png": {
       "frame": {
-        "x": 960,
+        "x": 1024,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1202,7 +1226,7 @@
     },
     "images/ground-tiles/island tiles38.png": {
       "frame": {
-        "x": 1024,
+        "x": 1088,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1226,7 +1250,7 @@
     },
     "images/ground-tiles/island tiles39.png": {
       "frame": {
-        "x": 1088,
+        "x": 1152,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1250,7 +1274,7 @@
     },
     "images/ground-tiles/island tiles4.png": {
       "frame": {
-        "x": 1152,
+        "x": 1216,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1274,7 +1298,7 @@
     },
     "images/ground-tiles/island tiles40.png": {
       "frame": {
-        "x": 1216,
+        "x": 1280,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1298,7 +1322,7 @@
     },
     "images/ground-tiles/island tiles41.png": {
       "frame": {
-        "x": 1280,
+        "x": 1344,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1322,7 +1346,7 @@
     },
     "images/ground-tiles/island tiles42.png": {
       "frame": {
-        "x": 1344,
+        "x": 1408,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1346,7 +1370,7 @@
     },
     "images/ground-tiles/island tiles43.png": {
       "frame": {
-        "x": 1408,
+        "x": 1472,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1370,7 +1394,7 @@
     },
     "images/ground-tiles/island tiles44.png": {
       "frame": {
-        "x": 1472,
+        "x": 1536,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1394,7 +1418,7 @@
     },
     "images/ground-tiles/island tiles45.png": {
       "frame": {
-        "x": 1536,
+        "x": 1600,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1418,7 +1442,7 @@
     },
     "images/ground-tiles/island tiles46.png": {
       "frame": {
-        "x": 1600,
+        "x": 1664,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1442,7 +1466,7 @@
     },
     "images/ground-tiles/island tiles47.png": {
       "frame": {
-        "x": 1664,
+        "x": 1728,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1466,7 +1490,7 @@
     },
     "images/ground-tiles/island tiles5.png": {
       "frame": {
-        "x": 1728,
+        "x": 1792,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1490,7 +1514,7 @@
     },
     "images/ground-tiles/island tiles6.png": {
       "frame": {
-        "x": 1792,
+        "x": 1856,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1514,7 +1538,7 @@
     },
     "images/ground-tiles/island tiles7.png": {
       "frame": {
-        "x": 1856,
+        "x": 1920,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1538,7 +1562,7 @@
     },
     "images/ground-tiles/island tiles8.png": {
       "frame": {
-        "x": 1920,
+        "x": 1984,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1562,7 +1586,7 @@
     },
     "images/ground-tiles/island tiles9.png": {
       "frame": {
-        "x": 1984,
+        "x": 2048,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1586,7 +1610,7 @@
     },
     "images/matisse-ship-1-removebg-preview.png": {
       "frame": {
-        "x": 2048,
+        "x": 2112,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1610,7 +1634,7 @@
     },
     "images/ocaml-big.png": {
       "frame": {
-        "x": 2112,
+        "x": 2176,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1634,7 +1658,7 @@
     },
     "images/ocean-bg-1.gif": {
       "frame": {
-        "x": 2176,
+        "x": 2240,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1658,7 +1682,7 @@
     },
     "images/sample-tileset-1.gif": {
       "frame": {
-        "x": 2240,
+        "x": 2304,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1682,7 +1706,7 @@
     },
     "images/ship-1.gif": {
       "frame": {
-        "x": 2304,
+        "x": 2368,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1706,7 +1730,7 @@
     },
     "images/ship-4.png": {
       "frame": {
-        "x": 2368,
+        "x": 2432,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1730,7 +1754,7 @@
     },
     "images/ship_attack_1.png": {
       "frame": {
-        "x": 2432,
+        "x": 2496,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1754,7 +1778,7 @@
     },
     "images/ship_attack_10.png": {
       "frame": {
-        "x": 2496,
+        "x": 2560,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1778,7 +1802,7 @@
     },
     "images/ship_attack_11.png": {
       "frame": {
-        "x": 2560,
+        "x": 2624,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1802,7 +1826,7 @@
     },
     "images/ship_attack_12.png": {
       "frame": {
-        "x": 2624,
+        "x": 2688,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1826,7 +1850,7 @@
     },
     "images/ship_attack_13.png": {
       "frame": {
-        "x": 2688,
+        "x": 2752,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1850,7 +1874,7 @@
     },
     "images/ship_attack_14.png": {
       "frame": {
-        "x": 2752,
+        "x": 2816,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1874,7 +1898,7 @@
     },
     "images/ship_attack_2.png": {
       "frame": {
-        "x": 2816,
+        "x": 2880,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1898,7 +1922,7 @@
     },
     "images/ship_attack_3.png": {
       "frame": {
-        "x": 2880,
+        "x": 2944,
         "y": 64,
         "w": 64,
         "h": 64
@@ -1922,30 +1946,6 @@
     },
     "images/ship_attack_4.png": {
       "frame": {
-        "x": 2944,
-        "y": 64,
-        "w": 64,
-        "h": 64
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 64,
-        "h": 64
-      },
-      "sourceSize": {
-        "w": 64,
-        "h": 64
-      },
-      "pivot": {
-        "x": 0.5,
-        "y": 0.5
-      }
-    },
-    "images/ship_attack_5.png": {
-      "frame": {
         "x": 0,
         "y": 128,
         "w": 64,
@@ -1968,7 +1968,7 @@
         "y": 0.5
       }
     },
-    "images/ship_attack_6.png": {
+    "images/ship_attack_5.png": {
       "frame": {
         "x": 64,
         "y": 128,
@@ -1992,7 +1992,7 @@
         "y": 0.5
       }
     },
-    "images/ship_attack_7.png": {
+    "images/ship_attack_6.png": {
       "frame": {
         "x": 128,
         "y": 128,
@@ -2016,7 +2016,7 @@
         "y": 0.5
       }
     },
-    "images/ship_attack_8.png": {
+    "images/ship_attack_7.png": {
       "frame": {
         "x": 192,
         "y": 128,
@@ -2040,9 +2040,33 @@
         "y": 0.5
       }
     },
-    "images/ship_attack_9.png": {
+    "images/ship_attack_8.png": {
       "frame": {
         "x": 256,
+        "y": 128,
+        "w": 64,
+        "h": 64
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 64,
+        "h": 64
+      },
+      "sourceSize": {
+        "w": 64,
+        "h": 64
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "images/ship_attack_9.png": {
+      "frame": {
+        "x": 320,
         "y": 128,
         "w": 64,
         "h": 64
