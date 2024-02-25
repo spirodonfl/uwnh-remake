@@ -12,6 +12,7 @@ var TWITCH = {
     LEADERBOARD: {},
     KRAKEN_PLAYER: null,
     PAUSED: false,
+    ALERT_ELEMENT: false,
     init: function () {
         var twitch_elements = document.querySelectorAll('.twitch');
         for (var i = 0; i < twitch_elements.length; i++) {
@@ -89,7 +90,7 @@ var TWITCH = {
                         // Start with specific [full] commands first
                         // Then check for "chained" commands
                         // - should make it easy to read numbers from the chain
-                        if (COMMANDS[cmd] === 0 && COMMANDS_TO_FUNCTIONS[cmd]) {
+                        if (COMMANDS[cmd] === 0) {
                             COMMANDS_TO_FUNCTIONS[cmd](user);
                             continue;
                         }
@@ -135,28 +136,28 @@ var TWITCH = {
             ));
         };
         // TODO: Rate throttle the messages
-        var alert_element = null;
         this.streamerbot_ws.onmessage = function (event) {
             // grab message and parse JSON
             const msg = event.data;
             const wsdata = JSON.parse(msg);
             console.log('STREAMERBOTDATA:', wsdata);
 
-            if (!alert_element) {
-                var alert_element = document.createElement('div');
-                alert_element.style.position = 'absolute';
-                alert_element.style.top = '0';
-                alert_element.style.left = '0';
-                alert_element.style.width = '100%';
-                alert_element.style.height = '100%';
-                alert_element.style.backgroundColor = 'rgba(0,0,0,0.5)';
-                alert_element.style.color = 'white';
-                alert_element.style.zIndex = '3000';
-                alert_element.style.display = 'none';
-                alert_element.style.justifyContent = 'center';
-                alert_element.style.alignItems = 'center';
-                alert_element.style.fontSize = '2rem';
-                document.body.appendChild(alert_element);
+            if (!TWITCH.ALERT_ELEMENT) {
+                TWITCH.ALERT_ELEMENT = document.createElement('div');
+                TWITCH.ALERT_ELEMENT.id = 'alert_element';
+                TWITCH.ALERT_ELEMENT.style.position = 'absolute';
+                TWITCH.ALERT_ELEMENT.style.top = '0';
+                TWITCH.ALERT_ELEMENT.style.left = '0';
+                TWITCH.ALERT_ELEMENT.style.width = '100%';
+                TWITCH.ALERT_ELEMENT.style.height = '100%';
+                TWITCH.ALERT_ELEMENT.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                TWITCH.ALERT_ELEMENT.style.color = 'white';
+                TWITCH.ALERT_ELEMENT.style.zIndex = '3000';
+                TWITCH.ALERT_ELEMENT.style.display = 'none';
+                TWITCH.ALERT_ELEMENT.style.justifyContent = 'center';
+                TWITCH.ALERT_ELEMENT.style.alignItems = 'center';
+                TWITCH.ALERT_ELEMENT.style.fontSize = '2rem';
+                document.body.appendChild(TWITCH.ALERT_ELEMENT);
             }
 
             if (wsdata.event && wsdata.event.source === 'Twitch') {
@@ -164,6 +165,7 @@ var TWITCH = {
                     wsdata.data.message.displayName = wsdata.data.message.displayName.toLowerCase();
                 }
                 if (wsdata.event.type === 'RewardRedemption') {
+                    TWITCH.ALERT_ELEMENT.innerHTML = `THANK YOU FOR THE REDEEM! ${wsdata.data.reward.title}`;
                     if (wsdata.data.reward.title === 'Kraken') {
                         ENABLE_KRAKEN();
                     }
@@ -197,45 +199,44 @@ var TWITCH = {
                         TWITCH.randomizeCollisions(wsdata.data.user_input);
                     }
                 } else if (wsdata.event.type === 'Raid') {
-                    // alert(`trigger raid event for ${wsdata.data.displayName} ${wsdata.data.viewers}`);
-                    alert_element.innerHTML = `THANK YOU FOR THE RAID! ${wsdata.data.displayName} ${wsdata.data.viewers}`;
+                    TWITCH.ALERT_ELEMENT.innerHTML = `THANK YOU FOR THE RAID! ${wsdata.data.displayName} ${wsdata.data.viewers}`;
                     setTimeout(function() {
-                        alert_element.style.display = 'none';
+                        TWITCH.ALERT_ELEMENT.style.display = 'none';
                     }, 1000);
                     ENABLE_KRAKEN();
                     _GAME.game_entitySetHealth((9-1), wsdata.data.viewers);
                     OCTOPUS[2] = wsdata.data.viewers;
                 } else if (wsdata.event.type === 'Sub' || wsdata.event.type === 'ReSub') {
                     // alert(`trigger sub event for ${wsdata.data.displayName}`);
-                    alert_element.innerHTML = `THANK YOU FOR THE SUB! ${wsdata.data.displayName}`;
+                    TWITCH.ALERT_ELEMENT.innerHTML = `THANK YOU FOR THE SUB! ${wsdata.data.displayName}`;
                     setTimeout(function() {
-                        alert_element.style.display = 'none';
+                        TWITCH.ALERT_ELEMENT.style.display = 'none';
                     }, 1000);
                 } else if (wsdata.event.type === 'GiftSub') {
                     // alert(`trigger Gift sub event for ${wsdata.data.recipientDisplayName}`);
-                    alert_element.innerHTML = `THANK YOU FOR THE GIFT SUB! ${wsdata.data.recipientDisplayName}`;
+                    TWITCH.ALERT_ELEMENT.innerHTML = `THANK YOU FOR THE GIFT SUB! ${wsdata.data.recipientDisplayName}`;
                     setTimeout(function() {
-                        alert_element.style.display = 'none';
+                        TWITCH.ALERT_ELEMENT.style.display = 'none';
                     }, 1000);
                 } else if (wsdata.event.type === 'GiftBomb') {
                     if (wsdata.data.isAnonymous === false) {
                         // alert(`trigger gift bomb event for ${wsdata.data.displayName} ${wsdata.data.gifts} subs`);
-                        alert_element.innerHTML = `THANK YOU FOR THE GIFT BOMB! ${wsdata.data.displayName} ${wsdata.data.gifts} subs`;
+                        TWITCH.ALERT_ELEMENT.innerHTML = `THANK YOU FOR THE GIFT BOMB! ${wsdata.data.displayName} ${wsdata.data.gifts} subs`;
                         setTimeout(function() {
-                            alert_element.style.display = 'none';
+                            TWITCH.ALERT_ELEMENT.style.display = 'none';
                         }, 1000);
                     } else {
                         // alert(`trigger gift bomb event for Anonymous ${wsdata.data.gifts} subs`);
-                        alert_element.innerHTML = `THANK YOU FOR THE GIFT BOMB! Anonymous ${wsdata.data.gifts} subs`;
+                        TWITCH.ALERT_ELEMENT.innerHTML = `THANK YOU FOR THE GIFT BOMB! Anonymous ${wsdata.data.gifts} subs`;
                         setTimeout(function() {
-                            alert_element.style.display = 'none';
+                            TWITCH.ALERT_ELEMENT.style.display = 'none';
                         }, 1000);
                     }
                 } else if (wsdata.event.type === 'Follow') {
                     // alert(`trigger follow event for ${wsdata.data.displayName}`);
-                    alert_element.innerHTML = `THANK YOU FOR THE FOLLOW! ${wsdata.data.displayName}`;
+                    TWITCH.ALERT_ELEMENT.innerHTML = `THANK YOU FOR THE FOLLOW! ${wsdata.data.displayName}`;
                     setTimeout(function() {
-                        alert_element.style.display = 'none';
+                        TWITCH.ALERT_ELEMENT.style.display = 'none';
                     }, 1000);
                 } else if (wsdata.event.type === 'Cheer') {
                     // alert(`trigger cheer event for ${wsdata.data.message.displayName} ${wsdata.data.message.bits}`);
@@ -246,15 +247,17 @@ var TWITCH = {
                             PLAYERS_CRIT_BUFF[player_index] = true;
                         }
                     }
-                    alert_element.innerHTML = `THANK YOU FOR THE CHEER! ${wsdata.data.message.displayName} ${wsdata.data.message.bits}`;
+                    TWITCH.ALERT_ELEMENT.innerHTML = `THANK YOU FOR THE CHEER! ${wsdata.data.message.displayName} ${wsdata.data.message.bits}`;
                     setTimeout(function() {
-                        alert_element.style.display = 'none';
+                        TWITCH.ALERT_ELEMENT.style.display = 'none';
                     }, 1000);
-                } else if (wsdata.event && wsdata.event === "ChatMessage") {
-                    var user = wsdata.data.user;
-                    var message = wsdata.data.message;
-                    if (message) {
-                        message = message.toLowerCase();
+                } else if (wsdata.event && wsdata.event.type === "ChatMessage") {
+                    var user = wsdata.data.message.username;
+                    var role = wsdata.data.message.role;
+                    var message = wsdata.data.message.message;
+                    message = message.toLowerCase();
+                    message = message.substr(1);
+                    if (message && COMMANDS[message] === 1) {
                         if (message === 'up') {
                             COMMANDS_TO_FUNCTIONS.up(user);
                         } else if (message === 'down') {
@@ -272,9 +275,9 @@ var TWITCH = {
                         } else if (message === 'despawn') {
                             COMMANDS_TO_FUNCTIONS.despawn(user);
                         } else if (message === 'kraken') {
-                            COMMANDS_TO_FUNCTIONS.kraken(user);
+                            COMMANDS_TO_FUNCTIONS.kraken(user, role);
                         } else if (message === 'reset') {
-                            COMMANDS_TO_FUNCTIONS.reset(user);
+                            COMMANDS_TO_FUNCTIONS.reset(user, role);
                         } else {
                             console.log('UNKNOWN COMMAND', message);
                         }
@@ -399,48 +402,50 @@ var TWITCH = {
             for (var i = 0; i < this.SHIPS_TO_PLAYER.length; ++i) {
                 if (i !== player_index && _GAME.game_entityGetHealth(i) > 0) {
                     if (this.INVULN_PLAYERS[i] === true) { continue; }
-                    _GAME.game_entityAttack(player_index, i, have_crit);
-
-                    var player_element = document.querySelector('[data-entity-id="' + (player_index + 1) + '"]');
-                    console.log(player_element);
-                    if (player_element) {
-                        player_element.style.backgroundImage = "url('" + ENUM_IMAGES[9] + "')";
-                    }
-                    DOM.addRunOnFrames(60, function() {
+                    var successful_attack = _GAME.game_entityAttack(player_index, i, have_crit);
+                    if (successful_attack) {
                         var player_element = document.querySelector('[data-entity-id="' + (player_index + 1) + '"]');
                         if (player_element) {
-                            player_element.style.backgroundImage = "url('" + ENUM_IMAGES[4] + "')";
+                            player_element.style.backgroundImage = "url('" + ENUM_IMAGES[9] + "')";
                         }
-                    }, true);
-
-                    if (_GAME.game_entityGetHealth(i) <= 0) {
-                        var player_element = document.querySelector('[data-entity-id="' + (i + 1) + '"]');
-                        if (!player_element.classList.contains('animating')) {
-                            // TODO: Implement flush_user command
-                            if (TWITCH.SHIPS_TO_PLAYER[i] !== null) {
-                                TWITCH.killedPlayer(user);
-                                TWITCH.userDone(TWITCH.SHIPS_TO_PLAYER[i]);
-                            }
-                            // TODO: Fix this
-                            /*DOM.addRunOnFrames(20, function() {
-                                // TODO: Put this users state into "animating" or something
-                                userDone(SHIPS_TO_PLAYER[i]);
-                                var player_element = document.querySelector('[data-entity-id="' + (i + 1) + '"]');
-                                if (player_element) {
-                                    player_element.classList.remove('juicy__shake__1');
-                                    player_element.classList.remove('animating');
-                                }
-                            }, true);
+                        DOM.addRunOnFrames(60, function() {
+                            var player_element = document.querySelector('[data-entity-id="' + (player_index + 1) + '"]');
                             if (player_element) {
-                                player_element.classList.add('juicy__shake__1');
-                                player_element.classList.add('animating');
-                            }*/
+                                player_element.style.backgroundImage = "url('" + ENUM_IMAGES[4] + "')";
+                            }
+                        }, true);
+
+                        if (_GAME.game_entityGetHealth(i) <= 0) {
+                            var player_element = document.querySelector('[data-entity-id="' + (i + 1) + '"]');
+                            if (!player_element.classList.contains('animating')) {
+                                // TODO: Implement flush_user command
+                                if (TWITCH.SHIPS_TO_PLAYER[i] !== null) {
+                                    TWITCH.killedPlayer(user);
+                                    TWITCH.userDone(TWITCH.SHIPS_TO_PLAYER[i]);
+                                }
+                                // TODO: Fix this
+                                /*DOM.addRunOnFrames(20, function() {
+                                    // TODO: Put this users state into "animating" or something
+                                    userDone(SHIPS_TO_PLAYER[i]);
+                                    var player_element = document.querySelector('[data-entity-id="' + (i + 1) + '"]');
+                                    if (player_element) {
+                                        player_element.classList.remove('juicy__shake__1');
+                                        player_element.classList.remove('animating');
+                                    }
+                                }, true);
+                                if (player_element) {
+                                    player_element.classList.add('juicy__shake__1');
+                                    player_element.classList.add('animating');
+                                }*/
+                            }
                         }
                     }
                 }
-                _GAME.game_entityAttack(player_index, 9-1, have_crit);
-                if (_GAME.game_entityGetHealth((9-1)) <= 0) {
-                    TWITCH.killedKraken(user);
+                var successful_attack_on_kraken = _GAME.game_entityAttack(player_index, 9-1, have_crit);
+                if (successful_attack_on_kraken) {
+                    if (_GAME.game_entityGetHealth((9-1)) <= 0) {
+                        TWITCH.killedKraken(user);
+                    }
                 }
             }
             for (var i = TWITCH.SHIPS_TO_PLAYER.length; i < 8; ++i) {

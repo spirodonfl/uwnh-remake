@@ -15,6 +15,7 @@
         <script type="text/javascript" src="scripts/dom.js"></script>
         <script type="text/javascript" src="scripts/draggable.js"></script>
         <script type="text/javascript" src="scripts/twitch-streamerbot.js"></script>
+        <script type="text/javascript" src="scripts/player.js"></script>
         <link rel="stylesheet" type="text/css" href="styles/editor.css" />
         <link rel="stylesheet" type="text/css" href="styles/juice-it-animations.css" />
     </head>
@@ -71,20 +72,11 @@
             <div class="twitch_chat_command">!left [!l] (move left)</div>
             <div class="twitch_chat_command">!right [!r] (move right)</div>
             <div class="twitch_chat_command">!attack [!a] (attack)</div>
-            <div class="twitch_chat_command">To attack, stand next to your target</div>
-            <div class="twitch_chat_command">Above, below, left or right of target</div>
-            <div class="twitch_chat_command">Redeem 2k channel points for a Kraken</div>
-            <div class="twitch_chat_command">Redeem 1k channel points for random map</div>
             <div><hr/></div>
             <div class="twitch_chat_command">[MODS/VIPS]</div>
             <div class="twitch_chat_command">!reset</div>
             <div class="twitch_chat_command">!kraken</div>
-            <div class="twitch_chat_command">!random [seed]</div>
-            <div><hr/></div>
-            <div class="twitch_chat_command">"H" stands for health</div>
-            <div class="twitch_chat_command">Attack an "H" to get health</div>
-            <div class="twitch_chat_command">Redeem 500 channel points to</div>
-            <div class="twitch_chat_command">be the Kraken/Ocaml boss</div>
+            <div class="twitch_chat_command hide">!random [seed]</div>
             <div class="hide">
                 <div><hr/></div>
                 <div class="title">TODO</div>
@@ -106,14 +98,14 @@
                 <div class="todo-item">- Ramming & Whirlpools</div>
                 <div class="todo-item">- bug - leaderboard points</div>
                 <div class="todo-item">- Choose your movement mode (!set vim)</div>
-                <div class="todo-item">- When boss killed, ship disappears?</div>
                 <div class="todo-item">- Add combat log</div>
                 <div class="todo-item">- When you run !gamecommands, spirodonfl user account spawns and does actions cause it's on that account</div>
-                <div class="todo-item">- Typing the command !kraken moves you one to the right. Not enough filter?</div>
                 <div class="todo-item">- A way to highlight yourself/ship from twitch</div>
-                <div class="todo-item">- If you enter the !done command you get moved DOWN instead of DONE-ed</div>
                 <div class="todo-item">- Attack animation kinda does some screwy stuff and sets your ship to the default image at the end</div>
-                <div class="todo-item">- BUG: In game mode, whe moving ship around, # of elements increases A LOT and doesn't release</div>
+                <div class="todo-item">- BUG: TWITCH EXTENSION: double clicking buttons fullscreens/unfullscreens the stream</div>
+                <div class="todo-item">- Re-implement randomizer</div>
+                <div class="todo-item">- Twitch extension integration w/ keyboard</div>
+                <div class="todo-item">- Twitch extension integration w/ gamepad</div>
                 <div class="todo-item">- ATTRIBUTION</div>
                 <div>johnnymarler</div>
                 <div>xpdatabase</div>
@@ -121,7 +113,7 @@
                 <div>diva</div>
                 <div>leostera</div>
                 <div>ryanwinchester</div>
-                <div>twostep</div>
+                <div>tw0st3p</div>
                 <div>hectorjeam</div>
                 <div>adjective</div>
                 <div>blind</div>
@@ -131,6 +123,9 @@
                 <div>rvice</div>
                 <div>laughing panda</div>
                 <div>master snoods</div>
+                <div>protonmat</div>
+                <div>jodim___</div>
+                <div>akavenge</div>
             </div>
         </div>
         <div id="stats"></div>

@@ -430,6 +430,7 @@ function tick() {
                     var bg_tile_id = _GAME.game_getWorldAtViewport(layer, viewport_x, viewport_y);
                     if (bg_tile_id > 0) {
                         var el = DOM.generateTileDiv(viewport_x, viewport_y, bg_tile_id);
+                        el.classList.add('bg-tile');
                         DOM.setLayerToTile(el, layer);
                         if (LAYER_ID_TO_IMAGE.getFrames(layer, bg_tile_id) > 0) {
                             DOM.setAutoAnimateOnTile(el);
@@ -641,18 +642,6 @@ LOADER.events.addEventListener('loaded', function () {
     _GAME.game_setWorldData(0, 1, OCTOPUS[0], OCTOPUS[1], 9);
 
     DOM.addRunOnFrames(10, function () {
-        var bg_tiles = document.querySelectorAll('.bg-tile');
-        for (var b = 0; b < bg_tiles.length; ++b) {
-            if (bg_tiles[b] instanceof HTMLElement) {
-                var animation_frame = bg_tiles[b].style.getPropertyValue('--animation-frame');
-                animation_frame = parseInt(animation_frame);
-                ++animation_frame;
-                if (animation_frame > 8) {
-                    animation_frame = 1;
-                }
-                bg_tiles[b].style.setProperty('--animation-frame', animation_frame);
-            }
-        }
         var octopi = document.querySelectorAll('.evil-octopus');
         for (var o = 0; o < octopi.length; ++o) {
             if (octopi[o] instanceof HTMLElement) {

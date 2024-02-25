@@ -1,0 +1,40 @@
+* {
+    font-size: 1.1em;
+}
+p { color: white; }
+.hidden { display: none !important; }
+#controls_grid {
+    display: grid;
+    grid-template-areas: ". up ." "left attack right" ". down done";
+}
+button {
+    text-transform: uppercase;
+    font-weight: bold;
+    background: #ff9cea;
+    color: #900f73;
+}
+#up { grid-area: up; }
+#left { grid-area: left; }
+#right { grid-area: right; }
+#down { grid-area: down; }
+#spawn { grid-area: spawn; }
+#attack { grid-area: attack; }
+#done { grid-area: done; }
+
+#up, #left, #right, #down, #attack, #done {
+    padding: 0.2em;
+}
+
+#reconnect, #spawn {
+    padding: 0.5em;
+}
+
+@media only screen and (max-width: 300px) {
+    button {
+        font-size: 0.9em;
+    }
+
+    #up, #left, #right, #down, #attack, #done, #reconnect, #spawn {
+        padding: 0.1em;
+    }
+}

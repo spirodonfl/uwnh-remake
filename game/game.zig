@@ -471,7 +471,8 @@ pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !bool {
     for (0..size) |i| {
         var x: u16 = @as(u16, @intCast(i % w));
         var y: u16 = @as(u16, @intCast(i / w));
-        var value = getWorldData(current_world_index, 1, x, y);
+        // TODO: Update magic number 2 to be ENTITY_LAYER
+        var value = getWorldData(current_world_index, 2, x, y);
         if (value == (entity + 1)) {
             entity_coords = .{x, y};
         } else if (value == (target + 1)) {
