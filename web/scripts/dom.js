@@ -1,32 +1,33 @@
 const SIZE = 32;
 const SCALE = 2;
 
+var DOM_FOLDER_PREFIX = '/';
 // TODO: This can be its own file in the future, ideally somehow imported auto-magically
 const ENUM_IMAGES = [
     // zig -> ImagesEnum.PlayerImage
-    'images/ship-1.gif', // 0
+    DOM_FOLDER_PREFIX + 'images/ship-1.gif', // 0
     // zig -> ImagesEnum.NPCImage
-    'images/ship-2.gif', // 1
+    DOM_FOLDER_PREFIX + 'images/ship-2.gif', // 1
     // zig -> ImagesEnum.OceanBGImage
-    'images/ocean-bg-1.gif', // 2
-    'images/matisse-ship-1-removebg-preview.png', // 3
-    'images/ship-4.png', // 4
-    'images/EvilOctopus.png', // 5
-    'images/ocaml-big.png', // 6
-    'images/Ship_Spawn.gif', // 7
-    'images/Sea_Tile.gif', // 8
-    'images/Ship_Attack.gif', // 9
-    'images/Ship_1_64.png', // 10
-    'images/Ship_2_64.png', // 11
-    'images/Ship_3_64.png', // 12
-    'images/Ship_4_64.png', // 13
-    'images/Ship_5_64.png', // 14
-    'images/Animated_Water_Tiles_8_Frames.png', // 15
-    'images/ground-tiles/island tiles1.png', // 16
-    'images/Kraken_7_frames.png', // 17
-    'images/ground-tiles/island tiles17.png',
+    DOM_FOLDER_PREFIX + 'images/ocean-bg-1.gif', // 2
+    DOM_FOLDER_PREFIX + 'images/matisse-ship-1-removebg-preview.png', // 3
+    DOM_FOLDER_PREFIX + 'images/ship-4.png', // 4
+    DOM_FOLDER_PREFIX + 'images/EvilOctopus.png', // 5
+    DOM_FOLDER_PREFIX + 'images/ocaml-big.png', // 6
+    DOM_FOLDER_PREFIX + 'images/Ship_Spawn.gif', // 7
+    DOM_FOLDER_PREFIX + 'images/Sea_Tile.gif', // 8
+    DOM_FOLDER_PREFIX + 'images/Ship_Attack.gif', // 9
+    DOM_FOLDER_PREFIX + 'images/Ship_1_64.png', // 10
+    DOM_FOLDER_PREFIX + 'images/Ship_2_64.png', // 11
+    DOM_FOLDER_PREFIX + 'images/Ship_3_64.png', // 12
+    DOM_FOLDER_PREFIX + 'images/Ship_4_64.png', // 13
+    DOM_FOLDER_PREFIX + 'images/Ship_5_64.png', // 14
+    DOM_FOLDER_PREFIX + 'images/Animated_Water_Tiles_8_Frames.png', // 15
+    DOM_FOLDER_PREFIX + 'images/ground-tiles/island tiles1.png', // 16
+    DOM_FOLDER_PREFIX + 'images/Kraken_7_frames.png', // 17
+    DOM_FOLDER_PREFIX + 'images/ground-tiles/island tiles17.png',
 ];
-var ATLAS_PNG_FILENAME = 'images/atlas.png';
+var ATLAS_PNG_FILENAME = DOM_FOLDER_PREFIX + 'images/atlas.png';
 var ATLAS_PNG_FILESIZE = [3008, 2304];
 var LAYER_ID_TO_IMAGE = {
     data: [],
@@ -160,6 +161,7 @@ function ENABLE_KRAKEN() {
                     evil_octopus.style.display = 'none';
                     stop();
                 }
+                TWITCH.broadcastGameState();
                 // else stop();
             }, 1000, 2000);
         } else if (TWITCH.GAME_MODE === 1) {
@@ -700,7 +702,7 @@ window.addEventListener('load', function () {
         LOADER.loaded('atlas');
     }
     atlas.src = ATLAS_PNG_FILENAME;
-    var jsonFilePath = 'json/layer_id_to_image.json';
+    var jsonFilePath = '/json/layer_id_to_image.json';
     loadJsonFile(jsonFilePath, function(data) {
         if (data) {
             LAYER_ID_TO_IMAGE.data = data;

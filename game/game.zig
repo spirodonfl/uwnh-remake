@@ -520,6 +520,38 @@ pub fn entityGetHealth(entity: u16) u16 {
     return entities_list.at(entity).health.current_value;
 }
 // @wasm
+pub fn entityGetWorldX(entity: u16) !u16 {
+    var world = worlds_list.at(current_world_index);
+    var w = world.getWidth();
+    var h = world.getHeight();
+    var size = w * h;
+    for (0..size) |i| {
+        var x: u16 = @as(u16, @intCast(i % w));
+        var y: u16 = @as(u16, @intCast(i / w));
+        if (getWorldData(current_world_index, 2, x, y) == (entity + 1)) {
+            return x;
+        }
+    }
+
+    @panic("Entity not found in world");
+}
+// @wasm
+pub fn entityGetWorldY(entity: u16) !u16 {
+    var world = worlds_list.at(current_world_index);
+    var w = world.getWidth();
+    var h = world.getHeight();
+    var size = w * h;
+    for (0..size) |i| {
+        var x: u16 = @as(u16, @intCast(i % w));
+        var y: u16 = @as(u16, @intCast(i / w));
+        if (getWorldData(current_world_index, 2, x, y) == (entity + 1)) {
+            return y;
+        }
+    }
+
+    @panic("Entity not found in world");
+}
+// @wasm
 pub fn entityGetType(entity: u16) u16 {
     if (entity >= entities_list.len) {
         var offset_index = entity - entities_list.len;

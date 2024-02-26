@@ -21,7 +21,8 @@ const importObject = {
         },
     }
 };
-WebAssembly.instantiateStreaming(fetch("/wasm/game.wasm"), importObject).then(
+var DOM_FOLDER_PREFIX = '/'; // original = /
+WebAssembly.instantiateStreaming(fetch(DOM_FOLDER_PREFIX + "wasm/game.wasm"), importObject).then(
     (results) => {
         _GAME = results.instance.exports;
         LOADER.loaded('wasm');

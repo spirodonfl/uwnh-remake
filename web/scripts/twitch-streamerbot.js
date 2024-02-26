@@ -1,3 +1,15 @@
+// TWITCH.ryans_ws.send(JSON.stringify({
+//     "send": {
+//         "user": "spirodonfl",
+//         "payload": { "spawn": true }
+//     }
+// });
+// TWITCH.ryans_ws.send(JSON.stringify({
+//     "broadcast": {
+//         "payload": { "spawn": true }
+//     }
+// });
+
 // TODO: Apply a keyboard shortcut along with the #twitch hash to enable twitch mode
 var TWITCH = {
     ryans_ws: null,
@@ -44,7 +56,7 @@ var TWITCH = {
                             "^random [a-zA-Z0-9\\s]+$"
                         ]
                     },
-                    "set_rate": 500,
+                    "set_rate": 50,
                 }
             ));
             TWITCH.updateLeaderboard();
@@ -356,6 +368,39 @@ var TWITCH = {
         this.LEADERBOARD[user] = this.LEADERBOARD[user] + 3 || 3;
         this.addToLeaderboard(user);
     },
+    broadcastGameState: function () {
+        // TODO: Kraken somehow
+        var player_coords = [];
+        var health = [];
+        // NOTE: Nope, not gonna work. The entity memory doesn't contain current world location. Only world data contains entity location.
+        for (var i = 0; i < this.SHIPS_TO_PLAYER.length; i++) {
+            player_coords.push([_GAME.game_entityGetWorldX(i), _GAME.game_entityGetWorldY(i)]);
+            health.push(_GAME.game_entityGetHealth(i));
+            // var entity_memory = EDITOR.extractMemory(_GAME.editor_getEntityMemoryLocation(i), _GAME.editor_getEntityMemoryLength(i));
+            // _GAME.game_entityGetHealth()
+            // _GAME.game_entityGetType()
+            // Note: on multiplayer.js, simply run _GAME.entity_setHealth() -> easy
+            //
+        }
+        // var world_memory = EDITOR.extractMemory(_GAME.editor_getWorldMemoryLocation(0), _GAME.editor_getWorldMemoryLength(0));
+        // _GAME.game_setWorldData(world_memory);
+        // this.SHIPS_TO_PLAYER
+        var kraken_coords = [_GAME.game_entityGetWorldX(8), _GAME.game_entityGetWorldY(8)];
+        var kraken_health = _GAME.game_entityGetHealth(8);
+        this.ryans_ws.send(JSON.stringify({
+            "broadcast": {
+                "payload": {
+                    "players": this.SHIPS_TO_PLAYER,
+                    "health": health,
+                    "kraken": this.KRAKEN_PLAYER,
+                    "player_coords": player_coords,
+                    "kraken_coords": kraken_coords,
+                    "kraken_health": kraken_health,
+                    "kraken_on": OCTOPUS[3],
+                },
+            }
+        }));
+    },
     handleUp: function(user) {
         // Get the current player matching against PLAYER_TO_SHIP, get index of PLAYER_TO_SHIP, then call inputs_inputUp with that index
         var player_index = this.SHIPS_TO_PLAYER.indexOf(user);
@@ -364,6 +409,7 @@ var TWITCH = {
             this.INVULN_PLAYERS[player_index] = null;
         }
         // _GAME.inputs_inputUp(0);
+        this.broadcastGameState();
     },
     handleDown: function(user) {
         var player_index = this.SHIPS_TO_PLAYER.indexOf(user);
@@ -372,6 +418,7 @@ var TWITCH = {
             this.INVULN_PLAYERS[player_index] = null;
         }
         // _GAME.inputs_inputDown(0);
+        this.broadcastGameState();
     },
     handleLeft: function(user) {
         var player_index = this.SHIPS_TO_PLAYER.indexOf(user);
@@ -380,6 +427,7 @@ var TWITCH = {
             this.INVULN_PLAYERS[player_index] = null;
         }
         // _GAME.inputs_inputLeft(0);
+        this.broadcastGameState();
     },
     handleRight: function(user) {
         var player_index = this.SHIPS_TO_PLAYER.indexOf(user);
@@ -388,6 +436,7 @@ var TWITCH = {
             this.INVULN_PLAYERS[player_index] = null;
         }
         // _GAME.inputs_inputRight(0);
+        this.broadcastGameState();
     },
     handleAttack: function(user) {
         console.log('HANDLEATTACK', user);
@@ -459,6 +508,7 @@ var TWITCH = {
         } else {
             console.log('PLAYER NOT FOUND', user);
         }
+        this.broadcastGameState();
     },
     userSpawn: function (user) {
         // First make sure the player isn't already in the game
@@ -489,6 +539,7 @@ var TWITCH = {
                 }
             }
         }
+        this.broadcastGameState();
     },
     userDespawn: function (user, role, message) {
         if (role >= 2) {
@@ -518,6 +569,7 @@ var TWITCH = {
         } else {
             console.log('PLAYER NOT FOUND', user);
         }
+        this.broadcastGameState();
     },
     randomizeCollisions: function (seed_string) {
         var seed = cyrb128(seed_string);
@@ -846,29 +898,3 @@ window.addEventListener('load', function() {
         });
     }
 });
-
-function TEST_PLAYER_IN_RYANS_BACKEND() {
-    var player_ryans_backend = new WebSocket('wss://spirodon.games/playersocket/websocket');
-    player_ryans_backend.onerror = function() {
-        console.log('S_MY_D');
-        player_ryans_backend.close();
-    };
-    player_ryans_backend.onclose = function() {
-        console.log('S-ED_MY_D');
-    };
-    player_ryans_backend.onmessage = function(event) {
-        var data = JSON.parse(event.data);
-        console.log('PLAYERINRYANSBACKEND', data);
-    };
-    player_ryans_backend.onopen = function() {
-        player_ryans_backend.send(JSON.stringify({
-            "command": "down",
-            "ts": 1708315762,
-            "user": {
-                "display_name": "RyanWinchester_",
-                "user_login": "ryanwinchester_",
-                "channel": "spirodonfl"
-            }
-        }));
-    };
-}
