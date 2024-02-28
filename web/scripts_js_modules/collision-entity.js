@@ -11,7 +11,7 @@ export class CollisionEntity extends Entity {
                 left: ${this.left}px;
                 top: ${this.top}px;
                 z-index: ${this.layer};
-                background-color: rgba(0, 0, 0, 0.18);
+                background-color: rgba(0, 0, 0, 0.4);
             }
             </style>
             <div></div>

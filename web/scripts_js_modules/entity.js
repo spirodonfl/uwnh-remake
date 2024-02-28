@@ -1,6 +1,7 @@
 export class Entity extends HTMLElement {
     constructor() {
         super();
+        this.entity_id = null;
         this.attachShadow({mode: 'open'});
     }
 
@@ -49,10 +50,6 @@ export class Entity extends HTMLElement {
     render() {
         this.style.backgroundImage = `url("${GLOBALS.ATLAS_PNG_FILENAME}")`;
         var image_frame_coords = this.getImageCoords(this.layer, this.entity_id, 0);
-        console.log({image_frame_coords, id: this.entity_id, layer: this.layer});
-        if (this.layer === 2 && this.entity_id === 1) {
-            console.log('image_frame_coords', image_frame_coords);
-        }
         if (image_frame_coords !== null && image_frame_coords !== undefined) {
             this.style.backgroundPosition = '-' + image_frame_coords[0] + 'px -' + image_frame_coords[1] + 'px';
         }

@@ -77,6 +77,8 @@ pub const WorldDataEnum = enum(u16) {
     ID = 0,
     Width = 1,
     Height = 2,
+    EntityLayer = 3,
+    CollisionLayer = 4,
     pub usingnamespace EnumHelpers(@This());
 };
 

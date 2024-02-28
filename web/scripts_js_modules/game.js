@@ -1,16 +1,14 @@
 import { wasm } from './injector_wasm.js';
 import { Entity } from './entity.js';
 import { CollisionEntity } from './collision-entity.js';
+import { ViewportEntity } from './viewport-entity.js';
 var _GAME = wasm.instance.exports;
 customElements.define('entity-component', Entity);
 customElements.define('collision-entity-component', CollisionEntity);
+customElements.define('viewport-entity-component', ViewportEntity);
 
 // TODO
 // Multi step
-// *. Load atlas.png image file
-// *. Load layer_id_to_image.json
-// *. run the sizeView function to get the viewport size
-// *. setup the event listener for resizing so it updates the viewport & size (resizeObserver)
 // *. kick-off the loop that runs the animation frames for anything with animations in it in the DOM
 // *. run the requestAnimationFrame loop with a tick function
 // *. pretty much the tick function iterates over frames and executes rendering of any appropriate entities and whatnot
@@ -85,10 +83,6 @@ export class Game extends HTMLElement {
         for (var i = 0; i < entity_components.length; ++i) {
             entity_components[i].remove();
         }
-        var collision_entity_components = this.shadowRoot.getElementById('view').querySelectorAll('collision-entity-component');
-        for (var i = 0; i < collision_entity_components.length; ++i) {
-            collision_entity_components[i].remove();
-        }
         var y = 0;
         var x = 0;
         var cwi = _GAME.game_getCurrentWorldIndex();
@@ -154,7 +148,6 @@ export class Game extends HTMLElement {
                         div.style.zIndex = layer;
                         this.shadowRoot.getElementById('view').appendChild(div);
                     } else if (entity_id > 0) {
-                        console.log('entity_id', entity_id);
                         var new_entity = document.createElement('entity-component');
                         new_entity.updateSize();
                         new_entity.setViewportXY(viewport_x, viewport_y);
@@ -163,20 +156,6 @@ export class Game extends HTMLElement {
                         this.shadowRoot.getElementById('view').appendChild(new_entity);
                     }
                 }
-
-                ++layer;
-                // if (INPUT.MODES[INPUT.MODE] === 'Editor') {
-                    // TODO: Should pull COLLISION_LAYER from the wasm file
-                    var COLLISION_LAYER = 3;
-                    var collision = _GAME.game_getWorldAtViewport(COLLISION_LAYER, viewport_x, viewport_y);
-                    if (collision === 1) {
-                        var collision_entity = document.createElement('collision-entity-component');
-                        collision_entity.updateSize();
-                        collision_entity.setViewportXY(viewport_x, viewport_y);
-                        collision_entity.setLayer(layer);
-                        this.shadowRoot.getElementById('view').appendChild(collision_entity);
-                    }
-                // }
             }
         }
     }
@@ -258,15 +237,14 @@ export class Game extends HTMLElement {
         this.x_padding = x_padding;
         this.y_padding = y_padding;
         // Dispatch an event to let the editor know the size of the viewport
-        var event = new CustomEvent('viewport-size', {
-            detail: {
+        GLOBALS.EVENTBUS.triggerEvent('viewport-size', [
+            {
                 width: this.width,
                 height: this.height,
                 x_padding: this.x_padding,
                 y_padding: this.y_padding
             }
-        });
-        this.dispatchEvent(event);
+        ]);
     }
 
     render() {

@@ -84,8 +84,9 @@ extern fn console_log_flush() void;
 // -----------------------------------------------------------------------------------------
 // TODO: need another default layer for current positions of entities
 pub const WorldDataStruct = struct {
-    offset: u16 = 3,
+    offset: u16 = 5,
     data: std.ArrayListUnmanaged(u16) = .{},
+    // TODO: This needs to get updated
     layers: u16 = 3,
     has_data: bool = false,
     // TODO: You tried to pass a pointer to the embedded data so you don't have duplicate data BUT then the pointer was only updating a single instance of EmbeddedDataStruct (and then self.index in that struct was incrementing and going out of bounds)
@@ -184,12 +185,12 @@ pub const WorldDataStruct = struct {
             var new_data: std.ArrayListUnmanaged(u16) = .{};
             var current_offset: u16 = self.offset - 1;
             for (self.data.items, 0..) |item, i| {
-                if (i == 0) {
-                    try new_data.append(allocator, item);
-                } else if (i == 1) {
-                    try new_data.append(allocator, item);
-                } else if (i == 2) {
-                    try new_data.append(allocator, item + 1);
+                if (i < self.offset) {
+                    if (i == enums.WorldDataEnum.Height.int()) {
+                        try new_data.append(allocator, item + 1);
+                    } else {
+                        try new_data.append(allocator, item);
+                    }
                 } else {
                     try new_data.append(allocator, item);
                     var leftover: u16 = @as(u16, @intCast(i)) - current_offset;
@@ -215,12 +216,12 @@ pub const WorldDataStruct = struct {
             var new_data: std.ArrayListUnmanaged(u16) = .{};
             var current_offset: u16 = self.offset - 1;
             for (self.data.items, 0..) |item, i| {
-                if (i == 0) {
-                    try new_data.append(allocator, item);
-                } else if (i == 1) {
-                    try new_data.append(allocator, item + 1);
-                } else if (i == 2) {
-                    try new_data.append(allocator, item);
+                if (i < self.offset) {
+                    if (i == enums.WorldDataEnum.Width.int()) {
+                        try new_data.append(allocator, item + 1);
+                    } else {
+                        try new_data.append(allocator, item);
+                    }
                 } else {
                     try new_data.append(allocator, item);
                     var leftover: u16 = @as(u16, @intCast(i)) - current_offset;
@@ -247,12 +248,12 @@ pub const WorldDataStruct = struct {
             // For any layer, at the end of each layer, remove a row of row_size
             var new_data: std.ArrayListUnmanaged(u16) = .{};
             for (self.data.items, 0..) |item, i| {
-                if (i == 0) {
-                    try new_data.append(allocator, item);
-                } else if (i == 1) {
-                    try new_data.append(allocator, item);
-                } else if (i == 2) {
-                    try new_data.append(allocator, item - 1);
+                if (i < self.offset) {
+                    if (i == enums.WorldDataEnum.Height.int()) {
+                        try new_data.append(allocator, item - 1);
+                    } else {
+                        try new_data.append(allocator, item);
+                    }
                 } else {
                     if (current_row < total_rows - 1) {
                         try new_data.append(allocator, item);
@@ -288,12 +289,12 @@ pub const WorldDataStruct = struct {
             // For any layer, at the end of each layer, remove a row of row_size
             var new_data: std.ArrayListUnmanaged(u16) = .{};
             for (self.data.items, 0..) |item, i| {
-                if (i == 0) {
-                    try new_data.append(allocator, item);
-                } else if (i == 1) {
-                    try new_data.append(allocator, item - 1);
-                } else if (i == 2) {
-                    try new_data.append(allocator, item);
+                if (i < self.offset) {
+                    if (i == enums.WorldDataEnum.Width.int()) {
+                        try new_data.append(allocator, item - 1);
+                    } else {
+                        try new_data.append(allocator, item);
+                    }
                 } else {
                     if (current_column < row_size - 1) {
                         try new_data.append(allocator, item);
@@ -328,11 +329,7 @@ pub const WorldDataStruct = struct {
             var new_data: std.ArrayListUnmanaged(u16) = .{};
             var current_layer: u16 = 0;
             for (self.data.items, 0..) |item, i| {
-                if (i == 0) {
-                    try new_data.append(allocator, item);
-                } else if (i == 1) {
-                    try new_data.append(allocator, item);
-                } else if (i == 2) {
+                if (i < self.offset) {
                     try new_data.append(allocator, item);
                 } else {
                     try new_data.append(allocator, item);
