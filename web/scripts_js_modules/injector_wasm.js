@@ -1,7 +1,6 @@
 import { _WASM_IMPORTS } from "./injector_wasm_imports.js";
 
 const wasmPath = import.meta.resolve("/wasm/game.wasm");
-console.log(wasmPath);
 
 var global_current_log = "";
 

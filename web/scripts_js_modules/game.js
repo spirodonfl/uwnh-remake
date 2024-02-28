@@ -1,5 +1,9 @@
 import { wasm } from './injector_wasm.js';
+import { Entity } from './entity.js';
+import { CollisionEntity } from './collision-entity.js';
 var _GAME = wasm.instance.exports;
+customElements.define('entity-component', Entity);
+customElements.define('collision-entity-component', CollisionEntity);
 
 // TODO
 // Multi step
@@ -20,6 +24,8 @@ export class Game extends HTMLElement {
         super();
         this.width = 0;
         this.height = 0;
+        this.x_padding = 0;
+        this.y_padding = 0;
         this.atlas = null;
         
         // TODO: Put this in a loader sub object
@@ -41,6 +47,7 @@ export class Game extends HTMLElement {
         atlas.src = GLOBALS.ATLAS_PNG_FILENAME;
         this.loadJsonFile(GLOBALS.LAYER_ID_TO_IMAGE_JSON_FILENAME, (data) => {
             if (data) {
+                GLOBALS.LAYER_ID_TO_IMAGE = data;
                 this.layer_id_to_image_loaded = true;
                 this.loaded();
             }
@@ -73,7 +80,15 @@ export class Game extends HTMLElement {
     }
 
     renderGame() {
-        // console.log('RENDERING VIEWPORT');
+        // TODO: Be smart. Only remove components you need and update existing ones
+        var entity_components = this.shadowRoot.getElementById('view').querySelectorAll('entity-component');
+        for (var i = 0; i < entity_components.length; ++i) {
+            entity_components[i].remove();
+        }
+        var collision_entity_components = this.shadowRoot.getElementById('view').querySelectorAll('collision-entity-component');
+        for (var i = 0; i < collision_entity_components.length; ++i) {
+            collision_entity_components[i].remove();
+        }
         var y = 0;
         var x = 0;
         var cwi = _GAME.game_getCurrentWorldIndex();
@@ -86,28 +101,22 @@ export class Game extends HTMLElement {
                 var layer = 0;
                 var bg_tile_id = _GAME.game_getWorldAtViewport(layer, viewport_x, viewport_y);
                 if (bg_tile_id >= 0) {
-                    var div = document.createElement('div');
-                    div.style.width = (GLOBALS.SIZE * GLOBALS.SCALE) + 'px';
-                    div.style.height = (GLOBALS.SIZE * GLOBALS.SCALE) + 'px';
-                    div.style.position = 'absolute';
-                    div.style.left = (viewport_x * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-                    div.style.top = (viewport_y * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-                    div.style.backgroundColor = 'rgba(0, 255, 0, .7)';
-                    div.style.zindex = layer;
-                    //this.shadowRoot.getElementById('view').appendChild(div);
+                    var new_entity = document.createElement('entity-component');
+                    new_entity.updateSize();
+                    new_entity.setViewportXY(viewport_x, viewport_y);
+                    new_entity.setLayer(layer);
+                    new_entity.setEntityId(bg_tile_id);
+                    this.shadowRoot.getElementById('view').appendChild(new_entity);
                 }
                 ++layer;
                 var bg_tile_id = _GAME.game_getWorldAtViewport(layer, viewport_x, viewport_y);
                 if (bg_tile_id > 0) {
-                    var div = document.createElement('div');
-                    div.style.width = (GLOBALS.SIZE * GLOBALS.SCALE) + 'px';
-                    div.style.height = (GLOBALS.SIZE * GLOBALS.SCALE) + 'px';
-                    div.style.position = 'absolute';
-                    div.style.left = (viewport_x * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-                    div.style.top = (viewport_y * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-                    div.style.backgroundColor = 'rgba(0, 255, 0, .7)';
-                    div.style.zindex = layer;
-                    //this.shadowRoot.getElementById('view').appendChild(div);
+                    var new_entity = document.createElement('entity-component');
+                    new_entity.updateSize();
+                    new_entity.setViewportXY(viewport_x, viewport_y);
+                    new_entity.setLayer(layer);
+                    new_entity.setEntityId(bg_tile_id);
+                    this.shadowRoot.getElementById('view').appendChild(new_entity);
                 }
 
                 ++layer;
@@ -131,7 +140,7 @@ export class Game extends HTMLElement {
                         div.style.left = (viewport_x * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
                         div.style.top = (viewport_y * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
                         div.style.backgroundColor = 'rgba(255, 0, 0, .7)';
-                        div.style.zindex = layer;
+                        div.style.zIndex = layer;
                         this.shadowRoot.getElementById('view').appendChild(div);
                     } else if (entity_type === 98) {
                         console.log('octopus');
@@ -142,19 +151,16 @@ export class Game extends HTMLElement {
                         div.style.left = (viewport_x * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
                         div.style.top = (viewport_y * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
                         div.style.backgroundColor = 'rgba(0, 0, 255, .7)';
-                        div.style.zindex = layer;
+                        div.style.zIndex = layer;
                         this.shadowRoot.getElementById('view').appendChild(div);
                     } else if (entity_id > 0) {
-                        console.log('other entity, npc or player');
-                        var div = document.createElement('div');
-                        div.style.width = (GLOBALS.SIZE * GLOBALS.SCALE) + 'px';
-                        div.style.height = (GLOBALS.SIZE * GLOBALS.SCALE) + 'px';
-                        div.style.position = 'absolute';
-                        div.style.left = (viewport_x * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-                        div.style.top = (viewport_y * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-                        div.style.backgroundColor = 'rgba(100, 100, 255, .7)';
-                        div.style.zindex = layer;
-                        this.shadowRoot.getElementById('view').appendChild(div);
+                        console.log('entity_id', entity_id);
+                        var new_entity = document.createElement('entity-component');
+                        new_entity.updateSize();
+                        new_entity.setViewportXY(viewport_x, viewport_y);
+                        new_entity.setLayer(layer);
+                        new_entity.setEntityId(entity_id);
+                        this.shadowRoot.getElementById('view').appendChild(new_entity);
                     }
                 }
 
@@ -164,16 +170,11 @@ export class Game extends HTMLElement {
                     var COLLISION_LAYER = 3;
                     var collision = _GAME.game_getWorldAtViewport(COLLISION_LAYER, viewport_x, viewport_y);
                     if (collision === 1) {
-                        console.log('collision');
-                        var div = document.createElement('div');
-                        div.style.width = (GLOBALS.SIZE * GLOBALS.SCALE) + 'px';
-                        div.style.height = (GLOBALS.SIZE * GLOBALS.SCALE) + 'px';
-                        div.style.position = 'absolute';
-                        div.style.left = (viewport_x * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-                        div.style.top = (viewport_y * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-                        div.style.backgroundColor = 'rgba(255, 255, 255, .7)';
-                        div.style.zindex = layer;
-                        this.shadowRoot.getElementById('view').appendChild(div);
+                        var collision_entity = document.createElement('collision-entity-component');
+                        collision_entity.updateSize();
+                        collision_entity.setViewportXY(viewport_x, viewport_y);
+                        collision_entity.setLayer(layer);
+                        this.shadowRoot.getElementById('view').appendChild(collision_entity);
                     }
                 // }
             }
@@ -183,13 +184,13 @@ export class Game extends HTMLElement {
     watchResize() {
         console.log('watching resize');
         const resizeObserver = new ResizeObserver((entries) => {
+            console.log('resize observed');
             const entry = entries[0];
             // entry.contentRect
             this.sizeView();
             _GAME.viewport_setSize(this.width, this.height);
-            _GAME.game_initializeGame();
+            _GAME.game_loadWorld(_GAME.game_getCurrentWorldIndex());
             this.renderGame();
-            // TODO: re-render everything
         });
         resizeObserver.observe(document.body);
     }
@@ -200,6 +201,7 @@ export class Game extends HTMLElement {
         if (this.atlas_loaded && this.layer_id_to_image_loaded) {
             console.log('Loaded');
             // this.sizeView();
+            _GAME.game_initializeGame();
             this.watchResize();
         }
     }
@@ -253,6 +255,18 @@ export class Game extends HTMLElement {
         this.shadowRoot.getElementById('clickable_view').style.height = (y * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
         this.width = x;
         this.height = y;
+        this.x_padding = x_padding;
+        this.y_padding = y_padding;
+        // Dispatch an event to let the editor know the size of the viewport
+        var event = new CustomEvent('viewport-size', {
+            detail: {
+                width: this.width,
+                height: this.height,
+                x_padding: this.x_padding,
+                y_padding: this.y_padding
+            }
+        });
+        this.dispatchEvent(event);
     }
 
     render() {

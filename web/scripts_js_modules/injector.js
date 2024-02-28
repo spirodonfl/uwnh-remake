@@ -8,7 +8,6 @@ import { Game } from './game.js';
 import { EVENTBUS } from './eventbus.js';
 import { Editor } from './editor.js';
 
-customElements.define('test-component', Test);
 customElements.define('cheatsheet-component', CheatSheet);
 customElements.define('game-component', Game);
 customElements.define('editor-component', Editor);
@@ -30,6 +29,7 @@ window.GLOBALS = {
     SIZE: 32,
     ATLAS_PNG_FILENAME: '/images/atlas.png',
     LAYER_ID_TO_IMAGE_JSON_FILENAME: '/json/layer_id_to_image.json',
+    LAYER_ID_TO_IMAGE: null,
 };
 window.GLOBALS.ATLAS_PNG_FILENAME = import.meta.resolve(GLOBALS.ATLAS_PNG_FILENAME);
 window.GLOBALS.LAYER_ID_TO_IMAGE_JSON_FILENAME = import.meta.resolve(GLOBALS.LAYER_ID_TO_IMAGE_JSON_FILENAME);
@@ -58,10 +58,10 @@ link.href = juice_it_css;
 document.head.appendChild(link);
 // END OF REAL STUFF
 
-var test_element = document.createElement('test-component');
-test_element.addEventListener('test', function (e) {
-    console.log('test event');
-});
+// var test_element = document.createElement('test-component');
+// test_element.addEventListener('test', function (e) {
+//     console.log('test event');
+// });
 // document.body.appendChild(test_element);
 
 var cheatsheet_element = document.createElement('cheatsheet-component');

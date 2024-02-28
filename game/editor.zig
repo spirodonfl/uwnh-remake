@@ -318,3 +318,5 @@ pub fn getEntityMemoryLength(entity: u16) !usize {
     @panic("Unhandled world memory check");
 }
 
+// TODO: setGameInitialized(true_or_false: bool)
+// It should take it from game.GAME_INITIALIZED and set it to the new value

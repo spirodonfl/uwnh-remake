@@ -622,6 +622,7 @@ LOADER.events.addEventListener('loaded', function () {
     EDITOR.addLog('Viewport Height: ' + DOM.height);
     _GAME.viewport_setSize(DOM.width, DOM.height);
     _GAME.game_initializeGame();
+    _GAME.game_loadWorld(0);
     INPUT.startListening();
 
     _GAME.game_entitySetHealth(0, 10);

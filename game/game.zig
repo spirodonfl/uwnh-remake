@@ -575,8 +575,12 @@ pub var entities_list = std.SegmentedList(EntityDataStruct, 32){};
 pub var worlds_list = std.SegmentedList(WorldDataStruct, 32){};
 pub var current_world_index: u16 = 0;
 
+var GAME_INITIALIZED: bool = false;
 // @wasm
 pub fn initializeGame() !void {
+    if (GAME_INITIALIZED) {
+        return;
+    }
     for (0..embeds.total_worlds) |i| {
         var embedded_data_struct = EmbeddedDataStruct{};
         _ = try embedded_data_struct.findIndexByFileName(.world, @intCast(i));
@@ -592,7 +596,7 @@ pub fn initializeGame() !void {
         });
         try entities_list.at(i).loadComponents();
     }
-    loadWorld(current_world_index);
+    GAME_INITIALIZED = true;
 }
 
 // @wasm

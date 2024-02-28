@@ -1,10 +1,3 @@
-// TODO: Branching inputs?
-// Depending on mode of editor or game
-// Inputs adjust either
-// (a) what they do
-// (b) where they go with event data
-// Ok thought about it. Not a branch.
-// You want to have a ***separate*** set of inputs for editor mode vs normal/game mode
 var INPUT = {
     MODE: 0,
     MODES: ['Game', 'Editor', 'Twitch', 'Multiplayer'],
