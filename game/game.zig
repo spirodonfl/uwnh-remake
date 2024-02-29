@@ -86,11 +86,15 @@ extern fn console_log_flush() void;
 pub const WorldDataStruct = struct {
     offset: u16 = 5,
     data: std.ArrayListUnmanaged(u16) = .{},
-    // TODO: This needs to get updated
-    layers: u16 = 3,
+    layers: std.ArrayListUnmanaged(std.ArrayListUnmanaged(u16)) = .{},
     has_data: bool = false,
     // TODO: You tried to pass a pointer to the embedded data so you don't have duplicate data BUT then the pointer was only updating a single instance of EmbeddedDataStruct (and then self.index in that struct was incrementing and going out of bounds)
     embedded: EmbeddedDataStruct = undefined,
+    // TODO: This as an array!
+    // embedded_data: std.ArrayListUnmanaged(EmbeddedDataStruct) = .{},
+    // pub fn setEmbedded(self: *WorldDataStruct, embedded: EmbeddedDataStruct) void {
+    //     self.embedded_data.append(embedded) catch unreachable; // Append the new EmbeddedDataStruct to the array
+    // }
     pub fn setEmbedded(self: *WorldDataStruct, embedded: EmbeddedDataStruct) void {
         self.embedded = embedded;
     }
@@ -160,6 +164,7 @@ pub const WorldDataStruct = struct {
         }
     }
     pub fn readDataFromEmbedded(self: *WorldDataStruct) !void {
+        // TODO: This duplicates the memory! No bueno! Why not just read via EmbeddedDataStruct.readData with index?
         // TODO: Add a "force" option to do it even if self.has_data
         if (self.has_data) {
             return;
@@ -350,11 +355,12 @@ pub const WorldDataStruct = struct {
 pub const EmbeddedDataStruct = struct {
     file_index: u16 = undefined,
     // TODO: Eventually, deal with breaking up data into separate binary files or other chunking mechanisms
-    pub fn findIndexByFileName(self: *EmbeddedDataStruct, data_type: enums.EmbeddedDataType, index: u16) !bool {
+    pub fn findIndexByFileName(self: *EmbeddedDataStruct, data_type: enums.EmbeddedDataType, index: u16, layer: u16) !bool {
         var buf: [256]u8 = undefined;
         const file_name = switch (data_type) {
             .world => try std.fmt.bufPrint(&buf, "world_{d}.bin", .{index}),
             .entity => try std.fmt.bufPrint(&buf, "entity_{d}.bin", .{index}),
+            .world_layer => try std.fmt.bufPrint(&buf, "world_{d}_layer_{d}.bin", .{index, layer}),
         };
 
         for (embeds.file_names, 0..) |name, i| {

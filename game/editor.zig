@@ -41,8 +41,12 @@ pub fn attachLayerToWorld(world_index: u16, layer_index: u16) void {
 // @wasm
 pub fn createWorld(width: u16, height: u16) void {
     var new_world = ArrayList(u16).init(arena.allocator());
+    // TODO: Find a better way to generate a world rather than just generating the exact structure here. If possible
+    new_world.append(0) catch unreachable; // ID
     new_world.append(width) catch unreachable;
     new_world.append(height) catch unreachable;
+    new_world.append(0) catch unreachable; // ENTITY LAYER
+    new_world.append(0) catch unreachable; // COLLISION LAYER
     worlds.append(new_world) catch unreachable;
 }
 // @wasm
