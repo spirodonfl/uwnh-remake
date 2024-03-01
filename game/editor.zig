@@ -45,9 +45,9 @@ pub fn addRowToWorld(world_index: u16) !void {
     var i: usize = 0;
     while (i < world.embedded_layers.items.len) {
         try world.embedded_layers.items[i].readToRawData();
-        std.log.info("Layer length before: {d}", .{try world.embedded_layers.items[i].raw_data});
+        std.log.info("Layer length before: {d}", .{world.embedded_layers.items[i].raw_data});
         try world.embedded_layers.items[i].raw_data.appendNTimes(game.allocator, 0, world.getWidth());
-        std.log.info("Layer length after: {d}", .{try world.embedded_layers.items[i].raw_data});
+        std.log.info("Layer length after: {d}", .{world.embedded_layers.items[i].raw_data});
         i += 1;
     }
 
