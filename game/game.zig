@@ -185,9 +185,10 @@ pub const EmbeddedDataStruct = struct {
     }
     pub fn readToRawData(self: *EmbeddedDataStruct) !void {
         if (self.raw_data.items.len == 0) {
-            const filebytes = embeds.embeds[self.file_index];
-            for (filebytes) |byte| {
-                try self.raw_data.append(allocator, byte);
+            var length = embeds.embeds[self.file_index].len;
+            std.log.info("LLLLEEENNNGTTTHHH: {d}", .{length});
+            for (0..length) |i| {
+                try self.raw_data.append(allocator, self.readData(i, .Little));
             }
         }
     }
