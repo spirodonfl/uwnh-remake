@@ -1,326 +1,175 @@
 const std = @import("std");
 const ArrayList = std.ArrayList;
 
+const enums = @import("enums.zig");
 const game = @import("game.zig");
 const embeds = @import("embeds.zig");
-const debug = @import("debug.zig");
-const viewport = @import("viewport.zig");
-const helpers = @import("helpers.zig");
 const diff = @import("diff.zig");
 
+// --- MEMORY SETUP ---
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-pub var modified_worlds = ArrayList(*game.WorldDataStruct).init(arena.allocator());
-pub var editor_worlds = ArrayList(*game.WorldDataStruct).init(arena.allocator());
-// TODO: Replace this with "modified_worlds"
-pub var worlds = ArrayList(ArrayList(u16)).init(arena.allocator());
-// pub var entities = ArrayList(u16).init(arena.allocator());
-// TODO: modified_entities && editor_entities
-pub var entities = ArrayList(game.EntityDataStruct).init(arena.allocator());
-pub var world_layer = ArrayList(u16).init(arena.allocator());
-pub var layers = ArrayList(ArrayList(u16)).init(arena.allocator());
-pub var world_modifications = ArrayList(ArrayList(u16)).init(arena.allocator());
-// TODO: Eventually consider removing new_worlds in favor of worlds
-pub var new_worlds = ArrayList(ArrayList(ArrayList(u16))).init(arena.allocator());
+pub var layers = ArrayList(game.EmbeddedDataStruct).init(arena.allocator());
+
+// --- EDITOR FUNCTIONS ---
+pub fn getTotalLayers() u16 {
+    return layers.items.len;
+}
 // @wasm
-pub fn createLayer(width: u16, height: u16, layer_type: u16) void {
-    var total_size: u16 = width * height;
-    var total_size_iteration: u16 = 0;
-    var new_layer = ArrayList(u16).init(arena.allocator());
-    new_layer.append(layer_type) catch unreachable;
-    while (total_size_iteration < total_size) {
-        new_layer.append(0) catch unreachable;
-        total_size += 1;
+pub fn attachLayerToWorld(layer_index: u16, world_index: u16) !void {
+    try game.worlds_list.at(world_index).addEmbeddedLayer(layers.items[layer_index]);
+    // TODO: Update total game layers
+}
+
+// TODO: Finish this function
+// setWorldTotalLayers(world_index: u16, total_layers: u16)
+// world.readToRawData()
+// world.raw_data[enums.WorldDataEnum.TotalLayers.int()] = total_layers
+
+// @wasm
+pub fn setWorldLayerCoordinateData(world_index: u16, layer_index: u16, x: u16, y: u16, value: u16) !void {
+    var world = game.worlds_list.at(world_index);
+    try world.embedded_layers.items[layer_index].readToRawData();
+    // std.log.info("World width: {d}", .{world.getWidth()});
+    var index = (y * world.getWidth()) + x;
+    // std.log.info("Setting index: {d}", .{index});
+    world.embedded_layers.items[layer_index].raw_data.items[index] = value;
+}
+// @wasm
+pub fn addRowToWorld(world_index: u16) !void {
+    // Iterate all layers in world
+    // Add row to each layer
+    // Update world height
+    var world = game.worlds_list.at(world_index);
+    var new_height = world.getHeight() + 1;
+
+    var i: usize = 0;
+    while (i < world.embedded_layers.items.len) {
+        try world.embedded_layers.items[i].readToRawData();
+        try world.embedded_layers.items[i].raw_data.appendNTimes(game.allocator, 0, world.getWidth());
+        i += 1;
     }
-    layers.append(new_layer) catch unreachable;
+
+    try world.embedded_data.readToRawData();
+    world.embedded_data.raw_data.items[enums.WorldDataEnum.Height.int()] = new_height;
+}
+
+// TODO: Finish this function
+// removeRowFromWorldLayer(world_index: u16, layer: u16)
+// world.embedded_layers[layer].readToRawData()
+// ...
+
+// TODO: Finish this function
+// addColumnToWorldLayer(world_index: u16, layer: u16)
+// world.embedded_layers[layer].readToRawData()
+// ...
+
+// TODO: Finish this function
+// removeColumnToWorldLayer(world_index: u16, layer: u16)
+// world.embedded_layers[layer].readToRawData()
+// ...
+
+// TODO: Restructure layer order (maybe)
+// TODO: Alternative to above, injectLayerAfter / injectLayerBefore
+
+// --- CREATION ---
+// @wasm
+pub fn createLayer(width: u16, height: u16) !u16 {
+    var new_layer = game.EmbeddedDataStruct{};
+    try new_layer.raw_data.appendNTimes(arena.allocator(), 0, (width * height));
+    try layers.append(new_layer);
+    return @as(u16, @intCast(layers.items.len - 1));
 }
 // @wasm
-pub fn attachLayerToWorld(world_index: u16, layer_index: u16) void {
-    world_layer.append(world_index) catch unreachable;
-    world_layer.append(layer_index) catch unreachable;
-}
-// @wasm
-pub fn createWorld(width: u16, height: u16) void {
-    var new_world = ArrayList(u16).init(arena.allocator());
-    // TODO: Find a better way to generate a world rather than just generating the exact structure here. If possible
-    new_world.append(0) catch unreachable; // ID
-    new_world.append(width) catch unreachable;
-    new_world.append(height) catch unreachable;
-    new_world.append(0) catch unreachable; // ENTITY LAYER
-    new_world.append(0) catch unreachable; // COLLISION LAYER
-    worlds.append(new_world) catch unreachable;
-}
-// @wasm
-pub fn totalWorlds() !u16 {
-    return @as(u16, @intCast(worlds.items.len));
-}
-// @wasm
-pub fn totalLayers() u16 {
-    return @as(u16, @intCast(layers.items.len));
-}
-// @wasm
-pub fn totalEntities() u16 {
-    return @as(u16, @intCast(entities.items.len));
+pub fn createWorld(width: u16, height: u16) !void {
+    var new_world_data = game.EmbeddedDataStruct{};
+    var i: usize = 0;
+    while (i < enums.WorldDataEnum.length()) {
+        if (i == enums.WorldDataEnum.ID.int()) {
+            var new_id = game.worlds_list.len;
+            try new_world_data.appendToRawData(@as(u16, @intCast(new_id)));
+        } else if (i == enums.WorldDataEnum.Width.int()) {
+            try new_world_data.appendToRawData(width);
+        } else if (i == enums.WorldDataEnum.Height.int()) {
+            try new_world_data.appendToRawData(height);
+        } else if (i == enums.WorldDataEnum.TotalLayers.int()) {
+            try new_world_data.appendToRawData(0);
+        } else if (i == enums.WorldDataEnum.EntityLayer.int()) {
+            try new_world_data.appendToRawData(0);
+        } else if (i == enums.WorldDataEnum.CollisionLayer.int()) {
+            try new_world_data.appendToRawData(0);
+        }
+        i += 1;
+    }
+
+    var new_world = game.WorldDataStruct{};
+    new_world.setEmbeddedData(new_world_data);
+
+    try game.worlds_list.append(arena.allocator(), .{});
+    var new_world_index = game.worlds_list.len - 1;
+    game.worlds_list.at(new_world_index).setEmbeddedData(new_world_data);
 }
 // @wasm
 pub fn createEntity(entity_type: u16) !void {
-    // TODO: Actually implement this
-    // entities.append(entity_type) catch unreachable;
-    // try game.entities_list.append(game.gpa_allocator.allocator(), .{});
-    // TODO: Init an entity with an initial set of data
-    // try game.entities_list.at(game.entities_list.len).loadComponents();
-    std.log.info("Creating entity of type {d}", .{entity_type});
-    // TODO: This is a manual hack. Probably not a good idea
-    var data: std.ArrayListUnmanaged(u16) = .{};
-    // TODO: Should we really be using the game.gpa_allocator here?
-    try data.append(game.gpa_allocator.allocator(), @as(u16, @intCast(entities.items.len + 1)));
-    try data.append(game.gpa_allocator.allocator(), 33);
-    try data.append(game.gpa_allocator.allocator(), 44);
-    var new_entity = game.EntityDataStruct{
-        .has_data = true,
-        .data = data,
-        .type = entity_type,
-    };
-    try entities.append(new_entity);
-    try entities.items[entities.items.len - 1].loadComponents();
+    var new_entity_data = game.EmbeddedDataStruct{};
+    var i: usize = 0;
+    while (i < enums.EntityDataEnum.length()) {
+        if (i == enums.EntityDataEnum.ID.int()) {
+            try new_entity_data.appendToRawData(@as(u16, @intCast(game.entities_list.len + 1)));
+        } else if (i == enums.EntityDataEnum.ComponentHealth.int()) {
+            try new_entity_data.appendToRawData(1);
+        } else if (i == enums.EntityDataEnum.ComponentHealthDefaultValue.int()) {
+            // TODO: Enum-ize or otherwise standardize this
+            if (entity_type == 99 or entity_type == 98) {
+                try new_entity_data.appendToRawData(44);
+            } else {
+                try new_entity_data.appendToRawData(10);
+            }
+        }
+        i += 1;
+    }
+    var new_entity = game.EntityDataStruct{};
+    new_entity.setEmbedded(new_entity_data);
+
+    try game.entities_list.append(arena.allocator(), .{});
+    var new_entity_index = game.entities_list.len - 1;
+    game.entities_list.at(new_entity_index).setEmbedded(new_entity_data);
 }
+
+// --- MEMORY CLEARING ---
 // @wasm
-pub fn getEntityType(entity: u16) u16 {
-    return @as(u16, @intCast(entities.items[entity].type));
-}
-// @wasm
-pub fn clearWorlds() void {
-    worlds.deinit();
-}
-// @wasm
-pub fn clearEntities() void {
-    entities.deinit();
+pub fn clearLayers() void {
+    layers.deinit();
 }
 // @wasm
 pub fn clearAll() void {
-    worlds.clearRetainingCapacity();
-    entities.clearRetainingCapacity();
-    world_layer.clearRetainingCapacity();
     layers.clearRetainingCapacity();
-    new_worlds.clearRetainingCapacity();
-    modified_worlds.clearRetainingCapacity();
     _ = arena.reset(.retain_capacity);
 }
-// @wasm
-pub fn modifyWorldData(world: u16, layer: u16, x: u16, y: u16, new_value: u16) void {
-    _ = new_value;
-    _ = y;
-    _ = x;
-    _ = layer;
-    _ = world;
-    // TODO:
-    // if editor world, just direct mod
-    // else dupe world and mod
-}
-// @wasm
-pub fn resizeWorld(world: u16, width: u16, height: u16) void {
-    _ = height;
-    _ = width;
-    _ = world;
-}
-// @wasm
-pub fn addRowToWorld(world: u16) !void {
-    if (world < embeds.total_worlds) {
-        for (modified_worlds.items) |n_world| {
-            if (n_world.getIndex() == world) {
-                try diff.addData(0);
-                try n_world.addRow();
-                break;
-            }
-        } else { // not found. get here when loop goes through all items
-            try diff.addData(0);
-            try game.worlds_list.at(world).readDataFromEmbedded();
-            try game.worlds_list.at(world).addRow();
-            try modified_worlds.append(game.worlds_list.at(world));
-        }
-    } else {
-        // TODO: Means that we have stuff in the editor as entirely new world
-    }
-    viewport.clear();
-    game.loadWorld(world);
-}
-// @wasm
-pub fn addColumnToWorld(world: u16) !void {
-    if (world < embeds.total_worlds) {
-        for (modified_worlds.items) |n_world| {
-            if (n_world.getIndex() == world) {
-                try diff.addData(0);
-                try n_world.addColumn();
-                break;
-            }
-        } else { // not found. get here when loop goes through all items
-            try diff.addData(0);
-            try game.worlds_list.at(world).readDataFromEmbedded();
-            try game.worlds_list.at(world).addColumn();
-            try modified_worlds.append(game.worlds_list.at(world));
-        }
-    } else {
-        // TODO: Means that we have stuff in the editor as entirely new world
-    }
 
-    viewport.clear();
-    // viewport.initializeViewportData();
-    game.loadWorld(world);
-}
-// @wasm
-pub fn removeRowFromWorld(world: u16) !void {
-    if (world < embeds.total_worlds) {
-        for (modified_worlds.items) |n_world| {
-            if (n_world.getIndex() == world) {
-                try diff.addData(0);
-                try n_world.removeRow();
-                break;
-            }
-        } else { // not found. get here when loop goes through all items
-            try diff.addData(0);
-            try game.worlds_list.at(world).readDataFromEmbedded();
-            try game.worlds_list.at(world).removeRow();
-            try modified_worlds.append(game.worlds_list.at(world));
-        }
-    } else {
-        // TODO: Means that we have stuff in the editor as entirely new world
-    }
-
-    viewport.clear();
-    // viewport.initializeViewportData();
-    game.loadWorld(world);
-}
-// @wasm
-pub fn removeColumnFromWorld(world: u16) !void {
-    if (world < embeds.total_worlds) {
-        for (modified_worlds.items) |n_world| {
-            if (n_world.getIndex() == world) {
-                try diff.addData(0);
-                try n_world.removeColumn();
-                break;
-            }
-        } else { // not found. get here when loop goes through all items
-            try diff.addData(0);
-            try game.worlds_list.at(world).readDataFromEmbedded();
-            try game.worlds_list.at(world).removeColumn();
-            try modified_worlds.append(game.worlds_list.at(world));
-        }
-    } else {
-        // TODO: Means that we have stuff in the editor as entirely new world
-    }
-
-    viewport.clear();
-    // viewport.initializeViewportData();
-    game.loadWorld(world);
-}
-// pub fn modifyEntity() ????????
-// @wasm
-pub fn addLayerToWorld(world: u16) !void {
-    if (world < embeds.total_worlds) {
-        for (modified_worlds.items) |n_world| {
-            if (n_world.getIndex() == world) {
-                try diff.addData(0);
-                try n_world.addLayer();
-                break;
-            }
-        } else { // not found. get here when loop goes through all items
-            try diff.addData(0);
-            try game.worlds_list.at(world).readDataFromEmbedded();
-            try game.worlds_list.at(world).addLayer();
-            try modified_worlds.append(game.worlds_list.at(world));
-        }
-    } else {
-        // TODO: Means that we have stuff in the editor as entirely new world
-    }
-}
-// @wasm
-pub fn injectLayerToWorldAfter(world: u16, layer_index: u16) !void {
-    if (world < embeds.total_worlds) {
-        for (modified_worlds.items) |n_world| {
-            if (n_world.getIndex() == world) {
-                try diff.addData(0);
-                try n_world.injectLayerAfter(layer_index);
-                break;
-            }
-        } else { // not found. get here when loop goes through all items
-            try diff.addData(0);
-            try game.worlds_list.at(world).readDataFromEmbedded();
-            try game.worlds_list.at(world).injectLayerAfter(layer_index);
-            try modified_worlds.append(game.worlds_list.at(world));
-        }
-    } else {
-        // TODO: Means that we have stuff in the editor as entirely new world
-    }
-}
-
+// --- MEMORY RETRIEVAL ---
 // @wasm
 pub fn getWorldMemoryLocation(world: u16) !*u16 {
-    if (world < embeds.total_worlds) {
-        for (modified_worlds.items) |new_world| {
-            if (new_world.getIndex() == world) {
-                if (new_world.has_data) {
-                    return &new_world.data.items[0];
-                }
-            }
-        }
-        if (game.worlds_list.at(world).has_data == false) {
-            try game.worlds_list.at(world).readDataFromEmbedded();
-        }
-        return &game.worlds_list.at(world).data.items[0];
-        // const file_index = helpers.getWorldFileIndex(world);
-        // return @intFromPtr(&embeds.embeds[file_index]);
-    }
-    @panic("Unhandled world memory check");
+    return game.worlds_list.at(world).embedded_data.firstMemoryLocation();
 }
 // @wasm
 pub fn getWorldMemoryLength(world: u16) !usize {
-    if (world < embeds.total_worlds) {
-         for (modified_worlds.items) |new_world| {
-            if (new_world.getIndex() == world) {
-                return new_world.data.items.len;
-            }
-        }
-        if (game.worlds_list.at(world).has_data == false) {
-            try game.worlds_list.at(world).readDataFromEmbedded();
-        }
-        return game.worlds_list.at(world).data.items.len;
-        // const file_index = helpers.getWorldFileIndex(world);
-        // return embeds.embeds[file_index].len;
-    }
-    @panic("Unhandled world memory check");
+    return game.worlds_list.at(world).embedded_data.getLength();
 }
-
 // @wasm
 pub fn getEntityMemoryLocation(entity: u16) !*u16 {
-    if (entity < embeds.total_entities) {
-        for (entities.items) |*editor_entity| {
-            if (editor_entity.getIndex() == entity) {
-                if (editor_entity.has_data) {
-                    return &editor_entity.data.items[0];
-                }
-            }
-        }
-        if (game.entities_list.at(entity).has_data == false) {
-            try game.entities_list.at(entity).readDataFromEmbedded();
-        }
-        return &game.entities_list.at(entity).data.items[0];
-    }
-    @panic("Unhandled world memory check");
+    return game.entities_list.at(entity).embedded.firstMemoryLocation();
 }
 // @wasm
 pub fn getEntityMemoryLength(entity: u16) !usize {
-    if (entity < embeds.total_entities) {
-         for (entities.items) |*editor_entity| {
-            if (editor_entity.getIndex() == entity) {
-                return editor_entity.data.items.len;
-            }
-        }
-        if (game.entities_list.at(entity).has_data == false) {
-            try game.entities_list.at(entity).readDataFromEmbedded();
-        }
-        return game.entities_list.at(entity).data.items.len;
-    }
-    @panic("Unhandled world memory check");
+    return game.entities_list.at(entity).embedded.getLength();
 }
-
-// TODO: setGameInitialized(true_or_false: bool)
-// It should take it from game.GAME_INITIALIZED and set it to the new value
+// @wasm
+pub fn getLayerMemoryLocation(layer: u16) !*u16 {
+    // TODO: Consider if we need to filter this by world or not. Most likely yes
+    return try layers.items[layer].firstMemoryLocation();
+}
+// @wasm
+pub fn getLayerMemoryLength(layer: u16) !usize {
+    // TODO: Consider if we need to filter this by world or not. Most likely yes
+    return layers.items[layer].getLength();
+}

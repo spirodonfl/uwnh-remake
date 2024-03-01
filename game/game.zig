@@ -14,6 +14,10 @@ const ArrayList = std.ArrayList;
 
 pub var gpa_allocator = std.heap.GeneralPurposeAllocator(.{}){};
 pub var allocator = gpa_allocator.allocator();
+pub var entities_list = std.SegmentedList(EntityDataStruct, 32){};
+pub var worlds_list = std.SegmentedList(WorldDataStruct, 32){};
+pub var current_world_index: u16 = 0;
+var GAME_INITIALIZED: bool = false;
 
 const enums = @import("enums.zig");
 const embeds = @import("embeds.zig");
@@ -59,7 +63,9 @@ pub fn panic(
     }
     log("StackTrace:", .{});
     std.debug.dumpCurrentStackTrace(ret_addr);
-    while (true) { @breakpoint(); }
+    while (true) {
+        @breakpoint();
+    }
 }
 
 pub fn uncaughtError(err: anytype) noreturn {
@@ -70,9 +76,10 @@ pub fn uncaughtError(err: anytype) noreturn {
     } else {
         log("ErrorTrace: <none>", .{});
     }
-    while (true) { @breakpoint(); }
+    while (true) {
+        @breakpoint();
+    }
 }
-
 
 fn console_log_write_zig(context: void, bytes: []const u8) !usize {
     _ = context;
@@ -82,47 +89,39 @@ fn console_log_write_zig(context: void, bytes: []const u8) !usize {
 extern fn console_log_write(ptr: [*]const u8, len: usize) void;
 extern fn console_log_flush() void;
 // -----------------------------------------------------------------------------------------
-// TODO: need another default layer for current positions of entities
+
 pub const WorldDataStruct = struct {
-    offset: u16 = 5,
-    data: std.ArrayListUnmanaged(u16) = .{},
-    layers: std.ArrayListUnmanaged(std.ArrayListUnmanaged(u16)) = .{},
-    has_data: bool = false,
-    // TODO: You tried to pass a pointer to the embedded data so you don't have duplicate data BUT then the pointer was only updating a single instance of EmbeddedDataStruct (and then self.index in that struct was incrementing and going out of bounds)
-    embedded: EmbeddedDataStruct = undefined,
-    // TODO: This as an array!
-    // embedded_data: std.ArrayListUnmanaged(EmbeddedDataStruct) = .{},
-    // pub fn setEmbedded(self: *WorldDataStruct, embedded: EmbeddedDataStruct) void {
-    //     self.embedded_data.append(embedded) catch unreachable; // Append the new EmbeddedDataStruct to the array
-    // }
-    pub fn setEmbedded(self: *WorldDataStruct, embedded: EmbeddedDataStruct) void {
-        self.embedded = embedded;
+    embedded_data: EmbeddedDataStruct = undefined,
+    embedded_layers: std.ArrayListUnmanaged(EmbeddedDataStruct) = .{},
+    // Note: this is to store the position of entities and whatnot
+    position_layer: std.ArrayListUnmanaged(u16) = .{},
+    pub fn setEmbeddedData(self: *WorldDataStruct, embedded: EmbeddedDataStruct) void {
+        self.embedded_data = embedded;
+    }
+    pub fn addEmbeddedLayer(self: *WorldDataStruct, embedded: EmbeddedDataStruct) !void {
+        try self.embedded_layers.append(gpa_allocator.allocator(), embedded);
+    }
+    pub fn readData(self: *WorldDataStruct, index: u16) u16 {
+        return self.embedded_data.readData(index, .Little);
+    }
+    pub fn readLayer(self: *WorldDataStruct, layer: u16, index: u16) u16 {
+        return self.embedded_layers.items[layer].readData(index, .Little);
     }
     pub fn getIndex(self: *WorldDataStruct) u16 {
         const enum_index = enums.WorldDataEnum.ID.int();
-        const index = if (self.has_data)
-            self.data.items[enum_index]
-        else
-            self.embedded.readData(enum_index, .Little);
-        
+        const index = self.readData(enum_index);
         // std.log.info("index {d}",.{index});
         return index;
     }
     pub fn getWidth(self: *WorldDataStruct) u16 {
         const enum_index = enums.WorldDataEnum.Width.int();
-        const width = if (self.has_data)
-            self.data.items[enum_index]
-        else 
-            self.embedded.readData(enum_index, .Little);
+        const width = self.readData(enum_index);
         // std.log.info("width {d}",.{width});
         return width;
     }
     pub fn getHeight(self: *WorldDataStruct) u16 {
         const enum_index = enums.WorldDataEnum.Height.int();
-        const height = if (self.has_data)
-            self.data.items[enum_index]
-        else
-            self.embedded.readData(enum_index, .Little);
+        const height = self.readData(enum_index);
         // std.log.info("height {d}",.{height});
         return height;
     }
@@ -131,236 +130,28 @@ pub const WorldDataStruct = struct {
         // std.log.info("size {d}",.{size});
         return size;
     }
-    pub fn getLayerIndex(self: *WorldDataStruct, layer: u16) u16 {
-        const layer_index = self.offset + (layer * self.getSize());
-        // std.log.info("offset {d} layer {d} layer_index {d}",.{self.offset, layer, layer_index});
-        return layer_index;
-    }
-    pub fn getLayerEndIndex(self: *WorldDataStruct, layer: u16) u16 {
-        const layer_index = self.getLayerIndex(layer);
-        const size = self.getSize();
-        // std.log.info("layer_end_index {d}",.{layer_index + size});
-        const layer_end_index = layer_index + size;
-        return layer_end_index;
-    }
     pub fn getCoordinateData(self: *WorldDataStruct, layer: u16, x: u16, y: u16) u16 {
-        var index: u16 = self.getLayerIndex(layer);
-        index += y * self.getWidth();
-        index += x;
-        const data = if (self.has_data)
-            self.data.items[index]
-        else
-            self.embedded.readData(index, .Little);
-        // std.log.info("getCoordinateData {d}",.{data});
+        var index: u16 = (y * self.getWidth()) + x;
+        const data = self.readLayer(layer, index);
         return data;
     }
-    pub fn setCoordinateData(self: *WorldDataStruct, layer: u16, x: u16, y: u16, value: u16) !void {
-        try self.readDataFromEmbedded();
-        var index: u16 = self.getLayerIndex(layer);
-        index += y * self.getWidth();
-        index += x;
-        if (self.has_data) {
-            self.data.items[index] = value;
-        }
-    }
-    pub fn readDataFromEmbedded(self: *WorldDataStruct) !void {
-        // TODO: This duplicates the memory! No bueno! Why not just read via EmbeddedDataStruct.readData with index?
-        // TODO: Add a "force" option to do it even if self.has_data
-        if (self.has_data) {
-            return;
-        }
-        var max: u16 = self.embedded.getLength();
-        max = max / 2; // Note: because the embedded file is using 32-bit or something like that, so you gotta divide
-        // std.log.info("max {d}",.{max});
-        // std.log.info("file_index {d}",.{self.embedded.file_index});
-        try self.data.resize(gpa_allocator.allocator(), max);
-        for (0..max) |i| {
-            var i_converted = @as(u16, @intCast(i));
-            const value = self.embedded.readData(i_converted, .Little);
-            // std.log.info("value {d}",.{value});
-            self.data.items[i_converted] = value;
-            // std.log.info("new_data[i] {d}",.{new_data[i]});
-        }
-        self.has_data = true;
-    }
-    // TODO: This is really an editor function and should go into an editor specific area if possible
-    pub fn addRow(self: *WorldDataStruct) !void {
-        if (self.has_data) {
-            // TODO: init w/ initCapacity(new_size), then use appendAssumeCapacity instead of append
-            var new_data: std.ArrayListUnmanaged(u16) = .{};
-            var current_offset: u16 = self.offset - 1;
-            for (self.data.items, 0..) |item, i| {
-                if (i < self.offset) {
-                    if (i == enums.WorldDataEnum.Height.int()) {
-                        try new_data.append(allocator, item + 1);
-                    } else {
-                        try new_data.append(allocator, item);
-                    }
-                } else {
-                    try new_data.append(allocator, item);
-                    var leftover: u16 = @as(u16, @intCast(i)) - current_offset;
-                    var layer_size = self.getWidth() * self.getHeight();
-                    if (leftover % layer_size == 0) {
-                        try new_data.appendNTimes(
-                            allocator, 
-                            0,
-                            self.getWidth());
-                        current_offset = @intCast(i);
-                    }
-                }
-            }
-            // self.data.clearAndFree(allocator);
-            self.data.deinit(allocator);
-            self.data = new_data;
-        }
-    }
-    // TODO: This is really an editor function and should go into an editor specific area if possible
-    pub fn addColumn(self: *WorldDataStruct) !void {
-        if (self.has_data) {
-            // TODO: init w/ initCapacity(new_size), then use appendAssumeCapacity instead of append
-            var new_data: std.ArrayListUnmanaged(u16) = .{};
-            var current_offset: u16 = self.offset - 1;
-            for (self.data.items, 0..) |item, i| {
-                if (i < self.offset) {
-                    if (i == enums.WorldDataEnum.Width.int()) {
-                        try new_data.append(allocator, item + 1);
-                    } else {
-                        try new_data.append(allocator, item);
-                    }
-                } else {
-                    try new_data.append(allocator, item);
-                    var leftover: u16 = @as(u16, @intCast(i)) - current_offset;
-                    if (leftover % self.getWidth() == 0) {
-                        try new_data.append(allocator, 0);
-                        current_offset = @intCast(i);
-                    }
-                }
-            }
-            // self.data.clearAndFree(allocator);
-            self.data.deinit(allocator);
-            self.data = new_data;
-        }
-    }
-    // TODO: This is really an editor function and should go into an editor specific area if possible
-    pub fn removeRow(self: *WorldDataStruct) !void {
-        // pub fn removeRow
-        if (self.has_data) {
-            var row_size = self.getWidth();
-            var layer_size = row_size * self.getHeight();
-            var total_rows = layer_size / row_size;
-            var current_row: u16 = 0;
-            var current_column: u16 = 0;
-            // For any layer, at the end of each layer, remove a row of row_size
-            var new_data: std.ArrayListUnmanaged(u16) = .{};
-            for (self.data.items, 0..) |item, i| {
-                if (i < self.offset) {
-                    if (i == enums.WorldDataEnum.Height.int()) {
-                        try new_data.append(allocator, item - 1);
-                    } else {
-                        try new_data.append(allocator, item);
-                    }
-                } else {
-                    if (current_row < total_rows - 1) {
-                        try new_data.append(allocator, item);
-                        current_column += 1;
-                        if (current_column == row_size) {
-                            current_column = 0;
-                            current_row += 1;
-                        }
-                    } else {
-                        current_column += 1;
-                        if (current_column == row_size) {
-                            current_column = 0;
-                            current_row += 1;
-                        }
-                    }
-                    if (current_row == total_rows) {
-                        current_column = 0;
-                        current_row = 0;
-                    }
-                }
-            }
-
-            self.data.deinit(allocator);
-            self.data = new_data;
-        }
-    }
-    // TODO: This is really an editor function and should go into an editor specific area if possible
-    pub fn removeColumn(self: *WorldDataStruct) !void {
-        if (self.has_data) {
-            var row_size = self.getWidth();
-            var current_row: u16 = 0;
-            var current_column: u16 = 0;
-            // For any layer, at the end of each layer, remove a row of row_size
-            var new_data: std.ArrayListUnmanaged(u16) = .{};
-            for (self.data.items, 0..) |item, i| {
-                if (i < self.offset) {
-                    if (i == enums.WorldDataEnum.Width.int()) {
-                        try new_data.append(allocator, item - 1);
-                    } else {
-                        try new_data.append(allocator, item);
-                    }
-                } else {
-                    if (current_column < row_size - 1) {
-                        try new_data.append(allocator, item);
-                    }
-                    current_column += 1;
-                    if (current_column == row_size) {
-                        current_column = 0;
-                        current_row += 1;
-                    }
-                }
-            }
-
-            self.data.deinit(allocator);
-            self.data = new_data;
-        }
-    }
-    // TODO: addLayer / removeLayer / duplicateLayer / clearLayer / copyLayer / injectLayer
-    pub fn addLayer(self: *WorldDataStruct) !void {
-        if (self.has_data) {
-            var new_data: std.ArrayListUnmanaged(u16) = .{};
-            for (self.data.items) |item| {
-                try new_data.append(allocator, item);
-            }
-            try new_data.appendNTimes(allocator, 0, self.getSize());
-            // self.data.clearAndFree(allocator);
-            self.data.deinit(allocator);
-            self.data = new_data;
-        }
-    }
-    pub fn injectLayerAfter(self: *WorldDataStruct, layer_index: u16) !void {
-        if (self.has_data) {
-            var new_data: std.ArrayListUnmanaged(u16) = .{};
-            var current_layer: u16 = 0;
-            for (self.data.items, 0..) |item, i| {
-                if (i < self.offset) {
-                    try new_data.append(allocator, item);
-                } else {
-                    try new_data.append(allocator, item);
-                    if ((i - self.offset) % self.getSize() == 0) {
-                        if (layer_index == current_layer) {
-                            try new_data.appendNTimes(allocator, 0, self.getSize());
-                        }
-                        current_layer += 1;
-                    }
-                }
-            }
-            // self.data.clearAndFree(allocator);
-            self.data.deinit(allocator);
-            self.data = new_data;
-        }
-    }
 };
+
+// TODO: Rename this eventually because it's grown past just embedded data
 pub const EmbeddedDataStruct = struct {
     file_index: u16 = undefined,
-    // TODO: Eventually, deal with breaking up data into separate binary files or other chunking mechanisms
+    // Note: we have raw_data so we can either load raw_data from the embed
+    // or so we can create structs without having to use an embed at all and
+    // we retain compliance with other structs that required the use of embeddeddatastruct
+    raw_data: std.ArrayListUnmanaged(u16) = .{},
+    // TODO: How do we deal with optional parameters like layer here?
     pub fn findIndexByFileName(self: *EmbeddedDataStruct, data_type: enums.EmbeddedDataType, index: u16, layer: u16) !bool {
         var buf: [256]u8 = undefined;
+        // TODO: Can we do better than (layer - 1)
         const file_name = switch (data_type) {
-            .world => try std.fmt.bufPrint(&buf, "world_{d}.bin", .{index}),
+            .world => try std.fmt.bufPrint(&buf, "world_{d}_data.bin", .{index}),
             .entity => try std.fmt.bufPrint(&buf, "entity_{d}.bin", .{index}),
-            .world_layer => try std.fmt.bufPrint(&buf, "world_{d}_layer_{d}.bin", .{index, layer}),
+            .world_layer => try std.fmt.bufPrint(&buf, "world_{d}_layer_{d}.bin", .{ index, (layer - 1) }),
         };
 
         for (embeds.file_names, 0..) |name, i| {
@@ -372,16 +163,42 @@ pub const EmbeddedDataStruct = struct {
         return false;
     }
     pub fn getLength(self: *EmbeddedDataStruct) u16 {
+        if (self.raw_data.items.len > 0) {
+            return @as(u16, @intCast(self.raw_data.items.len));
+        }
         return @as(u16, @intCast(embeds.embeds[self.file_index].len));
+    }
+    pub fn firstMemoryLocation(self: *EmbeddedDataStruct) !*u16 {
+        if (self.raw_data.items.len == 0) {
+            try self.readToRawData();
+        }
+        return &self.raw_data.items[0];
     }
     pub fn readData(self: *EmbeddedDataStruct, index: u16, endian: std.builtin.Endian) u16 {
         // std.log.info("readData({})", .{index});
+        if (self.raw_data.items.len > 0) {
+            return self.raw_data.items[index];
+        }
         const filebytes = embeds.embeds[self.file_index];
-        const pulled_value =  std.mem.readInt(u16, filebytes[index * 2..][0..2], endian);
+        const pulled_value = std.mem.readInt(u16, filebytes[index * 2 ..][0..2], endian);
         return pulled_value;
     }
+    pub fn readToRawData(self: *EmbeddedDataStruct) !void {
+        if (self.raw_data.items.len == 0) {
+            const filebytes = embeds.embeds[self.file_index];
+            for (filebytes) |byte| {
+                try self.raw_data.append(allocator, byte);
+            }
+        }
+    }
+    pub fn appendToRawData(self: *EmbeddedDataStruct, value: u16) !void {
+        try self.raw_data.append(allocator, value);
+    }
+    pub fn clearRawData(self: *EmbeddedDataStruct) !void {
+        try self.raw_data.resize(allocator, 0);
+    }
 };
-// TODO: Need a "move" component so we can indicate movable entities
+
 const ComponentHealth = @import("components/health.zig").ComponentHealth;
 pub const EntityDataStruct = struct {
     type: u16 = 0,
@@ -401,7 +218,7 @@ pub const EntityDataStruct = struct {
             self.data.items[enum_index]
         else
             self.embedded.readData(enum_index, .Little);
-        
+
         // std.log.info("index {d}",.{index});
         return index;
     }
@@ -428,43 +245,32 @@ pub const EntityDataStruct = struct {
         if (!self.has_data) {
             try self.readDataFromEmbedded();
         }
-        // TODO: Change this component check value
-        if (self.data.items[enums.EntityDataEnum.ComponentHealth.int()] == 33) {
-            self.health = ComponentHealth{.default_value = 10, .current_value = self.data.items[enums.EntityDataEnum.ComponentHealthDefaultValue.int()]};
+        if (self.data.items[enums.EntityDataEnum.ComponentHealth.int()] == 1) {
+            self.health = ComponentHealth{
+                .default_value = 10,
+                .current_value = self.data.items[enums.EntityDataEnum.ComponentHealthDefaultValue.int()] 
+            };
             // std.log.info("health component found", .{});
         }
     }
-    // pub fn collisionFns
-    // pub fn healthFns
-    // pub fn movementFns
+    // TODO: move component + other components
 };
+
+// --- GAME FUNCTIONS ---
 // @wasm
 pub fn entityIncrementHealth(entity: u16) u16 {
-    // TODO: Add a check to make sure this entity has health component loaded
-    if (entity >= entities_list.len) {
-        var offset_index = entity - entities_list.len;
-        editor.entities.items[offset_index].health.incrementHealth();
-        return editor.entities.items[offset_index].health.current_value;
-    }
-    entities_list.at(entity).health.incrementHealth();
     return entities_list.at(entity).health.current_value;
 }
 // @wasm
 pub fn entityDecrementHealth(entity: u16) u16 {
     // TODO: Add a check to make sure this entity has health component loaded
-    if (entity >= entities_list.len) {
-        var offset_index = entity - entities_list.len;
-        editor.entities.items[offset_index].health.decrementHealth();
-        return editor.entities.items[offset_index].health.current_value;
-    }
-
     entities_list.at(entity).health.decrementHealth();
     return entities_list.at(entity).health.current_value;
 }
 // @wasm
 pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !bool {
-    var target_coords: [2]u16 = .{0, 0};
-    var entity_coords: [2]u16 = .{0, 0};
+    var target_coords: [2]u16 = .{ 0, 0 };
+    var entity_coords: [2]u16 = .{ 0, 0 };
     // Determine if entity is next to target
     // If so, decrement target health
     var world = worlds_list.at(current_world_index);
@@ -477,9 +283,9 @@ pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !bool {
         // TODO: Update magic number 2 to be ENTITY_LAYER
         var value = getWorldData(current_world_index, 2, x, y);
         if (value == (entity + 1)) {
-            entity_coords = .{x, y};
+            entity_coords = .{ x, y };
         } else if (value == (target + 1)) {
-            target_coords = .{x, y};
+            target_coords = .{ x, y };
         }
     }
 
@@ -495,10 +301,9 @@ pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !bool {
     if (target_coords[0] > 0) {
         target_minus_one_x = target_coords[0] - 1;
     }
-    if (
-        (entity_coords[0] == target_coords[0] and (entity_coords[1] == target_plus_one_y or entity_coords[1] == target_minus_one_y)) or
-        (entity_coords[1] == target_coords[1] and (entity_coords[0] == target_plus_one_x or entity_coords[0] == target_minus_one_x))
-    ) {
+    if ((entity_coords[0] == target_coords[0] and (entity_coords[1] == target_plus_one_y or entity_coords[1] == target_minus_one_y)) or
+        (entity_coords[1] == target_coords[1] and (entity_coords[0] == target_plus_one_x or entity_coords[0] == target_minus_one_x)))
+    {
         try diff.addData(0);
         if (crit_buff) {
             _ = entityDecrementHealth(target);
@@ -512,18 +317,16 @@ pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !bool {
 
     return false;
 }
-
 // @wasm
 pub fn entityGetHealth(entity: u16) u16 {
-    if (entity >= entities_list.len) {
-        var offset_index = entity - entities_list.len;
-        return editor.entities.items[offset_index].health.current_value;
-    }
     // TODO: Add a check to make sure this entity has health component loaded
     return entities_list.at(entity).health.current_value;
 }
 // @wasm
 pub fn entityGetWorldX(entity: u16) !u16 {
+    // TODO: Update this so we
+    // (a) use world.ENTITY_LAYER
+    // (b) use world.position_layer
     var world = worlds_list.at(current_world_index);
     var w = world.getWidth();
     var h = world.getHeight();
@@ -540,6 +343,9 @@ pub fn entityGetWorldX(entity: u16) !u16 {
 }
 // @wasm
 pub fn entityGetWorldY(entity: u16) !u16 {
+    // TODO: Update this so we
+    // (a) use world.ENTITY_LAYER
+    // (b) use world.position_layer
     var world = worlds_list.at(current_world_index);
     var w = world.getWidth();
     var h = world.getHeight();
@@ -556,29 +362,14 @@ pub fn entityGetWorldY(entity: u16) !u16 {
 }
 // @wasm
 pub fn entityGetType(entity: u16) u16 {
-    if (entity >= entities_list.len) {
-        var offset_index = entity - entities_list.len;
-        return editor.entities.items[offset_index].getType();
-    }
-    // TODO: Add a check to make sure this entity has health component loaded
     return entities_list.at(entity).getType();
 }
 // @wasm
 pub fn entitySetHealth(entity: u16, value: u16) !void {
-    if (entity >= entities_list.len) {
-        var offset_index = entity - entities_list.len;
-        return editor.entities.items[offset_index].health.setHealth(value);
-    }
-
+    // TODO: Check to make sure the health component is loaded
     try diff.addData(0);
     entities_list.at(entity).health.setHealth(value);
 }
-
-pub var entities_list = std.SegmentedList(EntityDataStruct, 32){};
-pub var worlds_list = std.SegmentedList(WorldDataStruct, 32){};
-pub var current_world_index: u16 = 0;
-
-var GAME_INITIALIZED: bool = false;
 // @wasm
 pub fn initializeGame() !void {
     if (GAME_INITIALIZED) {
@@ -586,43 +377,45 @@ pub fn initializeGame() !void {
     }
     for (0..embeds.total_worlds) |i| {
         var embedded_data_struct = EmbeddedDataStruct{};
-        _ = try embedded_data_struct.findIndexByFileName(.world, @intCast(i));
-        try worlds_list.append(gpa_allocator.allocator(), .{.embedded = embedded_data_struct});
+        var world = try embedded_data_struct.findIndexByFileName(.world, @intCast(i), 0);
+        if (world == true) {
+            try worlds_list.append(gpa_allocator.allocator(), .{
+                .embedded_data = embedded_data_struct
+            });
+            var last_world = worlds_list.at(worlds_list.len - 1);
+            var total_layers = last_world.readData(enums.WorldDataEnum.TotalLayers.int());
+            for (0..total_layers) |l| {
+                var layer_embedded_struct = EmbeddedDataStruct{};
+                var layer = try layer_embedded_struct.findIndexByFileName(.world_layer, @intCast(i), @intCast(l + 1));
+                if (layer == true) {
+                    try last_world.addEmbeddedLayer(layer_embedded_struct);
+                } else {
+                    std.log.info("Layer not found - {d} (world: {d})", .{ @as(u16, @intCast(l)), @as(u16, @intCast(i)) });
+                }
+            }
+        } else {
+            std.log.info("World not found - {d}", .{ @as(u16, @intCast(i)) });
+        }
     }
     for (0..embeds.total_entities) |i| {
         var embedded_data_struct = EmbeddedDataStruct{};
-        _ = try embedded_data_struct.findIndexByFileName(.entity, @intCast(i));
-        // TODO: Actually put the type into the embedded data
-        try entities_list.append(gpa_allocator.allocator(), .{
-            .embedded = embedded_data_struct,
-            .type = 0,
-        });
-        try entities_list.at(i).loadComponents();
+        var entity = try embedded_data_struct.findIndexByFileName(.entity, @intCast(i), 0);
+        if (entity == true) {
+            // TODO: Actually put the type into the embedded data
+            try entities_list.append(gpa_allocator.allocator(), .{
+                .embedded = embedded_data_struct,
+                .type = 0,
+            });
+            try entities_list.at(i).loadComponents();
+        }
     }
     GAME_INITIALIZED = true;
 }
-
 // @wasm
 pub fn loadWorld(index: u16) void {
     current_world_index = index;
-    var w: u16 = undefined;
-    var h: u16 = undefined;
-    var in_editor: bool = false;
-    if (editor.modified_worlds.items.len > 0) {
-        for (editor.modified_worlds.items) |nw| {
-            if (nw.getIndex() == index) {
-                in_editor = true;
-                w = nw.getWidth();
-                h = nw.getHeight();
-            }
-        }
-    }
-    if (!in_editor) {
-        // w = worlds_list.items[current_world_index].getWidth();
-        // h = worlds_list.items[current_world_index].getHeight();
-        w = worlds_list.at(current_world_index).getWidth();
-        h = worlds_list.at(current_world_index).getHeight();
-    }
+    var w: u16 = worlds_list.at(current_world_index).getWidth();
+    var h: u16 = worlds_list.at(current_world_index).getHeight();
 
     if (w < viewport.getSizeWidth()) {
         var leftover = viewport.getSizeWidth() - w;
@@ -651,12 +444,11 @@ pub fn loadWorld(index: u16) void {
     var y: u16 = 0;
     for (0..viewport.getLength()) |i| {
         _ = i;
-        if (
-            x >= viewport.getPaddingLeft() and
+        if (x >= viewport.getPaddingLeft() and
             y >= viewport.getPaddingTop() and
             x < (viewport.getSizeWidth() - viewport.getPaddingRight()) and
-            y < (viewport.getSizeHeight() - viewport.getPaddingBottom())
-        ) {
+            y < (viewport.getSizeHeight() - viewport.getPaddingBottom()))
+        {
             viewport.setData(x, y, 1);
         } else {
             viewport.setData(x, y, 0);
@@ -683,137 +475,147 @@ pub fn getCurrentWorldHeight() u16 {
     // return worlds_list.items[current_world_index].getWidth();
     return worlds_list.at(current_world_index).getHeight();
 }
-
-// NOTE: NOT WASM COMPATIBLE
-pub fn getFileIndexByName(name: []const u8) usize {
-    var file_index: usize = 0;
-    for (embeds.file_names, 0..) |file_name, i| {
-        if (std.mem.eql(u8, file_name, name)) {
-            file_index = i;
-        }
-    }
-    return file_index;
+// @wasm
+pub fn getCurrentWorldTotalLayers() u16 {
+    return worlds_list.at(current_world_index).readData(enums.WorldDataEnum.TotalLayers.int());
 }
 // @wasm
-pub fn readFromEmbeddedFile(file_index: usize, index: u16, mode: u16) u16 {
-    var file = embeds.embeds[file_index];
-    const adjusted_index = index * 2;
-
-    var pulled_value: u16 = 0;
-    if (mode == 0) {
-        // Little Endian Mode
-        pulled_value = (@as(u16, @intCast(file[adjusted_index + 1])) << 8 | @as(u16, @intCast(file[adjusted_index])));
-    } else if (mode == 1) {
-        // Big Endian Mode
-        pulled_value = (@as(u16, @intCast(file[adjusted_index])) << 8 | @as(u16, @intCast(file[adjusted_index + 1])));
-    }
-
-    return pulled_value;
+pub fn getWorldData(world_index: u16, layer_index: u16, x: u16, y: u16) u16 {
+    return worlds_list.at(world_index).getCoordinateData(layer_index, x, y);
 }
-
 // @wasm
-pub fn getWorldData(world: u16, layer: u16, x: u16, y: u16) u16 {
-    if (editor.modified_worlds.items.len > 0) {
-        for (editor.modified_worlds.items) |nw| {
-            if (nw.getIndex() == world) {
-                return nw.getCoordinateData(layer, x, y);
-            }
-        }
-    }
-    if (world >= embeds.total_worlds) {
-        var offset_index: u16 = world - embeds.total_worlds;
-        // iterate over editor.world_layer until you get a match
-        var cursor: u16 = 0;
-        var layer_index: u16 = 0;
-        while (cursor < editor.world_layer.items.len) {
-            var e_world: u16 = editor.world_layer.items[cursor];
-            var e_layer: u16 = editor.world_layer.items[(cursor + 1)];
-            if (e_world == offset_index and e_layer == layer) {
-                layer_index = layer;
-                break;
-            }
-            cursor += 2;
-        }
-        var w = editor.worlds.items[offset_index].items[0];
-        var index: u16 = y * w * x + 1; // +1 = layer type
-        return editor.layers.items[layer_index].items[index];
-    } else {
-        // return worlds_list.items[world].getCoordinateData(layer, x, y);
-        return worlds_list.at(world).getCoordinateData(layer, x, y);
-    }
+pub fn resetWorldData(world_index: u16) !void {
+    var world = worlds_list.at(world_index);
+    try world.embedded_data.clearRawData();
 }
-// TODO: This is an editor function and should be moved there
 // @wasm
-pub fn setWorldData(world: u16, layer: u16, x: u16, y: u16, value: u16) !void {
-    // TODO: Actually figure out instances where you truly need to add this diff
-    try diff.addData(0);
-    
-    for (editor.modified_worlds.items) |nw| {
-        if (nw.getIndex() == world) {
-            try nw.setCoordinateData(layer, x, y, value);
-        }
-    }
-    
-    if (world >= embeds.total_worlds) {
-        var offset_index: u16 = world - embeds.total_worlds;
-        // iterate over editor.world_layer until you get a match
-        var cursor: u16 = 0;
-        var layer_index: u16 = 0;
-        while (cursor < editor.world_layer.items.len) {
-            var e_world: u16 = editor.world_layer.items[cursor];
-            var e_layer: u16 = editor.world_layer.items[(cursor + 1)];
-            if (e_world == offset_index and e_layer == layer) {
-                layer_index = layer;
-                break;
-            }
-            cursor += 2;
-        }
-        var w = editor.worlds.items[offset_index].items[0];
-        var index: u16 = y * w * x + 1; // +1 = layer type
-        editor.layers.items[layer_index].items[index] = value;
-    } else {
-        // worlds_list.items[world].setCoordinateData(layer, x, y, value);
-        try worlds_list.at(world).setCoordinateData(layer, x, y, value);
-    }
+pub fn resetWorldLayerData(world_index: u16, layer_index: u16) !void {
+    var world = worlds_list.at(world_index);
+    try world.embedded_layers.items[layer_index].clearRawData();
 }
-
 // @wasm
-pub fn getWorldAtViewport(layer: u16, x: u16, y: u16) u16 {
+pub fn getWorldDataAtViewportCoordinate(layer: u16, x: u16, y: u16) u16 {
     // TODO: Camera offset and all that
-    if (
-        x >= viewport.getPaddingLeft() and
+    if (x >= viewport.getPaddingLeft() and
         y >= viewport.getPaddingTop() and
         x < (viewport.getSizeWidth() - viewport.getPaddingRight()) and
-        y < (viewport.getSizeHeight() - viewport.getPaddingBottom())
-    ) {
+        y < (viewport.getSizeHeight() - viewport.getPaddingBottom()))
+    {
         var world_x = x - viewport.getPaddingLeft();
         var world_y = y - viewport.getPaddingTop();
-        return getWorldData(current_world_index, layer, world_x, world_y); 
+        // std.log.info("world {d}", .{worlds_list.len});
+        return getWorldData(current_world_index, layer, world_x, world_y);
     }
-    return 0;
+    std.log.info("Invalid coordinates: {d} {d}", .{x, y});
+    @panic("Invalid viewport coordinate");
 }
 // @wasm
 pub fn translateViewportXToWorldX(x: u16) u16 {
     // TODO: Camera offset and all that
-    if (
-        x >= viewport.getPaddingLeft() and
-        x < (viewport.getSizeWidth() - viewport.getPaddingRight())
-    ) {
+    if (x >= viewport.getPaddingLeft() and
+        x < (viewport.getSizeWidth() - viewport.getPaddingRight()))
+    {
         var world_x = x - viewport.getPaddingLeft();
         return world_x;
     }
-    return 0;
-
+    @panic("Invalid viewport x coordinate");
 }
 // @wasm
 pub fn translateViewportYToWorldY(y: u16) u16 {
     // TODO: Camera offset and all that
-    if (
-        y >= viewport.getPaddingTop() and
-        y < (viewport.getSizeHeight() - viewport.getPaddingBottom())
-    ) {
+    if (y >= viewport.getPaddingTop() and
+        y < (viewport.getSizeHeight() - viewport.getPaddingBottom()))
+    {
         var world_y = y - viewport.getPaddingTop();
         return world_y;
     }
-    return 0;
+    @panic("Invalid viewport y coordinate");
 }
+
+// TODO: Need to implement an actor model system
+// Define an actor for a player character
+// class PlayerActor {
+// public:
+//     void receiveMessage(const Message& message) {
+//         if (message.type == "attack") {
+//             // Handle attack action
+//         } else if (message.type == "useItem") {
+//             // Handle item usage
+//         }
+//         // ... other message types
+//     }
+// };
+
+// // Define an actor for an enemy character
+// class EnemyActor {
+// public:
+//     void receiveMessage(const Message& message) {
+//         if (message.type == "takeDamage") {
+//             // Handle taking damage
+//         } else if (message.type == "move") {
+//             // Handle movement
+//         }
+//         // ... other message types
+//     }
+// };
+
+// // Example of sending a message from a player to an enemy
+// void sendMessageFromPlayerToEnemy(PlayerActor& player, EnemyActor& enemy) {
+//     Message attackMessage;
+//     attackMessage.type = "attack";
+//     player.receiveMessage(attackMessage);
+//     enemy.receiveMessage(attackMessage);
+// }
+
+
+// class Actor {
+// public:
+//     virtual void ReceiveMessage(const Message& message) = 0;
+//     virtual void Update(float deltaTime) = 0;
+// };
+// class Player : public Actor {
+// public:
+//     void ReceiveMessage(const Message& message) override {
+//         if (message.type == "move") {
+//             MoveMessage move = static_cast<const MoveMessage&>(message);
+//             position.x += move.x;
+//             position.y += move.y;
+//         } else if (message.type == "attack") {
+//             // Handle attack
+//         }
+//     }
+
+//     void Update(float deltaTime) override {
+//         // Update actor's state based on deltaTime
+//     }
+
+// private:
+//     Vector2 position;
+// };
+// class MessageSystem {
+// public:
+//     void Update(float deltaTime) {
+//         for (auto& actor : actors) {
+//             for (auto& message : actor.messages) {
+//                 actor.ReceiveMessage(message);
+//             }
+//             actor.Update(deltaTime);
+//         }
+//     }
+
+// private:
+//     std::vector<Actor> actors;
+// };
+// int main() {
+//     MessageSystem messageSystem;
+//     Player player;
+//     messageSystem.actors.push_back(player);
+
+//     while (gameIsRunning) {
+//         float deltaTime = getDeltaTime();
+//         messageSystem.Update(deltaTime);
+//         // Render game state
+//     }
+
+//     return 0;
+// }

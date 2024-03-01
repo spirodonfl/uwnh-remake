@@ -1,7 +1,12 @@
+const std = @import("std");
+
 fn EnumHelpers(comptime T: type) type {
     return struct {
         pub fn int(self: T) @typeInfo(T).Enum.tag_type {
             return @intFromEnum(self);
+        }
+        pub fn length() usize {
+            return std.enums.directEnumArrayLen(T, 0);
         }
     };
 }
@@ -57,13 +62,6 @@ pub const DirectionsEnum = enum(u16) {
     pub usingnamespace EnumHelpers(@This());
 };
 
-pub const WorldLayersEnum = enum(u16) {
-    Base = 0,
-    Collision = 1,
-    Entities = 2,
-    pub usingnamespace EnumHelpers(@This());
-};
-
 pub const Components = enum(u16) {
     Health = 0,
     Movement = 0,
@@ -71,14 +69,15 @@ pub const Components = enum(u16) {
 
 };
 
-pub const EmbeddedDataType = enum { world, entity };
+pub const EmbeddedDataType = enum { world, entity, world_layer };
 
 pub const WorldDataEnum = enum(u16) {
     ID = 0,
     Width = 1,
     Height = 2,
-    EntityLayer = 3,
-    CollisionLayer = 4,
+    TotalLayers = 3,
+    EntityLayer = 4,
+    CollisionLayer = 5,
     pub usingnamespace EnumHelpers(@This());
 };
 
