@@ -36,8 +36,26 @@ pub fn moveCameraUp() void {
 }
 // @wasm
 pub fn moveCameraDown() void {
-    if (camera[1] < game.worlds_list.at(game.current_world_index).getHeight()) {
+    if (
+        game.worlds_list.at(game.current_world_index).getHeight() > size[1]
+        and camera[1] < game.worlds_list.at(game.current_world_index).getHeight()
+    ) {
         camera[1] += 1;
+    }
+}
+// @wasm
+pub fn moveCameraLeft() void {
+    if (camera[0] > 0) {
+        camera[0] -= 1;
+    }
+}
+// @wasm
+pub fn moveCameraRight() void {
+    if (
+        game.worlds_list.at(game.current_world_index).getWidth() > size[0]
+        and camera[0] < game.worlds_list.at(game.current_world_index).getWidth()
+    ) {
+        camera[0] += 1;
     }
 }
 // @wasm
