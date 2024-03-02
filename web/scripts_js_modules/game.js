@@ -88,7 +88,7 @@ export class Game extends HTMLElement {
         this.camera_x = 0;
         this.camera_y = 0;
         
-        // TODO: Put this in a loader sub object
+        // TODO: Put this in a loader sub object/component
         this.atlas_loaded = false;
         this.layer_id_to_image_loaded = false;
 
@@ -106,9 +106,9 @@ export class Game extends HTMLElement {
             this.loaded();
         }
         atlas.src = GLOBALS.ATLAS_PNG_FILENAME;
-        this.loadJsonFile(GLOBALS.LAYER_ID_TO_IMAGE_JSON_FILENAME, (data) => {
+        this.loadJsonFile(GLOBALS.IMAGE_DATA, (data) => {
             if (data) {
-                GLOBALS.LAYER_ID_TO_IMAGE = data;
+                GLOBALS.IMAGE_DATA = data;
                 this.layer_id_to_image_loaded = true;
                 this.loaded();
             }
@@ -154,76 +154,33 @@ export class Game extends HTMLElement {
             var viewport_y = Math.floor(i / this.width);
             var viewport_x = i % this.width;
             if (_GAME.viewport_getData(viewport_x, viewport_y)) {
-                // console.log({viewport_x, viewport_y});
-                // Note: We do this so that, down the road, we can offset the layer in case we need that
-                var layer = 0;
-                var bg_tile_id = _GAME.game_getWorldDataAtViewportCoordinate(layer, viewport_x, viewport_y);
-                if (bg_tile_id >= 0) {
-                    var new_entity = document.createElement('entity-component');
-                    new_entity.updateSize();
-                    new_entity.setViewportXY(viewport_x, viewport_y);
-                    new_entity.setLayer(layer);
-                    new_entity.setEntityId(bg_tile_id);
-                    if (bg_tile_id === 3) {
-                        new_entity.style.border = '3px solid rgb(0, 0, 255)';
+                var total_layers = _GAME.game_getCurrentWorldTotalLayers();
+                for (var layer = 0; layer < total_layers; ++layer) {
+                    if (layer === _GAME.game_getCurrentWorldCollisionLayer()) { continue; }
+                    if (layer === _GAME.game_getCurrentWorldEntityLayer()) {
+                        // TODO: Deal with entities properly here
+                        var entity_id = _GAME.game_getWorldDataAtViewportCoordinate(layer, viewport_x, viewport_y);
+                        console.log('Entity ID:', entity_id);
+                        if (entity_id > 0) {
+                            var new_entity = document.createElement('entity-component');
+                            new_entity.updateSize();
+                            new_entity.setViewportXY(viewport_x, viewport_y);
+                            new_entity.setLayer(layer);
+                            new_entity.setEntityId(entity_id);
+                            this.shadowRoot.getElementById('view').appendChild(new_entity);
+                        }
+                    } else {
+                        var tile_id = _GAME.game_getWorldDataAtViewportCoordinate(layer, viewport_x, viewport_y);
+                        if (tile_id >= 0) {
+                            var new_entity = document.createElement('entity-component');
+                            new_entity.updateSize();
+                            new_entity.setViewportXY(viewport_x, viewport_y);
+                            new_entity.setLayer(layer);
+                            new_entity.setEntityId(tile_id);
+                            this.shadowRoot.getElementById('view').appendChild(new_entity);
+                        }
                     }
-                    this.shadowRoot.getElementById('view').appendChild(new_entity);
                 }
-                // ++layer;
-                // var bg_tile_id = _GAME.game_getWorldDataAtViewportCoordinate(layer, viewport_x, viewport_y);
-                // if (bg_tile_id > 0) {
-                //     var new_entity = document.createElement('entity-component');
-                //     new_entity.updateSize();
-                //     new_entity.setViewportXY(viewport_x, viewport_y);
-                //     new_entity.setLayer(layer);
-                //     new_entity.setEntityId(bg_tile_id);
-                //     this.shadowRoot.getElementById('view').appendChild(new_entity);
-                // }
-
-                // ++layer;
-                // // TODO: Should pull ENTITY_LAYER from the wasm file
-                // var ENTITY_LAYER = 2;
-                // var entity_id = _GAME.game_getWorldDataAtViewportCoordinate(ENTITY_LAYER, viewport_x, viewport_y);
-                // if (entity_id > 0) {
-                //     var entity_type = null;
-                //     // TODO: THIS IS THE WAY TO CATCH ERRORS FROM OUTPUT IN WASM
-                //     try {
-                //         entity_type = _GAME.game_entityGetType((entity_id -1));
-                //     } catch (error) {
-                //         console.error({error, viewport_x, viewport_y, entity_id});
-                //     }
-                //     if (entity_type === 99) {
-                //         console.log('health restore');
-                //         var div = document.createElement('div');
-                //         div.style.width = (GLOBALS.SIZE * GLOBALS.SCALE) + 'px';
-                //         div.style.height = (GLOBALS.SIZE * GLOBALS.SCALE) + 'px';
-                //         div.style.position = 'absolute';
-                //         div.style.left = (viewport_x * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-                //         div.style.top = (viewport_y * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-                //         div.style.backgroundColor = 'rgba(255, 0, 0, .7)';
-                //         div.style.zIndex = layer;
-                //         this.shadowRoot.getElementById('view').appendChild(div);
-                //     } else if (entity_type === 98) {
-                //         console.log('octopus');
-                //         var div = document.createElement('div');
-                //         div.style.width = (GLOBALS.SIZE * GLOBALS.SCALE) + 'px';
-                //         div.style.height = (GLOBALS.SIZE * GLOBALS.SCALE) + 'px';
-                //         div.style.position = 'absolute';
-                //         div.style.left = (viewport_x * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-                //         div.style.top = (viewport_y * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-                //         div.style.backgroundColor = 'rgba(0, 0, 255, .7)';
-                //         div.style.zIndex = layer;
-                //         this.shadowRoot.getElementById('view').appendChild(div);
-                //     } else if (entity_id > 0) {
-                //         var new_entity = document.createElement('entity-component');
-                //         new_entity.updateSize();
-                //         new_entity.setViewportXY(viewport_x, viewport_y);
-                //         new_entity.setLayer(layer);
-                //         new_entity.setEntityId(entity_id);
-                //         this.shadowRoot.getElementById('view').appendChild(new_entity);
-                //     }
-                //     // TODO: ENTITY_TYPE_OR_ID_TO_IMAGE where type is first and then ID
-                // }
             }
         }
     }

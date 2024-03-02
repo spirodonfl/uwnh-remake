@@ -484,6 +484,14 @@ pub fn getCurrentWorldHeight() u16 {
     return worlds_list.at(current_world_index).getHeight();
 }
 // @wasm
+pub fn getCurrentWorldCollisionLayer() u16 {
+    return worlds_list.at(current_world_index).readData(enums.WorldDataEnum.CollisionLayer.int());
+}
+// @wasm
+pub fn getCurrentWorldEntityLayer() u16 {
+    return worlds_list.at(current_world_index).readData(enums.WorldDataEnum.EntityLayer.int());
+}
+// @wasm
 pub fn getCurrentWorldTotalLayers() u16 {
     return worlds_list.at(current_world_index).readData(enums.WorldDataEnum.TotalLayers.int());
 }

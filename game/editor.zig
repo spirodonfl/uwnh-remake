@@ -36,9 +36,6 @@ pub fn setWorldLayerCoordinateData(world_index: u16, layer_index: u16, x: u16, y
 }
 // @wasm
 pub fn addRowToWorld(world_index: u16) !void {
-    // Iterate all layers in world
-    // Add row to each layer
-    // Update world height
     var world = game.worlds_list.at(world_index);
     var new_height = world.getHeight() + 1;
 
@@ -52,21 +49,71 @@ pub fn addRowToWorld(world_index: u16) !void {
     try world.embedded_data.readToRawData();
     world.embedded_data.raw_data.items[enums.WorldDataEnum.Height.int()] = new_height;
 }
+// @wasm
+pub fn removeRowFromWorld(world_index: u16) !void {
+    var world = game.worlds_list.at(world_index);
+    var new_height = world.getHeight() - 1;
 
-// TODO: Finish this function
-// removeRowFromWorldLayer(world_index: u16, layer: u16)
-// world.embedded_layers[layer].readToRawData()
-// ...
+    var i: usize = 0;
+    while (i < world.embedded_layers.items.len) {
+        try world.embedded_layers.items[i].readToRawData();
+        // TODO: does resize actually release the memory. Maybe use clearAndFree?
+        try world.embedded_layers.items[i].raw_data.resize(game.allocator, world.getWidth() * new_height);
+        i += 1;
+    }
 
-// TODO: Finish this function
-// addColumnToWorldLayer(world_index: u16, layer: u16)
-// world.embedded_layers[layer].readToRawData()
-// ...
+    try world.embedded_data.readToRawData();
+    world.embedded_data.raw_data.items[enums.WorldDataEnum.Height.int()] = new_height;
+}
+// @wasm
+pub fn addColumnToWorld(world_index: u16) !void {
+    var world = game.worlds_list.at(world_index);
+    var new_width = world.getWidth() + 1;
 
-// TODO: Finish this function
-// removeColumnToWorldLayer(world_index: u16, layer: u16)
-// world.embedded_layers[layer].readToRawData()
-// ...
+    var i: usize = 0;
+    while (i < world.embedded_layers.items.len) {
+        try world.embedded_layers.items[i].readToRawData();
+        var new_raw_data: std.ArrayListUnmanaged(u16) = .{};
+        var j: usize = 0;
+        while (j < world.getHeight()) {
+            var start = j * world.getWidth();
+            var end = start + world.getWidth();
+            // try new_raw_data.appendArray(world.embedded_layers.items[i].raw_data.items[start..end]);
+            try new_raw_data.appendUnalignedSlice(game.allocator, world.embedded_layers.items[i].raw_data.items[start..end]);
+            try new_raw_data.appendNTimes(game.allocator, 0, 1);
+            j += 1;
+        }
+        world.embedded_layers.items[i].raw_data = new_raw_data;
+        i += 1;
+    }
+
+    try world.embedded_data.readToRawData();
+    world.embedded_data.raw_data.items[enums.WorldDataEnum.Width.int()] = new_width;
+}
+// @wasm
+pub fn removeColumnFromWorld(world_index: u16) !void {
+    var world = game.worlds_list.at(world_index);
+    var new_width = world.getWidth() - 1;
+
+    var i: usize = 0;
+    while (i < world.embedded_layers.items.len) {
+        try world.embedded_layers.items[i].readToRawData();
+        var new_raw_data: std.ArrayListUnmanaged(u16) = .{};
+        var j: usize = 0;
+        while (j < world.getHeight()) {
+            var start = j * world.getWidth();
+            var end = start + new_width;
+            // try new_raw_data.appendArray(world.embedded_layers.items[i].raw_data.items[start..end]);
+            try new_raw_data.appendUnalignedSlice(game.allocator, world.embedded_layers.items[i].raw_data.items[start..end]);
+            j += 1;
+        }
+        world.embedded_layers.items[i].raw_data = new_raw_data;
+        i += 1;
+    }
+
+    try world.embedded_data.readToRawData();
+    world.embedded_data.raw_data.items[enums.WorldDataEnum.Width.int()] = new_width;
+}
 
 // TODO: Restructure layer order (maybe)
 // TODO: Alternative to above, injectLayerAfter / injectLayerBefore
@@ -148,28 +195,34 @@ pub fn clearAll() void {
 
 // --- MEMORY RETRIEVAL ---
 // @wasm
-pub fn getWorldMemoryLocation(world: u16) !*u16 {
-    return game.worlds_list.at(world).embedded_data.firstMemoryLocation();
+pub fn getWorldMemoryLocation(world_index: u16) !*u16 {
+    return game.worlds_list.at(world_index).embedded_data.firstMemoryLocation();
 }
 // @wasm
-pub fn getWorldMemoryLength(world: u16) !usize {
-    return game.worlds_list.at(world).embedded_data.getLength();
+pub fn getWorldMemoryLength(world_index: u16) !usize {
+    return game.worlds_list.at(world_index).embedded_data.getLength();
 }
 // @wasm
-pub fn getEntityMemoryLocation(entity: u16) !*u16 {
-    return game.entities_list.at(entity).embedded.firstMemoryLocation();
+pub fn getEntityMemoryLocation(entity_index: u16) !*u16 {
+    return game.entities_list.at(entity_index).embedded.firstMemoryLocation();
 }
 // @wasm
-pub fn getEntityMemoryLength(entity: u16) !usize {
-    return game.entities_list.at(entity).embedded.getLength();
+pub fn getEntityMemoryLength(entity_index: u16) !usize {
+    return game.entities_list.at(entity_index).embedded.getLength();
 }
 // @wasm
-pub fn getLayerMemoryLocation(layer: u16) !*u16 {
-    // TODO: Consider if we need to filter this by world or not. Most likely yes
-    return try layers.items[layer].firstMemoryLocation();
+pub fn getWorldLayerMemoryLocation(world_index: u16, layer_index: u16) !*u16 {
+    return game.worlds_list.at(world_index).embedded_layers.items[layer_index].firstMemoryLocation();
 }
 // @wasm
-pub fn getLayerMemoryLength(layer: u16) !usize {
-    // TODO: Consider if we need to filter this by world or not. Most likely yes
-    return layers.items[layer].getLength();
+pub fn getWorldLayerMemoryLength(world_index: u16, layer_index: u16) !usize {
+    return game.worlds_list.at(world_index).embedded_layers.items[layer_index].getLength();
+}
+// @wasm
+pub fn getLayerMemoryLocation(layer_index: u16) !*u16 {
+    return try layers.items[layer_index].firstMemoryLocation();
+}
+// @wasm
+pub fn getLayerMemoryLength(layer_index: u16) !usize {
+    return layers.items[layer_index].getLength();
 }
