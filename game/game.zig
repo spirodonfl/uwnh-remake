@@ -510,8 +510,8 @@ pub fn getWorldDataAtViewportCoordinate(layer: u16, x: u16, y: u16) u16 {
     {
         var world_x = x - viewport.getPaddingLeft();
         var world_y = y - viewport.getPaddingTop();
-        x += viewport.getCameraX();
-        y += viewport.getCameraY();
+        world_x += viewport.getCameraX();
+        world_y += viewport.getCameraY();
         // std.log.info("world {d}", .{worlds_list.len});
         return getWorldData(current_world_index, layer, world_x, world_y);
     }

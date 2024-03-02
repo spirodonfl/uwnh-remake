@@ -1,6 +1,7 @@
 const std = @import("std");
 const ArrayList = std.ArrayList;
 
+const game = @import("game.zig");
 const debug = @import("debug.zig");
 
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -26,6 +27,18 @@ pub fn getCameraX() u16 {
 // @wasm
 pub fn getCameraY() u16 {
     return camera[1];
+}
+// @wasm
+pub fn moveCameraUp() void {
+    if (camera[1] > 0) {
+        camera[1] -= 1;
+    }
+}
+// @wasm
+pub fn moveCameraDown() void {
+    if (camera[1] < game.worlds_list.at(game.current_world_index).getHeight()) {
+        camera[1] += 1;
+    }
 }
 // @wasm
 pub fn initializeViewportData() void {

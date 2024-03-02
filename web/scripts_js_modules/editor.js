@@ -262,4 +262,13 @@ export class Editor extends HTMLElement {
         document.querySelector('game-component').renderGame();
         document.querySelector('editor-component').renderViewportData();
     }
+    test_addRowsToWorld() {
+        for (var i = 0; i < 20; ++i) {
+            _GAME.editor_addRowToWorld(0);
+            _GAME.game_loadWorld(0);
+            console.log([_GAME.game_getCurrentWorldWidth(), _GAME.game_getCurrentWorldHeight()]);
+            document.querySelector('game-component').renderGame();
+            document.querySelector('editor-component').renderViewportData();
+        }
+    }
 }
