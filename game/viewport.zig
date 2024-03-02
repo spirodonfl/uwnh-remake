@@ -1,17 +1,62 @@
 const std = @import("std");
 const ArrayList = std.ArrayList;
 
+const game = @import("game.zig");
 const debug = @import("debug.zig");
 
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 const allocator = arena.allocator();
 var size: [2]u16 = .{ 0, 0 };
 var padding: [4]u16 = .{ 0, 0, 0, 0 };
+var camera: [2]u16 = .{ 0, 0 };
 var data = ArrayList(u16).init(allocator);
 // @wasm
 pub fn setSize(width: u16, height: u16) void {
     size[0] = width;
     size[1] = height;
+}
+// @wasm
+pub fn setCamera(x: u16, y: u16) void {
+    camera[0] = x;
+    camera[1] = y;
+}
+// @wasm
+pub fn getCameraX() u16 {
+    return camera[0];
+}
+// @wasm
+pub fn getCameraY() u16 {
+    return camera[1];
+}
+// @wasm
+pub fn moveCameraUp() void {
+    if (camera[1] > 0) {
+        camera[1] -= 1;
+    }
+}
+// @wasm
+pub fn moveCameraDown() void {
+    if (
+        game.worlds_list.at(game.current_world_index).getHeight() > size[1]
+        and camera[1] < game.worlds_list.at(game.current_world_index).getHeight()
+    ) {
+        camera[1] += 1;
+    }
+}
+// @wasm
+pub fn moveCameraLeft() void {
+    if (camera[0] > 0) {
+        camera[0] -= 1;
+    }
+}
+// @wasm
+pub fn moveCameraRight() void {
+    if (
+        game.worlds_list.at(game.current_world_index).getWidth() > size[0]
+        and camera[0] < game.worlds_list.at(game.current_world_index).getWidth()
+    ) {
+        camera[0] += 1;
+    }
 }
 // @wasm
 pub fn initializeViewportData() void {

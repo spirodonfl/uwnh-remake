@@ -104,8 +104,8 @@ pub const WorldDataStruct = struct {
     pub fn readData(self: *WorldDataStruct, index: u16) u16 {
         return self.embedded_data.readData(index, .Little);
     }
-    pub fn readLayer(self: *WorldDataStruct, layer: u16, index: u16) u16 {
-        return self.embedded_layers.items[layer].readData(index, .Little);
+    pub fn readLayer(self: *WorldDataStruct, layer_index: u16, index: u16) u16 {
+        return self.embedded_layers.items[layer_index].readData(index, .Little);
     }
     pub fn getIndex(self: *WorldDataStruct) u16 {
         const enum_index = enums.WorldDataEnum.ID.int();
@@ -185,9 +185,17 @@ pub const EmbeddedDataStruct = struct {
     }
     pub fn readToRawData(self: *EmbeddedDataStruct) !void {
         if (self.raw_data.items.len == 0) {
-            const filebytes = embeds.embeds[self.file_index];
-            for (filebytes) |byte| {
-                try self.raw_data.append(allocator, byte);
+            var length: u16 = @as(u16, @intCast(embeds.embeds[self.file_index].len));
+            length = length / 2;
+            try self.raw_data.resize(allocator, length);
+            for (0..length) |i| {
+                var i_converted = @as(u16, @intCast(i));
+                // TODO: Cannot use self.readData because, as you fill this up, you trigger raw_data.items.len > 0 and it fails
+                const filebytes = embeds.embeds[self.file_index];
+                const value = std.mem.readInt(u16, filebytes[i_converted * 2 ..][0..2], .Little);
+                // std.log.info("value {d}",.{value});
+                self.raw_data.items[i_converted] = value;
+                // std.log.info("new_data[i] {d}",.{self.raw_data.items[i_converted]});
             }
         }
     }
@@ -476,6 +484,14 @@ pub fn getCurrentWorldHeight() u16 {
     return worlds_list.at(current_world_index).getHeight();
 }
 // @wasm
+pub fn getCurrentWorldCollisionLayer() u16 {
+    return worlds_list.at(current_world_index).readData(enums.WorldDataEnum.CollisionLayer.int());
+}
+// @wasm
+pub fn getCurrentWorldEntityLayer() u16 {
+    return worlds_list.at(current_world_index).readData(enums.WorldDataEnum.EntityLayer.int());
+}
+// @wasm
 pub fn getCurrentWorldTotalLayers() u16 {
     return worlds_list.at(current_world_index).readData(enums.WorldDataEnum.TotalLayers.int());
 }
@@ -495,7 +511,6 @@ pub fn resetWorldLayerData(world_index: u16, layer_index: u16) !void {
 }
 // @wasm
 pub fn getWorldDataAtViewportCoordinate(layer: u16, x: u16, y: u16) u16 {
-    // TODO: Camera offset and all that
     if (x >= viewport.getPaddingLeft() and
         y >= viewport.getPaddingTop() and
         x < (viewport.getSizeWidth() - viewport.getPaddingRight()) and
@@ -503,6 +518,8 @@ pub fn getWorldDataAtViewportCoordinate(layer: u16, x: u16, y: u16) u16 {
     {
         var world_x = x - viewport.getPaddingLeft();
         var world_y = y - viewport.getPaddingTop();
+        world_x += viewport.getCameraX();
+        world_y += viewport.getCameraY();
         // std.log.info("world {d}", .{worlds_list.len});
         return getWorldData(current_world_index, layer, world_x, world_y);
     }
@@ -511,22 +528,22 @@ pub fn getWorldDataAtViewportCoordinate(layer: u16, x: u16, y: u16) u16 {
 }
 // @wasm
 pub fn translateViewportXToWorldX(x: u16) u16 {
-    // TODO: Camera offset and all that
     if (x >= viewport.getPaddingLeft() and
         x < (viewport.getSizeWidth() - viewport.getPaddingRight()))
     {
         var world_x = x - viewport.getPaddingLeft();
+        world_x += viewport.getCameraX();
         return world_x;
     }
     @panic("Invalid viewport x coordinate");
 }
 // @wasm
 pub fn translateViewportYToWorldY(y: u16) u16 {
-    // TODO: Camera offset and all that
     if (y >= viewport.getPaddingTop() and
         y < (viewport.getSizeHeight() - viewport.getPaddingBottom()))
     {
         var world_y = y - viewport.getPaddingTop();
+        world_y += viewport.getCameraY();
         return world_y;
     }
     @panic("Invalid viewport y coordinate");
