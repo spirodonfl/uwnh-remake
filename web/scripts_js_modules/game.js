@@ -84,6 +84,9 @@ export class Game extends HTMLElement {
         this.x_padding = 0;
         this.y_padding = 0;
         this.atlas = null;
+
+        this.camera_x = 0;
+        this.camera_y = 0;
         
         // TODO: Put this in a loader sub object
         this.atlas_loaded = false;
@@ -161,6 +164,9 @@ export class Game extends HTMLElement {
                     new_entity.setViewportXY(viewport_x, viewport_y);
                     new_entity.setLayer(layer);
                     new_entity.setEntityId(bg_tile_id);
+                    if (bg_tile_id === 3) {
+                        new_entity.style.border = '3px solid rgb(0, 0, 255)';
+                    }
                     this.shadowRoot.getElementById('view').appendChild(new_entity);
                 }
                 // ++layer;

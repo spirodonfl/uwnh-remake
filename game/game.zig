@@ -503,7 +503,6 @@ pub fn resetWorldLayerData(world_index: u16, layer_index: u16) !void {
 }
 // @wasm
 pub fn getWorldDataAtViewportCoordinate(layer: u16, x: u16, y: u16) u16 {
-    // TODO: Camera offset and all that
     if (x >= viewport.getPaddingLeft() and
         y >= viewport.getPaddingTop() and
         x < (viewport.getSizeWidth() - viewport.getPaddingRight()) and
@@ -511,6 +510,8 @@ pub fn getWorldDataAtViewportCoordinate(layer: u16, x: u16, y: u16) u16 {
     {
         var world_x = x - viewport.getPaddingLeft();
         var world_y = y - viewport.getPaddingTop();
+        x += viewport.getCameraX();
+        y += viewport.getCameraY();
         // std.log.info("world {d}", .{worlds_list.len});
         return getWorldData(current_world_index, layer, world_x, world_y);
     }
@@ -519,22 +520,22 @@ pub fn getWorldDataAtViewportCoordinate(layer: u16, x: u16, y: u16) u16 {
 }
 // @wasm
 pub fn translateViewportXToWorldX(x: u16) u16 {
-    // TODO: Camera offset and all that
     if (x >= viewport.getPaddingLeft() and
         x < (viewport.getSizeWidth() - viewport.getPaddingRight()))
     {
         var world_x = x - viewport.getPaddingLeft();
+        world_x += viewport.getCameraX();
         return world_x;
     }
     @panic("Invalid viewport x coordinate");
 }
 // @wasm
 pub fn translateViewportYToWorldY(y: u16) u16 {
-    // TODO: Camera offset and all that
     if (y >= viewport.getPaddingTop() and
         y < (viewport.getSizeHeight() - viewport.getPaddingBottom()))
     {
         var world_y = y - viewport.getPaddingTop();
+        world_y += viewport.getCameraY();
         return world_y;
     }
     @panic("Invalid viewport y coordinate");

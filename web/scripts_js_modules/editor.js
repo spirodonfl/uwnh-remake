@@ -255,4 +255,11 @@ export class Editor extends HTMLElement {
         _GAME.game_resetWorldLayerData(0, 0);
         this.renderViewportData();
     }
+    test_addRowToWorld() {
+        _GAME.editor_addRowToWorld(0);
+        _GAME.game_loadWorld(0);
+        console.log([_GAME.game_getCurrentWorldWidth(), _GAME.game_getCurrentWorldHeight()]);
+        document.querySelector('game-component').renderGame();
+        document.querySelector('editor-component').renderViewportData();
+    }
 }
