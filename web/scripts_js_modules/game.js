@@ -151,6 +151,7 @@ export class Game extends HTMLElement {
             var viewport_y = Math.floor(i / this.width);
             var viewport_x = i % this.width;
             if (_GAME.viewport_getData(viewport_x, viewport_y)) {
+                // console.log({viewport_x, viewport_y});
                 // Note: We do this so that, down the road, we can offset the layer in case we need that
                 var layer = 0;
                 var bg_tile_id = _GAME.game_getWorldDataAtViewportCoordinate(layer, viewport_x, viewport_y);

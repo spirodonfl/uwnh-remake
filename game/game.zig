@@ -104,8 +104,8 @@ pub const WorldDataStruct = struct {
     pub fn readData(self: *WorldDataStruct, index: u16) u16 {
         return self.embedded_data.readData(index, .Little);
     }
-    pub fn readLayer(self: *WorldDataStruct, layer: u16, index: u16) u16 {
-        return self.embedded_layers.items[layer].readData(index, .Little);
+    pub fn readLayer(self: *WorldDataStruct, layer_index: u16, index: u16) u16 {
+        return self.embedded_layers.items[layer_index].readData(index, .Little);
     }
     pub fn getIndex(self: *WorldDataStruct) u16 {
         const enum_index = enums.WorldDataEnum.ID.int();
@@ -185,10 +185,17 @@ pub const EmbeddedDataStruct = struct {
     }
     pub fn readToRawData(self: *EmbeddedDataStruct) !void {
         if (self.raw_data.items.len == 0) {
-            var length = embeds.embeds[self.file_index].len;
-            std.log.info("LLLLEEENNNGTTTHHH: {d}", .{length});
+            var length: u16 = @as(u16, @intCast(embeds.embeds[self.file_index].len));
+            length = length / 2;
+            try self.raw_data.resize(allocator, length);
             for (0..length) |i| {
-                try self.raw_data.append(allocator, self.readData(i, .Little));
+                var i_converted = @as(u16, @intCast(i));
+                // TODO: Cannot use self.readData because, as you fill this up, you trigger raw_data.items.len > 0 and it fails
+                const filebytes = embeds.embeds[self.file_index];
+                const value = std.mem.readInt(u16, filebytes[i_converted * 2 ..][0..2], .Little);
+                // std.log.info("value {d}",.{value});
+                self.raw_data.items[i_converted] = value;
+                // std.log.info("new_data[i] {d}",.{self.raw_data.items[i_converted]});
             }
         }
     }

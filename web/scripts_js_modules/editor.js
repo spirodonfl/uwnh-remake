@@ -61,7 +61,7 @@ export class Editor extends HTMLElement {
             var original_y = e.offsetY;
             var x = Math.floor(original_x / 64);
             var y = Math.floor(original_y / 64);
-            console.log({offsetX: e.offsetX, offsetY: e.offsetY, x, y});
+            // console.log({offsetX: e.offsetX, offsetY: e.offsetY, x, y});
             this.last_atlas_click.x = x;
             this.last_atlas_click.y = y;
             var selected_atlas_image = this.shadowRoot.getElementById('current_selected_atlas_img');
@@ -114,15 +114,15 @@ export class Editor extends HTMLElement {
             if (_GAME.viewport_getData(viewport_x, viewport_y)) {
                 // TODO: this.renderCollisionData();
                 // TODO: Should pull COLLISION_LAYER from the wasm file
-                var COLLISION_LAYER = 3;
-                var collision = _GAME.game_getWorldDataAtViewportCoordinate(COLLISION_LAYER, viewport_x, viewport_y);
-                if (collision === 1) {
-                    var collision_entity = document.createElement('collision-entity-component');
-                    collision_entity.updateSize();
-                    collision_entity.setViewportXY(viewport_x, viewport_y);
-                    collision_entity.setLayer(COLLISION_LAYER);
-                    game_component.shadowRoot.getElementById('view').appendChild(collision_entity);
-                }
+                // var COLLISION_LAYER = 3;
+                // var collision = _GAME.game_getWorldDataAtViewportCoordinate(COLLISION_LAYER, viewport_x, viewport_y);
+                // if (collision === 1) {
+                //     var collision_entity = document.createElement('collision-entity-component');
+                //     collision_entity.updateSize();
+                //     collision_entity.setViewportXY(viewport_x, viewport_y);
+                //     collision_entity.setLayer(COLLISION_LAYER);
+                //     game_component.shadowRoot.getElementById('view').appendChild(collision_entity);
+                // }
 
                 var viewport_entity = document.createElement('viewport-entity-component');
                 viewport_entity.updateSize();
