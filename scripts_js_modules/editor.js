@@ -76,7 +76,14 @@ export class Editor extends HTMLElement {
             var x = this.last_atlas_click.x;
             var y = this.last_atlas_click.y;
             // TODO: What about animations?
-            GLOBALS.LAYER_ID_TO_IMAGE[layer_id][data_id] = [
+            var current_world_index = _GAME.game_getCurrentWorldIndex();
+            if (!GLOBALS.IMAGE_DATA[current_world_index]) {
+                GLOBALS.IMAGE_DATA[current_world_index] = {};
+            }
+            if (!GLOBALS.IMAGE_DATA[current_world_index][layer_id]) {
+                GLOBALS.IMAGE_DATA[current_world_index][layer_id] = {};
+            }
+            GLOBALS.IMAGE_DATA[current_world_index][layer_id][data_id] = [
                 [x * (GLOBALS.SIZE * GLOBALS.SCALE), y * (GLOBALS.SIZE * GLOBALS.SCALE)]
             ];
             var game_component = document.querySelector('game-component');
@@ -113,16 +120,15 @@ export class Editor extends HTMLElement {
 
             if (_GAME.viewport_getData(viewport_x, viewport_y)) {
                 // TODO: this.renderCollisionData();
-                // TODO: Should pull COLLISION_LAYER from the wasm file
-                // var COLLISION_LAYER = 3;
-                // var collision = _GAME.game_getWorldDataAtViewportCoordinate(COLLISION_LAYER, viewport_x, viewport_y);
-                // if (collision === 1) {
-                //     var collision_entity = document.createElement('collision-entity-component');
-                //     collision_entity.updateSize();
-                //     collision_entity.setViewportXY(viewport_x, viewport_y);
-                //     collision_entity.setLayer(COLLISION_LAYER);
-                //     game_component.shadowRoot.getElementById('view').appendChild(collision_entity);
-                // }
+                var COLLISION_LAYER = _GAME.game_getCurrentWorldCollisionLayer();
+                var collision = _GAME.game_getWorldDataAtViewportCoordinate(COLLISION_LAYER, viewport_x, viewport_y);
+                if (collision === 1) {
+                    var collision_entity = document.createElement('collision-entity-component');
+                    collision_entity.updateSize();
+                    collision_entity.setViewportXY(viewport_x, viewport_y);
+                    collision_entity.setLayer(COLLISION_LAYER);
+                    game_component.shadowRoot.getElementById('view').appendChild(collision_entity);
+                }
 
                 var viewport_entity = document.createElement('viewport-entity-component');
                 viewport_entity.updateSize();
@@ -233,10 +239,17 @@ export class Editor extends HTMLElement {
                     <input type="button" id="apply_data_value_to_layer_coordinate_input" value="Apply Data Value to Selected World & Layer Coordinate" />
                 </div>
                 <div id="current_selected_atlas"><div id="current_selected_atlas_img" src=""></div></div>
-                <div id="apply_image_to_layer_id">
-                    <input type="button" id="apply_image_to_layer_id_input" value="Apply Image to Data" />
+                <div id="apply_image_to_world_layer_id">
+                    <input type="button" id="apply_image_to_world_layer_id_input" value="Apply Image to Data" />
                 </div>
-                <div id="current_editor_mode"></div>
+                <div id="current_editor_mode">[CURRENT EDITOR MODE HERE]</div>
+                <div id="extract_world_data">[EXTRACT WORLD DATA HERE] world_0_data.bin</div>
+                <div id="extract_layer_data">[EXTRACT LAYER DATA HERE] world_0_layer_0.bin</div>
+                <div id="edit_entity">[EDIT ENTITY HERE]</div>
+                <div id="extract_entity">[EXTRACT ENTITY HERE] entity_0.bin</div>
+                <div id="list_world_layers">[LIST WORLD LAYERS HERE]</div>
+                <div id="change_world_entity_layer">[CHANGE WORLD ENTITY LAYER HERE]</div>
+                <div id="change_world_collisions_layer">[CHANGE WORLD COLLISIONS LAYER HERE]</div>
             </div>
             <div class="hidden" id="atlas">
                 <div class="draggable-header"></div>

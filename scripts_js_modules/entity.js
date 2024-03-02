@@ -41,10 +41,18 @@ export class Entity extends HTMLElement {
         if (frame === null || frame === undefined) {
             frame = 0;
         }
-        if (!GLOBALS.LAYER_ID_TO_IMAGE[layer][id]) {
+        var current_world_index = _GAME.game_getCurrentWorldIndex();
+        if (!GLOBALS.IMAGE_DATA[current_world_index]) {
             return null;
         }
-        return GLOBALS.LAYER_ID_TO_IMAGE[layer][id][frame];
+        if (!GLOBALS.IMAGE_DATA[current_world_index][layer]) {
+            return null;
+        }
+        if (!GLOBALS.IMAGE_DATA[current_world_index][layer][id]) {
+            return null;
+        }
+        return GLOBALS.IMAGE_DATA[current_world_index][layer][id][frame];
+        // TODO: Real entities (npcs and characters and other "moving" things should have a default image)
     }
 
     render() {
