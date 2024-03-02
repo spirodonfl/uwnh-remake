@@ -2,7 +2,7 @@ import { wasm } from './injector_wasm.js';
 import { Entity } from './entity.js';
 import { CollisionEntity } from './collision-entity.js';
 import { ViewportEntity } from './viewport-entity.js';
-import { Draggable } from './draggable.js';
+import '../components/draggable.js';
 
 var _GAME = wasm.instance.exports;
 // TODO: THIS IS ALL FOR TESTING, REMOVE THIS SOON
@@ -72,7 +72,6 @@ customElements.define('viewport-entity-component', ViewportEntity);
 // *. run the requestAnimationFrame loop with a tick function
 // *. pretty much the tick function iterates over frames and executes rendering of any appropriate entities and whatnot
 // TODO: Put stats in editor mode only (use the menu)
-// TODO: At some point after all elements are injected (editor and all that) we should run the draggable.js script
 // *. Load twitch functionality
 // *. Load multiplayer functionality
 
@@ -98,7 +97,6 @@ export class Game extends HTMLElement {
     connectedCallback() {
         this.render();
         
-        Draggable(this.shadowRoot.querySelector('#main_menu'));
         var atlas = new Image();
         atlas.onload = () => {
             this.atlas_loaded = true;
@@ -311,17 +309,8 @@ export class Game extends HTMLElement {
                 background-position: -1px -1px;
                 position: relative;
             }
-            #main_menu {
-                position: absolute;
-                top: 0px;
-                left: 0px;
-                width: 400px;
-                height: 400px;
-                z-index: 1000001;
-                background-color: rgba(0, 0, 0, 0.96);
+            #main-menu-container {
                 color: white;
-                border: 2px solid orange;
-                border-radius: 8px;
 
                 padding: 0.6em;
                 display: grid;
@@ -334,25 +323,26 @@ export class Game extends HTMLElement {
                 background-color: orange;
             }
             </style>
-            <div id="main_menu">
-                <div class="draggable-header"></div>
-                <div class="title">Main Menu</div>
-                <div class="two-column-grid">
-                    <div>FPS</div><div>XXX</div>
+            <x-draggable name="main_menu" id="main_menu">
+                <div id="main-menu-container" style="padding: 1rem">
+                    <div class="title">Main Menu</div>
+                    <div class="two-column-grid">
+                        <div>FPS</div><div>XXX</div>
+                    </div>
+                    <div class="two-column-grid">
+                        <div>Els</div><div>XXX</div>
+                    </div>
+                    <div class="two-column-grid">
+                        <div>Mode</div><div>XXX</div>
+                    </div>
+                    <div>
+                        Press 'H' for help
+                    </div>
+                    <div>
+                        Press 'X' to hide/show this
+                    </div>
                 </div>
-                <div class="two-column-grid">
-                    <div>Els</div><div>XXX</div>
-                </div>
-                <div class="two-column-grid">
-                    <div>Mode</div><div>XXX</div>
-                </div>
-                <div>
-                    Press 'H' for help
-                </div>
-                <div>
-                    Press 'X' to hide/show this
-                </div>
-            </div>
+            </x-draggable>
             <div id="clickable_view"></div>
             <div id="view"></div>
         `;
