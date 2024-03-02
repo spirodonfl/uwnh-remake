@@ -143,6 +143,7 @@ export class DraggableResizableWindow extends HTMLElement {
             position: sticky;
             top: 0;
             left: 0;
+            z-index: 100;
             flex: none;
             width: 100%;
             height: 1em;
