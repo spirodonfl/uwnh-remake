@@ -57,6 +57,8 @@ const _WASM_IMPORTS = {
     viewport_getCameraY() {},
     viewport_moveCameraUp() {},
     viewport_moveCameraDown() {},
+    viewport_moveCameraLeft() {},
+    viewport_moveCameraRight() {},
     viewport_initializeViewportData() {},
     viewport_setData(x, y, value) {},
     viewport_getData(x, y) {},
