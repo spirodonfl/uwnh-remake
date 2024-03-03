@@ -2,13 +2,34 @@ export class CheatSheet extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({mode: 'open'});
+
+        this.inputs = [
+            {
+                description: 'Toggle the cheatsheet',
+                context: GLOBALS.MODES.indexOf('ALL'),
+                code: 'KeyH',
+                friendlyCode: 'H',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.toggleDisplay();
+                }
+            }
+        ];
     }
 
     connectedCallback() {
         this.render();
+        GLOBALS.INPUTS = GLOBALS.INPUTS.concat(this.inputs);
+        // TODO: A better way to not repeat our input functionality here
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'h') {
-                this.style.display = this.style.display === 'none' ? 'block' : 'none';
+            for (var i = 0; i < this.inputs.length; ++i) {
+                let input = this.inputs[i];
+                if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
+                    if (input.context === GLOBALS.MODES.indexOf('ALL')) {
+                        input.callback();
+                    }
+                }
             }
         });
     }
@@ -16,6 +37,26 @@ export class CheatSheet extends HTMLElement {
     disconnectedCallback() {}
     adoptedCallback() {}
     attributeChangedCallback() {}
+
+    toggleDisplay() {
+        this.shadowRoot.getElementById('cheatsheet').innerHTML = '';
+        for (var m = 0; m < GLOBALS.MODES.length; ++m) {
+            let mode = GLOBALS.MODES[m];
+            this.shadowRoot.getElementById('cheatsheet').innerHTML += `
+                <div class="mode">MODE: ${mode}</div><div class="mode">&nbsp;</div><div class="mode">&nbsp;</div>
+                <div>Action</div><div>Key</div><div>Gamepad</div>
+            `;
+            for (var i = 0; i < GLOBALS.INPUTS.length; ++i) {
+                let input = GLOBALS.INPUTS[i];
+                if (input.context === m) {
+                    this.shadowRoot.getElementById('cheatsheet').innerHTML += `
+                        <div>${input.description}</div><div>${input.friendlyCode}</div><div></div>
+                    `;
+                }
+            }
+        }
+        this.style.display = (this.style.display === 'none') ? 'block' : 'none';
+    }
 
     render() {
         this.shadowRoot.innerHTML = `
@@ -57,57 +98,7 @@ export class CheatSheet extends HTMLElement {
             }
             </style>
             <div class="title">CHEATSHEET</div>
-            <div id="cheatsheet">
-                <div class="mode">MODE: ALL</div><div class="mode">&nbsp;</div><div class="mode">&nbsp;</div>
-                <div>Action</div><div>Key</div><div>Gamepad</div>
-                <div>Toggle this cheatsheet</div><div>H</div><div></div>
-                <div>Show Credits & Attributions</div><div></div><div></div>
-                <div>Switch modes</div><div>S</div><div></div>
-
-                <div class="mode">MODE: EDITOR</div><div class="mode">&nbsp;</div><div class="mode">&nbsp;</div>
-                <div>Action</div><div>Key</div><div>Gamepad</div>
-                <div>Toggle main menu</div><div>P</div><div></div>
-                <div>Toggle atlas</div><div>A</div><div></div>
-                <div>Iterate through available layers</div><div>L</div><div></div>
-                <div>Add collision block</div><div></div><div></div>
-                <div>Remove collision block</div><div></div><div></div>
-                <div>Show layer data</div><div></div><div></div>
-                <div>Hide layer data</div><div></div><div></div>
-                <div>Apply atlas image to layer data</div><div></div><div></div>
-                <div>"Disapply" atlas image from layer data</div><div></div><div></div>
-                <div>Create world</div><div></div><div></div>
-                <div>Delete world (note: this requires downloading all worlds again and re-compiling)</div><div></div><div></div>
-                <div>Create layer</div><div></div><div></div>
-                <div>Detach layer from world (note: this requires downloading all world layers again and re-compiling)</div><div></div><div></div>
-                <div>Attach layer to world</div><div></div><div></div>
-                <div>Extract data from world layer location</div><div></div><div></div>
-                <div>Apply data to world layer location (popup)</div><div></div><div></div>
-                <div>Zero out data from world layer location</div><div></div><div></div>
-                <div>Load world (popup)</div><div></div><div></div>
-                <div>Copy/paste data mode (first click to copy second to paste)</div><div></div><div></div>
-                <div>Copy/paste atlas mode (first click to copy second to paste)</div><div></div><div></div>
-                <div>Open/close atlas</div><div></div><div></div>
-                <div>Open/close entity system</div><div></div><div></div>
-                <div>Edit selected entity</div><div></div><div></div>
-                <div></div><div></div><div></div>
-
-                <div class="mode">MODE: GAME</div><div class="mode">&nbsp;</div><div class="mode">&nbsp;</div>
-                <div>Move Up</div><div></div><div></div>
-                <div>Move Down</div><div></div><div></div>
-                <div>Move Left</div><div></div><div></div>
-                <div>Move Right</div><div></div><div></div>
-                <div>Attack</div><div></div><div></div>
-
-                <div class="mode">MODE: MULTIPLAYER / TWITCH</div><div class="mode">&nbsp;</div><div class="mode">&nbsp;</div>
-                <div>Spawn</div><div></div><div></div>
-                <div>Move Up</div><div></div><div></div>
-                <div>Move Down</div><div></div><div></div>
-                <div>Move Left</div><div></div><div></div>
-                <div>Move Right</div><div></div><div></div>
-                <div>Attack</div><div></div><div></div>
-                <div>Despawn</div><div></div><div></div>
-                <div></div><div></div><div></div>
-            </div>
+            <div id="cheatsheet"></div>
         `;
     }
 }

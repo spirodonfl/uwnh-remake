@@ -36,6 +36,10 @@ export class Entity extends HTMLElement {
     adoptedCallback() {}
     attributeChangedCallback() {}
 
+    getElementCount() {
+        return this.shadowRoot.childElementCount;
+    }
+
     // TODO: Perhaps put this somewhere more global
     getImageCoords(layer, id, frame) {
         if (frame === null || frame === undefined) {
@@ -72,7 +76,6 @@ export class Entity extends HTMLElement {
                 z-index: ${this.layer};
             }
             </style>
-            <div></div>
         `;
     }
 }

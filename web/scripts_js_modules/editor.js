@@ -5,33 +5,89 @@ var _GAME = wasm.instance.exports;
 export class Editor extends HTMLElement {
     constructor() {
         super();
+        this.attachShadow({mode: 'open'});
+
         this.current_layer = 0;
         this.current_data_id = 0;
         this.last_click = {x: 0, y: 0};
         this.last_atlas_click = {x: 0, y: 0};
-        this.attachShadow({mode: 'open'});
+
+        this.inputs = [
+            {
+                description: 'Toggle Editor',
+                context: GLOBALS.MODES.indexOf('EDITOR'),
+                code: 'KeyP',
+                friendlyCode: 'P',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.toggleEditorDisplay();
+                }
+            },
+            {
+                description: 'Toggle Atlas',
+                context: GLOBALS.MODES.indexOf('EDITOR'),
+                code: 'KeyA',
+                friendlyCode: 'A',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.toggleAtlasDisplay();
+                }
+            },
+            {
+                description: 'Change Layer',
+                context: GLOBALS.MODES.indexOf('EDITOR'),
+                code: 'KeyL',
+                friendlyCode: 'L',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.incrementLayer();
+                }
+            },
+            {
+                description: 'Add Collision',
+                context: GLOBALS.MODES.indexOf('EDITOR'),
+                code: 'KeyA',
+                friendlyCode: 'SHIFT+A',
+                shiftKey: true,
+                ctrlKey: false,
+                callback: () => {
+                    // TODO: This
+                }
+            },
+            {
+                description: 'Delete Collision',
+                context: GLOBALS.MODES.indexOf('EDITOR'),
+                code: 'KeyD',
+                friendlyCode: 'SHIFT+D',
+                shiftKey: true,
+                ctrlKey: false,
+                callback: () => {
+                    // TODO: This
+                }
+            },
+        ];
     }
 
     connectedCallback() {
         this.render();
+        GLOBALS.INPUTS = GLOBALS.INPUTS.concat(this.inputs);
         // Listen to game-component for custom event called 'viewport-size'
         var game_component = document.querySelector('game-component');
         GLOBALS.EVENTBUS.addEventListener('viewport-size', (e) => {
             this.onViewportSize(e);
         });
-        GLOBALS.EVENTBUS.addEventListener('editor-input', (e) => {
-            if (e.code === 'KeyL') {
-                ++this.current_layer;
-                if (this.current_layer >= _GAME.game_getCurrentWorldTotalLayers()) {
-                    this.current_layer = 0;
+        // TODO: A better way to not repeat our input functionality here
+        document.addEventListener('keydown', (e) => {
+            for (var i = 0; i < this.inputs.length; ++i) {
+                let input = this.inputs[i];
+                if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
+                    if (input.context === GLOBALS.MODES.indexOf('EDITOR')) {
+                        input.callback();
+                    }
                 }
-                this.shadowRoot.getElementById('current_layer_id').value = this.current_layer;
-                // TODO: Ideally, only update existing elements, don't remove & add them over and over
-                this.renderViewportData();
-            } else if (e.code === 'KeyA') {
-                this.shadowRoot.getElementById('atlas').classList.toggle('hidden');
-            } else if (e.code === 'KeyP') {
-                this.shadowRoot.getElementById('editor').classList.toggle('hidden');
             }
         });
         this.shadowRoot.getElementById('clickable_view').addEventListener('click', (e) => {
@@ -98,6 +154,19 @@ export class Editor extends HTMLElement {
             var game_component = document.querySelector('game-component');
             game_component.renderGame();
         });
+
+        this.shadowRoot.getElementById('add_row_input').addEventListener('click', (e) => {
+            this.addRowToWorld();
+        });
+        this.shadowRoot.getElementById('remove_row_input').addEventListener('click', (e) => {
+            this.removeRowFromWorld();
+        });
+        this.shadowRoot.getElementById('add_column_input').addEventListener('click', (e) => {
+            this.addColumnToWorld();
+        });
+        this.shadowRoot.getElementById('remove_column_input').addEventListener('click', (e) => {
+            this.removeColumnFromWorld();
+        });
     }
 
     renderViewportData() {
@@ -153,6 +222,64 @@ export class Editor extends HTMLElement {
     disconnectedCallback() {}
     adoptedCallback() {}
     attributeChangedCallback() {}
+
+    addRowToWorld() {
+        let current_world_index = _GAME.game_getCurrentWorldIndex();
+        _GAME.editor_addRowToWorld(current_world_index);
+        _GAME.game_loadWorld(current_world_index);
+        // TODO: Clean this up. Not necessarily a good thing to
+        // be referencing the components as HTML elements here
+        // USE GLOBAL EVENT LISTENER BUS!
+        document.querySelector('game-component').renderGame();
+        document.querySelector('editor-component').renderViewportData();
+    }
+    removeRowFromWorld() {
+        let current_world_index = _GAME.game_getCurrentWorldIndex();
+        _GAME.editor_removeRowFromWorld(current_world_index);
+        _GAME.game_loadWorld(current_world_index);
+        // TODO: Clean this up. Not necessarily a good thing to
+        // be referencing the components as HTML elements here
+        // USE GLOBAL EVENT LISTENER BUS!
+        document.querySelector('game-component').renderGame();
+        document.querySelector('editor-component').renderViewportData();
+    }
+    addColumnToWorld() {
+        let current_world_index = _GAME.game_getCurrentWorldIndex();
+        _GAME.editor_addColumnToWorld(current_world_index);
+        _GAME.game_loadWorld(current_world_index);
+        // TODO: Clean this up. Not necessarily a good thing to
+        // be referencing the components as HTML elements here
+        // USE GLOBAL EVENT LISTENER BUS!
+        document.querySelector('game-component').renderGame();
+        document.querySelector('editor-component').renderViewportData();
+    }
+    removeColumnFromWorld() {
+        let current_world_index = _GAME.game_getCurrentWorldIndex();
+        _GAME.editor_removeColumnFromWorld(current_world_index);
+        _GAME.game_loadWorld(current_world_index);
+        // TODO: Clean this up. Not necessarily a good thing to
+        // be referencing the components as HTML elements here
+        // USE GLOBAL EVENT LISTENER BUS!
+        document.querySelector('game-component').renderGame();
+        document.querySelector('editor-component').renderViewportData();
+    }
+
+    toggleEditorDisplay() {
+        this.shadowRoot.getElementById('editor').classList.toggle('hidden');
+    }
+    toggleAtlasDisplay() {
+        this.shadowRoot.getElementById('atlas').classList.toggle('hidden');
+    }
+    incrementLayer() {
+        ++this.current_layer;
+        if (this.current_layer >= _GAME.game_getCurrentWorldTotalLayers()) {
+            this.current_layer = 0;
+        }
+        this.shadowRoot.getElementById('current_layer_id').value = this.current_layer;
+        this.shadowRoot.getElementById('current_layer_id').value = this.current_layer;
+        // TODO: Ideally, only update existing elements, don't remove & add them over and over
+        this.renderViewportData();
+    }
 
     render() {
         this.shadowRoot.innerHTML = `
@@ -223,8 +350,16 @@ export class Editor extends HTMLElement {
                     <div id="current_selected_atlas"><div id="current_selected_atlas_img" src=""></div></div>
                     <div id="apply_image_to_layer_id">
                         <input type="button" id="apply_image_to_layer_id_input" value="Apply Image to Data" />
+                        <div>[SET ANIMATION FRAME (default 0)]</div>
                     </div>
-                    <div id="current_editor_mode"></div>
+                    <div id="add_remove_row">
+                        <input type="button" id="add_row_input" value="Add Row to World" />
+                        <input type="button" id="remove_row_input" value="Remove Row from World" />
+                    </div>
+                    <div id="add_remove_column">
+                        <input type="button" id="add_column_input" value="Add Column to World" />
+                        <input type="button" id="remove_column_input" value="Remove Column from World" />
+                    </div>
                     <div id="current_editor_mode">[CURRENT EDITOR MODE HERE]</div>
                     <div id="extract_world_data">[EXTRACT WORLD DATA HERE] world_0_data.bin</div>
                     <div id="extract_layer_data">[EXTRACT LAYER DATA HERE] world_0_layer_0.bin</div>
