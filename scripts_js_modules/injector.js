@@ -12,11 +12,6 @@ customElements.define('cheatsheet-component', CheatSheet);
 customElements.define('game-component', Game);
 customElements.define('editor-component', Editor);
 
-window.addEventListener('keyup', function (e) {
-    GLOBALS.EVENTBUS.triggerEvent('editor-input', [e]);
-});
-
-// REAL STUFF HERE
 if (!window.requestAnimationFrame)  {
     window.requestAnimationFrame = (function() {
         return window.webkitRequestAnimationFrame ||
@@ -36,11 +31,29 @@ window.GLOBALS = {
     LAYER_ID_TO_IMAGE: null,
     IMAGE_DATA: import.meta.resolve('..//json/image_data.json'),
     EVENTBUS: new EVENTBUS(),
+    MODE: 2,
+    MODES: ['ALL', 'GAME', 'EDITOR', 'MULTIPLAYER / TWITCH'],
+    INPUTS: [],
 };
 // TODO: Why are we doubling up these meta resolve calls?
 window.GLOBALS.ATLAS_PNG_FILENAME = import.meta.resolve(GLOBALS.ATLAS_PNG_FILENAME);
 window.GLOBALS.LAYER_ID_TO_IMAGE_JSON_FILENAME = import.meta.resolve(GLOBALS.LAYER_ID_TO_IMAGE_JSON_FILENAME);
 window.GLOBALS.IMAGE_DATA = import.meta.resolve(GLOBALS.IMAGE_DATA);
+
+// REQUEST ANIMATION FRAME SHIM
+// TODO: Do we even truly need this truly truly?
+if (!window.requestAnimationFrame)  {
+    window.requestAnimationFrame = (function() {
+        return window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        window.oRequestAnimationFrame ||
+        window.msRequestAnimationFrame ||
+        function(callback,element) {
+            window.setTimeout(callback, 1000 / 60);
+        };
+    })();
+}
+
 document.documentElement.style.setProperty('--scale', GLOBALS.SCALE);
 document.documentElement.style.setProperty('--size', GLOBALS.SIZE);
 document.documentElement.style.setProperty('--scaled-size', 'calc(var(--size) * var(--scale))');
@@ -64,13 +77,6 @@ link.rel = 'stylesheet';
 link.type = 'text/css';
 link.href = juice_it_css;
 document.head.appendChild(link);
-// END OF REAL STUFF
-
-// var test_element = document.createElement('test-component');
-// test_element.addEventListener('test', function (e) {
-//     console.log('test event');
-// });
-// document.body.appendChild(test_element);
 
 var cheatsheet_element = document.createElement('cheatsheet-component');
 document.body.appendChild(cheatsheet_element);

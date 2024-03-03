@@ -4,6 +4,42 @@ import { CollisionEntity } from './collision-entity.js';
 import { ViewportEntity } from './viewport-entity.js';
 import '../components/draggable.js';
 
+let current_time_stamp = new Date().getTime();
+let previous_time_stamp = 0;
+let frames_this_second = 0;
+let elapsed_ms = 0;
+let current_fps = 0;
+let then = performance.now();
+const interval = 1000 / 30; // Frames per second
+let delta = 0;
+function updateStats() {
+    ++frames_this_second;
+
+    previous_time_stamp = current_time_stamp;
+    current_time_stamp = new Date().getTime();
+    elapsed_ms += current_time_stamp - previous_time_stamp;
+    current_fps = 1000 / (current_time_stamp - previous_time_stamp);
+
+    // Update every second
+    if (elapsed_ms >= 1000)
+    {
+        var game_component = document.querySelector('game-component');
+        game_component.updateFPS(frames_this_second);
+        elapsed_ms -= 1000;
+        frames_this_second = 0;
+        game_component.updateElementCount();
+    }
+}
+function tick() {
+    let now = performance.now();
+    if (now - then >= interval - delta) {
+        delta = Math.min(interval, delta + now - then - interval);
+        then = now;
+        updateStats();
+    }
+    requestAnimationFrame(tick);
+}
+
 var _GAME = wasm.instance.exports;
 // TODO: THIS IS ALL FOR TESTING, REMOVE THIS SOON
 window._GAME = _GAME;
@@ -78,24 +114,92 @@ customElements.define('viewport-entity-component', ViewportEntity);
 export class Game extends HTMLElement {
     constructor() {
         super();
+        this.attachShadow({mode: 'open'});
+
         this.width = 0;
         this.height = 0;
         this.x_padding = 0;
         this.y_padding = 0;
         this.atlas = null;
-
-        this.camera_x = 0;
-        this.camera_y = 0;
         
         // TODO: Put this in a loader sub object/component
         this.atlas_loaded = false;
         this.layer_id_to_image_loaded = false;
 
-        this.attachShadow({mode: 'open'});
+        this.inputs = [
+            {
+                description: 'Toggle the main menu',
+                context: GLOBALS.MODES.indexOf('ALL'),
+                code: 'KeyX',
+                friendlyCode: 'X',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.toggleMainMenuDisplay();
+                }
+            },
+            {
+                description: 'Move camera up',
+                context: GLOBALS.MODES.indexOf('GAME'),
+                code: 'ArrowUp',
+                friendlyCode: '↑',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.moveCameraUp();
+                }
+            },
+            {
+                description: 'Move camera down',
+                context: GLOBALS.MODES.indexOf('GAME'),
+                code: 'ArrowDown',
+                friendlyCode: '↓',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.moveCameraDown();
+                }
+            },
+            {
+                description: 'Move camera left',
+                context: GLOBALS.MODES.indexOf('GAME'),
+                code: 'ArrowLeft',
+                friendlyCode: '←',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.moveCameraLeft();
+                }
+            },
+            {
+                description: 'Move camera right',
+                context: GLOBALS.MODES.indexOf('GAME'),
+                code: 'ArrowRight',
+                friendlyCode: '→',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.moveCameraRight();
+                }
+            },
+            {
+                description: 'Change Modes',
+                context: GLOBALS.MODES.indexOf('ALL'),
+                code: 'KeyM',
+                friendlyCode: 'SHIFT+M',
+                shiftKey: true,
+                ctrlKey: false,
+                callback: () => {
+                    this.changeMode();
+                }
+            }
+        ];
     }
 
     connectedCallback() {
         this.render();
+        GLOBALS.INPUTS = GLOBALS.INPUTS.concat(this.inputs);
+        this.shadowRoot.getElementById('mode').innerText = GLOBALS.MODES[GLOBALS.MODE];
         
         var atlas = new Image();
         atlas.onload = () => {
@@ -109,6 +213,18 @@ export class Game extends HTMLElement {
                 GLOBALS.IMAGE_DATA = data;
                 this.layer_id_to_image_loaded = true;
                 this.loaded();
+            }
+        });
+
+        // TODO: A better way to not repeat our input functionality here
+        document.addEventListener('keydown', (e) => {
+            for (var i = 0; i < this.inputs.length; ++i) {
+                let input = this.inputs[i];
+                if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
+                    if (input.context === GLOBALS.MODES.indexOf('ALL') || input.context === GLOBALS.MODES.indexOf('GAME')) {
+                        input.callback();
+                    }
+                }
             }
         });
     }
@@ -211,8 +327,9 @@ export class Game extends HTMLElement {
     }
 
     loaded(e) {
-        // TODO: Maybe put a loader component here and let that load first so you can separate out the logic, then the component can dispatch an event when it's done
-        // console.log('test', [e, this]);
+        // TODO: Maybe put a loader component here and let that load first so
+        // you can separate out the logic, then the component can dispatch an
+        // event when it's done
         if (this.atlas_loaded && this.layer_id_to_image_loaded) {
             console.log('Loaded');
             // this.sizeView();
@@ -224,6 +341,54 @@ export class Game extends HTMLElement {
     disconnectedCallback() {}
     adoptedCallback() {}
     attributeChangedCallback() {}
+
+    changeMode() {
+        ++GLOBALS.MODE;
+        if (GLOBALS.MODE >= GLOBALS.MODES.length) {
+            GLOBALS.MODE = 0;
+        }
+        this.shadowRoot.getElementById('mode').innerText = GLOBALS.MODES[GLOBALS.MODE];
+    }
+
+    moveCameraUp() {
+        _GAME.viewport_moveCameraUp();
+        // TODO: Use the GLOBAL eventbus instead of directly calling these
+        document.querySelector('game-component').renderGame();
+        document.querySelector('editor-component').renderViewportData();
+    }
+    moveCameraDown() {
+        _GAME.viewport_moveCameraDown();
+        // TODO: Use the GLOBAL eventbus instead of directly calling these
+        document.querySelector('game-component').renderGame();
+        document.querySelector('editor-component').renderViewportData();
+    }
+    moveCameraLeft() {
+        _GAME.viewport_moveCameraLeft();
+        // TODO: Use the GLOBAL eventbus instead of directly calling these
+        document.querySelector('game-component').renderGame();
+        document.querySelector('editor-component').renderViewportData();
+    }
+    moveCameraRight() {
+        _GAME.viewport_moveCameraRight();
+        // TODO: Use the GLOBAL eventbus instead of directly calling these
+        document.querySelector('game-component').renderGame();
+        document.querySelector('editor-component').renderViewportData();
+    }
+
+
+    updateFPS(value) {
+        this.shadowRoot.getElementById('fps_value').innerText = value;
+    }
+
+    updateElementCount() {
+        let value = 0;
+        value += this.shadowRoot.querySelectorAll('*').length;
+        this.shadowRoot.getElementById('els_value').innerText = value;
+    }
+
+    toggleMainMenuDisplay() {
+        this.shadowRoot.getElementById('main_menu').classList.toggle('hidden');
+    }
 
     sizeView () {
         // Full height, including the scroll part
@@ -327,13 +492,13 @@ export class Game extends HTMLElement {
                 <div id="main-menu-container" style="padding: 1rem">
                     <div class="title">Main Menu</div>
                     <div class="two-column-grid">
-                        <div>FPS</div><div>XXX</div>
+                        <div>FPS</div><div id="fps_value">XXX</div>
                     </div>
                     <div class="two-column-grid">
-                        <div>Els</div><div>XXX</div>
+                        <div>Elements</div><div id="els_value">XXX</div>
                     </div>
                     <div class="two-column-grid">
-                        <div>Mode</div><div>XXX</div>
+                        <div>Mode</div><div id="mode">XXX</div>
                     </div>
                     <div>
                         Press 'H' for help
@@ -346,5 +511,7 @@ export class Game extends HTMLElement {
             <div id="clickable_view"></div>
             <div id="view"></div>
         `;
+
+        requestAnimationFrame(tick);
     }
 }
