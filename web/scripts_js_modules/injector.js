@@ -1,16 +1,12 @@
 // TOP LEVEL MODULE
 
 import { Test } from './test.js';
-import { CheatSheet } from './cheatsheet.js';
-import { Game } from './game.js';
+import './cheatsheet.js';
+import './game.js';
+import './editor.js';
 // TODO: Do we actually need an eventbus if we have CustomEvents?
 // Note: game-component might be our top level event bus for global events
 import { EVENTBUS } from './eventbus.js';
-import { Editor } from './editor.js';
-
-customElements.define('cheatsheet-component', CheatSheet);
-customElements.define('game-component', Game);
-customElements.define('editor-component', Editor);
 
 if (!window.requestAnimationFrame)  {
     window.requestAnimationFrame = (function() {

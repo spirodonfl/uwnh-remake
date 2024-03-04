@@ -31,3 +31,4 @@ export class ViewportEntity extends Entity {
         `;
     }
 }
+customElements.define('viewport-entity-component', ViewportEntity);

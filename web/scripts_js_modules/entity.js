@@ -79,3 +79,4 @@ export class Entity extends HTMLElement {
         `;
     }
 }
+customElements.define('entity-component', Entity);

@@ -102,3 +102,4 @@ export class CheatSheet extends HTMLElement {
         `;
     }
 }
+customElements.define('cheatsheet-component', CheatSheet);

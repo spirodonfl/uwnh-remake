@@ -403,3 +403,4 @@ export class Editor extends HTMLElement {
         }
     }
 }
+customElements.define('editor-component', Editor);
