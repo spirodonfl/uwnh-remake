@@ -18,3 +18,4 @@ export class CollisionEntity extends Entity {
         `;
     }
 }
+customElements.define('collision-entity-component', CollisionEntity);
