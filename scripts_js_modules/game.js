@@ -54,24 +54,7 @@ window.extractMemory = function (memory_start, memory_length) {
     return data;
 
     /**
-     *  var world_id = _GAME.editor_createWorld(10, 10);
-        var start = _GAME.editor_getWorldMemoryLocation(world_id);
-        var length = _GAME.editor_getWorldMemoryLength(world_id);
-        var world_data = extractMemory(start, length);
-        world_data[0] = 0; // ID
-        world_data[3] = 4; // Total Layers
-        world_data[4] = 3; // Entity Layer
-        world_data[5] = 4; // Collision Layer
-        var world_data_as_blob = generateBlob(world_data);
-        editorDownload(world_data_as_blob, 'world_0_data.bin');
-        for (var i = 0; i < 4; ++i) {
-            var layer_id = _GAME.editor_createLayer(10, 10);
-            var start = _GAME.editor_getLayerMemoryLocation(world_id, layer_id);
-            var length = _GAME.editor_getLayerMemoryLength(world_id, layer_id);
-            var layer_data = extractMemory(start, length);
-            var layer_data_as_blob = generateBlob(layer_data);
-            editorDownload(layer_data_as_blob, 'layer_' + i + '.bin');
-        }
+     *  
         var entity_id = _GAME.editor_createEntity(99); // 99, 98, 1, 3(x4)
         var start = _GAME.editor_getEntityMemoryLocation(entity_id);
         var length = _GAME.editor_getEntityMemoryLength(entity_id);

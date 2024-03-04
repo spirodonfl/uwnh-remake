@@ -33,6 +33,7 @@ const _WASM_IMPORTS = {
     inputs_inputDown(entity) {},
     inputs_inputLeft(entity) {},
     inputs_inputRight(entity) {},
+    game_processTick() {},
     game_entityIncrementHealth(entity) {},
     game_entityDecrementHealth(entity) {},
     game_entityAttack(entity, target, crit_buff) {},
@@ -84,4 +85,6 @@ const _WASM_IMPORTS = {
     viewport_getYFromIndex(index) {},
     viewport_getLength() {},
     viewport_clear() {},
+    messages_moveUp(entity_id, force) {},
+    events_attack(entity_id, target_entity_id, force) {},
 };
