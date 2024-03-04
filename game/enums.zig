@@ -83,7 +83,20 @@ pub const WorldDataEnum = enum(u16) {
 
 pub const EntityDataEnum = enum(u16) {
     ID = 0,
-    ComponentHealth = 1,
-    ComponentHealthDefaultValue = 2,
+    IsCollision = 1,
+    ComponentHealth = 2,
+    ComponentHealthDefaultValue = 3,
+    ComponentMovement = 4,
+    pub usingnamespace EnumHelpers(@This());
+};
+
+pub const GameMessagesEventsEnum = enum(u16) {
+    MoveUp = 0,
+    MoveDown = 1,
+    MoveLeft = 3,
+    MoveRight = 4,
+    Attack = 5,
+    Spawn = 6,
+    DeSpawn = 7,
     pub usingnamespace EnumHelpers(@This());
 };

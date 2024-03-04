@@ -1,7 +1,3 @@
-pub const ComponentValues = enum(u16) {
-    Health = 0,
-};
-
 pub const ComponentHealth = struct {
     default_value: u16,
     current_value: u16,
@@ -19,4 +15,3 @@ pub const ComponentHealth = struct {
         self.current_value = value;
     }
 };
-

@@ -18,6 +18,7 @@ pub var entities_list = std.SegmentedList(EntityDataStruct, 32){};
 pub var worlds_list = std.SegmentedList(WorldDataStruct, 32){};
 pub var current_world_index: u16 = 0;
 var GAME_INITIALIZED: bool = false;
+pub var events_list = std.ArrayListUnmanaged(GameEvent){};
 
 const enums = @import("enums.zig");
 const embeds = @import("embeds.zig");
@@ -27,6 +28,7 @@ const renderer = @import("renderer.zig");
 const diff = @import("diff.zig");
 const editor = @import("editor.zig");
 const viewport = @import("viewport.zig");
+const events = @import("events.zig");
 
 // -----------------------------------------------------------------------------------------
 // @wasm
@@ -89,12 +91,20 @@ fn console_log_write_zig(context: void, bytes: []const u8) !usize {
 extern fn console_log_write(ptr: [*]const u8, len: usize) void;
 extern fn console_log_flush() void;
 // -----------------------------------------------------------------------------------------
-
+pub const GameMessage = struct {
+    command: u16,
+    data: std.ArrayListUnmanaged(u16) = .{},
+    force: bool,
+};
+pub const GameEvent = struct {
+    type: u16,
+    data: std.ArrayListUnmanaged(u16) = .{},
+    force: bool,
+};
 pub const WorldDataStruct = struct {
     embedded_data: EmbeddedDataStruct = undefined,
     embedded_layers: std.ArrayListUnmanaged(EmbeddedDataStruct) = .{},
-    // Note: this is to store the position of entities and whatnot
-    position_layer: std.ArrayListUnmanaged(u16) = .{},
+    entities_list: std.ArrayListUnmanaged(u16) = .{},
     pub fn setEmbeddedData(self: *WorldDataStruct, embedded: EmbeddedDataStruct) void {
         self.embedded_data = embedded;
     }
@@ -131,9 +141,70 @@ pub const WorldDataStruct = struct {
         return size;
     }
     pub fn getCoordinateData(self: *WorldDataStruct, layer: u16, x: u16, y: u16) u16 {
+        var entity_layer = self.readData(enums.WorldDataEnum.EntityLayer.int());
+        if (layer == entity_layer) {
+            for (0..self.entities_list.items.len) |i| {
+                for (0..entities_list.len) |j| {
+                    if (entities_list.at(j).getId() == self.entities_list.items[i]) {
+                        if (entities_list.at(j).position[0] == x and entities_list.at(j).position[1] == y) {
+                            return entities_list.at(j).getId();
+                        }
+                    }
+                }
+            }
+        }
         var index: u16 = (y * self.getWidth()) + x;
         const data = self.readLayer(layer, index);
         return data;
+    }
+    pub fn checkEntityCollision(self: *WorldDataStruct, x: u16, y: u16) bool {
+        var entity_layer = self.readData(enums.WorldDataEnum.EntityLayer.int());
+        var potential_entity_id = self.getCoordinateData(entity_layer, x, y);
+        if (potential_entity_id > 0) {
+            var entity = entities_list.at(potential_entity_id - 1);
+            if (entity.isCollision == true) {
+                return true;
+            }
+        }
+        return false;
+    }
+    pub fn initializeEntities(self: *WorldDataStruct) !void {
+        var entity_layer = self.readData(enums.WorldDataEnum.EntityLayer.int());
+        var w = self.getWidth();
+        var h = self.getHeight();
+        var size = w * h;
+        for (0..size) |i| {
+            var x: u16 = @as(u16, @intCast(i % w));
+            var y: u16 = @as(u16, @intCast(i / w));
+            var value = self.getCoordinateData(entity_layer, x, y);
+            if (value > 0) {
+                try self.entities_list.append(allocator, value);
+                var entity = entities_list.at(self.entities_list.items.len - 1);
+                entity.position[0] = x;
+                entity.position[1] = y;
+            }
+        }
+    }
+    pub fn addEntity(self: *WorldDataStruct, entity_id: u16, position_x: u16, position_y: u16) !void {
+        // TODO: Only if entity_id does not already exist in self.entities_list
+        try self.entities_list.append(allocator, entity_id);
+        var entity = entities_list.at(self.entities_list.items.len - 1);
+        entity.position[0] = position_x;
+        entity.position[1] = position_y;
+    }
+    pub fn removeEntity(self: *WorldDataStruct, entity_id: u16) !void {
+        for (0..self.entities_list.len) |i| {
+            if (self.entities_list.items[i] == entity_id) {
+                try self.entities_list.remove(i);
+                for (0..entities_list.len) |j| {
+                    if (entities_list.at(j).getId() == entity_id) {
+                        entities_list.at(j).position[0] = 0;
+                        entities_list.at(j).position[1] = 0;
+                        return;
+                    }
+                }
+            }
+        }
     }
 };
 
@@ -208,17 +279,36 @@ pub const EmbeddedDataStruct = struct {
 };
 
 const ComponentHealth = @import("components/health.zig").ComponentHealth;
+const ComponentMovement = @import("components/movement.zig").ComponentMovement;
+// TODO: Should probably rename these structs, they've become more than just structs
 pub const EntityDataStruct = struct {
+    messages: std.ArrayListUnmanaged(GameMessage) = .{},
     type: u16 = 0,
     data: std.ArrayListUnmanaged(u16) = .{},
     has_data: bool = false,
     embedded: EmbeddedDataStruct = undefined,
     health: ComponentHealth = undefined,
+    movement: ComponentMovement = undefined,
+    position: [2]u16 = .{ 0, 0 },
+    isCollision: bool = false,
+    pub fn init(self: *EntityDataStruct) !void {
+        self.isCollision = self.embedded.readData(enums.EntityDataEnum.IsCollision.int(), .Little) == 1;
+        try self.loadComponents();
+    }
+    pub fn addMessage(self: *EntityDataStruct, message: GameMessage) !void {
+        try self.messages.append(allocator, message);
+    }
     pub fn getType(self: *EntityDataStruct) u16 {
         return @as(u16, @intCast(self.type));
     }
     pub fn setEmbedded(self: *EntityDataStruct, embedded: EmbeddedDataStruct) void {
         self.embedded = embedded;
+    }
+    pub fn getId(self: *EntityDataStruct) u16 {
+        if (self.data.items.len > 0) {
+            return self.data.items[enums.EntityDataEnum.ID.int()];
+        }
+        return self.embedded.readData(enums.EntityDataEnum.ID.int(), .Little);
     }
     pub fn getIndex(self: *EntityDataStruct) u16 {
         const enum_index = enums.EntityDataEnum.ID.int();
@@ -250,21 +340,59 @@ pub const EntityDataStruct = struct {
         self.has_data = true;
     }
     pub fn loadComponents(self: *EntityDataStruct) !void {
+        // TODO: Do you really need to read the data here when you load the components?
+        // Can you not just read from embedded?
         if (!self.has_data) {
             try self.readDataFromEmbedded();
         }
         if (self.data.items[enums.EntityDataEnum.ComponentHealth.int()] == 1) {
             self.health = ComponentHealth{
+                // TODO: Do we even need this anymore?
                 .default_value = 10,
                 .current_value = self.data.items[enums.EntityDataEnum.ComponentHealthDefaultValue.int()] 
             };
             // std.log.info("health component found", .{});
+        // TODO: Re-enable this when you've updated the entity data. Right now it errors out
+        } else if (self.data.items[enums.EntityDataEnum.ComponentMovement.int()] == 1) {
+            self.movement = ComponentMovement.init(self);
         }
     }
-    // TODO: move component + other components
+    pub fn processMessages(self: *EntityDataStruct) !void {
+        while (self.messages.items.len > 0) {
+            var message = self.messages.pop();
+            switch (message.command) {
+                enums.GameMessagesEventsEnum.MoveUp.int() => {
+                    // TODO: check if entity has the move component
+                    var current_world = worlds_list.at(current_world_index);
+                    var intended_x = self.position[0];
+                    var intended_y = self.movement.intendedMoveUp();
+                    if (current_world.checkEntityCollision(intended_x, intended_y) == false)
+                    {
+                        self.movement.moveUp();
+                    }
+                },
+                else => {
+                    std.log.info("Unknown message command: {d}", .{message.command});
+                },
+            }
+        }
+    }
 };
 
 // --- GAME FUNCTIONS ---
+// @wasm
+pub fn processTick() !void {
+    for (0..entities_list.len) |i| {
+        var entity = entities_list.at(i);
+        try entity.processMessages();
+    }
+    while (events_list.items.len > 0) {
+        var event = events_list.pop();
+        if (event.type == enums.GameMessagesEventsEnum.Attack.int()) {
+            events.processAttack(event);
+        }
+    }
+}
 // @wasm
 pub fn entityIncrementHealth(entity: u16) u16 {
     return entities_list.at(entity).health.current_value;
@@ -414,13 +542,13 @@ pub fn initializeGame() !void {
                 .embedded = embedded_data_struct,
                 .type = 0,
             });
-            try entities_list.at(i).loadComponents();
+            try entities_list.at(i).init();
         }
     }
     GAME_INITIALIZED = true;
 }
 // @wasm
-pub fn loadWorld(index: u16) void {
+pub fn loadWorld(index: u16) !void {
     current_world_index = index;
     var w: u16 = worlds_list.at(current_world_index).getWidth();
     var h: u16 = worlds_list.at(current_world_index).getHeight();
@@ -468,6 +596,8 @@ pub fn loadWorld(index: u16) void {
             x = 0;
         }
     }
+
+    try worlds_list.at(current_world_index).initializeEntities();
 }
 // @wasm
 pub fn getCurrentWorldIndex() u16 {
@@ -548,91 +678,3 @@ pub fn translateViewportYToWorldY(y: u16) u16 {
     }
     @panic("Invalid viewport y coordinate");
 }
-
-// TODO: Need to implement an actor model system
-// Define an actor for a player character
-// class PlayerActor {
-// public:
-//     void receiveMessage(const Message& message) {
-//         if (message.type == "attack") {
-//             // Handle attack action
-//         } else if (message.type == "useItem") {
-//             // Handle item usage
-//         }
-//         // ... other message types
-//     }
-// };
-
-// // Define an actor for an enemy character
-// class EnemyActor {
-// public:
-//     void receiveMessage(const Message& message) {
-//         if (message.type == "takeDamage") {
-//             // Handle taking damage
-//         } else if (message.type == "move") {
-//             // Handle movement
-//         }
-//         // ... other message types
-//     }
-// };
-
-// // Example of sending a message from a player to an enemy
-// void sendMessageFromPlayerToEnemy(PlayerActor& player, EnemyActor& enemy) {
-//     Message attackMessage;
-//     attackMessage.type = "attack";
-//     player.receiveMessage(attackMessage);
-//     enemy.receiveMessage(attackMessage);
-// }
-
-
-// class Actor {
-// public:
-//     virtual void ReceiveMessage(const Message& message) = 0;
-//     virtual void Update(float deltaTime) = 0;
-// };
-// class Player : public Actor {
-// public:
-//     void ReceiveMessage(const Message& message) override {
-//         if (message.type == "move") {
-//             MoveMessage move = static_cast<const MoveMessage&>(message);
-//             position.x += move.x;
-//             position.y += move.y;
-//         } else if (message.type == "attack") {
-//             // Handle attack
-//         }
-//     }
-
-//     void Update(float deltaTime) override {
-//         // Update actor's state based on deltaTime
-//     }
-
-// private:
-//     Vector2 position;
-// };
-// class MessageSystem {
-// public:
-//     void Update(float deltaTime) {
-//         for (auto& actor : actors) {
-//             for (auto& message : actor.messages) {
-//                 actor.ReceiveMessage(message);
-//             }
-//             actor.Update(deltaTime);
-//         }
-//     }
-
-// private:
-//     std::vector<Actor> actors;
-// };
-// int main() {
-//     MessageSystem messageSystem;
-//     Player player;
-//     messageSystem.actors.push_back(player);
-
-//     while (gameIsRunning) {
-//         float deltaTime = getDeltaTime();
-//         messageSystem.Update(deltaTime);
-//         // Render game state
-//     }
-
-//     return 0;
-// }
