@@ -1,16 +1,14 @@
 // TOP LEVEL MODULE
 
 import { Test } from './test.js';
-import { CheatSheet } from './cheatsheet.js';
-import { Game } from './game.js';
+import './cheatsheet.js';
+import './game.js';
+import './editor.js';
 // TODO: Do we actually need an eventbus if we have CustomEvents?
 // Note: game-component might be our top level event bus for global events
 import { EVENTBUS } from './eventbus.js';
 import { Editor } from './editor.js';
-
-customElements.define('cheatsheet-component', CheatSheet);
-customElements.define('game-component', Game);
-customElements.define('editor-component', Editor);
+import { globals } from './globals.js';
 
 if (!window.requestAnimationFrame)  {
     window.requestAnimationFrame = (function() {
@@ -23,22 +21,6 @@ if (!window.requestAnimationFrame)  {
         };
     })();
 }
-window.GLOBALS = {
-    SCALE: 2,
-    SIZE: 32,
-    ATLAS_PNG_FILENAME: import.meta.resolve('../images/atlas.png'),
-    LAYER_ID_TO_IMAGE_JSON_FILENAME: import.meta.resolve('..//json/layer_id_to_image.json'),
-    LAYER_ID_TO_IMAGE: null,
-    IMAGE_DATA: import.meta.resolve('..//json/image_data.json'),
-    EVENTBUS: new EVENTBUS(),
-    MODE: 2,
-    MODES: ['ALL', 'GAME', 'EDITOR', 'MULTIPLAYER / TWITCH'],
-    INPUTS: [],
-};
-// TODO: Why are we doubling up these meta resolve calls?
-window.GLOBALS.ATLAS_PNG_FILENAME = import.meta.resolve(GLOBALS.ATLAS_PNG_FILENAME);
-window.GLOBALS.LAYER_ID_TO_IMAGE_JSON_FILENAME = import.meta.resolve(GLOBALS.LAYER_ID_TO_IMAGE_JSON_FILENAME);
-window.GLOBALS.IMAGE_DATA = import.meta.resolve(GLOBALS.IMAGE_DATA);
 
 // REQUEST ANIMATION FRAME SHIM
 // TODO: Do we even truly need this truly truly?
@@ -54,8 +36,8 @@ if (!window.requestAnimationFrame)  {
     })();
 }
 
-document.documentElement.style.setProperty('--scale', GLOBALS.SCALE);
-document.documentElement.style.setProperty('--size', GLOBALS.SIZE);
+document.documentElement.style.setProperty('--scale', globals.SCALE);
+document.documentElement.style.setProperty('--size', globals.SIZE);
 document.documentElement.style.setProperty('--scaled-size', 'calc(var(--size) * var(--scale))');
 document.documentElement.style.setProperty('--scaled-size-px', 'calc(var(--scaled-size) * 1px)');
 document.body.style.setProperty('--font-size', 'large');

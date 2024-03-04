@@ -1,3 +1,5 @@
+import { globals } from "./globals.js";
+
 export class CheatSheet extends HTMLElement {
     constructor() {
         super();
@@ -6,7 +8,7 @@ export class CheatSheet extends HTMLElement {
         this.inputs = [
             {
                 description: 'Toggle the cheatsheet',
-                context: GLOBALS.MODES.indexOf('ALL'),
+                context: globals.MODES.indexOf('ALL'),
                 code: 'KeyH',
                 friendlyCode: 'H',
                 shiftKey: false,
@@ -20,13 +22,13 @@ export class CheatSheet extends HTMLElement {
 
     connectedCallback() {
         this.render();
-        GLOBALS.INPUTS = GLOBALS.INPUTS.concat(this.inputs);
+        globals.INPUTS = globals.INPUTS.concat(this.inputs);
         // TODO: A better way to not repeat our input functionality here
         document.addEventListener('keydown', (e) => {
             for (var i = 0; i < this.inputs.length; ++i) {
                 let input = this.inputs[i];
                 if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
-                    if (input.context === GLOBALS.MODES.indexOf('ALL')) {
+                    if (input.context === globals.MODES.indexOf('ALL')) {
                         input.callback();
                     }
                 }
@@ -40,14 +42,14 @@ export class CheatSheet extends HTMLElement {
 
     toggleDisplay() {
         this.shadowRoot.getElementById('cheatsheet').innerHTML = '';
-        for (var m = 0; m < GLOBALS.MODES.length; ++m) {
-            let mode = GLOBALS.MODES[m];
+        for (var m = 0; m < globals.MODES.length; ++m) {
+            let mode = globals.MODES[m];
             this.shadowRoot.getElementById('cheatsheet').innerHTML += `
                 <div class="mode">MODE: ${mode}</div><div class="mode">&nbsp;</div><div class="mode">&nbsp;</div>
                 <div>Action</div><div>Key</div><div>Gamepad</div>
             `;
-            for (var i = 0; i < GLOBALS.INPUTS.length; ++i) {
-                let input = GLOBALS.INPUTS[i];
+            for (var i = 0; i < globals.INPUTS.length; ++i) {
+                let input = globals.INPUTS[i];
                 if (input.context === m) {
                     this.shadowRoot.getElementById('cheatsheet').innerHTML += `
                         <div>${input.description}</div><div>${input.friendlyCode}</div><div></div>
@@ -102,3 +104,4 @@ export class CheatSheet extends HTMLElement {
         `;
     }
 }
+customElements.define('cheatsheet-component', CheatSheet);
