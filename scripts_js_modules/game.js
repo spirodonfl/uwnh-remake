@@ -2,6 +2,7 @@ import { wasm } from './injector_wasm.js';
 import { Entity } from './entity.js';
 import { CollisionEntity } from './collision-entity.js';
 import { ViewportEntity } from './viewport-entity.js';
+import { globals } from './globals.js';
 import '../components/draggable.js';
 
 let current_time_stamp = new Date().getTime();
@@ -129,7 +130,7 @@ export class Game extends HTMLElement {
         this.inputs = [
             {
                 description: 'Toggle the main menu',
-                context: GLOBALS.MODES.indexOf('ALL'),
+                context: globals.MODES.indexOf('ALL'),
                 code: 'KeyX',
                 friendlyCode: 'X',
                 shiftKey: false,
@@ -140,7 +141,7 @@ export class Game extends HTMLElement {
             },
             {
                 description: 'Move camera up',
-                context: GLOBALS.MODES.indexOf('GAME'),
+                context: globals.MODES.indexOf('GAME'),
                 code: 'ArrowUp',
                 friendlyCode: '↑',
                 shiftKey: false,
@@ -151,7 +152,7 @@ export class Game extends HTMLElement {
             },
             {
                 description: 'Move camera down',
-                context: GLOBALS.MODES.indexOf('GAME'),
+                context: globals.MODES.indexOf('GAME'),
                 code: 'ArrowDown',
                 friendlyCode: '↓',
                 shiftKey: false,
@@ -162,7 +163,7 @@ export class Game extends HTMLElement {
             },
             {
                 description: 'Move camera left',
-                context: GLOBALS.MODES.indexOf('GAME'),
+                context: globals.MODES.indexOf('GAME'),
                 code: 'ArrowLeft',
                 friendlyCode: '←',
                 shiftKey: false,
@@ -173,7 +174,7 @@ export class Game extends HTMLElement {
             },
             {
                 description: 'Move camera right',
-                context: GLOBALS.MODES.indexOf('GAME'),
+                context: globals.MODES.indexOf('GAME'),
                 code: 'ArrowRight',
                 friendlyCode: '→',
                 shiftKey: false,
@@ -184,7 +185,7 @@ export class Game extends HTMLElement {
             },
             {
                 description: 'Change Modes',
-                context: GLOBALS.MODES.indexOf('ALL'),
+                context: globals.MODES.indexOf('ALL'),
                 code: 'KeyM',
                 friendlyCode: 'SHIFT+M',
                 shiftKey: true,
@@ -198,8 +199,8 @@ export class Game extends HTMLElement {
 
     connectedCallback() {
         this.render();
-        GLOBALS.INPUTS = GLOBALS.INPUTS.concat(this.inputs);
-        this.shadowRoot.getElementById('mode').innerText = GLOBALS.MODES[GLOBALS.MODE];
+        globals.INPUTS = globals.INPUTS.concat(this.inputs);
+        this.shadowRoot.getElementById('mode').innerText = globals.MODES[globals.MODE];
         
         var atlas = new Image();
         atlas.onload = () => {
@@ -207,10 +208,10 @@ export class Game extends HTMLElement {
             this.atlas = atlas;
             this.loaded();
         }
-        atlas.src = GLOBALS.ATLAS_PNG_FILENAME;
-        this.loadJsonFile(GLOBALS.IMAGE_DATA, (data) => {
+        atlas.src = globals.ATLAS_PNG_FILENAME;
+        this.loadJsonFile(globals.IMAGE_DATA, (data) => {
             if (data) {
-                GLOBALS.IMAGE_DATA = data;
+                globals.IMAGE_DATA = data;
                 this.layer_id_to_image_loaded = true;
                 this.loaded();
             }
@@ -221,7 +222,7 @@ export class Game extends HTMLElement {
             for (var i = 0; i < this.inputs.length; ++i) {
                 let input = this.inputs[i];
                 if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
-                    if (input.context === GLOBALS.MODES.indexOf('ALL') || input.context === GLOBALS.MODES.indexOf('GAME')) {
+                    if (input.context === globals.MODES.indexOf('ALL') || input.context === globals.MODES.indexOf('GAME')) {
                         input.callback();
                     }
                 }
@@ -313,7 +314,7 @@ export class Game extends HTMLElement {
             // NOTE: If you move this into "sizeView" function,
             // it borks the rendering order and causes a panic/out
             // of bounds error in WASM/ZIG
-            GLOBALS.EVENTBUS.triggerEvent('viewport-size', [
+            globals.EVENTBUS.triggerEvent('viewport-size', [
                 {
                     width: this.width,
                     height: this.height,
@@ -343,11 +344,11 @@ export class Game extends HTMLElement {
     attributeChangedCallback() {}
 
     changeMode() {
-        ++GLOBALS.MODE;
-        if (GLOBALS.MODE >= GLOBALS.MODES.length) {
-            GLOBALS.MODE = 0;
+        ++globals.MODE;
+        if (globals.MODE >= globals.MODES.length) {
+            globals.MODE = 0;
         }
-        this.shadowRoot.getElementById('mode').innerText = GLOBALS.MODES[GLOBALS.MODE];
+        this.shadowRoot.getElementById('mode').innerText = globals.MODES[globals.MODE];
     }
 
     moveCameraUp() {
@@ -411,12 +412,12 @@ export class Game extends HTMLElement {
         );
 
         const root = document.documentElement;
-        root.style.setProperty('--scale', GLOBALS.SCALE);
+        root.style.setProperty('--scale', globals.SCALE);
 
         // console.trace({full_width, full_height});
 
-        let x = Math.floor(full_width / (GLOBALS.SIZE * GLOBALS.SCALE));
-        let y = Math.floor(full_height / (GLOBALS.SIZE * GLOBALS.SCALE));
+        let x = Math.floor(full_width / (globals.SIZE * globals.SCALE));
+        let y = Math.floor(full_height / (globals.SIZE * globals.SCALE));
         // TODO: What is this magic number 6?
         if (x > 6)
         {
@@ -426,13 +427,13 @@ export class Game extends HTMLElement {
         {
             --y;
         }
-        let x_padding = (full_width - (x * (GLOBALS.SIZE * GLOBALS.SCALE))) / 2;
-        let y_padding = (full_height - (y * (GLOBALS.SIZE * GLOBALS.SCALE))) / 2;
+        let x_padding = (full_width - (x * (globals.SIZE * globals.SCALE))) / 2;
+        let y_padding = (full_height - (y * (globals.SIZE * globals.SCALE))) / 2;
         this.shadowRoot.getElementById('view').style.margin = y_padding + 'px ' + x_padding + 'px';
-        this.shadowRoot.getElementById('view').style.width = (x * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-        this.shadowRoot.getElementById('view').style.height = (y * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-        this.shadowRoot.getElementById('clickable_view').style.width = (x * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-        this.shadowRoot.getElementById('clickable_view').style.height = (y * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
+        this.shadowRoot.getElementById('view').style.width = (x * (globals.SIZE * globals.SCALE)) + 'px';
+        this.shadowRoot.getElementById('view').style.height = (y * (globals.SIZE * globals.SCALE)) + 'px';
+        this.shadowRoot.getElementById('clickable_view').style.width = (x * (globals.SIZE * globals.SCALE)) + 'px';
+        this.shadowRoot.getElementById('clickable_view').style.height = (y * (globals.SIZE * globals.SCALE)) + 'px';
         this.width = x;
         this.height = y;
         this.x_padding = x_padding;
