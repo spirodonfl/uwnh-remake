@@ -1,7 +1,7 @@
 import { wasm } from './injector_wasm.js';
-import { Entity } from './entity.js';
-import { CollisionEntity } from './collision-entity.js';
-import { ViewportEntity } from './viewport-entity.js';
+import './entity.js';
+import './collision-entity.js';
+import './viewport-entity.js';
 import { globals } from './globals.js';
 import '../components/draggable.js';
 
@@ -99,9 +99,6 @@ window.editorDownload = function (data, file_name) {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
 };
-customElements.define('entity-component', Entity);
-customElements.define('collision-entity-component', CollisionEntity);
-customElements.define('viewport-entity-component', ViewportEntity);
 
 // TODO
 // Multi step
@@ -516,3 +513,4 @@ export class Game extends HTMLElement {
         requestAnimationFrame(tick);
     }
 }
+customElements.define('game-component', Game);
