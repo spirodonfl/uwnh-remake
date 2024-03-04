@@ -72,21 +72,22 @@ pub const Components = enum(u16) {
 pub const EmbeddedDataType = enum { world, entity, world_layer };
 
 pub const WorldDataEnum = enum(u16) {
-    ID = 0,
-    Width = 1,
-    Height = 2,
-    TotalLayers = 3,
-    EntityLayer = 4,
-    CollisionLayer = 5,
+    ID,
+    Width,
+    Height,
+    TotalLayers,
+    EntityLayer,
+    CollisionLayer,
     pub usingnamespace EnumHelpers(@This());
 };
 
 pub const EntityDataEnum = enum(u16) {
-    ID = 0,
-    IsCollision = 1,
-    ComponentHealth = 2,
-    ComponentHealthDefaultValue = 3,
-    ComponentMovement = 4,
+    ID,
+    Type,
+    IsCollision,
+    ComponentHealth,
+    ComponentHealthDefaultValue,
+    ComponentMovement,
     pub usingnamespace EnumHelpers(@This());
 };
 

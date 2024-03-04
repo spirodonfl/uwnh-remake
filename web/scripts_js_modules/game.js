@@ -55,12 +55,14 @@ window.extractMemory = function (memory_start, memory_length) {
 
     /**
      *  
-        var entity_id = _GAME.editor_createEntity(99); // 99, 98, 1, 3(x4)
-        var start = _GAME.editor_getEntityMemoryLocation(entity_id);
-        var length = _GAME.editor_getEntityMemoryLength(entity_id);
-        var entity_data = extractMemory(start, length);
-        var entity_data_as_blob = generateBlob(entity_data);
-        editorDownload(entity_data_as_blob, 'entity_0.bin');
+var entity_type = 99; // 99, 98, 1, 3(x4)
+var entity_id = 1;
+_GAME.editor_createEntity(entity_type, entity_id);
+var start = _GAME.editor_getEntityMemoryLocation(entity_id);
+var length = _GAME.editor_getEntityMemoryLength(entity_id);
+var entity_data = extractMemory(start, length);
+var entity_data_as_blob = generateBlob(entity_data);
+editorDownload(entity_data_as_blob, 'entity_' + (entity_id - 1) + '.bin');
      */
 }
 window.memoryToBin = function (memory_start, memory_length, file_name) {

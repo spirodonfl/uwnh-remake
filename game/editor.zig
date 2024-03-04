@@ -156,12 +156,14 @@ pub fn createWorld(width: u16, height: u16) !void {
     game.worlds_list.at(new_world_index).setEmbeddedData(new_world_data);
 }
 // @wasm
-pub fn createEntity(entity_type: u16) !void {
+pub fn createEntity(entity_type: u16, entity_id: u16) !void {
     var new_entity_data = game.EmbeddedDataStruct{};
     var i: usize = 0;
     while (i < enums.EntityDataEnum.length()) {
         if (i == enums.EntityDataEnum.ID.int()) {
-            try new_entity_data.appendToRawData(@as(u16, @intCast(game.entities_list.len + 1)));
+            try new_entity_data.appendToRawData(entity_id);
+        } else if (i == enums.EntityDataEnum.Type.int()) {
+            try new_entity_data.appendToRawData(entity_type);
         } else if (i == enums.EntityDataEnum.ComponentHealth.int()) {
             try new_entity_data.appendToRawData(1);
         } else if (i == enums.EntityDataEnum.ComponentHealthDefaultValue.int()) {
@@ -174,6 +176,12 @@ pub fn createEntity(entity_type: u16) !void {
         }
         i += 1;
     }
+    // Adding extra data just in case we need it
+    try new_entity_data.appendToRawData(0);
+    try new_entity_data.appendToRawData(0);
+    try new_entity_data.appendToRawData(0);
+    try new_entity_data.appendToRawData(0);
+
     var new_entity = game.EntityDataStruct{};
     new_entity.setEmbedded(new_entity_data);
 
@@ -195,28 +203,74 @@ pub fn clearAll() void {
 
 // --- MEMORY RETRIEVAL ---
 // @wasm
-pub fn getWorldMemoryLocation(world_index: u16) !*u16 {
-    return game.worlds_list.at(world_index).embedded_data.firstMemoryLocation();
+pub fn getWorldMemoryLocation(world_id: u16) !*u16 {
+    // return game.worlds_list.at(world_index).embedded_data.firstMemoryLocation();
+    var location: *u16 = undefined;
+    for (0..game.worlds_list.len) |i| {
+        var world = game.worlds_list.at(i);
+        if (world.embedded_data.readData(enums.WorldDataEnum.ID.int(), .Little) == world_id) {
+            location = try world.embedded_data.firstMemoryLocation();
+        }
+    }
+    return location;
 }
 // @wasm
-pub fn getWorldMemoryLength(world_index: u16) !usize {
-    return game.worlds_list.at(world_index).embedded_data.getLength();
+pub fn getWorldMemoryLength(world_id: u16) !usize {
+    // return game.worlds_list.at(world_index).embedded_data.getLength();
+    var size: u16 = 0;
+    for (0..game.worlds_list.len) |i| {
+        var world = game.worlds_list.at(i);
+        if (world.embedded_data.readData(enums.WorldDataEnum.ID.int(), .Little) == world_id) {
+            size = world.embedded_data.getLength();
+        }
+    }
+    return size;
 }
 // @wasm
-pub fn getEntityMemoryLocation(entity_index: u16) !*u16 {
-    return game.entities_list.at(entity_index).embedded.firstMemoryLocation();
+pub fn getEntityMemoryLocation(entity_id: u16) !*u16 {
+    var location: *u16 = undefined;
+    for (0..game.entities_list.len) |i| {
+        var entity = game.entities_list.at(i);
+        if (entity.embedded.readData(enums.EntityDataEnum.ID.int(), .Little) == entity_id) {
+            location = try entity.embedded.firstMemoryLocation();
+        }
+    }
+    return location;
 }
 // @wasm
-pub fn getEntityMemoryLength(entity_index: u16) !usize {
-    return game.entities_list.at(entity_index).embedded.getLength();
+pub fn getEntityMemoryLength(entity_id: u16) !u16 {
+    var size: u16 = 0;
+    for (0..game.entities_list.len) |i| {
+        var entity = game.entities_list.at(i);
+        if (entity.embedded.readData(enums.EntityDataEnum.ID.int(), .Little) == entity_id) {
+            size = entity.embedded.getLength();
+        }
+    }
+    return size;
 }
 // @wasm
-pub fn getWorldLayerMemoryLocation(world_index: u16, layer_index: u16) !*u16 {
-    return game.worlds_list.at(world_index).embedded_layers.items[layer_index].firstMemoryLocation();
+pub fn getWorldLayerMemoryLocation(world_id: u16, layer_index: u16) !*u16 {
+    // return game.worlds_list.at(world_index).embedded_layers.items[layer_index].firstMemoryLocation();
+    var location: *u16 = undefined;
+    for (0..game.worlds_list.len) |i| {
+        var world = game.worlds_list.at(i);
+        if (world.embedded_data.readData(enums.WorldDataEnum.ID.int(), .Little) == world_id) {
+            location = try world.embedded_layers.items[layer_index].firstMemoryLocation();
+        }
+    }
+    return location;
 }
 // @wasm
-pub fn getWorldLayerMemoryLength(world_index: u16, layer_index: u16) !usize {
-    return game.worlds_list.at(world_index).embedded_layers.items[layer_index].getLength();
+pub fn getWorldLayerMemoryLength(world_id: u16, layer_index: u16) !usize {
+    // return game.worlds_list.at(world_index).embedded_layers.items[layer_index].getLength();
+    var size: u16 = 0;
+    for (0..game.worlds_list.len) |i| {
+        var world = game.worlds_list.at(i);
+        if (world.embedded_data.readData(enums.WorldDataEnum.ID.int(), .Little) == world_id) {
+            size = world.embedded_layers.items[layer_index].getLength();
+        }
+    }
+    return size;
 }
 // @wasm
 pub fn getLayerMemoryLocation(layer_index: u16) !*u16 {
