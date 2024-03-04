@@ -117,12 +117,6 @@ pub const WorldDataStruct = struct {
     pub fn readLayer(self: *WorldDataStruct, layer_index: u16, index: u16) u16 {
         return self.embedded_layers.items[layer_index].readData(index, .Little);
     }
-    pub fn getIndex(self: *WorldDataStruct) u16 {
-        const enum_index = enums.WorldDataEnum.ID.int();
-        const index = self.readData(enum_index);
-        // std.log.info("index {d}",.{index});
-        return index;
-    }
     pub fn getWidth(self: *WorldDataStruct) u16 {
         const enum_index = enums.WorldDataEnum.Width.int();
         const width = self.readData(enum_index);
@@ -162,7 +156,7 @@ pub const WorldDataStruct = struct {
         var potential_entity_id = self.getCoordinateData(entity_layer, x, y);
         if (potential_entity_id > 0) {
             var entity = entities_list.at(potential_entity_id - 1);
-            if (entity.isCollision == true) {
+            if (entity.isCollision() == true) {
                 return true;
             }
         }
@@ -283,77 +277,42 @@ const ComponentMovement = @import("components/movement.zig").ComponentMovement;
 // TODO: Should probably rename these structs, they've become more than just structs
 pub const EntityDataStruct = struct {
     messages: std.ArrayListUnmanaged(GameMessage) = .{},
-    type: u16 = 0,
-    data: std.ArrayListUnmanaged(u16) = .{},
-    has_data: bool = false,
     embedded: EmbeddedDataStruct = undefined,
     health: ComponentHealth = undefined,
     movement: ComponentMovement = undefined,
+    // TODO: Move this to movement component?
     position: [2]u16 = .{ 0, 0 },
-    isCollision: bool = false,
     pub fn init(self: *EntityDataStruct) !void {
-        self.isCollision = self.embedded.readData(enums.EntityDataEnum.IsCollision.int(), .Little) == 1;
         try self.loadComponents();
     }
     pub fn addMessage(self: *EntityDataStruct, message: GameMessage) !void {
         try self.messages.append(allocator, message);
     }
+    pub fn isCollision(self: *EntityDataStruct) bool {
+        if (self.embedded.readData(enums.EntityDataEnum.IsCollision.int(), .Little) == 1) {
+            return true;
+        }
+
+        return false;
+    }
     pub fn getType(self: *EntityDataStruct) u16 {
-        return @as(u16, @intCast(self.type));
+        return self.embedded.readData(enums.EntityDataEnum.Type.int(), .Little);
     }
     pub fn setEmbedded(self: *EntityDataStruct, embedded: EmbeddedDataStruct) void {
         self.embedded = embedded;
     }
     pub fn getId(self: *EntityDataStruct) u16 {
-        if (self.data.items.len > 0) {
-            return self.data.items[enums.EntityDataEnum.ID.int()];
-        }
         return self.embedded.readData(enums.EntityDataEnum.ID.int(), .Little);
     }
-    pub fn getIndex(self: *EntityDataStruct) u16 {
-        const enum_index = enums.EntityDataEnum.ID.int();
-        const index = if (self.has_data)
-            self.data.items[enum_index]
-        else
-            self.embedded.readData(enum_index, .Little);
-
-        // std.log.info("index {d}",.{index});
-        return index;
-    }
-    pub fn readDataFromEmbedded(self: *EntityDataStruct) !void {
-        // TODO: Add a "force" option to do it even if self.has_data
-        if (self.has_data) {
-            return;
-        }
-        var max: u16 = self.embedded.getLength();
-        max = max / 2; // Note: because the embedded file is using 32-bit or something like that, so you gotta divide
-        // std.log.info("max {d}",.{max});
-        // std.log.info("file_index {d}",.{self.embedded.file_index});
-        try self.data.resize(gpa_allocator.allocator(), max);
-        for (0..max) |i| {
-            var i_converted = @as(u16, @intCast(i));
-            const value = self.embedded.readData(i_converted, .Little);
-            // std.log.info("value {d}",.{value});
-            self.data.items[i_converted] = value;
-            // std.log.info("new_data[i] {d}",.{new_data[i]});
-        }
-        self.has_data = true;
-    }
     pub fn loadComponents(self: *EntityDataStruct) !void {
-        // TODO: Do you really need to read the data here when you load the components?
-        // Can you not just read from embedded?
-        if (!self.has_data) {
-            try self.readDataFromEmbedded();
-        }
-        if (self.data.items[enums.EntityDataEnum.ComponentHealth.int()] == 1) {
+        if (self.embedded.readData(enums.EntityDataEnum.ComponentHealth.int(), .Little) == 1) {
             self.health = ComponentHealth{
                 // TODO: Do we even need this anymore?
                 .default_value = 10,
-                .current_value = self.data.items[enums.EntityDataEnum.ComponentHealthDefaultValue.int()] 
+                .current_value = self.embedded.readData(enums.EntityDataEnum.ComponentHealthDefaultValue.int(), .Little),
             };
             // std.log.info("health component found", .{});
-        // TODO: Re-enable this when you've updated the entity data. Right now it errors out
-        } else if (self.data.items[enums.EntityDataEnum.ComponentMovement.int()] == 1) {
+        } else if (self.embedded.readData(enums.EntityDataEnum.ComponentMovement.int(), .Little) == 1) {
             self.movement = ComponentMovement.init(self);
         }
     }
@@ -382,6 +341,7 @@ pub const EntityDataStruct = struct {
 // --- GAME FUNCTIONS ---
 // @wasm
 pub fn processTick() !void {
+    // std.log.info("Process Tick", .{});
     for (0..entities_list.len) |i| {
         var entity = entities_list.at(i);
         try entity.processMessages();
@@ -540,7 +500,6 @@ pub fn initializeGame() !void {
             // TODO: Actually put the type into the embedded data
             try entities_list.append(gpa_allocator.allocator(), .{
                 .embedded = embedded_data_struct,
-                .type = 0,
             });
             try entities_list.at(i).init();
         }

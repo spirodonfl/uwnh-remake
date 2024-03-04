@@ -37,6 +37,8 @@ function tick() {
         delta = Math.min(interval, delta + now - then - interval);
         then = now;
         updateStats();
+
+        _GAME.game_processTick();
     }
     requestAnimationFrame(tick);
 }
