@@ -1,5 +1,6 @@
 import { wasm } from './injector_wasm.js';
 import '../components/draggable.js';
+import { globals } from './globals.js';
 var _GAME = wasm.instance.exports;
 
 export class Editor extends HTMLElement {
@@ -15,7 +16,7 @@ export class Editor extends HTMLElement {
         this.inputs = [
             {
                 description: 'Toggle Editor',
-                context: GLOBALS.MODES.indexOf('EDITOR'),
+                context: globals.MODES.indexOf('EDITOR'),
                 code: 'KeyP',
                 friendlyCode: 'P',
                 shiftKey: false,
@@ -26,7 +27,7 @@ export class Editor extends HTMLElement {
             },
             {
                 description: 'Toggle Atlas',
-                context: GLOBALS.MODES.indexOf('EDITOR'),
+                context: globals.MODES.indexOf('EDITOR'),
                 code: 'KeyA',
                 friendlyCode: 'A',
                 shiftKey: false,
@@ -37,7 +38,7 @@ export class Editor extends HTMLElement {
             },
             {
                 description: 'Change Layer',
-                context: GLOBALS.MODES.indexOf('EDITOR'),
+                context: globals.MODES.indexOf('EDITOR'),
                 code: 'KeyL',
                 friendlyCode: 'L',
                 shiftKey: false,
@@ -48,7 +49,7 @@ export class Editor extends HTMLElement {
             },
             {
                 description: 'Add Collision',
-                context: GLOBALS.MODES.indexOf('EDITOR'),
+                context: globals.MODES.indexOf('EDITOR'),
                 code: 'KeyA',
                 friendlyCode: 'SHIFT+A',
                 shiftKey: true,
@@ -59,7 +60,7 @@ export class Editor extends HTMLElement {
             },
             {
                 description: 'Delete Collision',
-                context: GLOBALS.MODES.indexOf('EDITOR'),
+                context: globals.MODES.indexOf('EDITOR'),
                 code: 'KeyD',
                 friendlyCode: 'SHIFT+D',
                 shiftKey: true,
@@ -73,10 +74,10 @@ export class Editor extends HTMLElement {
 
     connectedCallback() {
         this.render();
-        GLOBALS.INPUTS = GLOBALS.INPUTS.concat(this.inputs);
+        globals.INPUTS = globals.INPUTS.concat(this.inputs);
         // Listen to game-component for custom event called 'viewport-size'
         var game_component = document.querySelector('game-component');
-        GLOBALS.EVENTBUS.addEventListener('viewport-size', (e) => {
+        globals.EVENTBUS.addEventListener('viewport-size', (e) => {
             this.onViewportSize(e);
         });
         // TODO: A better way to not repeat our input functionality here
@@ -84,7 +85,7 @@ export class Editor extends HTMLElement {
             for (var i = 0; i < this.inputs.length; ++i) {
                 let input = this.inputs[i];
                 if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
-                    if (input.context === GLOBALS.MODES.indexOf('EDITOR')) {
+                    if (input.context === globals.MODES.indexOf('EDITOR')) {
                         input.callback();
                     }
                 }
@@ -95,16 +96,16 @@ export class Editor extends HTMLElement {
             var game_component = document.querySelector('game-component');
             var x = e.clientX - game_component.x_padding;
             var y = e.clientY - game_component.y_padding;
-            x = Math.floor(x / (GLOBALS.SIZE * GLOBALS.SCALE));
-            y = Math.floor(y / (GLOBALS.SIZE * GLOBALS.SCALE));
+            x = Math.floor(x / (globals.SIZE * globals.SCALE));
+            y = Math.floor(y / (globals.SIZE * globals.SCALE));
             this.last_click.x = x;
             this.last_click.y = y;
             var clicked_view = this.shadowRoot.getElementById('clicked_view');
             clicked_view.style.display = 'block';
-            clicked_view.style.width = (GLOBALS.SIZE * GLOBALS.SCALE) + 'px';
-            clicked_view.style.height = (GLOBALS.SIZE * GLOBALS.SCALE) + 'px';
-            clicked_view.style.left = game_component.x_padding + (x * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-            clicked_view.style.top = game_component.y_padding + (y * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
+            clicked_view.style.width = (globals.SIZE * globals.SCALE) + 'px';
+            clicked_view.style.height = (globals.SIZE * globals.SCALE) + 'px';
+            clicked_view.style.left = game_component.x_padding + (x * (globals.SIZE * globals.SCALE)) + 'px';
+            clicked_view.style.top = game_component.y_padding + (y * (globals.SIZE * globals.SCALE)) + 'px';
             if (_GAME.viewport_getData(x, y)) {
                 var data_id = _GAME.game_getWorldDataAtViewportCoordinate(this.current_layer, x, y);
                 this.shadowRoot.getElementById('current_data_id').value = data_id;
@@ -121,7 +122,7 @@ export class Editor extends HTMLElement {
             var selected_atlas_image = this.shadowRoot.getElementById('current_selected_atlas_img');
             selected_atlas_image.style.width = '64px';
             selected_atlas_image.style.height = '64px';
-            selected_atlas_image.style.backgroundImage = `url("${GLOBALS.ATLAS_PNG_FILENAME}")`;
+            selected_atlas_image.style.backgroundImage = `url("${globals.ATLAS_PNG_FILENAME}")`;
             selected_atlas_image.style.backgroundPosition = '-' + (x * 64) + 'px -' + (y * 64) + 'px';
         });
         this.shadowRoot.getElementById('apply_image_to_layer_id_input').addEventListener('click', (e) => {
@@ -131,14 +132,14 @@ export class Editor extends HTMLElement {
             var y = this.last_atlas_click.y;
             // TODO: What about animations?
             var current_world_index = _GAME.game_getCurrentWorldIndex();
-            if (!GLOBALS.IMAGE_DATA[current_world_index]) {
-                GLOBALS.IMAGE_DATA[current_world_index] = {};
+            if (!globals.IMAGE_DATA[current_world_index]) {
+                globals.IMAGE_DATA[current_world_index] = {};
             }
-            if (!GLOBALS.IMAGE_DATA[current_world_index][layer_id]) {
-                GLOBALS.IMAGE_DATA[current_world_index][layer_id] = {};
+            if (!globals.IMAGE_DATA[current_world_index][layer_id]) {
+                globals.IMAGE_DATA[current_world_index][layer_id] = {};
             }
-            GLOBALS.IMAGE_DATA[current_world_index][layer_id][data_id] = [
-                [x * (GLOBALS.SIZE * GLOBALS.SCALE), y * (GLOBALS.SIZE * GLOBALS.SCALE)]
+            globals.IMAGE_DATA[current_world_index][layer_id][data_id] = [
+                [x * (globals.SIZE * globals.SCALE), y * (globals.SIZE * globals.SCALE)]
             ];
             var game_component = document.querySelector('game-component');
             game_component.renderGame();
@@ -211,8 +212,8 @@ export class Editor extends HTMLElement {
     onViewportSize(e) {
         var viewport_size = e;
         // TODO: clickable_view should be a separate component
-        this.shadowRoot.getElementById('clickable_view').style.width = (viewport_size.width * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
-        this.shadowRoot.getElementById('clickable_view').style.height = (viewport_size.height * (GLOBALS.SIZE * GLOBALS.SCALE)) + 'px';
+        this.shadowRoot.getElementById('clickable_view').style.width = (viewport_size.width * (globals.SIZE * globals.SCALE)) + 'px';
+        this.shadowRoot.getElementById('clickable_view').style.height = (viewport_size.height * (globals.SIZE * globals.SCALE)) + 'px';
         // TODO: consider updating top && left instead of margin
         this.shadowRoot.getElementById('clickable_view').style.margin = viewport_size.y_padding + 'px ' + viewport_size.x_padding + 'px';
         this.renderViewportData();
@@ -372,7 +373,7 @@ export class Editor extends HTMLElement {
             </x-draggable>
             <x-draggable class="hidden" name="atlas" id="atlas">
                 <div id="atlas-container">
-                    <img id="atlas_img" src="${GLOBALS.ATLAS_PNG_FILENAME}" />
+                    <img id="atlas_img" src="${globals.ATLAS_PNG_FILENAME}" />
                 </div>
             </x-draggable>
         `;
