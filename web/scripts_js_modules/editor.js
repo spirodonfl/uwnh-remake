@@ -295,7 +295,7 @@ export class Editor extends HTMLElement {
                 font-size: 1.5em;
             }
             .hidden {
-                display: none !important;
+                visibility: hidden;
             }
             #editor-container {
                 padding: 0.6em;
