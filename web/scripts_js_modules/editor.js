@@ -85,7 +85,7 @@ export class Editor extends HTMLElement {
             for (var i = 0; i < this.inputs.length; ++i) {
                 let input = this.inputs[i];
                 if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
-                    if (input.context === globals.MODES.indexOf('EDITOR')) {
+                    if (input.context === globals.MODE) {
                         input.callback();
                     }
                 }
@@ -313,7 +313,7 @@ export class Editor extends HTMLElement {
         // TODO: Later on, implement image data per world so it's not a crazy big JSON file
         // let current_world_index = _GAME.game_getCurrentWorldIndex();
         // let image_data = JSON.stringify(GLOBALS.IMAGE_DATA[current_world_index]);
-        let image_data = JSON.stringify(GLOBALS.IMAGE_DATA);
+        let image_data = JSON.stringify(globals.IMAGE_DATA);
         let image_data_as_blob = new Blob([image_data], {type: 'application/json'});
         editorDownload(image_data_as_blob, 'image_data.json');
     }

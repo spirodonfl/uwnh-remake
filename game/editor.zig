@@ -26,13 +26,19 @@ pub fn attachLayerToWorld(layer_index: u16, world_index: u16) !void {
 // world.raw_data[enums.WorldDataEnum.TotalLayers.int()] = total_layers
 
 // @wasm
-pub fn setWorldLayerCoordinateData(world_index: u16, layer_index: u16, x: u16, y: u16, value: u16) !void {
-    var world = game.worlds_list.at(world_index);
-    try world.embedded_layers.items[layer_index].readToRawData();
-    // std.log.info("World width: {d}", .{world.getWidth()});
-    var index = (y * world.getWidth()) + x;
-    // std.log.info("Setting index: {d}", .{index});
-    world.embedded_layers.items[layer_index].raw_data.items[index] = value;
+pub fn setWorldLayerCoordinateData(world_id: u16, layer_index: u16, x: u16, y: u16, value: u16) !void {
+    for (0..game.worlds_list.len) |i| {
+        var world = game.worlds_list.at(i);
+        if (world.embedded_data.readData(enums.WorldDataEnum.ID.int(), .Little) == world_id) {
+            if (layer_index == world.embedded_data.readData(enums.WorldDataEnum.EntityLayer.int(), .Little)) {
+                try world.addEntity(value, x, y);
+            }
+            try world.embedded_layers.items[layer_index].readToRawData();
+            var index = (y * world.getWidth()) + x;
+            // std.log.info("Setting world layer coordinate data: {d} {d}", .{index, value});
+            world.embedded_layers.items[layer_index].raw_data.items[index] = value;
+        }
+    }
 }
 // @wasm
 pub fn addRowToWorld(world_index: u16) !void {

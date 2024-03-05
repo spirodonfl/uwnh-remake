@@ -105,6 +105,7 @@ pub const WorldDataStruct = struct {
     embedded_data: EmbeddedDataStruct = undefined,
     embedded_layers: std.ArrayListUnmanaged(EmbeddedDataStruct) = .{},
     entities_list: std.ArrayListUnmanaged(u16) = .{},
+    entities_initialized: bool = false,
     pub fn setEmbeddedData(self: *WorldDataStruct, embedded: EmbeddedDataStruct) void {
         self.embedded_data = embedded;
     }
@@ -137,54 +138,89 @@ pub const WorldDataStruct = struct {
     pub fn getCoordinateData(self: *WorldDataStruct, layer: u16, x: u16, y: u16) u16 {
         var entity_layer = self.readData(enums.WorldDataEnum.EntityLayer.int());
         if (layer == entity_layer) {
-            for (0..self.entities_list.items.len) |i| {
-                for (0..entities_list.len) |j| {
-                    if (entities_list.at(j).getId() == self.entities_list.items[i]) {
-                        if (entities_list.at(j).position[0] == x and entities_list.at(j).position[1] == y) {
-                            return entities_list.at(j).getId();
+            if (self.entities_initialized == false) {
+                var index: u16 = (y * self.getWidth()) + x;
+                const data = self.readLayer(layer, index);
+                return data;
+            } else {
+                for (0..self.entities_list.items.len) |i| {
+                    var entity_id = self.entities_list.items[i];
+                    for (0..entities_list.len) |j| {
+                        if (entities_list.at(j).getId() == entity_id) {
+                            if (entities_list.at(j).position[0] == x and entities_list.at(j).position[1] == y) {
+                                return entity_id;
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            var index: u16 = (y * self.getWidth()) + x;
+            const data = self.readLayer(layer, index);
+            return data;
+        }
+        return 0;
+    }
+    pub fn checkEntityCollision(self: *WorldDataStruct, x: u16, y: u16) bool {
+        for (0..self.entities_list.items.len) |i| {
+            var entity_id = self.entities_list.items[i];
+            for (0..entities_list.len) |j| {
+                if (entities_list.at(j).getId() == entity_id) {
+                    if (entities_list.at(j).position[0] == x and entities_list.at(j).position[1] == y) {
+                        if (entities_list.at(j).isCollision() == true) {
+                            return true;
                         }
                     }
                 }
             }
         }
-        var index: u16 = (y * self.getWidth()) + x;
-        const data = self.readLayer(layer, index);
-        return data;
-    }
-    pub fn checkEntityCollision(self: *WorldDataStruct, x: u16, y: u16) bool {
-        var entity_layer = self.readData(enums.WorldDataEnum.EntityLayer.int());
-        var potential_entity_id = self.getCoordinateData(entity_layer, x, y);
-        if (potential_entity_id > 0) {
-            var entity = entities_list.at(potential_entity_id - 1);
-            if (entity.isCollision() == true) {
-                return true;
-            }
-        }
+        // TODO: Check collision layer too
         return false;
     }
     pub fn initializeEntities(self: *WorldDataStruct) !void {
-        var entity_layer = self.readData(enums.WorldDataEnum.EntityLayer.int());
-        var w = self.getWidth();
-        var h = self.getHeight();
-        var size = w * h;
-        for (0..size) |i| {
-            var x: u16 = @as(u16, @intCast(i % w));
-            var y: u16 = @as(u16, @intCast(i / w));
-            var value = self.getCoordinateData(entity_layer, x, y);
-            if (value > 0) {
-                try self.entities_list.append(allocator, value);
-                var entity = entities_list.at(self.entities_list.items.len - 1);
-                entity.position[0] = x;
-                entity.position[1] = y;
+        if (self.entities_initialized == false) {
+            var entity_layer = self.readData(enums.WorldDataEnum.EntityLayer.int());
+            var w = self.getWidth();
+            var h = self.getHeight();
+            var size = w * h;
+            for (0..size) |i| {
+                var x: u16 = @as(u16, @intCast(i % w));
+                var y: u16 = @as(u16, @intCast(i / w));
+                var value = self.getCoordinateData(entity_layer, x, y);
+                if (value > 0) {
+                    try self.entities_list.append(allocator, value);
+                    for (0..entities_list.len) |j| {
+                        if (entities_list.at(j).getId() == value) {
+                            entities_list.at(j).position[0] = x;
+                            entities_list.at(j).position[1] = y;
+                        }
+                    }
+                    // var entity = entities_list.at(self.entities_list.items.len - 1);
+                    // entity.position[0] = x;
+                    // entity.position[1] = y;
+                }
             }
         }
+        self.entities_initialized = true;
     }
     pub fn addEntity(self: *WorldDataStruct, entity_id: u16, position_x: u16, position_y: u16) !void {
-        // TODO: Only if entity_id does not already exist in self.entities_list
-        try self.entities_list.append(allocator, entity_id);
-        var entity = entities_list.at(self.entities_list.items.len - 1);
-        entity.position[0] = position_x;
-        entity.position[1] = position_y;
+        var exists: bool = false;
+        for (0..self.entities_list.items.len) |i| {
+            if (self.entities_list.items[i] == entity_id) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            try self.entities_list.append(allocator, entity_id);
+            for (0..entities_list.len) |i| {
+                if (entities_list.at(i).getId() == entity_id) {
+                    entities_list.at(i).position[0] = position_x;
+                    entities_list.at(i).position[1] = position_y;
+                    return;
+                }
+            }
+        }
     }
     pub fn removeEntity(self: *WorldDataStruct, entity_id: u16) !void {
         for (0..self.entities_list.len) |i| {
@@ -313,7 +349,7 @@ pub const EntityDataStruct = struct {
             };
             // std.log.info("health component found", .{});
         } else if (self.embedded.readData(enums.EntityDataEnum.ComponentMovement.int(), .Little) == 1) {
-            self.movement = ComponentMovement.init(self);
+            self.movement = ComponentMovement{.entity_id = self.getId()};
         }
     }
     pub fn processMessages(self: *EntityDataStruct) !void {
@@ -328,6 +364,40 @@ pub const EntityDataStruct = struct {
                     if (current_world.checkEntityCollision(intended_x, intended_y) == false)
                     {
                         self.movement.moveUp();
+                        try diff.addData(0);
+                    }
+                },
+                enums.GameMessagesEventsEnum.MoveDown.int() => {
+                    // TODO: check if entity has the move component
+                    var current_world = worlds_list.at(current_world_index);
+                    var intended_x = self.position[0];
+                    var intended_y = self.movement.intendedMoveDown();
+                    if (current_world.checkEntityCollision(intended_x, intended_y) == false)
+                    {
+                        self.movement.moveDown();
+                        try diff.addData(0);
+                    }
+                },
+                enums.GameMessagesEventsEnum.MoveLeft.int() => {
+                    // TODO: check if entity has the move component
+                    var current_world = worlds_list.at(current_world_index);
+                    var intended_x = self.movement.intendedMoveLeft();
+                    var intended_y = self.position[1];
+                    if (current_world.checkEntityCollision(intended_x, intended_y) == false)
+                    {
+                        self.movement.moveLeft();
+                        try diff.addData(0);
+                    }
+                },
+                enums.GameMessagesEventsEnum.MoveRight.int() => {
+                    // TODO: check if entity has the move component
+                    var current_world = worlds_list.at(current_world_index);
+                    var intended_x = self.movement.intendedMoveRight();
+                    var intended_y = self.position[1];
+                    if (current_world.checkEntityCollision(intended_x, intended_y) == false)
+                    {
+                        self.movement.moveRight();
+                        try diff.addData(0);
                     }
                 },
                 else => {
@@ -338,10 +408,18 @@ pub const EntityDataStruct = struct {
     }
 };
 
+pub fn getEntityById(entity_id: u16) *EntityDataStruct {
+    for (0..entities_list.len) |i| {
+        if (entities_list.at(i).getId() == entity_id) {
+            return entities_list.at(i);
+        }
+    }
+    @panic("Entity not found");
+}
+
 // --- GAME FUNCTIONS ---
 // @wasm
 pub fn processTick() !void {
-    // std.log.info("Process Tick", .{});
     for (0..entities_list.len) |i| {
         var entity = entities_list.at(i);
         try entity.processMessages();
@@ -457,8 +535,14 @@ pub fn entityGetWorldY(entity: u16) !u16 {
     @panic("Entity not found in world");
 }
 // @wasm
-pub fn entityGetType(entity: u16) u16 {
-    return entities_list.at(entity).getType();
+pub fn entityGetType(entity_id: u16) u16 {
+    for (0..entities_list.len) |i| {
+        if (entities_list.at(i).getId() == entity_id) {
+            return entities_list.at(i).getType();
+        }
+    }
+
+    return 0;
 }
 // @wasm
 pub fn entitySetHealth(entity: u16, value: u16) !void {
@@ -475,7 +559,7 @@ pub fn initializeGame() !void {
         var embedded_data_struct = EmbeddedDataStruct{};
         var world = try embedded_data_struct.findIndexByFileName(.world, @intCast(i), 0);
         if (world == true) {
-            try worlds_list.append(gpa_allocator.allocator(), .{
+            try worlds_list.append(allocator, .{
                 .embedded_data = embedded_data_struct
             });
             var last_world = worlds_list.at(worlds_list.len - 1);
@@ -497,8 +581,7 @@ pub fn initializeGame() !void {
         var embedded_data_struct = EmbeddedDataStruct{};
         var entity = try embedded_data_struct.findIndexByFileName(.entity, @intCast(i), 0);
         if (entity == true) {
-            // TODO: Actually put the type into the embedded data
-            try entities_list.append(gpa_allocator.allocator(), .{
+            try entities_list.append(allocator, .{
                 .embedded = embedded_data_struct,
             });
             try entities_list.at(i).init();
@@ -599,7 +682,8 @@ pub fn resetWorldLayerData(world_index: u16, layer_index: u16) !void {
     try world.embedded_layers.items[layer_index].clearRawData();
 }
 // @wasm
-pub fn getWorldDataAtViewportCoordinate(layer: u16, x: u16, y: u16) u16 {
+pub fn getWorldDataAtViewportCoordinate(layer_index: u16, x: u16, y: u16) u16 {
+    // TODO: if layer_index == EntityLayer then iterate over entities in the game and get their position to match coords
     if (x >= viewport.getPaddingLeft() and
         y >= viewport.getPaddingTop() and
         x < (viewport.getSizeWidth() - viewport.getPaddingRight()) and
@@ -610,7 +694,7 @@ pub fn getWorldDataAtViewportCoordinate(layer: u16, x: u16, y: u16) u16 {
         world_x += viewport.getCameraX();
         world_y += viewport.getCameraY();
         // std.log.info("world {d}", .{worlds_list.len});
-        return getWorldData(current_world_index, layer, world_x, world_y);
+        return getWorldData(current_world_index, layer_index, world_x, world_y);
     }
     std.log.info("Invalid coordinates: {d} {d}", .{x, y});
     @panic("Invalid viewport coordinate");
