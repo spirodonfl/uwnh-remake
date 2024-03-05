@@ -39,6 +39,12 @@ function tick() {
         updateStats();
 
         _GAME.game_processTick();
+
+        if (_GAME.diff_getLength() > 0) {
+            document.querySelector('game-component').renderGame();
+            document.querySelector('editor-component').renderViewportData();
+            _GAME.diff_clearAll();
+        }
     }
     requestAnimationFrame(tick);
 }
@@ -86,15 +92,6 @@ window.editorDownload = function (data, file_name) {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
 };
-
-// TODO
-// Multi step
-// *. kick-off the loop that runs the animation frames for anything with animations in it in the DOM
-// *. run the requestAnimationFrame loop with a tick function
-// *. pretty much the tick function iterates over frames and executes rendering of any appropriate entities and whatnot
-// TODO: Put stats in editor mode only (use the menu)
-// *. Load twitch functionality
-// *. Load multiplayer functionality
 
 export class Game extends HTMLElement {
     constructor() {
@@ -177,7 +174,51 @@ export class Game extends HTMLElement {
                 callback: () => {
                     this.changeMode();
                 }
-            }
+            },
+            {
+                description: 'Move Up',
+                context: globals.MODES.indexOf('GAME'),
+                code: 'KeyI',
+                friendlyCode: 'I',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.moveMainPlayerUp();
+                }
+            },
+            {
+                description: 'Move Down',
+                context: globals.MODES.indexOf('GAME'),
+                code: 'KeyK',
+                friendlyCode: 'K',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.moveMainPlayerDown();
+                }
+            },
+            {
+                description: 'Move Left',
+                context: globals.MODES.indexOf('GAME'),
+                code: 'KeyJ',
+                friendlyCode: 'J',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.moveMainPlayerLeft();
+                }
+            },
+            {
+                description: 'Move Right',
+                context: globals.MODES.indexOf('GAME'),
+                code: 'KeyL',
+                friendlyCode: 'L',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.moveMainPlayerRight();
+                }
+            },
         ];
     }
 
@@ -185,7 +226,7 @@ export class Game extends HTMLElement {
         this.render();
         globals.INPUTS = globals.INPUTS.concat(this.inputs);
         this.shadowRoot.getElementById('mode').innerText = globals.MODES[globals.MODE];
-        
+
         var atlas = new Image();
         atlas.onload = () => {
             this.atlas_loaded = true;
@@ -206,7 +247,7 @@ export class Game extends HTMLElement {
             for (var i = 0; i < this.inputs.length; ++i) {
                 let input = this.inputs[i];
                 if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
-                    if (input.context === globals.MODES.indexOf('ALL') || input.context === globals.MODES.indexOf('GAME')) {
+                    if (input.context === globals.MODES.indexOf('ALL') || input.context === globals.MODE) {
                         input.callback();
                     }
                 }
@@ -258,9 +299,11 @@ export class Game extends HTMLElement {
                     if (layer === _GAME.game_getCurrentWorldCollisionLayer()) { continue; }
                     if (layer === _GAME.game_getCurrentWorldEntityLayer()) {
                         // TODO: Deal with entities properly here
+                        // TODO: Some IDs are not showing up, probably because they don't have data. Show them anyways
                         var entity_id = _GAME.game_getWorldDataAtViewportCoordinate(layer, viewport_x, viewport_y);
-                        console.log('Entity ID:', entity_id);
                         if (entity_id > 0) {
+                            console.log('ENTITY ID:', entity_id);
+                            console.log('ENTITY TYPE:', _GAME.game_entityGetType(entity_id));
                             var new_entity = document.createElement('entity-component');
                             new_entity.updateSize();
                             new_entity.setViewportXY(viewport_x, viewport_y);
@@ -338,25 +381,42 @@ export class Game extends HTMLElement {
     moveCameraUp() {
         _GAME.viewport_moveCameraUp();
         // TODO: Use the GLOBAL eventbus instead of directly calling these
-        document.querySelector('game-component').renderGame();
         document.querySelector('editor-component').renderViewportData();
     }
     moveCameraDown() {
         _GAME.viewport_moveCameraDown();
         // TODO: Use the GLOBAL eventbus instead of directly calling these
-        document.querySelector('game-component').renderGame();
         document.querySelector('editor-component').renderViewportData();
     }
     moveCameraLeft() {
         _GAME.viewport_moveCameraLeft();
         // TODO: Use the GLOBAL eventbus instead of directly calling these
-        document.querySelector('game-component').renderGame();
         document.querySelector('editor-component').renderViewportData();
     }
     moveCameraRight() {
         _GAME.viewport_moveCameraRight();
         // TODO: Use the GLOBAL eventbus instead of directly calling these
-        document.querySelector('game-component').renderGame();
+        document.querySelector('editor-component').renderViewportData();
+    }
+
+    moveMainPlayerUp() {
+        _GAME.messages_moveUp(1, 0);
+        // TODO: Use the GLOBAL eventbus instead of directly calling these
+        document.querySelector('editor-component').renderViewportData();
+    }
+    moveMainPlayerDown() {
+        _GAME.messages_moveDown(1, 0);
+        // TODO: Use the GLOBAL eventbus instead of directly calling these
+        document.querySelector('editor-component').renderViewportData();
+    }
+    moveMainPlayerLeft() {
+        _GAME.messages_moveLeft(1, 0);
+        // TODO: Use the GLOBAL eventbus instead of directly calling these
+        document.querySelector('editor-component').renderViewportData();
+    }
+    moveMainPlayerRight() {
+        _GAME.messages_moveRight(1, 0);
+        // TODO: Use the GLOBAL eventbus instead of directly calling these
         document.querySelector('editor-component').renderViewportData();
     }
 
