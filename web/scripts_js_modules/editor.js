@@ -1,7 +1,6 @@
 import { wasm } from './injector_wasm.js';
 import '../components/draggable.js';
 import { globals } from './globals.js';
-var _GAME = wasm.instance.exports;
 
 export class Editor extends HTMLElement {
     constructor() {
@@ -106,8 +105,8 @@ export class Editor extends HTMLElement {
             clicked_view.style.height = (globals.SIZE * globals.SCALE) + 'px';
             clicked_view.style.left = game_component.x_padding + (x * (globals.SIZE * globals.SCALE)) + 'px';
             clicked_view.style.top = game_component.y_padding + (y * (globals.SIZE * globals.SCALE)) + 'px';
-            if (_GAME.viewport_getData(x, y)) {
-                var data_id = _GAME.game_getWorldDataAtViewportCoordinate(this.current_layer, x, y);
+            if (wasm.viewport_getData(x, y)) {
+                var data_id = wasm.game_getWorldDataAtViewportCoordinate(this.current_layer, x, y);
                 this.shadowRoot.getElementById('current_data_id').value = data_id;
             }
         });
@@ -131,7 +130,7 @@ export class Editor extends HTMLElement {
             var x = this.last_atlas_click.x;
             var y = this.last_atlas_click.y;
             // TODO: What about animations?
-            var current_world_index = _GAME.game_getCurrentWorldIndex();
+            var current_world_index = wasm.game_getCurrentWorldIndex();
             if (!globals.IMAGE_DATA[current_world_index]) {
                 globals.IMAGE_DATA[current_world_index] = {};
             }
@@ -147,10 +146,10 @@ export class Editor extends HTMLElement {
         this.shadowRoot.getElementById('apply_data_value_to_layer_coordinate_input').addEventListener('click', (e) => {
             var layer_id = parseInt(this.shadowRoot.getElementById('current_layer_id').value);
             var data_id = parseInt(this.shadowRoot.getElementById('current_data_id').value);
-            var x = _GAME.game_translateViewportXToWorldX(this.last_click.x);
-            var y = _GAME.game_translateViewportYToWorldY(this.last_click.y);
+            var x = wasm.game_translateViewportXToWorldX(this.last_click.x);
+            var y = wasm.game_translateViewportYToWorldY(this.last_click.y);
             // TODO: Pull the actual current world as the first parameter
-            _GAME.editor_setWorldLayerCoordinateData(0, layer_id, x, y, data_id);
+            wasm.editor_setWorldLayerCoordinateData(0, layer_id, x, y, data_id);
             this.renderViewportData();
             var game_component = document.querySelector('game-component');
             game_component.renderGame();
@@ -195,10 +194,10 @@ export class Editor extends HTMLElement {
             var viewport_y = Math.floor(i / game_component.width);
             var viewport_x = i % game_component.width;
 
-            if (_GAME.viewport_getData(viewport_x, viewport_y)) {
+            if (wasm.viewport_getData(viewport_x, viewport_y)) {
                 // TODO: this.renderCollisionData();
-                var COLLISION_LAYER = _GAME.game_getCurrentWorldCollisionLayer();
-                var collision = _GAME.game_getWorldDataAtViewportCoordinate(COLLISION_LAYER, viewport_x, viewport_y);
+                var COLLISION_LAYER = wasm.game_getCurrentWorldCollisionLayer();
+                var collision = wasm.game_getWorldDataAtViewportCoordinate(COLLISION_LAYER, viewport_x, viewport_y);
                 if (collision === 1) {
                     var collision_entity = document.createElement('collision-entity-component');
                     collision_entity.updateSize();
@@ -212,7 +211,7 @@ export class Editor extends HTMLElement {
                 viewport_entity.setViewportXY(viewport_x, viewport_y);
                 viewport_entity.setLayer(90);
                 // TODO: It's weird to set the entity id to the index of the viewport
-                viewport_entity.setEntityId(_GAME.game_getWorldDataAtViewportCoordinate(this.current_layer, viewport_x, viewport_y));
+                viewport_entity.setEntityId(wasm.game_getWorldDataAtViewportCoordinate(this.current_layer, viewport_x, viewport_y));
                 game_component.shadowRoot.getElementById('view').appendChild(viewport_entity);
             }
         }
@@ -234,9 +233,9 @@ export class Editor extends HTMLElement {
     attributeChangedCallback() {}
 
     addRowToWorld() {
-        let current_world_index = _GAME.game_getCurrentWorldIndex();
-        _GAME.editor_addRowToWorld(current_world_index);
-        _GAME.game_loadWorld(current_world_index);
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        wasm.editor_addRowToWorld(current_world_index);
+        wasm.game_loadWorld(current_world_index);
         // TODO: Clean this up. Not necessarily a good thing to
         // be referencing the components as HTML elements here
         // USE GLOBAL EVENT LISTENER BUS!
@@ -244,9 +243,9 @@ export class Editor extends HTMLElement {
         document.querySelector('editor-component').renderViewportData();
     }
     removeRowFromWorld() {
-        let current_world_index = _GAME.game_getCurrentWorldIndex();
-        _GAME.editor_removeRowFromWorld(current_world_index);
-        _GAME.game_loadWorld(current_world_index);
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        wasm.editor_removeRowFromWorld(current_world_index);
+        wasm.game_loadWorld(current_world_index);
         // TODO: Clean this up. Not necessarily a good thing to
         // be referencing the components as HTML elements here
         // USE GLOBAL EVENT LISTENER BUS!
@@ -254,9 +253,9 @@ export class Editor extends HTMLElement {
         document.querySelector('editor-component').renderViewportData();
     }
     addColumnToWorld() {
-        let current_world_index = _GAME.game_getCurrentWorldIndex();
-        _GAME.editor_addColumnToWorld(current_world_index);
-        _GAME.game_loadWorld(current_world_index);
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        wasm.editor_addColumnToWorld(current_world_index);
+        wasm.game_loadWorld(current_world_index);
         // TODO: Clean this up. Not necessarily a good thing to
         // be referencing the components as HTML elements here
         // USE GLOBAL EVENT LISTENER BUS!
@@ -264,9 +263,9 @@ export class Editor extends HTMLElement {
         document.querySelector('editor-component').renderViewportData();
     }
     removeColumnFromWorld() {
-        let current_world_index = _GAME.game_getCurrentWorldIndex();
-        _GAME.editor_removeColumnFromWorld(current_world_index);
-        _GAME.game_loadWorld(current_world_index);
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        wasm.editor_removeColumnFromWorld(current_world_index);
+        wasm.game_loadWorld(current_world_index);
         // TODO: Clean this up. Not necessarily a good thing to
         // be referencing the components as HTML elements here
         // USE GLOBAL EVENT LISTENER BUS!
@@ -282,7 +281,7 @@ export class Editor extends HTMLElement {
     }
     incrementLayer() {
         ++this.current_layer;
-        if (this.current_layer >= _GAME.game_getCurrentWorldTotalLayers()) {
+        if (this.current_layer >= wasm.game_getCurrentWorldTotalLayers()) {
             this.current_layer = 0;
         }
         this.shadowRoot.getElementById('current_layer_id').value = this.current_layer;
@@ -293,25 +292,25 @@ export class Editor extends HTMLElement {
     }
 
     extractCurrentWorldData() {
-        let current_world_index = _GAME.game_getCurrentWorldIndex();
-        let start = _GAME.editor_getWorldMemoryLocation(current_world_index);
-        let length = _GAME.editor_getWorldMemoryLength(current_world_index);
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        let start = wasm.editor_getWorldMemoryLocation(current_world_index);
+        let length = wasm.editor_getWorldMemoryLength(current_world_index);
         let world_data = extractMemory(start, length);
         let world_data_as_blob = generateBlob(world_data);
         editorDownload(world_data_as_blob, 'world_' + current_world_index + '_data.bin');
     }
     extractCurrentWorldLayerData() {
         let layer_id = this.current_layer;
-        let current_world_index = _GAME.game_getCurrentWorldIndex();
-        let start = _GAME.editor_getWorldLayerMemoryLocation(current_world_index, layer_id);
-        let length = _GAME.editor_getWorldLayerMemoryLength(current_world_index, layer_id);
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        let start = wasm.editor_getWorldLayerMemoryLocation(current_world_index, layer_id);
+        let length = wasm.editor_getWorldLayerMemoryLength(current_world_index, layer_id);
         let layer_data = extractMemory(start, length);
         let layer_data_as_blob = generateBlob(layer_data);
         editorDownload(layer_data_as_blob, 'world_' + current_world_index + '_layer_' + layer_id + '.bin');
     }
     extractImageData() {
         // TODO: Later on, implement image data per world so it's not a crazy big JSON file
-        // let current_world_index = _GAME.game_getCurrentWorldIndex();
+        // let current_world_index = wasm.game_getCurrentWorldIndex();
         // let image_data = JSON.stringify(GLOBALS.IMAGE_DATA[current_world_index]);
         let image_data = JSON.stringify(globals.IMAGE_DATA);
         let image_data_as_blob = new Blob([image_data], {type: 'application/json'});
@@ -319,19 +318,19 @@ export class Editor extends HTMLElement {
     }
 
     addCollisionToCurrentWorld() {
-        let current_world_index = _GAME.game_getCurrentWorldIndex();
-        let x = _GAME.game_translateViewportXToWorldX(this.last_click.x);
-        let y = _GAME.game_translateViewportYToWorldY(this.last_click.y);
-        let collision_layer = _GAME.game_getCurrentWorldCollisionLayer();
-        _GAME.editor_setWorldLayerCoordinateData(current_world_index, collision_layer, x, y, 1);
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        let x = wasm.game_translateViewportXToWorldX(this.last_click.x);
+        let y = wasm.game_translateViewportYToWorldY(this.last_click.y);
+        let collision_layer = wasm.game_getCurrentWorldCollisionLayer();
+        wasm.editor_setWorldLayerCoordinateData(current_world_index, collision_layer, x, y, 1);
         this.renderViewportData();
     }
     removeCollisionFromCurrentWorld() {
-        let current_world_index = _GAME.game_getCurrentWorldIndex();
-        let x = _GAME.game_translateViewportXToWorldX(this.last_click.x);
-        let y = _GAME.game_translateViewportYToWorldY(this.last_click.y);
-        let collision_layer = _GAME.game_getCurrentWorldCollisionLayer();
-        _GAME.editor_setWorldLayerCoordinateData(current_world_index, collision_layer, x, y, 0);
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        let x = wasm.game_translateViewportXToWorldX(this.last_click.x);
+        let y = wasm.game_translateViewportYToWorldY(this.last_click.y);
+        let collision_layer = wasm.game_getCurrentWorldCollisionLayer();
+        wasm.editor_setWorldLayerCoordinateData(current_world_index, collision_layer, x, y, 0);
         this.renderViewportData();
     }
 
@@ -440,25 +439,25 @@ export class Editor extends HTMLElement {
     }
 
     test_updateWorldLayerData() {
-        _GAME.editor_setWorldLayerCoordinateData(0, 0, 0, 0, 23);
+        wasm.editor_setWorldLayerCoordinateData(0, 0, 0, 0, 23);
         this.renderViewportData();
     }
     test_clearWorldLayerData() {
-        _GAME.game_resetWorldLayerData(0, 0);
+        wasm.game_resetWorldLayerData(0, 0);
         this.renderViewportData();
     }
     test_addRowToWorld() {
-        _GAME.editor_addRowToWorld(0);
-        _GAME.game_loadWorld(0);
-        console.log([_GAME.game_getCurrentWorldWidth(), _GAME.game_getCurrentWorldHeight()]);
+        wasm.editor_addRowToWorld(0);
+        wasm.game_loadWorld(0);
+        console.log([wasm.game_getCurrentWorldWidth(), wasm.game_getCurrentWorldHeight()]);
         document.querySelector('game-component').renderGame();
         document.querySelector('editor-component').renderViewportData();
     }
     test_addRowsToWorld() {
         for (var i = 0; i < 20; ++i) {
-            _GAME.editor_addRowToWorld(0);
-            _GAME.game_loadWorld(0);
-            console.log([_GAME.game_getCurrentWorldWidth(), _GAME.game_getCurrentWorldHeight()]);
+            wasm.editor_addRowToWorld(0);
+            wasm.game_loadWorld(0);
+            console.log([wasm.game_getCurrentWorldWidth(), wasm.game_getCurrentWorldHeight()]);
             document.querySelector('game-component').renderGame();
             document.querySelector('editor-component').renderViewportData();
         }

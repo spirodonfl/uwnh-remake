@@ -175,6 +175,9 @@ pub const WorldDataStruct = struct {
             }
         }
         // TODO: Check collision layer too
+        if (self.getCoordinateData(self.readData(enums.WorldDataEnum.CollisionLayer.int()), x, y) > 0) {
+            return true;
+        }
         return false;
     }
     pub fn initializeEntities(self: *WorldDataStruct) !void {

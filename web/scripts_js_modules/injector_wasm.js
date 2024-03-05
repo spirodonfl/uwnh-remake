@@ -1,4 +1,6 @@
-import { _WASM_IMPORTS } from "./injector_wasm_imports.js";
+// TODO: Remove this, not required UNLESS you
+// automatically generate jsdoc typing for easier referencing
+// import { _WASM_IMPORTS } from "./injector_wasm_imports.js";
 
 const wasmPath = import.meta.resolve("../wasm/game.wasm");
 
@@ -11,7 +13,7 @@ function readStr(buffer, ptr, len) {
 }
 
 const importObject = {
-    imports: _WASM_IMPORTS,
+    imports: {},
     env: {
         console_log_write: function console_log_write(ptr, len) {
             global_current_log += readStr(wasm.instance.exports.memory.buffer, ptr, len);
@@ -22,6 +24,6 @@ const importObject = {
         },
     }
 };
-const wasm = await WebAssembly.instantiateStreaming(fetch(wasmPath), importObject);
-export { wasm };
+const game = await WebAssembly.instantiateStreaming(fetch(wasmPath), importObject);
+export const wasm = game.instance.exports;
 // export const injectWASM = () => WebAssembly.instantiateStreaming(fetch(wasmPath), importObject);

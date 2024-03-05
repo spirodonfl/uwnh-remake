@@ -9,18 +9,8 @@ import './editor.js';
 import { EVENTBUS } from './eventbus.js';
 import { Editor } from './editor.js';
 import { globals } from './globals.js';
-
-if (!window.requestAnimationFrame)  {
-    window.requestAnimationFrame = (function() {
-        return window.webkitRequestAnimationFrame ||
-        window.mozRequestAnimationFrame ||
-        window.oRequestAnimationFrame ||
-        window.msRequestAnimationFrame ||
-        function(callback,element) {
-            window.setTimeout(callback, 1000 / 60);
-        };
-    })();
-}
+import { RyansBackendMainHole } from './websocket-ryans-backend-main-hole.js';
+import { RyansBackendSecondaryHole } from './websocket-ryans-backend-secondary-hole.js';
 
 // REQUEST ANIMATION FRAME SHIM
 // TODO: Do we even truly need this truly truly?
