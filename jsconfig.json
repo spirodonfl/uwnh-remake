@@ -1,0 +1,8 @@
+{
+    "compilerOptions": {
+        "baseUrl": "./web",
+        "target": "ES6",
+        "checkJs": false
+    },
+    "include": ["./web/**/*"]
+}
