@@ -1,4 +1,5 @@
 import { globals } from "./globals.js";
+import { globalStyles } from './global-styles.js';
 
 export class CheatSheet extends HTMLElement {
     constructor() {
@@ -62,6 +63,7 @@ export class CheatSheet extends HTMLElement {
 
     render() {
         this.shadowRoot.innerHTML = `
+            ${globalStyles}
             <style>
             :host {
                 position: absolute;

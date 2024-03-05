@@ -1,6 +1,7 @@
 import { wasm } from './injector_wasm.js';
 import '../components/draggable.js';
 import { globals } from './globals.js';
+import { globalStyles } from './global-styles.js';
 
 export class Editor extends HTMLElement {
     constructor() {
@@ -84,7 +85,7 @@ export class Editor extends HTMLElement {
             for (var i = 0; i < this.inputs.length; ++i) {
                 let input = this.inputs[i];
                 if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
-                    if (input.context === globals.MODE) {
+                    if (input.context === globals.MODES.indexOf('ALL') || input.context === globals.MODE) {
                         input.callback();
                     }
                 }
@@ -336,38 +337,13 @@ export class Editor extends HTMLElement {
 
     render() {
         this.shadowRoot.innerHTML = `
+            ${globalStyles}
             <style>
-            .two-column-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                grid-gap: 1em 0em;
-                align-items: center;
-            }
-            .title {
-                text-align: center;
-                font-size: 1.5em;
-            }
-            .hidden {
-                visibility: hidden;
-            }
             #editor-container {
                 padding: 0.6em;
                 display: grid;
                 grid-auto-flow: row;
                 overflow-y: auto;
-            }
-            #editor-container input {
-                border: 1px solid rgb(158 158 158);
-                padding: 0.8em;
-                padding-top: 0.5em;
-                padding-bottom: 0.5em;
-                width: 100%;
-                background-color: transparent;
-                color: white;
-                border-radius: 4px;
-            }
-            #editor-container input[type="button"] {
-                cursor: pointer;
             }
             #clickable_view {
                 position: absolute;

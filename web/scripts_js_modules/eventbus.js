@@ -6,6 +6,7 @@ EVENTBUS.prototype.addEventListener = function (name, callback) {
     this.registered[name].push(callback);
 }
 EVENTBUS.prototype.triggerEvent = function (name, args) {
+    // console.log('eventbus args:', args);
     this.registered[name]?.forEach(fnc => fnc.apply(this, args));
 }
 
