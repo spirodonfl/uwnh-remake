@@ -9,6 +9,6 @@ export const globals = {
     IMAGE_DATA: import.meta.resolve('../json/image_data.json'),
     EVENTBUS: new EVENTBUS(),
     MODE: 2,
-    MODES: ['ALL', 'GAME', 'EDITOR', 'MULTIPLAYER / TWITCH'],
+    MODES: ['ALL', 'GAME', 'EDITOR', 'MULTIPLAYER', 'MULTIPLAYER_HOST'],
     INPUTS: [],
 };

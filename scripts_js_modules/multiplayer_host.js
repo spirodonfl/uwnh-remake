@@ -1,0 +1,3 @@
+let MultiplayerHost = {};
+
+export { MultiplayerHost };

@@ -38,22 +38,21 @@ function tick() {
         then = now;
         updateStats();
 
-        _GAME.game_processTick();
+        wasm.game_processTick();
 
-        if (_GAME.diff_getLength() > 0) {
+        if (wasm.diff_getLength() > 0) {
             document.querySelector('game-component').renderGame();
             document.querySelector('editor-component').renderViewportData();
-            _GAME.diff_clearAll();
+            wasm.diff_clearAll();
         }
     }
     requestAnimationFrame(tick);
 }
 
-var _GAME = wasm.instance.exports;
 // TODO: THIS IS ALL FOR TESTING, REMOVE THIS SOON
-window._GAME = _GAME;
+window._GAME = wasm;
 window.extractMemory = function (memory_start, memory_length) {
-    let data_view = new DataView(_GAME.memory.buffer, 0, _GAME.memory.byteLength);
+    let data_view = new DataView(wasm.memory.buffer, 0, wasm.memory.byteLength);
     let data = [];
     for (let i = 0; i < memory_length; ++i) {
         let current_position = memory_start + (i * 2);
@@ -65,9 +64,9 @@ window.extractMemory = function (memory_start, memory_length) {
      *  
 var entity_type = 99; // 99, 98, 1, 3(x4)
 var entity_id = 1;
-_GAME.editor_createEntity(entity_type, entity_id);
-var start = _GAME.editor_getEntityMemoryLocation(entity_id);
-var length = _GAME.editor_getEntityMemoryLength(entity_id);
+wasm.editor_createEntity(entity_type, entity_id);
+var start = wasm.editor_getEntityMemoryLocation(entity_id);
+var length = wasm.editor_getEntityMemoryLength(entity_id);
 var entity_data = extractMemory(start, length);
 var entity_data_as_blob = generateBlob(entity_data);
 editorDownload(entity_data_as_blob, 'entity_' + (entity_id - 1) + '.bin');
@@ -219,6 +218,17 @@ export class Game extends HTMLElement {
                     this.moveMainPlayerRight();
                 }
             },
+            {
+                description: 'Connect to multiplayer',
+                context: globals.MODES.indexOf('ALL'),
+                code: 'KeyC',
+                friendlyCode: 'C',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    console.log('Connect to multiplayer');
+                }
+            }
         ];
     }
 
@@ -288,22 +298,20 @@ export class Game extends HTMLElement {
         }
         var y = 0;
         var x = 0;
-        // var cwi = _GAME.game_getCurrentWorldIndex();
-        // if (DOM.width * DOM.height) !== _GAME.viewport_getLength() // panic
+        // var cwi = wasm.game_getCurrentWorldIndex();
+        // if (DOM.width * DOM.height) !== wasm.viewport_getLength() // panic
         for (var i = 0; i < (this.width * this.height); ++i) {
             var viewport_y = Math.floor(i / this.width);
             var viewport_x = i % this.width;
-            if (_GAME.viewport_getData(viewport_x, viewport_y)) {
-                var total_layers = _GAME.game_getCurrentWorldTotalLayers();
+            if (wasm.viewport_getData(viewport_x, viewport_y)) {
+                var total_layers = wasm.game_getCurrentWorldTotalLayers();
                 for (var layer = 0; layer < total_layers; ++layer) {
-                    if (layer === _GAME.game_getCurrentWorldCollisionLayer()) { continue; }
-                    if (layer === _GAME.game_getCurrentWorldEntityLayer()) {
+                    if (layer === wasm.game_getCurrentWorldCollisionLayer()) { continue; }
+                    if (layer === wasm.game_getCurrentWorldEntityLayer()) {
                         // TODO: Deal with entities properly here
                         // TODO: Some IDs are not showing up, probably because they don't have data. Show them anyways
-                        var entity_id = _GAME.game_getWorldDataAtViewportCoordinate(layer, viewport_x, viewport_y);
+                        var entity_id = wasm.game_getWorldDataAtViewportCoordinate(layer, viewport_x, viewport_y);
                         if (entity_id > 0) {
-                            console.log('ENTITY ID:', entity_id);
-                            console.log('ENTITY TYPE:', _GAME.game_entityGetType(entity_id));
                             var new_entity = document.createElement('entity-component');
                             new_entity.updateSize();
                             new_entity.setViewportXY(viewport_x, viewport_y);
@@ -312,7 +320,7 @@ export class Game extends HTMLElement {
                             this.shadowRoot.getElementById('view').appendChild(new_entity);
                         }
                     } else {
-                        var tile_id = _GAME.game_getWorldDataAtViewportCoordinate(layer, viewport_x, viewport_y);
+                        var tile_id = wasm.game_getWorldDataAtViewportCoordinate(layer, viewport_x, viewport_y);
                         if (tile_id >= 0) {
                             var new_entity = document.createElement('entity-component');
                             new_entity.updateSize();
@@ -334,8 +342,8 @@ export class Game extends HTMLElement {
             const entry = entries[0];
             // entry.contentRect
             this.sizeView();
-            _GAME.viewport_setSize(this.width, this.height);
-            _GAME.game_loadWorld(_GAME.game_getCurrentWorldIndex());
+            wasm.viewport_setSize(this.width, this.height);
+            wasm.game_loadWorld(wasm.game_getCurrentWorldIndex());
             // Dispatch an event to let the editor know the
             // size of the viewport
             // NOTE: If you move this into "sizeView" function,
@@ -361,7 +369,7 @@ export class Game extends HTMLElement {
         if (this.atlas_loaded && this.layer_id_to_image_loaded) {
             console.log('Loaded');
             // this.sizeView();
-            _GAME.game_initializeGame();
+            wasm.game_initializeGame();
             this.watchResize();
         }
     }
@@ -379,43 +387,43 @@ export class Game extends HTMLElement {
     }
 
     moveCameraUp() {
-        _GAME.viewport_moveCameraUp();
+        wasm.viewport_moveCameraUp();
         // TODO: Use the GLOBAL eventbus instead of directly calling these
         document.querySelector('editor-component').renderViewportData();
     }
     moveCameraDown() {
-        _GAME.viewport_moveCameraDown();
+        wasm.viewport_moveCameraDown();
         // TODO: Use the GLOBAL eventbus instead of directly calling these
         document.querySelector('editor-component').renderViewportData();
     }
     moveCameraLeft() {
-        _GAME.viewport_moveCameraLeft();
+        wasm.viewport_moveCameraLeft();
         // TODO: Use the GLOBAL eventbus instead of directly calling these
         document.querySelector('editor-component').renderViewportData();
     }
     moveCameraRight() {
-        _GAME.viewport_moveCameraRight();
+        wasm.viewport_moveCameraRight();
         // TODO: Use the GLOBAL eventbus instead of directly calling these
         document.querySelector('editor-component').renderViewportData();
     }
 
     moveMainPlayerUp() {
-        _GAME.messages_moveUp(1, 0);
+        wasm.messages_moveUp(1, 0);
         // TODO: Use the GLOBAL eventbus instead of directly calling these
         document.querySelector('editor-component').renderViewportData();
     }
     moveMainPlayerDown() {
-        _GAME.messages_moveDown(1, 0);
+        wasm.messages_moveDown(1, 0);
         // TODO: Use the GLOBAL eventbus instead of directly calling these
         document.querySelector('editor-component').renderViewportData();
     }
     moveMainPlayerLeft() {
-        _GAME.messages_moveLeft(1, 0);
+        wasm.messages_moveLeft(1, 0);
         // TODO: Use the GLOBAL eventbus instead of directly calling these
         document.querySelector('editor-component').renderViewportData();
     }
     moveMainPlayerRight() {
-        _GAME.messages_moveRight(1, 0);
+        wasm.messages_moveRight(1, 0);
         // TODO: Use the GLOBAL eventbus instead of directly calling these
         document.querySelector('editor-component').renderViewportData();
     }
