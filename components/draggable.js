@@ -1,3 +1,5 @@
+import { globalStyles } from "../scripts_js_modules/global-styles.js";
+
 const boundaryPadding = 0; // this is used for padding the window from the edge of the screen when clamping its position
 
 let zIndex = 1000000; // This is the z-index of the first window. Each window will have a higher z-index than the previous one.
@@ -13,6 +15,8 @@ let instanceOffset = 12; // This is the offset between the windows when they are
 export class DraggableResizableWindow extends HTMLElement {
   connectedCallback() {
     this.attachShadow({ mode: "open" });
+
+    // TODO: Shouldn't this be called when onConnectedCallback is called?
     this.render();
     this.pos1 = 0;
     this.pos2 = 0;
@@ -124,6 +128,7 @@ export class DraggableResizableWindow extends HTMLElement {
 
   render() {
     this.shadowRoot.innerHTML = `
+      ${globalStyles}
       <style>
         :host {
             display:flex;

@@ -4,6 +4,9 @@ import './collision-entity.js';
 import './viewport-entity.js';
 import { globals } from './globals.js';
 import '../components/draggable.js';
+import { Multiplayer } from './multiplayer.js';
+import { MultiplayerHost } from './multiplayer_host.js';
+import { globalStyles } from "./global-styles.js";
 
 let current_time_stamp = new Date().getTime();
 let previous_time_stamp = 0;
@@ -221,12 +224,27 @@ export class Game extends HTMLElement {
             {
                 description: 'Connect to multiplayer',
                 context: globals.MODES.indexOf('ALL'),
-                code: 'KeyC',
-                friendlyCode: 'C',
-                shiftKey: false,
+                code: 'Digit7',
+                friendlyCode: 'Shift+7',
+                shiftKey: true,
                 ctrlKey: false,
                 callback: () => {
-                    console.log('Connect to multiplayer');
+                    var multiplayer_element = document.querySelector('multiplayer-component');
+                    if (!multiplayer_element) {
+                        multiplayer_element = document.createElement('multiplayer-component');
+                        document.body.appendChild(multiplayer_element);
+                    }
+                }
+            },
+            {
+                description: 'Connect to multiplayer (as host)',
+                context: globals.MODES.indexOf('ALL'),
+                code: 'Digit8',
+                friendlyCode: 'Shift+8',
+                shiftKey: true,
+                ctrlKey: false,
+                callback: () => {
+                    console.log('Connect to multiplayer (as host)');
                 }
             }
         ];
@@ -494,20 +512,8 @@ export class Game extends HTMLElement {
 
     render() {
         this.shadowRoot.innerHTML = `
+            ${globalStyles}
             <style>
-            .two-column-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                grid-gap: 1em 0em;
-                align-items: center;
-            }
-            .title {
-                text-align: center;
-                font-size: 1.5em;
-            }
-            .hidden {
-                display: none !important;
-            }
             #clickable_view {
                 width: 100%;
                 height: 100vh;
@@ -534,11 +540,6 @@ export class Game extends HTMLElement {
                 display: grid;
                 grid-auto-flow: row;
                 overflow-y: auto;
-            }
-            .draggable-header {
-                width: 100%;
-                height: 2em;
-                background-color: orange;
             }
             </style>
             <x-draggable name="main_menu" id="main_menu">
