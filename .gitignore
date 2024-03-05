@@ -14,3 +14,25 @@ null
 game/embeds.zig
 web/scripts/js.bindings.js
 !build-game.sh
+
+# Nate's config files (he needs a lot of tools to help him write code, it's a skill issue)
+jsconfig.json
+tsconfig.json # Both js and ts config files are needed for some reason (I don't know why)
+package.json # I use dependencies even though this project doesn't use them
+pnpm-lock.yaml # npm is too slow
+.eslintrc.js
+.eslintignore
+.editorconfig
+.prettierrc.js
+.vscode # L editor (I'm so funny)
+Dockerfile
+compose.yml
+.dockerignore
+tailwind.config.js
+.vite # bro why would you use this?
+vite.config.js
+vitest.config.js
+webpack.config.js # We need two different bundlers
+.parcelrc # another one
+rollup.config.js # another one
+vercel.json
