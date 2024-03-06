@@ -20,7 +20,7 @@ jobs:
 
     - name: Build Zig Project
       run: |
-        zig build
+        zig build -Doptimize=ReleaseSmall
 
     - name: Prepare the artifacts
       run: |
