@@ -2,6 +2,7 @@ const std = @import("std");
 const Builder = @import("std").build.Builder;
 
 pub fn build(b: *Builder) !void {
+    const optimize = b.standardOptimizeOption(.{});
     const embed_gen = b.addExecutable(.{
         .name = "embed_gen",
         .root_source_file = .{ .path = "scripts/output_embeds.zig" },
@@ -16,7 +17,7 @@ pub fn build(b: *Builder) !void {
         const gen = b.addRunArtifact(gen_exe);
         const wasm_exports_zig = gen.addOutputFileArg("wasmexports.zig");
         gen.addArg(b.pathFromRoot("web/scripts/js.bindings.js"));
-        inline for (&.{"debug", "diff", "editor", "inputs", "game", "renderer", "viewport", "messages", "events"}) |name| {
+        inline for (&.{ "debug", "diff", "editor", "inputs", "game", "renderer", "viewport", "messages", "events" }) |name| {
             gen.addFileArg(.{ .path = b.pathFromRoot("game/" ++ name ++ ".zig") });
         }
 
@@ -32,8 +33,7 @@ pub fn build(b: *Builder) !void {
             .cpu_arch = .wasm32,
             .os_tag = .freestanding,
         },
-        // .optimize = .ReleaseSmall,
-        .optimize = .Debug,
+        .optimize = optimize,
     });
     game.addModule("wasmexports", wasm_exports);
     game.rdynamic = true;
