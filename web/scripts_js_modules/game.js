@@ -119,7 +119,7 @@ export class Game extends HTMLElement {
                 shiftKey: false,
                 ctrlKey: false,
                 callback: () => {
-                    this.toggleMainMenuDisplay();
+                    this.shadowRoot.getElementById('main_menu').toggleVisibility();
                 }
             },
             {
@@ -455,10 +455,6 @@ export class Game extends HTMLElement {
         let value = 0;
         value += this.shadowRoot.querySelectorAll('*').length;
         this.shadowRoot.getElementById('els_value').innerText = value;
-    }
-
-    toggleMainMenuDisplay() {
-        this.shadowRoot.getElementById('main_menu').classList.toggle('hidden');
     }
 
     sizeView () {
