@@ -43,6 +43,8 @@ const _WASM_IMPORTS = {
     game_entityGetWorldX(entity) {},
     game_entityGetWorldY(entity) {},
     game_entityGetType(entity_id) {},
+    game_entityEnableCollision(entity_id) {},
+    game_entityDisableCollision(entity_id) {},
     game_getEntitiesLength() {},
     game_getEntityIdByIndex(index) {},
     game_getEntityTypeByIndex(index) {},
