@@ -147,7 +147,7 @@ export class Game extends HTMLElement {
                 shiftKey: false,
                 ctrlKey: false,
                 callback: () => {
-                    this.toggleMainMenuDisplay();
+                    this.shadowRoot.getElementById('main_menu').toggleVisibility();
                 }
             },
             {
