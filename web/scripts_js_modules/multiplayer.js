@@ -150,14 +150,14 @@ export class Multiplayer extends HTMLElement {
             } else if (e.data.user_despawned) {
                 this.ships_to_players = e.data.data;
                 this.updatePlayerList();
-            } else if (e.data.update_health) {
-                for (var i = 0; i < e.data.update_health; ++i) {
-                    if (e.data.update_health[i] !== null && e.data.update_health[i] !== undefined && e.data.update_health[i] > 0) {
-                        wasm.game_entitySetHealth(this.ships_to_players[i].wasm_entity_id, e.data.update_health[i]);
-                    } else {
-                        // TODO: Probably should make sure this user doesn't exist in this.ships_to_players && despawn if they do
-                    }
-                }
+            // } else if (e.data.update_health) {
+            //     for (var i = 0; i < e.data.update_health; ++i) {
+            //         if (e.data.update_health[i] !== null && e.data.update_health[i] !== undefined && e.data.update_health[i] > 0) {
+            //             wasm.game_entitySetHealth(this.ships_to_players[i].wasm_entity_id, e.data.update_health[i]);
+            //         } else {
+            //             // TODO: Probably should make sure this user doesn't exist in this.ships_to_players && despawn if they do
+            //         }
+            //     }
             } else if (e.data.game_state) {
                 console.log(e.data.game_state);
                 // TODO: Update ship positions && health && this.ships_to_players with colors

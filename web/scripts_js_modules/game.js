@@ -51,11 +51,11 @@ function tick() {
                 if (diff === 69) {
                     var attacker_entity_id = wasm.diff_getData((l + 1));
                     var attackee_entity_id = wasm.diff_getData((l + 2));
-                    l += 2;
                     var multiplayer_host_element = document.querySelector('multiplayer-host-component');
                     if (multiplayer_host_element) {
                         multiplayer_host_element.incrementLeaderboard(attacker_entity_id, attackee_entity_id);
                     }
+                    l += 2;
                 }
             }
             document.querySelector('game-component').renderGame();

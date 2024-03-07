@@ -284,6 +284,7 @@ export class MultiplayerHost extends HTMLElement {
         for (var p = 0; p < this.ships_to_players.length; ++p) {
             if (this.ships_to_players[p] !== null && this.ships_to_players[p].wasm_entity_id === attacker_entity_id) {
                 user = this.ships_to_players[p].username;
+                break;
             }
         }
         if (user !== null) {
@@ -296,31 +297,31 @@ export class MultiplayerHost extends HTMLElement {
                 }
             ));
             RyansBackendMainHole.getLeaderboard();
-        }
 
-        user = null;
-        var s_to_p_id = null;
-        var user_despawned = false;
-        for (var p = 0; p < this.ships_to_players.length; ++p) {
-            if (this.ships_to_players[p] !== null && this.ships_to_players[p].wasm_entity_id === attackee_entity_id) {
-                user = this.ships_to_players[p].username;
-                s_to_p_id = p;
-                this.ships_to_players[p] = null;
-                user_despawned = true;
-                break;
+            user = null;
+            var s_to_p_id = null;
+            var user_despawned = false;
+            for (var p = 0; p < this.ships_to_players.length; ++p) {
+                if (this.ships_to_players[p] !== null && this.ships_to_players[p].wasm_entity_id === attackee_entity_id) {
+                    user = this.ships_to_players[p].username;
+                    s_to_p_id = p;
+                    this.ships_to_players[p] = null;
+                    user_despawned = true;
+                    break;
+                }
             }
-        }
 
-        this.updatePlayerList();
+            this.updatePlayerList();
 
-        if (user_despawned) {
-            RyansBackendMainHole.ws.send(JSON.stringify({
-                "broadcast": {"payload": {
-                    "user_despawned": user,
-                    "s_to_p_id": s_to_p_id,
-                    "data": this.ships_to_players,
-                }}
-            }));
+            if (user_despawned) {
+                RyansBackendMainHole.ws.send(JSON.stringify({
+                    "broadcast": {"payload": {
+                        "user_despawned": user,
+                        "s_to_p_id": s_to_p_id,
+                        "data": this.ships_to_players,
+                    }}
+                }));
+            }
         }
     }
 
