@@ -16,7 +16,7 @@ const importObject = {
     imports: {},
     env: {
         console_log_write: function console_log_write(ptr, len) {
-            global_current_log += readStr(wasm.instance.exports.memory.buffer, ptr, len);
+            global_current_log += readStr(wasm.memory.buffer, ptr, len);
         },
         console_log_flush: function() {
             console.log('WASM LOG:', global_current_log);

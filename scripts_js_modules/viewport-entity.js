@@ -1,12 +1,20 @@
 import { Entity } from './entity.js';
+import { globalStyles } from './global-styles.js';
 
 export class ViewportEntity extends Entity {
+    hideValue() {
+        this.shadowRoot.getElementById('data').classList.add('hidden');
+    }
+    showValue() {
+        this.shadowRoot.getElementById('data').classList.remove('hidden');
+    }
     render() {
         var _class = 'data';
         if (this.entity_id !== null && this.entity_id !== 0) {
             _class += ' have-data';
         }
         this.shadowRoot.innerHTML = `
+            ${globalStyles}
             <style>
             :host {
                 width: ${this.size}px;
@@ -27,7 +35,7 @@ export class ViewportEntity extends Entity {
                 padding: 2px 4px;
             }
             </style>
-            <div class="${_class}">${this.entity_id}</div>
+            <div id="data" class="${_class}">${this.entity_id}</div>
         `;
     }
 }
