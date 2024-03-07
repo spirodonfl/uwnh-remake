@@ -44,6 +44,20 @@ function tick() {
         wasm.game_processTick();
 
         if (wasm.diff_getLength() > 0) {
+            var length = wasm.diff_getLength();
+            for (var l = 0; l < length; ++l) {
+                var diff = wasm.diff_getData(l);
+                // TODO: Fix magic number here. This is also on Zig side
+                if (diff === 69) {
+                    var attacker_entity_id = wasm.diff_getData((l + 1));
+                    var attackee_entity_id = wasm.diff_getData((l + 2));
+                    l += 2;
+                    var multiplayer_host_element = document.querySelector('multiplayer-host-component');
+                    if (multiplayer_host_element) {
+                        multiplayer_host_element.incrementLeaderboard(attacker_entity_id, attackee_entity_id);
+                    }
+                }
+            }
             document.querySelector('game-component').renderGame();
             document.querySelector('editor-component').renderViewportData();
             wasm.diff_clearAll();
@@ -222,6 +236,17 @@ export class Game extends HTMLElement {
                 }
             },
             {
+                description: 'Attack',
+                context: globals.MODES.indexOf('GAME'),
+                code: 'Space',
+                friendlyCode: 'Space',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.mainPlayerAttack();
+                }
+            },
+            {
                 description: 'Connect to multiplayer',
                 context: globals.MODES.indexOf('ALL'),
                 code: 'Digit7',
@@ -244,7 +269,11 @@ export class Game extends HTMLElement {
                 shiftKey: true,
                 ctrlKey: false,
                 callback: () => {
-                    console.log('Connect to multiplayer (as host)');
+                    var multiplayer_host_element = document.querySelector('multiplayer-host-component');
+                    if (!multiplayer_host_element) {
+                        multiplayer_host_element = document.createElement('multiplayer-host-component');
+                        document.body.appendChild(multiplayer_host_element);
+                    }
                 }
             }
         ];
@@ -387,8 +416,9 @@ export class Game extends HTMLElement {
         if (this.atlas_loaded && this.layer_id_to_image_loaded) {
             console.log('Loaded');
             // this.sizeView();
-            wasm.game_initializeGame();
-            this.watchResize();
+            if (wasm.game_initializeGame()) {
+                this.watchResize();
+            }
         }
     }
 
@@ -402,6 +432,8 @@ export class Game extends HTMLElement {
             globals.MODE = 0;
         }
         this.shadowRoot.getElementById('mode').innerText = globals.MODES[globals.MODE];
+
+        globals.EVENTBUS.triggerEvent('mode-change', [{mode: globals.MODES[globals.MODE]}]);
     }
 
     moveCameraUp() {
@@ -445,6 +477,11 @@ export class Game extends HTMLElement {
         // TODO: Use the GLOBAL eventbus instead of directly calling these
         document.querySelector('editor-component').renderViewportData();
     }
+    mainPlayerAttack() {
+        wasm.messages_attack(1, 0);
+        // TODO: Use the GLOBAL eventbus instead of directly calling these
+        document.querySelector('editor-component').renderViewportData();
+    }
 
 
     updateFPS(value) {
@@ -459,6 +496,17 @@ export class Game extends HTMLElement {
 
     toggleMainMenuDisplay() {
         this.shadowRoot.getElementById('main_menu').classList.toggle('hidden');
+    }
+
+    __test_createEntity() {
+        var entity_type = 3; // 99, 98, 1, 3(x4)
+        var entity_id = 2;
+        wasm.editor_createEntity(entity_type, entity_id);
+        var start = wasm.editor_getEntityMemoryLocation(entity_id);
+        var length = wasm.editor_getEntityMemoryLength(entity_id);
+        var entity_data = extractMemory(start, length);
+        var entity_data_as_blob = generateBlob(entity_data);
+        editorDownload(entity_data_as_blob, 'entity_' + (entity_id - 1) + '.bin');
     }
 
     sizeView () {

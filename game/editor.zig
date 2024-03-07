@@ -162,15 +162,21 @@ pub fn createWorld(width: u16, height: u16) !void {
     game.worlds_list.at(new_world_index).setEmbeddedData(new_world_data);
 }
 // @wasm
-pub fn createEntity(entity_type: u16, entity_id: u16) !void {
+pub fn createEntity(entity_type: u16, entity_id: u16) !usize {
     var new_entity_data = game.EmbeddedDataStruct{};
     var i: usize = 0;
+    std.log.info("EntityDataEnum->length() {d}", .{enums.EntityDataEnum.length()});
+    // TODO: Allow updating some of these values
     while (i < enums.EntityDataEnum.length()) {
         if (i == enums.EntityDataEnum.ID.int()) {
             try new_entity_data.appendToRawData(entity_id);
         } else if (i == enums.EntityDataEnum.Type.int()) {
             try new_entity_data.appendToRawData(entity_type);
+        } else if (i == enums.EntityDataEnum.IsCollision.int()) {
+            try new_entity_data.appendToRawData(1);
         } else if (i == enums.EntityDataEnum.ComponentHealth.int()) {
+            try new_entity_data.appendToRawData(1);
+        } else if (i == enums.EntityDataEnum.ComponentAttack.int()) {
             try new_entity_data.appendToRawData(1);
         } else if (i == enums.EntityDataEnum.ComponentHealthDefaultValue.int()) {
             // TODO: Enum-ize or otherwise standardize this
@@ -179,6 +185,10 @@ pub fn createEntity(entity_type: u16, entity_id: u16) !void {
             } else {
                 try new_entity_data.appendToRawData(10);
             }
+        } else if (i == enums.EntityDataEnum.ComponentMovement.int()) {
+            try new_entity_data.appendToRawData(1);
+        } else {
+            std.log.info("Unhandled enum on createEntity: {d}", .{i});
         }
         i += 1;
     }
@@ -188,12 +198,14 @@ pub fn createEntity(entity_type: u16, entity_id: u16) !void {
     try new_entity_data.appendToRawData(0);
     try new_entity_data.appendToRawData(0);
 
-    var new_entity = game.EntityDataStruct{};
-    new_entity.setEmbedded(new_entity_data);
+    // var new_entity = game.EntityDataStruct{};
+    // new_entity.setEmbedded(new_entity_data);
 
     try game.entities_list.append(arena.allocator(), .{});
     var new_entity_index = game.entities_list.len - 1;
     game.entities_list.at(new_entity_index).setEmbedded(new_entity_data);
+    try game.entities_list.at(new_entity_index).init();
+    return new_entity_index;
 }
 
 // --- MEMORY CLEARING ---
@@ -249,6 +261,28 @@ pub fn getEntityMemoryLength(entity_id: u16) !u16 {
     for (0..game.entities_list.len) |i| {
         var entity = game.entities_list.at(i);
         if (entity.embedded.readData(enums.EntityDataEnum.ID.int(), .Little) == entity_id) {
+            size = entity.embedded.getLength();
+        }
+    }
+    return size;
+}
+// @wasm
+pub fn getEntityMemoryLocationByIndex(entity_index: u16) !*u16 {
+    var location: *u16 = undefined;
+    for (0..game.entities_list.len) |i| {
+        if (entity_index == i) {
+            var entity = game.entities_list.at(i);
+            location = try entity.embedded.firstMemoryLocation();
+        }
+    }
+    return location;
+}
+// @wasm
+pub fn getEntityMemoryLengthByIndex(entity_index: u16) !u16 {
+    var size: u16 = 0;
+    for (0..game.entities_list.len) |i| {
+        if (entity_index == i) {
+            var entity = game.entities_list.at(i);
             size = entity.embedded.getLength();
         }
     }

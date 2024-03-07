@@ -88,16 +88,17 @@ pub const EntityDataEnum = enum(u16) {
     ComponentHealth,
     ComponentHealthDefaultValue,
     ComponentMovement,
+    ComponentAttack,
     pub usingnamespace EnumHelpers(@This());
 };
 
 pub const GameMessagesEventsEnum = enum(u16) {
-    MoveUp = 0,
-    MoveDown = 1,
-    MoveLeft = 3,
-    MoveRight = 4,
-    Attack = 5,
-    Spawn = 6,
-    DeSpawn = 7,
+    MoveUp,
+    MoveDown,
+    MoveLeft,
+    MoveRight,
+    Attack,
+    Spawn,
+    DeSpawn,
     pub usingnamespace EnumHelpers(@This());
 };

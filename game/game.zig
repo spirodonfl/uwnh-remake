@@ -313,16 +313,25 @@ pub const EmbeddedDataStruct = struct {
 
 const ComponentHealth = @import("components/health.zig").ComponentHealth;
 const ComponentMovement = @import("components/movement.zig").ComponentMovement;
+const ComponentAttack = @import("components/attack.zig").ComponentAttack;
 // TODO: Should probably rename these structs, they've become more than just structs
 pub const EntityDataStruct = struct {
     messages: std.ArrayListUnmanaged(GameMessage) = .{},
     embedded: EmbeddedDataStruct = undefined,
     health: ComponentHealth = undefined,
     movement: ComponentMovement = undefined,
+    attack: ComponentAttack = undefined,
     // TODO: Move this to movement component?
     position: [2]u16 = .{ 0, 0 },
     pub fn init(self: *EntityDataStruct) !void {
+        //std.log.info("EntityDataStruct loadComponents", .{});
         try self.loadComponents();
+    }
+    pub fn getPositionX(self: *EntityDataStruct) u16 {
+        return self.position[0];
+    }
+    pub fn getPositionY(self: *EntityDataStruct) u16 {
+        return self.position[1];
     }
     pub fn addMessage(self: *EntityDataStruct, message: GameMessage) !void {
         try self.messages.append(allocator, message);
@@ -345,14 +354,37 @@ pub const EntityDataStruct = struct {
     }
     pub fn loadComponents(self: *EntityDataStruct) !void {
         if (self.embedded.readData(enums.EntityDataEnum.ComponentHealth.int(), .Little) == 1) {
+            std.log.info("health component found", .{});
+
+            // IN CASE YOU NEED THIS -> note you also need health: *ComponentHealth = undefined, (star)
+            // var health_component = try ComponentHealth.createNew(20);
+            // self.health = health_component;
+            // ------------------------------------------------------------------------------------------
             self.health = ComponentHealth{
+                .parent = self,
                 // TODO: Do we even need this anymore?
                 .default_value = 10,
                 .current_value = self.embedded.readData(enums.EntityDataEnum.ComponentHealthDefaultValue.int(), .Little),
             };
-            // std.log.info("health component found", .{});
-        } else if (self.embedded.readData(enums.EntityDataEnum.ComponentMovement.int(), .Little) == 1) {
-            self.movement = ComponentMovement{.entity_id = self.getId()};
+            // std.log.info("(a)health now {d} {d}", .{self.getId(), self.health.current_value});
+        }
+        if (self.embedded.readData(enums.EntityDataEnum.ComponentMovement.int(), .Little) == 1) {
+            std.log.info("movement component found", .{});
+            self.movement = ComponentMovement{
+                .parent = self,
+                .entity_id = self.getId()
+            };
+        }
+        if (self.embedded.readData(enums.EntityDataEnum.ComponentAttack.int(), .Little) == 1) {
+            std.log.info("attack component found (entity id: {d})", .{self.getId()});
+            self.attack = ComponentAttack{
+                .parent = self,
+                .entity_id = self.getId()
+            };
+            // TODO: This is special code. Remove it and make it better / dynamic!
+            if (self.getType() == 99) {
+                self.attack.default_attack_damage = 3;
+            }
         }
     }
     pub fn processMessages(self: *EntityDataStruct) !void {
@@ -403,6 +435,15 @@ pub const EntityDataStruct = struct {
                         try diff.addData(0);
                     }
                 },
+                enums.GameMessagesEventsEnum.Attack.int() => {
+                    // TODO: Check if entity has the attack component
+                    // if (message.data.items.len == 1) {
+                    //     try self.attack.attack(message.data.items[0]);
+                    // } else {
+                    //     std.log.info("Attack message missing target", .{});
+                    // }
+                    try self.attack.attack();
+                },
                 else => {
                     std.log.info("Unknown message command: {d}", .{message.command});
                 },
@@ -411,13 +452,14 @@ pub const EntityDataStruct = struct {
     }
 };
 
-pub fn getEntityById(entity_id: u16) *EntityDataStruct {
+pub fn getEntityById(entity_id: u16) usize {
     for (0..entities_list.len) |i| {
         if (entities_list.at(i).getId() == entity_id) {
-            return entities_list.at(i);
+            return i + 1;
         }
     }
-    @panic("Entity not found");
+
+    return 0;
 }
 
 // --- GAME FUNCTIONS ---
@@ -495,9 +537,15 @@ pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !bool {
     return false;
 }
 // @wasm
-pub fn entityGetHealth(entity: u16) u16 {
-    // TODO: Add a check to make sure this entity has health component loaded
-    return entities_list.at(entity).health.current_value;
+pub fn entityGetHealth(entity_id: u16) u16 {
+    for (0..entities_list.len) |i| {
+        // std.log.info("(b)health now {d} {d} {d}", .{entity_id, entities_list.at(i).getId(), entities_list.at(i).health.current_value});
+        if (entities_list.at(i).getId() == entity_id) {
+            return entities_list.at(i).health.current_value;
+        }
+    }
+
+    return 0;
 }
 // @wasm
 pub fn entityGetWorldX(entity: u16) !u16 {
@@ -548,15 +596,27 @@ pub fn entityGetType(entity_id: u16) u16 {
     return 0;
 }
 // @wasm
+pub fn getEntitiesLength() u16 {
+    return @as(u16, @intCast(entities_list.len));
+}
+// @wasm
+pub fn getEntityIdByIndex(index: u16) u16 {
+    return entities_list.at(index).getId();
+}
+// @wasm
+pub fn getEntityTypeByIndex(index: u16) u16 {
+    return entities_list.at(index).getType();
+}
+// @wasm
 pub fn entitySetHealth(entity: u16, value: u16) !void {
     // TODO: Check to make sure the health component is loaded
     try diff.addData(0);
     entities_list.at(entity).health.setHealth(value);
 }
 // @wasm
-pub fn initializeGame() !void {
+pub fn initializeGame() !bool {
     if (GAME_INITIALIZED) {
-        return;
+        return true;
     }
     for (0..embeds.total_worlds) |i| {
         var embedded_data_struct = EmbeddedDataStruct{};
@@ -580,17 +640,27 @@ pub fn initializeGame() !void {
             std.log.info("World not found - {d}", .{ @as(u16, @intCast(i)) });
         }
     }
-    for (0..embeds.total_entities) |i| {
+    var entities_loaded: u16 = 0;
+    var cursor: u16 = 0;
+    while (entities_loaded < embeds.total_entities) {
         var embedded_data_struct = EmbeddedDataStruct{};
-        var entity = try embedded_data_struct.findIndexByFileName(.entity, @intCast(i), 0);
+        var entity = try embedded_data_struct.findIndexByFileName(.entity, cursor, 0);
         if (entity == true) {
+            // std.log.info("TrUe", .{});
             try entities_list.append(allocator, .{
                 .embedded = embedded_data_struct,
             });
+            var i: usize = entities_list.len - 1;
             try entities_list.at(i).init();
+            entities_loaded += 1;
+        } else {
+            // std.log.info("FaLsE {d}", .{entities_loaded});
         }
+        cursor += 1;
+        std.log.info("entities_loaded->cursor {d}", .{cursor});
     }
     GAME_INITIALIZED = true;
+    return true;
 }
 // @wasm
 pub fn loadWorld(index: u16) !void {

@@ -37,6 +37,17 @@ export class Editor extends HTMLElement {
                 }
             },
             {
+                description: 'Toggle Entity Editor',
+                context: globals.MODES.indexOf('EDITOR'),
+                code: 'KeyE',
+                friendlyCode: 'E',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.toggleEntityEditorDisplay();
+                }
+            },
+            {
                 description: 'Change Layer',
                 context: globals.MODES.indexOf('EDITOR'),
                 code: 'KeyL',
@@ -77,8 +88,25 @@ export class Editor extends HTMLElement {
         globals.INPUTS = globals.INPUTS.concat(this.inputs);
         // Listen to game-component for custom event called 'viewport-size'
         var game_component = document.querySelector('game-component');
+        globals.EVENTBUS.addEventListener('mode-change', (e) => {
+            console.log('editor: mode-change');
+            if (globals.MODES.indexOf('EDITOR') === globals.MODE) {
+                this.showLayerValues();
+            } else {
+                this.hideLayerValues();
+            }
+        });
         globals.EVENTBUS.addEventListener('viewport-size', (e) => {
             this.onViewportSize(e);
+
+            // TODO: Move this to a more global area. What if you add an entity on the fly?
+            let entities = wasm.game_getEntitiesLength();
+            for (var i = 0; i < entities; ++i) {
+                let entity_id = wasm.game_getEntityIdByIndex(i);
+                if (!this.shadowRoot.getElementById("entity_id_" + entity_id)) {
+                    this.shadowRoot.getElementById('entity_id').innerHTML += `<option id="entity_id_${entity_id}" value="${entity_id}">${entity_id}</option>`;
+                }
+            }
         });
         // TODO: A better way to not repeat our input functionality here
         document.addEventListener('keydown', (e) => {
@@ -90,6 +118,53 @@ export class Editor extends HTMLElement {
                     }
                 }
             }
+        });
+        this.shadowRoot.getElementById('extract_current_entity').addEventListener('click', (e) => {
+            let entity_id = parseInt(this.shadowRoot.getElementById('wasm_entity_id').value);
+            let start = wasm.editor_getEntityMemoryLocation(entity_id);
+            let length = wasm.editor_getEntityMemoryLength(entity_id);
+            let memory = extractMemory(start, length);
+            memory[0] = parseInt(this.shadowRoot.getElementById('wasm_entity_id').value);
+            memory[1] = parseInt(this.shadowRoot.getElementById('wasm_entity_type').value);
+            memory[2] = parseInt(this.shadowRoot.getElementById('wasm_entity_is_collision').value);
+            memory[3] = parseInt(this.shadowRoot.getElementById('wasm_entity_health_component_on_off').value);
+            memory[4] = parseInt(this.shadowRoot.getElementById('wasm_entity_health_component_default_value').value);
+            memory[5] = parseInt(this.shadowRoot.getElementById('wasm_entity_movement_component_on_off').value);
+            memory[6] = parseInt(this.shadowRoot.getElementById('wasm_entity_attack_component_on_off').value);
+            if (memory.length > 0) {
+                let entity_blob = generateBlob(memory);
+                editorDownload(entity_blob, 'entity_' + entity_id + '.bin');
+            } else {
+                console.error('Memory length of 0 when extracting entity!');
+            }
+        });
+        this.shadowRoot.getElementById('create_new_entity').addEventListener('click', (e) => {
+            let entity_id = parseInt(this.shadowRoot.getElementById('wasm_entity_id').value);
+            let entity_type = parseInt(this.shadowRoot.getElementById('wasm_entity_type').value);
+            let entity_index = wasm.editor_createEntity(entity_type, entity_id);
+            let start = wasm.editor_getEntityMemoryLocationByIndex(entity_index);
+            let length = wasm.editor_getEntityMemoryLengthByIndex(entity_index);
+            let memory = extractMemory(start, length);
+            if (memory.length > 0) {
+                let entity_blob = generateBlob(memory);
+                editorDownload(entity_blob, 'entity_' + entity_id + '.bin');
+            } else {
+                console.error('Memory length of 0 when extracting entity!');
+            }
+        });
+        this.shadowRoot.getElementById('entity_id').addEventListener('change', (e) => {
+            // console.log('entity_id chosen', e);
+            // console.log('chosen value', e.target.value);
+            let start = wasm.editor_getEntityMemoryLocation(e.target.value);
+            let length = wasm.editor_getEntityMemoryLength(e.target.value);
+            let memory = extractMemory(start, length);
+            this.shadowRoot.getElementById('wasm_entity_id').value = memory[0];
+            this.shadowRoot.getElementById('wasm_entity_type').value = memory[1];
+            this.shadowRoot.getElementById('wasm_entity_is_collision').value = memory[2];
+            this.shadowRoot.getElementById('wasm_entity_health_component_on_off').value = memory[3];
+            this.shadowRoot.getElementById('wasm_entity_health_component_default_value').value = memory[4];
+            this.shadowRoot.getElementById('wasm_entity_movement_component_on_off').value = memory[5];
+            this.shadowRoot.getElementById('wasm_entity_attack_component_on_off').value = memory[6];
         });
         this.shadowRoot.getElementById('clickable_view').addEventListener('click', (e) => {
             // TODO: Holy crap this code is weird
@@ -180,40 +255,42 @@ export class Editor extends HTMLElement {
     }
 
     renderViewportData() {
-        var game_component = document.querySelector('game-component');
-        var viewport_entity_components = game_component.shadowRoot.getElementById('view').querySelectorAll('viewport-entity-component');
-        for (var i = 0; i < viewport_entity_components.length; ++i) {
-            viewport_entity_components[i].remove();
-        }
-        var collision_entity_components = game_component.shadowRoot.getElementById('view').querySelectorAll('collision-entity-component');
-        for (var i = 0; i < collision_entity_components.length; ++i) {
-            collision_entity_components[i].remove();
-        }
-        var y = 0;
-        var x = 0;
-        for (var i = 0; i < (game_component.width * game_component.height); ++i) {
-            var viewport_y = Math.floor(i / game_component.width);
-            var viewport_x = i % game_component.width;
+        if (globals.MODES.indexOf('EDITOR') === globals.MODE) {
+            var game_component = document.querySelector('game-component');
+            var viewport_entity_components = game_component.shadowRoot.getElementById('view').querySelectorAll('viewport-entity-component');
+            for (var i = 0; i < viewport_entity_components.length; ++i) {
+                viewport_entity_components[i].remove();
+            }
+            var collision_entity_components = game_component.shadowRoot.getElementById('view').querySelectorAll('collision-entity-component');
+            for (var i = 0; i < collision_entity_components.length; ++i) {
+                collision_entity_components[i].remove();
+            }
+            var y = 0;
+            var x = 0;
+            for (var i = 0; i < (game_component.width * game_component.height); ++i) {
+                var viewport_y = Math.floor(i / game_component.width);
+                var viewport_x = i % game_component.width;
 
-            if (wasm.viewport_getData(viewport_x, viewport_y)) {
-                // TODO: this.renderCollisionData();
-                var COLLISION_LAYER = wasm.game_getCurrentWorldCollisionLayer();
-                var collision = wasm.game_getWorldDataAtViewportCoordinate(COLLISION_LAYER, viewport_x, viewport_y);
-                if (collision === 1) {
-                    var collision_entity = document.createElement('collision-entity-component');
-                    collision_entity.updateSize();
-                    collision_entity.setViewportXY(viewport_x, viewport_y);
-                    collision_entity.setLayer(COLLISION_LAYER);
-                    game_component.shadowRoot.getElementById('view').appendChild(collision_entity);
+                if (wasm.viewport_getData(viewport_x, viewport_y)) {
+                    // TODO: this.renderCollisionData();
+                    var COLLISION_LAYER = wasm.game_getCurrentWorldCollisionLayer();
+                    var collision = wasm.game_getWorldDataAtViewportCoordinate(COLLISION_LAYER, viewport_x, viewport_y);
+                    if (collision === 1) {
+                        var collision_entity = document.createElement('collision-entity-component');
+                        collision_entity.updateSize();
+                        collision_entity.setViewportXY(viewport_x, viewport_y);
+                        collision_entity.setLayer(COLLISION_LAYER);
+                        game_component.shadowRoot.getElementById('view').appendChild(collision_entity);
+                    }
+
+                    var viewport_entity = document.createElement('viewport-entity-component');
+                    viewport_entity.updateSize();
+                    viewport_entity.setViewportXY(viewport_x, viewport_y);
+                    viewport_entity.setLayer(90);
+                    // TODO: It's weird to set the entity id to the index of the viewport
+                    viewport_entity.setEntityId(wasm.game_getWorldDataAtViewportCoordinate(this.current_layer, viewport_x, viewport_y));
+                    game_component.shadowRoot.getElementById('view').appendChild(viewport_entity);
                 }
-
-                var viewport_entity = document.createElement('viewport-entity-component');
-                viewport_entity.updateSize();
-                viewport_entity.setViewportXY(viewport_x, viewport_y);
-                viewport_entity.setLayer(90);
-                // TODO: It's weird to set the entity id to the index of the viewport
-                viewport_entity.setEntityId(wasm.game_getWorldDataAtViewportCoordinate(this.current_layer, viewport_x, viewport_y));
-                game_component.shadowRoot.getElementById('view').appendChild(viewport_entity);
             }
         }
     }
@@ -232,6 +309,29 @@ export class Editor extends HTMLElement {
     disconnectedCallback() {}
     adoptedCallback() {}
     attributeChangedCallback() {}
+
+    showLayerValues() {
+        console.log('showLayerValues');
+        var components = document.querySelector('game-component').shadowRoot.querySelectorAll('viewport-entity-component');
+        for (var e = 0; e < components.length; ++e) {
+            components[e].showValue();
+        }
+        components = document.querySelector('game-component').shadowRoot.querySelectorAll('collision-entity-component');
+        for (var c = 0; c < components.length; ++c) {
+            components[c].style.display = 'block';
+        }
+    }
+    hideLayerValues() {
+        console.log('hideLayerValues');
+        var components = document.querySelector('game-component').shadowRoot.querySelectorAll('viewport-entity-component');
+        for (var e = 0; e < components.length; ++e) {
+            components[e].hideValue();
+        }
+        components = document.querySelector('game-component').shadowRoot.querySelectorAll('collision-entity-component');
+        for (var c = 0; c < components.length; ++c) {
+            components[c].style.display = 'none';
+        }
+    }
 
     addRowToWorld() {
         let current_world_index = wasm.game_getCurrentWorldIndex();
@@ -279,6 +379,9 @@ export class Editor extends HTMLElement {
     }
     toggleAtlasDisplay() {
         this.shadowRoot.getElementById('atlas').classList.toggle('hidden');
+    }
+    toggleEntityEditorDisplay() {
+        this.shadowRoot.getElementById('entity_editor').classList.toggle('hidden');
     }
     incrementLayer() {
         ++this.current_layer;
@@ -362,6 +465,21 @@ export class Editor extends HTMLElement {
             </style>
             <div id="clickable_view"></div>
             <div id="clicked_view"></div>
+            <x-draggable name="entity_editor" id="entity_editor" class="hidden">
+                <div id="editor-container">
+                    <div class="title">Entity</div>
+                    <div><select id="entity_id"></select></div>
+                    <div>Entity ID: <input type="text" id="wasm_entity_id" /></div>
+                    <div>Entity Type: <input type="text" id="wasm_entity_type" /></div>
+                    <div>Entity Is Collision: <input type="text" id="wasm_entity_is_collision" /></div>
+                    <div>Entity Health Component: <input type="text" id="wasm_entity_health_component_on_off" /></div>
+                    <div>Entity Health Component Default Value:<input type="text" id="wasm_entity_health_component_default_value" /></div>
+                    <div>Entity Movement Component: <input type="text" id="wasm_entity_movement_component_on_off" /></div>
+                    <div>Entity Attack Component: <input type="text" id="wasm_entity_attack_component_on_off" /></div>
+                    <div><input type="button" id="extract_current_entity" value="Extract Current Entity" /></div>
+                    <div><input type="button" id="create_new_entity" value="Create New Entity" /></div>
+                </div>
+            </x-draggable>
             <x-draggable name="editor" id="editor" class="hidden">
                 <div id="editor-container">
                     <div class="draggable-header"></div>
