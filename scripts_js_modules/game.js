@@ -511,6 +511,7 @@ export class Game extends HTMLElement {
     }
 
     sizeView () {
+        console.log('sizing view');
         // Full height, including the scroll part
         const full_height = Math.max(
             // document.body.scrollHeight,
