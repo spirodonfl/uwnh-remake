@@ -86,6 +86,8 @@ export class MultiplayerHost extends HTMLElement {
                                 user_spawned = true;
                                 s_to_p_id = s_to_p;
                                 this.ships_to_players[s_to_p] = {username: e.data.user, role: e.data.role, wasm_entity_id: entity_id};
+                                // TODO: Pull from default value within WASM instead of magic number-ing
+                                wasm.game_entitySetHealth(entity_id, 10);
                                 break;
                             }
                         }
@@ -97,6 +99,7 @@ export class MultiplayerHost extends HTMLElement {
             this.updatePlayerList();
 
             if (user_spawned) {
+                this.broadcastGameState(e.data.user);
                 RyansBackendMainHole.ws.send(JSON.stringify({
                     "broadcast": {"payload": {
                         "user_spawned": e.data.user,
@@ -140,6 +143,7 @@ export class MultiplayerHost extends HTMLElement {
                     break;
                 }
             }
+            this.broadcastGameState();
         });
         globals.EVENTBUS.addEventListener('user-moves-right', (e) => {
             console.log('User wants to move right');
@@ -150,6 +154,7 @@ export class MultiplayerHost extends HTMLElement {
                     break;
                 }
             }
+            this.broadcastGameState();
         });
         globals.EVENTBUS.addEventListener('user-moves-up', (e) => {
             console.log('User wants to move up');
@@ -160,6 +165,7 @@ export class MultiplayerHost extends HTMLElement {
                     break;
                 }
             }
+            this.broadcastGameState();
         });
         globals.EVENTBUS.addEventListener('user-moves-down', (e) => {
             console.log('User wants to move down');
@@ -170,16 +176,24 @@ export class MultiplayerHost extends HTMLElement {
                     break;
                 }
             }
+            this.broadcastGameState();
         });
         globals.EVENTBUS.addEventListener('user-attacks', (e) => {
             console.log('User wants to attack');
+            var health = [null, null, null, null, null];
             for (var i = 0; i < this.ships_to_players.length; ++i) {
                 if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.data.user) {
+                    health[i] = wasm.game_entityGetHealth(this.ships_to_players[i].wasm_entity_id);
                     console.log('sending message for user attack [' + this.ships_to_players[i].wasm_entity_id + ']');
                     wasm.messages_attack(this.ships_to_players[i].wasm_entity_id, 0);
                     break;
                 }
             }
+            RyansBackendMainHole.ws.send(JSON.stringify({
+                "broadcast": {"payload": {
+                    "update_health": health,
+                }}
+            }));
         });
 
 
@@ -202,6 +216,47 @@ export class MultiplayerHost extends HTMLElement {
     adoptedCallback() {}
     attributeChangedCallback() {}
 
+    broadcastGameState(message_user) {
+        var positions = [];
+        var health = [];
+        for (var i = 0; i < this.ships_to_players.length; ++i) {
+            if (this.ships_to_players[i] !== null) {
+                var entity_id = this.ships_to_players[i].wasm_entity_id;
+                positions.push([wasm.game_entityGetPositionX(entity_id), wasm.game_entityGetPositionY(entity_id)]);
+                health.push(wasm.game_entityGetHealth(entity_id));
+            } else {
+                positions.push(null);
+                health.push(null);
+            }
+        }
+        if (message_user) {
+            RyansBackendMainHole.ws.send(JSON.stringify({
+                "send": {
+                    "user": message_user,
+                    "payload": {
+                        "game_state": {
+                            "ships_to_players": this.ships_to_players,
+                            "positions": positions,
+                            "health": health,
+                        }
+                    }
+                }
+            }));
+        } else {
+            RyansBackendMainHole.ws.send(JSON.stringify({
+                "broadcast": {
+                    "payload": {
+                        "game_state": {
+                            "ships_to_players": this.ships_to_players,
+                            "positions": positions,
+                            "health": health,
+                        }
+                    }
+                }
+            }));
+        }
+    }
+
     updatePlayerList() {
         var players_element = this.shadowRoot.getElementById('players');
         players_element.innerHTML = '';
@@ -212,11 +267,11 @@ export class MultiplayerHost extends HTMLElement {
         }
         for (var i = 0; i < this.ships_to_players.length; ++i) {
             if (this.ships_to_players[i] !== null) {
-                var color = this.ship_to_players_colors[i];
+                var color = this.ships_to_players_colors[i];
                 var entity_id = this.ships_to_players[i].wasm_entity_id;
                 game_component.shadowRoot.querySelector('[entity_id="' + entity_id + '"]').setBorder(color);
                 players_element.innerHTML += '<span style="color:' + color + ';">';
-                players_element.innerHTML += this.ships_to_players[i] + '</span><br />';
+                players_element.innerHTML += this.ships_to_players[i].username + '</span><br />';
             }
         }
     }
