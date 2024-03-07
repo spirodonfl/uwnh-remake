@@ -55,5 +55,8 @@ export const globalStyles = `
     .main-content {
         padding: 0.7em;
     }
+    .text-shadow {
+        text-shadow: 0px 0px 4px black, 0px 0px 4px black, 0px 0px 4px black, 0px 0px 4px black, 0px 0px 4px black, 0px 0px 4px black;
+    }
     </style>
 `;

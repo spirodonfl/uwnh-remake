@@ -56,3 +56,17 @@ pub fn moveRight(entity_id: u16, force: bool) !void {
         }
     }
 }
+// @wasm
+pub fn attack(entity_id: u16, force: bool) !void {
+    var message = game.GameMessage{
+        .command = enums.GameMessagesEventsEnum.Attack.int(),
+        .force = force,
+    };
+    // try message.data.append(game.allocator, target_entity_id);
+    for (0..game.entities_list.len) |i| {
+        var entity = game.entities_list.at(i);
+        if (entity.getId() == entity_id) {
+            try entity.addMessage(message);
+        }
+    }
+}

@@ -1,21 +1,45 @@
+import { wasm } from './injector_wasm.js';
+import { globalStyles } from "./global-styles.js";
 import { globals } from "./globals.js";
 
 export class Entity extends HTMLElement {
     constructor() {
         super();
         this.entity_id = null;
+        this.health = null;
+        this.type = null;
         this.attachShadow({mode: 'open'});
     }
 
+    setBorder(color) {
+        this.style.border = `4px solid ${color}`;
+    }
+    clearBorder() {
+        this.style.border = 'none';
+    }
+    updateHealth() {
+        this.getHealth();
+        if (this.health !== null) {
+            this.shadowRoot.getElementById('health_value').innerHTML = this.health;
+        }
+    }
     updateSize() {
         this.size = (globals.SIZE * globals.SCALE);
     }
     setLayer(layer) {
         this.layer = layer;
         this.style.zIndex = layer;
+        this.setAttribute('layer', layer);
     }
     setEntityId(id) {
         this.entity_id = id;
+        this.setAttribute('entity_id', id);
+    }
+    getHealth() {
+        this.health = wasm.game_entityGetHealth(this.entity_id);
+    }
+    getType() {
+        this.type = wasm.game_entityGetType(this.entity_id);
     }
     setViewportXY(x, y) {
         this.setViewportX(x);
@@ -32,6 +56,13 @@ export class Entity extends HTMLElement {
 
     connectedCallback() {
         this.render();
+        this.getType();
+        if (this.layer === wasm.game_getCurrentWorldEntityLayer() && this.type > 0) {
+            this.getHealth();
+            if (this.health !== null) {
+                this.shadowRoot.getElementById('health_value').innerHTML = this.health;
+            }
+        }
     }
 
     disconnectedCallback() {}
@@ -68,6 +99,7 @@ export class Entity extends HTMLElement {
             this.style.backgroundPosition = '-' + image_frame_coords[0] + 'px -' + image_frame_coords[1] + 'px';
         }
         this.shadowRoot.innerHTML = `
+            ${globalStyles}
             <style>
             :host {
                 width: ${this.size}px;
@@ -77,7 +109,13 @@ export class Entity extends HTMLElement {
                 top: ${this.top}px;
                 z-index: ${this.layer};
             }
+            #health_value {
+                position: absolute;
+                bottom: 0px;
+                left: 0px;
+            }
             </style>
+            <div id="health_value" class="text-shadow"></div>
         `;
     }
 }
