@@ -333,6 +333,13 @@ pub const EntityDataStruct = struct {
     pub fn getPositionY(self: *EntityDataStruct) u16 {
         return self.position[1];
     }
+    // TODO: Wait... do these setPosition functions not contradict the ComponentMove stuff?
+    pub fn setPositionX(self: *EntityDataStruct, value: u16) void {
+        self.position[0] = value;
+    }
+    pub fn setPositionY(self: *EntityDataStruct, value: u16) void {
+        self.position[1] = value;
+    }
     pub fn addMessage(self: *EntityDataStruct, message: GameMessage) !void {
         try self.messages.append(allocator, message);
     }
@@ -354,7 +361,7 @@ pub const EntityDataStruct = struct {
     }
     pub fn loadComponents(self: *EntityDataStruct) !void {
         if (self.embedded.readData(enums.EntityDataEnum.ComponentHealth.int(), .Little) == 1) {
-            std.log.info("health component found", .{});
+            // std.log.info("health component found", .{});
 
             // IN CASE YOU NEED THIS -> note you also need health: *ComponentHealth = undefined, (star)
             // var health_component = try ComponentHealth.createNew(20);
@@ -369,14 +376,14 @@ pub const EntityDataStruct = struct {
             // std.log.info("(a)health now {d} {d}", .{self.getId(), self.health.current_value});
         }
         if (self.embedded.readData(enums.EntityDataEnum.ComponentMovement.int(), .Little) == 1) {
-            std.log.info("movement component found", .{});
+            // std.log.info("movement component found", .{});
             self.movement = ComponentMovement{
                 .parent = self,
                 .entity_id = self.getId()
             };
         }
         if (self.embedded.readData(enums.EntityDataEnum.ComponentAttack.int(), .Little) == 1) {
-            std.log.info("attack component found (entity id: {d})", .{self.getId()});
+            // std.log.info("attack component found (entity id: {d})", .{self.getId()});
             self.attack = ComponentAttack{
                 .parent = self,
                 .entity_id = self.getId()
@@ -538,14 +545,12 @@ pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !bool {
 }
 // @wasm
 pub fn entityGetHealth(entity_id: u16) u16 {
-    for (0..entities_list.len) |i| {
-        // std.log.info("(b)health now {d} {d} {d}", .{entity_id, entities_list.at(i).getId(), entities_list.at(i).health.current_value});
-        if (entities_list.at(i).getId() == entity_id) {
-            return entities_list.at(i).health.current_value;
-        }
+    var entity_index = getEntityById(entity_id);
+    if (entity_index == 0) {
+        @panic("Entity not found");
     }
-
-    return 0;
+    var entity = entities_list.at(entity_index - 1);
+    return entity.health.current_value;
 }
 // @wasm
 pub fn entityGetWorldX(entity: u16) !u16 {
@@ -608,10 +613,55 @@ pub fn getEntityTypeByIndex(index: u16) u16 {
     return entities_list.at(index).getType();
 }
 // @wasm
-pub fn entitySetHealth(entity: u16, value: u16) !void {
+pub fn entitySetHealth(entity_id: u16, value: u16) !void {
     // TODO: Check to make sure the health component is loaded
+    var entity_index = getEntityById(entity_id);
+    if (entity_index == 0) {
+        @panic("Entity not found");
+    }
+    var entity = entities_list.at(entity_index - 1);
+    entity.health.setHealth(value);
     try diff.addData(0);
-    entities_list.at(entity).health.setHealth(value);
+}
+// @wasm
+pub fn entityGetPositionX(entity_id: u16) !u16 {
+    // TODO: Check to make sure the movement component is loaded
+    var entity_index = getEntityById(entity_id);
+    if (entity_index == 0) {
+        @panic("Entity not found");
+    }
+    var entity = entities_list.at(entity_index - 1);
+    return entity.getPositionX();
+}
+// @wasm
+pub fn entityGetPositionY(entity_id: u16) !u16 {
+    // TODO: Check to make sure the movement component is loaded
+    var entity_index = getEntityById(entity_id);
+    if (entity_index == 0) {
+        @panic("Entity not found");
+    }
+    var entity = entities_list.at(entity_index - 1);
+    return entity.getPositionY();
+}
+// @wasm
+pub fn entitySetPositionX(entity_id: u16, value: u16) !void {
+    // TODO: Check to make sure the movement component is loaded
+    var entity_index = getEntityById(entity_id);
+    if (entity_index == 0) {
+        @panic("Entity not found");
+    }
+    var entity = entities_list.at(entity_index - 1);
+    entity.setPositionX(value);
+}
+// @wasm
+pub fn entitySetPositionY(entity_id: u16, value: u16) !void {
+    // TODO: Check to make sure the movement component is loaded
+    var entity_index = getEntityById(entity_id);
+    if (entity_index == 0) {
+        @panic("Entity not found");
+    }
+    var entity = entities_list.at(entity_index - 1);
+    entity.setPositionY(value);
 }
 // @wasm
 pub fn initializeGame() !bool {
@@ -657,7 +707,7 @@ pub fn initializeGame() !bool {
             // std.log.info("FaLsE {d}", .{entities_loaded});
         }
         cursor += 1;
-        std.log.info("entities_loaded->cursor {d}", .{cursor});
+        // std.log.info("entities_loaded->cursor {d}", .{cursor});
     }
     GAME_INITIALIZED = true;
     return true;

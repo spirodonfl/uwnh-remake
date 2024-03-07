@@ -1,6 +1,7 @@
 import { RyansBackendSecondaryHole } from './websocket-ryans-backend-secondary-hole.js';
 import { globals } from './globals.js';
 import { globalStyles } from "./global-styles.js";
+import { wasm } from './injector_wasm.js';
 
 export class Multiplayer extends HTMLElement {
     constructor() {
@@ -143,6 +144,26 @@ export class Multiplayer extends HTMLElement {
             } else if (e.data.user_despawned) {
                 this.ships_to_players = e.data.data;
                 this.updatePlayerList();
+            } else if (e.data.update_health) {
+                for (var i = 0; i < e.data.update_health; ++i) {
+                    if (e.data.update_health[i] !== null && e.data.update_health[i] !== undefined && e.data.update_health[i] > 0) {
+                        wasm.game_entitySetHealth(this.ships_to_players[i].wasm_entity_id, e.data.update_health[i]);
+                    } else {
+                        // TODO: Probably should make sure this user doesn't exist in this.ships_to_players && despawn if they do
+                    }
+                }
+            } else if (e.data.game_state) {
+                console.log(e.data.game_state);
+                // TODO: Update ship positions && health && this.ships_to_players with colors
+                this.ships_to_players = e.data.game_state.ships_to_players;
+                for (var i = 0; i < this.ships_to_players.length; ++i) {
+                    if (this.ships_to_players[i] !== null) {
+                        var entity_id = this.ships_to_players[i].wasm_entity_id;
+                        wasm.game_entitySetHealth(entity_id, e.data.game_state.health[i]);
+                        wasm.game_entitySetPositionX(entity_id, e.data.game_state.positions[i][0]);
+                        wasm.game_entitySetPositionY(entity_id, e.data.game_state.positions[i][1]);
+                    }
+                }
             }
             console.log('ships to players', this.ships_to_players);
         });
@@ -191,6 +212,7 @@ export class Multiplayer extends HTMLElement {
     adoptedCallback() {}
     attributeChangedCallback() {}
 
+    // TODO: This is shared with the multiplayer_host too. Maybe create a common component or something
     updatePlayerList() {
         var players_element = this.shadowRoot.getElementById('players');
         players_element.innerHTML = '';
@@ -201,11 +223,11 @@ export class Multiplayer extends HTMLElement {
         }
         for (var i = 0; i < this.ships_to_players.length; ++i) {
             if (this.ships_to_players[i] !== null) {
-                var color = this.ship_to_players_colors[i];
+                var color = this.ships_to_players_colors[i];
                 var entity_id = this.ships_to_players[i].wasm_entity_id;
                 game_component.shadowRoot.querySelector('[entity_id="' + entity_id + '"]').setBorder(color);
                 players_element.innerHTML += '<span style="color:' + color + ';">';
-                players_element.innerHTML += this.ships_to_players[i] + '</span><br />';
+                players_element.innerHTML += this.ships_to_players[i].username + '</span><br />';
             }
         }
     }
