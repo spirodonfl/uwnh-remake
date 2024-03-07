@@ -380,6 +380,7 @@ export class Game extends HTMLElement {
                 }
             }
         }
+        globals.EVENTBUS.triggerEvent('game-rendered', []);
     }
 
     watchResize() {
