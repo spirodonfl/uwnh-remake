@@ -153,6 +153,9 @@ pub const WorldDataStruct = struct {
                         }
                     }
                 }
+                var index: u16 = (y * self.getWidth()) + x;
+                const data = self.readLayer(layer, index);
+                return data;
             }
         } else {
             var index: u16 = (y * self.getWidth()) + x;
