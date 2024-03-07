@@ -22,7 +22,7 @@ export class Editor extends HTMLElement {
                 shiftKey: false,
                 ctrlKey: false,
                 callback: () => {
-                    this.toggleEditorDisplay();
+                    this.shadowRoot.getElementById('editor').toggleVisibility();
                 }
             },
             {
@@ -33,7 +33,7 @@ export class Editor extends HTMLElement {
                 shiftKey: false,
                 ctrlKey: false,
                 callback: () => {
-                    this.toggleAtlasDisplay();
+                    this.shadowRoot.getElementById('atlas').toggleVisibility();
                 }
             },
             {
@@ -44,7 +44,7 @@ export class Editor extends HTMLElement {
                 shiftKey: false,
                 ctrlKey: false,
                 callback: () => {
-                    this.toggleEntityEditorDisplay();
+                    this.shadowRoot.getElementById('entity-editor').toggleVisibility();
                 }
             },
             {
@@ -374,15 +374,6 @@ export class Editor extends HTMLElement {
         document.querySelector('editor-component').renderViewportData();
     }
 
-    toggleEditorDisplay() {
-        this.shadowRoot.getElementById('editor').classList.toggle('hidden');
-    }
-    toggleAtlasDisplay() {
-        this.shadowRoot.getElementById('atlas').classList.toggle('hidden');
-    }
-    toggleEntityEditorDisplay() {
-        this.shadowRoot.getElementById('entity_editor').classList.toggle('hidden');
-    }
     incrementLayer() {
         ++this.current_layer;
         if (this.current_layer >= wasm.game_getCurrentWorldTotalLayers()) {
@@ -465,7 +456,7 @@ export class Editor extends HTMLElement {
             </style>
             <div id="clickable_view"></div>
             <div id="clicked_view"></div>
-            <x-draggable name="entity_editor" id="entity_editor" class="hidden">
+            <x-draggable name="entity-editor" id="entity-editor" visible="false">
                 <div id="editor-container">
                     <div class="title">Entity</div>
                     <div><select id="entity_id"></select></div>
@@ -480,7 +471,7 @@ export class Editor extends HTMLElement {
                     <div><input type="button" id="create_new_entity" value="Create New Entity" /></div>
                 </div>
             </x-draggable>
-            <x-draggable name="editor" id="editor" class="hidden">
+            <x-draggable name="editor" id="editor" visible="false">
                 <div id="editor-container">
                     <div class="draggable-header"></div>
                     <div class="title">EDITOR</div>
@@ -524,7 +515,7 @@ export class Editor extends HTMLElement {
                     <div id="change_world_collisions_layer">[CHANGE WORLD COLLISIONS LAYER HERE]</div>
                 </div>
             </x-draggable>
-            <x-draggable class="hidden" name="atlas" id="atlas">
+            <x-draggable visible="false" name="atlas" id="atlas">
                 <div id="atlas-container">
                     <img id="atlas_img" src="${globals.ATLAS_PNG_FILENAME}" />
                 </div>
