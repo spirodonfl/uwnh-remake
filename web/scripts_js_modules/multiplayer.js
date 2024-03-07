@@ -152,14 +152,16 @@ export class Multiplayer extends HTMLElement {
         globals.EVENTBUS.addEventListener('message-from-ryans-backend-secondary-hole', (e) => {
             console.log('b', e);
             if (e.data.user_spawned) {
+                // TODO: Clear these out
                 // this.ships_to_players = e.data.data;
                 // this.updatePlayerList();
             } else if (e.data.user_despawned) {
+                // TODO: Clear these out
                 // this.ships_to_players = e.data.data;
                 // this.updatePlayerList();
             } else if (e.data.game_state) {
                 console.log('GAME STATE:', e.data.game_state);
-                // compare e.data.game_state.ships_to_players with this.ships_to_players
+                // TODO: This is terribly hacky
                 for (var g = 0; g < e.data.game_state.ships_to_players.length; ++g) {
                     if (e.data.game_state.ships_to_players[g] === null && this.ships_to_players[g] !== null) {
                         var entity_id = this.ships_to_players[g].wasm_entity_id;
