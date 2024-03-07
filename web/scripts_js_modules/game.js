@@ -386,9 +386,9 @@ export class Game extends HTMLElement {
     watchResize() {
         console.log('watching resize');
         const resizeObserver = new ResizeObserver((entries) => {
-            // console.log('resize observed');
+            console.log('resize observed');
             const entry = entries[0];
-            // entry.contentRect
+            console.log(entry.contentRect);
             this.sizeView();
             wasm.viewport_setSize(this.width, this.height);
             wasm.game_loadWorld(wasm.game_getCurrentWorldIndex());
