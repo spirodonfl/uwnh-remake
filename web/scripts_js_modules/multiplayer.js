@@ -174,10 +174,14 @@ export class Multiplayer extends HTMLElement {
             console.log('ships to players', this.ships_to_players);
         });
         // TODO: Connect to RyansBackendSecondaryHole via twitch I guess
-        const params = new Proxy(new URLSearchParams(window.location.search), {
-            get: (searchParams, prop) => searchParams.get(prop),
-        });
-        RyansBackendSecondaryHole.init(params.login, params.username);
+        if (window.USER) {
+            RyansBackendSecondaryHole.init(window.USER.login, window.USER.username);
+        } else {
+            const params = new Proxy(new URLSearchParams(window.location.search), {
+                get: (searchParams, prop) => searchParams.get(prop),
+            });
+            RyansBackendSecondaryHole.init(params.login, params.username);
+        }
 
         // TODO: A better way to not repeat our input functionality here
         document.addEventListener('keydown', (e) => {
