@@ -31,6 +31,17 @@ export class MultiplayerHost extends HTMLElement {
                 }
             },
             {
+                description: 'Toggle Host Controls',
+                context: globals.MODES.indexOf('MULTIPLAYER_HOST'),
+                code: 'Digit2',
+                friendlyCode: 'Shift+2',
+                shiftKey: true,
+                ctrlKey: false,
+                callback: () => {
+                    this.shadowRoot.getElementById('host-controls').toggleVisibility();
+                }
+            },
+            {
                 description: 'Toggle Player List',
                 context: globals.MODES.indexOf('MULTIPLAYER_HOST'),
                 code: 'Digit3',
@@ -53,6 +64,11 @@ export class MultiplayerHost extends HTMLElement {
         });
         globals.EVENTBUS.addEventListener('game-rendered', (e) => {
             this.updatePlayerList();
+            if (this.kraken_enabled === false) {
+                this.disableKraken();
+            } else if (this.kraken_enabled === true) {
+                this.enableKraken();
+            }
         });
         globals.EVENTBUS.addEventListener('opened-ryans-backend-main-hole', (e) => {
             // console.log('opened')
@@ -214,6 +230,21 @@ export class MultiplayerHost extends HTMLElement {
             }
         });
 
+        this.shadowRoot.getElementById('toggle_leaderboard').addEventListener('click', () => {
+            this.toggleLeaderboardDisplay();
+        });
+        this.shadowRoot.getElementById('toggle_player_list').addEventListener('click', () => {
+            this.togglePlayerList();
+        });
+        this.shadowRoot.getElementById('enable_kraken').addEventListener('click', () => {
+            this.enableKraken();
+            this.broadcastGameState();
+        });
+        this.shadowRoot.getElementById('disable_kraken').addEventListener('click', () => {
+            this.disableKraken();
+            this.broadcastGameState();
+        });
+
         // Just in case the kraken is enabled by default
         if (this.kraken_enabled) {
             this.enableKraken();
@@ -267,14 +298,20 @@ export class MultiplayerHost extends HTMLElement {
         let entity_id = 7;
         let entity_layer = 2;
         wasm.game_entityEnableCollision(entity_id);
-        document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]').style.display = 'block';
+        var kraken_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
+        if (kraken_element) {
+            kraken_element.style.display = 'block';
+        }
     }
     disableKraken() {
         this.kraken_enabled = false;
         let entity_id = 7;
         let entity_layer = 2;
         wasm.game_entityDisableCollision(entity_id);
-        document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]').style.display = 'none';
+        var kraken_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
+        if (kraken_element) {
+            kraken_element.style.display = 'none';
+        }
     }
 
     broadcastGameState(message_user) {
@@ -301,7 +338,7 @@ export class MultiplayerHost extends HTMLElement {
                             "ships_to_players": this.ships_to_players,
                             "positions": positions,
                             "health": health,
-                            "kraken_enabled ": this.kraken_enabled,
+                            "kraken_enabled": this.kraken_enabled,
                             "kraken_position": [wasm.game_entityGetPositionX(kraken_entity_id), wasm.game_entityGetPositionY(kraken_entity_id)],
                             "kraken_health": wasm.game_entityGetHealth(kraken_entity_id),
                         }
@@ -316,7 +353,7 @@ export class MultiplayerHost extends HTMLElement {
                             "ships_to_players": this.ships_to_players,
                             "positions": positions,
                             "health": health,
-                            "kraken_enabled ": this.kraken_enabled,
+                            "kraken_enabled": this.kraken_enabled,
                             "kraken_position": [wasm.game_entityGetPositionX(kraken_entity_id), wasm.game_entityGetPositionY(kraken_entity_id)],
                             "kraken_health": wasm.game_entityGetHealth(kraken_entity_id),
                         }
@@ -388,6 +425,7 @@ export class MultiplayerHost extends HTMLElement {
     }
 
     toggleLeaderboardDisplay() {
+        // TODO: Use new visible attribute
         const leaderboard = this.shadowRoot.getElementById('leaderboard');
         if (leaderboard.classList.contains('hidden')) {
             RyansBackendMainHole.getLeaderboard();
@@ -397,11 +435,13 @@ export class MultiplayerHost extends HTMLElement {
     }
 
     toggleOnScreenControls() {
+        // TODO: Use new visible attribute
         const onScreenControls = this.shadowRoot.getElementById('on-screen-controls');
         onScreenControls.classList.toggle('hidden');
     }
 
     togglePlayerList() {
+        // TODO: Use the new visible attribute
         const playerList = this.shadowRoot.getElementById('player-list');
         playerList.classList.toggle('hidden');
     }
@@ -428,6 +468,15 @@ export class MultiplayerHost extends HTMLElement {
                 <div class="main-content">
                     <div class="title">PLAYERS</div>
                     <div id="players"></div>
+                </div>
+            </x-draggable>
+            <x-draggable name="host-controls" id="host-controls" visible="false">
+                <div class="main-content">
+                    <div class="title">HOST CONTROLS</div>
+                    <input type="button" id="toggle_leaderboard" value="Toggle Leaderboard" />
+                    <input type="button" id="toggle_player_list" value="Toggle Player List" />
+                    <input type="button" id="enable_kraken" value="Enable Kraken" />
+                    <input type="button" id="disable_kraken" value="Disable Kraken" />
                 </div>
             </x-draggable>
         `;

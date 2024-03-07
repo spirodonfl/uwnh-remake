@@ -345,6 +345,7 @@ pub const EntityDataStruct = struct {
         try self.messages.append(allocator, message);
     }
     pub fn isCollision(self: *EntityDataStruct) bool {
+        // std.log.info("isCollision {d} {d}", .{self.getId(), self.is_collision});
         return self.is_collision;
         // if (self.embedded.readData(enums.EntityDataEnum.IsCollision.int(), .Little) == 1) {
         //     return true;
@@ -621,7 +622,7 @@ pub fn entityDisableCollision(entity_id: u16) void {
         @panic("Entity not found");
     }
     var entity = entities_list.at(entity_index - 1);
-    entity.is_collision = true;
+    entity.is_collision = false;
 }
 // @wasm
 pub fn getEntitiesLength() u16 {

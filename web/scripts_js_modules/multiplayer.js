@@ -140,6 +140,11 @@ export class Multiplayer extends HTMLElement {
         });
         globals.EVENTBUS.addEventListener('game-rendered', (e) => {
             this.updatePlayerList();
+            if (this.kraken_enabled === false) {
+                this.disableKraken();
+            } else if (this.kraken_enabled === true) {
+                this.enableKraken();
+            }
         });
         globals.EVENTBUS.addEventListener('opened-ryans-backend-secondary-hole', (e) => {
             console.log('a', e);
@@ -147,13 +152,26 @@ export class Multiplayer extends HTMLElement {
         globals.EVENTBUS.addEventListener('message-from-ryans-backend-secondary-hole', (e) => {
             console.log('b', e);
             if (e.data.user_spawned) {
-                this.ships_to_players = e.data.data;
-                this.updatePlayerList();
+                // this.ships_to_players = e.data.data;
+                // this.updatePlayerList();
             } else if (e.data.user_despawned) {
-                this.ships_to_players = e.data.data;
-                this.updatePlayerList();
+                // this.ships_to_players = e.data.data;
+                // this.updatePlayerList();
             } else if (e.data.game_state) {
-                console.log(e.data.game_state);
+                console.log('GAME STATE:', e.data.game_state);
+                // compare e.data.game_state.ships_to_players with this.ships_to_players
+                for (var g = 0; g < e.data.game_state.ships_to_players.length; ++g) {
+                    if (e.data.game_state.ships_to_players[g] === null && this.ships_to_players[g] !== null) {
+                        var entity_id = this.ships_to_players[g].wasm_entity_id;
+                        wasm.game_entitySetHealth(entity_id, 0);
+                        // TODO: Update position maybe?
+                    } else if (e.data.game_state.ships_to_players[g] !== null && this.ships_to_players[g] === null) {
+                        var entity_id = e.data.game_state.ships_to_players[g].wasm_entity_id;
+                        wasm.game_entitySetHealth(entity_id, e.data.game_state.health[g]);
+                        wasm.game_entitySetPositionX(entity_id, e.data.game_state.positions[g][0]);
+                        wasm.game_entitySetPositionY(entity_id, e.data.game_state.positions[g][1]);
+                    }
+                }
                 this.ships_to_players = e.data.game_state.ships_to_players;
                 for (var i = 0; i < this.ships_to_players.length; ++i) {
                     if (this.ships_to_players[i] !== null) {
@@ -161,17 +179,16 @@ export class Multiplayer extends HTMLElement {
                         wasm.game_entitySetHealth(entity_id, e.data.game_state.health[i]);
                         wasm.game_entitySetPositionX(entity_id, e.data.game_state.positions[i][0]);
                         wasm.game_entitySetPositionY(entity_id, e.data.game_state.positions[i][1]);
-                    } else {
-                        // TODO: take what the entity_id WOULD be (I guess?) and set its collision to false
-                        // also hide it (reverse spawn animation?)
                     }
                 }
                 if (e.data.game_state.kraken_enabled !== this.kraken_enabled) {
+                    this.kraken_enabled = e.data.game_state.kraken_enabled;
                     if (e.data.game_state.kraken_enabled) {
                         this.enableKraken();
                     } else {
                         this.disableKraken();
                     }
+                    console.log('kraken_enabled', [this.kraken_enabled, e.data.game_state.kraken_enabled]);
                 }
                 // TODO: STOP USING MAGIC NUMBERS DAMMIT
                 let kraken_entity_id = 7;
@@ -237,14 +254,22 @@ export class Multiplayer extends HTMLElement {
         let entity_id = 7;
         let entity_layer = 2;
         wasm.game_entityEnableCollision(entity_id);
-        document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]').style.display = 'block';
+        var kraken_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
+        if (kraken_element) {
+            console.log('show kraken!');
+            kraken_element.style.display = 'block';
+        }
     }
     disableKraken() {
         this.kraken_enabled = false;
         let entity_id = 7;
         let entity_layer = 2;
         wasm.game_entityDisableCollision(entity_id);
-        document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]').style.display = 'none';
+        var kraken_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
+        if (kraken_element) {
+            console.log('hide kraken!');
+            kraken_element.style.display = 'none';
+        }
     }
 
     // TODO: This is shared with the multiplayer_host too. Maybe create a common component or something
