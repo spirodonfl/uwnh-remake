@@ -133,6 +133,12 @@ export class Multiplayer extends HTMLElement {
     connectedCallback() {
         this.render();
         globals.INPUTS = globals.INPUTS.concat(this.inputs);
+        globals.EVENTBUS.addEventListener('viewport-size', (e) => {
+            this.updatePlayerList();
+        });
+        globals.EVENTBUS.addEventListener('game-rendered', (e) => {
+            this.updatePlayerList();
+        });
         globals.EVENTBUS.addEventListener('opened-ryans-backend-secondary-hole', (e) => {
             console.log('a', e);
         });
@@ -225,9 +231,10 @@ export class Multiplayer extends HTMLElement {
             if (this.ships_to_players[i] !== null) {
                 var color = this.ships_to_players_colors[i];
                 var entity_id = this.ships_to_players[i].wasm_entity_id;
-                game_component.shadowRoot.querySelector('[entity_id="' + entity_id + '"]').setBorder(color);
-                players_element.innerHTML += '<span style="color:' + color + ';">';
-                players_element.innerHTML += this.ships_to_players[i].username + '</span><br />';
+                // TODO: Pull this from wasm instead of magic numbers
+                var entity_layer = 2;
+                game_component.shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]').setBorder(color);
+                players_element.innerHTML += '<span style="color:' + color + ';">' + this.ships_to_players[i].username + '</span><br />';
             }
         }
     }

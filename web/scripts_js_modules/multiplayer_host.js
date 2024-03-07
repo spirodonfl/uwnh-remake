@@ -45,6 +45,13 @@ export class MultiplayerHost extends HTMLElement {
     connectedCallback() {
         this.render();
         globals.INPUTS = globals.INPUTS.concat(this.inputs);
+        globals.EVENTBUS.addEventListener('viewport-size', (e) => {
+            // TODO: Need to go around and remove the extraneous "updatePlayerList" calls we make
+            this.updatePlayerList();
+        });
+        globals.EVENTBUS.addEventListener('game-rendered', (e) => {
+            this.updatePlayerList();
+        });
         globals.EVENTBUS.addEventListener('opened-ryans-backend-main-hole', (e) => {
             // console.log('opened')
         });
@@ -63,53 +70,55 @@ export class MultiplayerHost extends HTMLElement {
         globals.EVENTBUS.addEventListener('user-spawns', (e) => {
             console.log('USER IS SPAWNING', e);
             let user_spawned = false;
-            let s_to_p_id = 0;
-            // TODO: SPIRO CLEAN THIS UP YOU HOSER
-            // ALSO SEND CHAT MAPLE SYRUP TO APOLOGIZE, EH?
-            let entities = wasm.game_getEntitiesLength();
-            for (var i = 0; i < entities; ++i) {
-                let entity_id = wasm.game_getEntityIdByIndex(i);
-                let entity_type = wasm.game_getEntityTypeByIndex(i);
-                if (entity_type === 1 || entity_type === 3) {
-                    let taken = false;
-                    for (let s_to_p = 0; s_to_p < this.ships_to_players.length; ++s_to_p) {
-                        if (this.ships_to_players[s_to_p] !== null) {
-                            if (this.ships_to_players[s_to_p].wasm_entity_id === entity_id) {
-                                taken = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (!taken) {
-                        for (let s_to_p = 0; s_to_p < this.ships_to_players.length; ++s_to_p) {
-                            if (this.ships_to_players[s_to_p] === null) {
-                                user_spawned = true;
-                                s_to_p_id = s_to_p;
-                                this.ships_to_players[s_to_p] = {username: e.data.user, role: e.data.role, wasm_entity_id: entity_id};
-                                // TODO: Pull from default value within WASM instead of magic number-ing
-                                wasm.game_entitySetHealth(entity_id, 10);
-                                break;
-                            }
-                        }
-                        break;
-                    }
+            let user_exists = false;
+            for (var i = 0; i < this.ships_to_players.length; ++i) {
+                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.data.user) {
+                    user_exists = true;
+                    break;
                 }
             }
+            if (!user_exists) {
+                let s_to_p_id = 0;
+                // TODO: SPIRO CLEAN THIS UP YOU HOSER
+                // ALSO SEND CHAT MAPLE SYRUP TO APOLOGIZE, EH?
+                let entities = wasm.game_getEntitiesLength();
+                for (var i = 0; i < entities; ++i) {
+                    let entity_id = wasm.game_getEntityIdByIndex(i);
+                    let entity_type = wasm.game_getEntityTypeByIndex(i);
+                    if (entity_type === 1 || entity_type === 3) {
+                        let taken = false;
+                        for (let s_to_p = 0; s_to_p < this.ships_to_players.length; ++s_to_p) {
+                            if (this.ships_to_players[s_to_p] !== null) {
+                                if (this.ships_to_players[s_to_p].wasm_entity_id === entity_id) {
+                                    taken = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!taken) {
+                            for (let s_to_p = 0; s_to_p < this.ships_to_players.length; ++s_to_p) {
+                                if (this.ships_to_players[s_to_p] === null) {
+                                    user_spawned = true;
+                                    s_to_p_id = s_to_p;
+                                    this.ships_to_players[s_to_p] = {username: e.data.user, role: e.data.role, wasm_entity_id: entity_id};
+                                    // TODO: Pull from default value within WASM instead of magic number-ing
+                                    wasm.game_entitySetHealth(entity_id, 10);
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
 
-            this.updatePlayerList();
+                this.updatePlayerList();
 
-            if (user_spawned) {
-                this.broadcastGameState(e.data.user);
-                RyansBackendMainHole.ws.send(JSON.stringify({
-                    "broadcast": {"payload": {
-                        "user_spawned": e.data.user,
-                        "s_to_p_id": s_to_p_id,
-                        "data": this.ships_to_players,
-                    }}
-                }));
+                if (user_spawned) {
+                    this.broadcastGameState();
+                }
+
+                console.log(this.ships_to_players);
             }
-
-            console.log(this.ships_to_players);
         });
         globals.EVENTBUS.addEventListener('user-despawns', (e) => {
             console.log('User wants to despawn');
@@ -122,17 +131,10 @@ export class MultiplayerHost extends HTMLElement {
                 }
             }
 
-            this.updatePlayerList();
-
             if (user_despawned) {
-                RyansBackendMainHole.ws.send(JSON.stringify({
-                    "broadcast": {"payload": {
-                        "user_despawned": e.data.user,
-                        "s_to_p_id": s_to_p_id,
-                        "data": this.ships_to_players,
-                    }}
-                }));
+                this.broadcastGameState();
             }
+            this.updatePlayerList();
         });
         globals.EVENTBUS.addEventListener('user-moves-left', (e) => {
             console.log('User wants to move left');
@@ -144,6 +146,7 @@ export class MultiplayerHost extends HTMLElement {
                 }
             }
             this.broadcastGameState();
+            this.updatePlayerList();
         });
         globals.EVENTBUS.addEventListener('user-moves-right', (e) => {
             console.log('User wants to move right');
@@ -155,6 +158,7 @@ export class MultiplayerHost extends HTMLElement {
                 }
             }
             this.broadcastGameState();
+            this.updatePlayerList();
         });
         globals.EVENTBUS.addEventListener('user-moves-up', (e) => {
             console.log('User wants to move up');
@@ -166,6 +170,7 @@ export class MultiplayerHost extends HTMLElement {
                 }
             }
             this.broadcastGameState();
+            this.updatePlayerList();
         });
         globals.EVENTBUS.addEventListener('user-moves-down', (e) => {
             console.log('User wants to move down');
@@ -177,23 +182,19 @@ export class MultiplayerHost extends HTMLElement {
                 }
             }
             this.broadcastGameState();
+            this.updatePlayerList();
         });
         globals.EVENTBUS.addEventListener('user-attacks', (e) => {
             console.log('User wants to attack');
-            var health = [null, null, null, null, null];
             for (var i = 0; i < this.ships_to_players.length; ++i) {
                 if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.data.user) {
-                    health[i] = wasm.game_entityGetHealth(this.ships_to_players[i].wasm_entity_id);
                     console.log('sending message for user attack [' + this.ships_to_players[i].wasm_entity_id + ']');
                     wasm.messages_attack(this.ships_to_players[i].wasm_entity_id, 0);
                     break;
                 }
             }
-            RyansBackendMainHole.ws.send(JSON.stringify({
-                "broadcast": {"payload": {
-                    "update_health": health,
-                }}
-            }));
+            this.broadcastGameState();
+            this.updatePlayerList();
         });
 
 
@@ -269,9 +270,10 @@ export class MultiplayerHost extends HTMLElement {
             if (this.ships_to_players[i] !== null) {
                 var color = this.ships_to_players_colors[i];
                 var entity_id = this.ships_to_players[i].wasm_entity_id;
-                game_component.shadowRoot.querySelector('[entity_id="' + entity_id + '"]').setBorder(color);
-                players_element.innerHTML += '<span style="color:' + color + ';">';
-                players_element.innerHTML += this.ships_to_players[i].username + '</span><br />';
+                // TODO: Pull this from wasm instead of magic numbers
+                var entity_layer = 2;
+                game_component.shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]').setBorder(color);
+                players_element.innerHTML += '<span style="color:' + color + ';">' + this.ships_to_players[i].username + '</span><br />';
             }
         }
     }

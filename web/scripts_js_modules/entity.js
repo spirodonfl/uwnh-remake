@@ -29,6 +29,7 @@ export class Entity extends HTMLElement {
     setLayer(layer) {
         this.layer = layer;
         this.style.zIndex = layer;
+        this.setAttribute('layer', layer);
     }
     setEntityId(id) {
         this.entity_id = id;
