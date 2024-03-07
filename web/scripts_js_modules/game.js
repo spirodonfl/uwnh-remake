@@ -384,12 +384,14 @@ export class Game extends HTMLElement {
     }
 
     watchResize() {
-        console.log('watching resize');
-        const resizeObserver = new ResizeObserver((entries) => {
+        // TODO: When you enable resize observer you get... all kinds of weird stuff.
+        // Might need to implement a manual process, unfortunately.
+        // console.log('watching resize');
+        // const resizeObserver = new ResizeObserver((entries) => {
             // console.log('resize observed');
-            const entry = entries[0];
+            // const entry = entries[0];
             // console.log(entry.contentRect);
-            this.sizeView(entry.contentRect.width, entry.contentRect.height);
+            this.sizeView();
             wasm.viewport_setSize(this.width, this.height);
             wasm.game_loadWorld(wasm.game_getCurrentWorldIndex());
             // Dispatch an event to let the editor know the
@@ -406,8 +408,8 @@ export class Game extends HTMLElement {
                 }
             ]);
             this.renderGame();
-        });
-        resizeObserver.observe(document.body);
+        // });
+        // resizeObserver.observe(document.body);
     }
 
     loaded(e) {
@@ -510,26 +512,25 @@ export class Game extends HTMLElement {
         editorDownload(entity_data_as_blob, 'entity_' + (entity_id - 1) + '.bin');
     }
 
-    sizeView (full_width, full_height) {
-        console.log('sizing view');
+    sizeView () {
         // Full height, including the scroll part
-        // const full_height = Math.max(
-        //     // document.body.scrollHeight,
-        //     // document.documentElement.scrollHeight,
-        //     // document.body.offsetHeight,
-        //     // document.documentElement.offsetHeight,
-        //     document.body.clientHeight,
-        //     // document.documentElement.clientHeight
-        // );
-        // // Full width, including the scroll part
-        // const full_width = Math.max(
-        //     // document.body.scrollWidth,
-        //     // document.documentElement.scrollWidth,
-        //     // document.body.offsetWidth,
-        //     // document.documentElement.offsetWidth,
-        //     document.body.clientWidth,
-        //     // document.documentElement.clientWidth
-        // );
+        var full_height = Math.max(
+            // document.body.scrollHeight,
+            // document.documentElement.scrollHeight,
+            // document.body.offsetHeight,
+            // document.documentElement.offsetHeight,
+            document.body.clientHeight,
+            // document.documentElement.clientHeight
+        );
+        // Full width, including the scroll part
+        var full_width = Math.max(
+            // document.body.scrollWidth,
+            // document.documentElement.scrollWidth,
+            // document.body.offsetWidth,
+            // document.documentElement.offsetWidth,
+            document.body.clientWidth,
+            // document.documentElement.clientWidth
+        );
 
         const root = document.documentElement;
         root.style.setProperty('--scale', globals.SCALE);
