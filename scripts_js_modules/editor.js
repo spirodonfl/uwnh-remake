@@ -429,6 +429,17 @@ export class Editor extends HTMLElement {
         this.renderViewportData();
     }
 
+    __tests(which) {
+        switch (which) {
+            case 'extractWorldLayerData':
+                let start = wasm.editor_getWorldLayerMemoryLocation(0, 2);
+                let end = wasm.editor_getWorldLayerMemoryLength(0, 2);
+                let memory = extractMemory(start, end);
+                console.log(memory);
+            break;
+        }
+    }
+
     render() {
         this.shadowRoot.innerHTML = `
             ${globalStyles}
