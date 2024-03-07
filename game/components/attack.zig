@@ -17,16 +17,24 @@ pub const ComponentAttack = struct {
                     var target_entity = game.entities_list.at(target_entity_index - 1);
                     var in_position: bool = false;
                     if (target_entity.position[0] == self.parent.position[0]) {
+                        var above = self.parent.position[1];
+                        if (above > 0) {
+                            above -= 1;
+                        }
                         if (
                             target_entity.position[1] == self.parent.position[1] + 1
-                            or target_entity.position[1] == self.parent.position[1] - 1
+                            or target_entity.position[1] == above
                         ) {
                             in_position = true;
                         }
                     } else if (target_entity.position[1] == self.parent.position[1]) {
+                        var left = self.parent.position[0];
+                        if (left > 0) {
+                            left -= 1;
+                        }
                         if (
                             target_entity.position[0] == self.parent.position[0] + 1
-                            or target_entity.position[0] == self.parent.position[0] - 1
+                            or target_entity.position[0] == left
                         ) {
                             in_position = true;
                         }
@@ -41,8 +49,8 @@ pub const ComponentAttack = struct {
 
                         if (target_entity.health.current_value == 0) {
                             try diff.addData(69);
-                            try diff.addData(target_entity.getId());
                             try diff.addData(self.entity_id);
+                            try diff.addData(target_entity.getId());
                         }
                     }
                 }

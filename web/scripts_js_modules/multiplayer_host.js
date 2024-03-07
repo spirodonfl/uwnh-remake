@@ -2,6 +2,7 @@ import { RyansBackendMainHole } from './websocket-ryans-backend-main-hole.js';
 import { globals } from './globals.js';
 import { globalStyles } from "./global-styles.js";
 import { wasm } from './injector_wasm.js';
+import { FRAMES } from './frames.js';
 
 export class MultiplayerHost extends HTMLElement {
     constructor() {
@@ -11,6 +12,7 @@ export class MultiplayerHost extends HTMLElement {
         // TODO: Share in a common module/webcomponent
         this.ships_to_players = [null, null, null, null, null];
         this.ships_to_players_colors = ['#e28383', '#9e9ef9', '#79df79', 'yellow', '#df70df'];
+        this.kraken_enabled = true;
 
         // TODO: Fun fact! Unless you inject the element onto the page
         // (which you don't want to do, in this case, until you need it)
@@ -211,11 +213,69 @@ export class MultiplayerHost extends HTMLElement {
                 }
             }
         });
+
+        // Just in case the kraken is enabled by default
+        if (this.kraken_enabled) {
+            this.enableKraken();
+        }
+        FRAMES.addRunOnFrames(30, false, () => {
+            if (this.kraken_enabled) {
+                let entity_id = 7;
+                let directions = [0, 1, 2, 3];
+                let randomIndex = Math.floor(Math.random() * directions.length);
+                let randomDirection = directions[randomIndex];
+                if (randomDirection === 0) {
+                    wasm.messages_moveLeft(entity_id, 0);
+                } else if (randomDirection === 1) {
+                    wasm.messages_moveRight(entity_id, 0);
+                } else if (randomDirection === 2) {
+                    wasm.messages_moveUp(entity_id, 0);
+                } else if (randomDirection === 3) {
+                    wasm.messages_moveDown(entity_id, 0);
+                }
+                wasm.messages_attack(entity_id, 0);
+                var length = wasm.diff_getLength();
+                for (var l = 0; l < length; ++l) {
+                    var diff = wasm.diff_getData(l);
+                    // TODO: Fix magic number here. This is also on Zig side
+                    if (diff === 69) {
+                        var attacker_entity_id = wasm.diff_getData((l + 1));
+                        var attacker_entity_type = wasm.game_entityGetType(attacker_entity_id);
+                        if (attacker_entity_type == 7) {
+                            var attackee_entity_id = wasm.diff_getData((l + 2));
+                            var health = wasm.game_entityGetHealth(attackee_entity_id);
+                            if (health === 0) {
+                                this.despawnUser(attackee_entity_id);
+                            }
+                        }
+                        l += 2;
+                    }
+                }
+                this.broadcastGameState();
+            }
+        });
     }
 
     disconnectedCallback() {}
     adoptedCallback() {}
     attributeChangedCallback() {}
+
+    // TODO: Damn it we need a common place for this multiplayer stuff
+    enableKraken() {
+        this.kraken_enabled = true;
+        // TODO: Don't rely on magic numbers here!
+        let entity_id = 7;
+        let entity_layer = 2;
+        wasm.game_entityEnableCollision(entity_id);
+        document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]').style.display = 'block';
+    }
+    disableKraken() {
+        this.kraken_enabled = false;
+        let entity_id = 7;
+        let entity_layer = 2;
+        wasm.game_entityDisableCollision(entity_id);
+        document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]').style.display = 'none';
+    }
 
     broadcastGameState(message_user) {
         var positions = [];
@@ -230,6 +290,8 @@ export class MultiplayerHost extends HTMLElement {
                 health.push(null);
             }
         }
+        // TODO: STOP USING MAGIC NUMBERS DAMMIT
+        let kraken_entity_id = 7;
         if (message_user) {
             RyansBackendMainHole.ws.send(JSON.stringify({
                 "send": {
@@ -239,6 +301,9 @@ export class MultiplayerHost extends HTMLElement {
                             "ships_to_players": this.ships_to_players,
                             "positions": positions,
                             "health": health,
+                            "kraken_enabled ": this.kraken_enabled,
+                            "kraken_position": [wasm.game_entityGetPositionX(kraken_entity_id), wasm.game_entityGetPositionY(kraken_entity_id)],
+                            "kraken_health": wasm.game_entityGetHealth(kraken_entity_id),
                         }
                     }
                 }
@@ -251,6 +316,9 @@ export class MultiplayerHost extends HTMLElement {
                             "ships_to_players": this.ships_to_players,
                             "positions": positions,
                             "health": health,
+                            "kraken_enabled ": this.kraken_enabled,
+                            "kraken_position": [wasm.game_entityGetPositionX(kraken_entity_id), wasm.game_entityGetPositionY(kraken_entity_id)],
+                            "kraken_health": wasm.game_entityGetHealth(kraken_entity_id),
                         }
                     }
                 }
@@ -280,8 +348,8 @@ export class MultiplayerHost extends HTMLElement {
 
     incrementLeaderboard(attacker_entity_id, attackee_entity_id) {
         // despawn attackee_entity_id
-        var user = null;
-        for (var p = 0; p < this.ships_to_players.length; ++p) {
+        let user = null;
+        for (let p = 0; p < this.ships_to_players.length; ++p) {
             if (this.ships_to_players[p] !== null && this.ships_to_players[p].wasm_entity_id === attacker_entity_id) {
                 user = this.ships_to_players[p].username;
                 break;
@@ -298,30 +366,24 @@ export class MultiplayerHost extends HTMLElement {
             ));
             RyansBackendMainHole.getLeaderboard();
 
-            user = null;
-            var s_to_p_id = null;
-            var user_despawned = false;
-            for (var p = 0; p < this.ships_to_players.length; ++p) {
-                if (this.ships_to_players[p] !== null && this.ships_to_players[p].wasm_entity_id === attackee_entity_id) {
-                    user = this.ships_to_players[p].username;
-                    s_to_p_id = p;
-                    this.ships_to_players[p] = null;
-                    user_despawned = true;
-                    break;
-                }
-            }
+            this.despawnUser(attackee_entity_id);
+        }
+    }
 
-            this.updatePlayerList();
-
-            if (user_despawned) {
-                RyansBackendMainHole.ws.send(JSON.stringify({
-                    "broadcast": {"payload": {
-                        "user_despawned": user,
-                        "s_to_p_id": s_to_p_id,
-                        "data": this.ships_to_players,
-                    }}
-                }));
+    despawnUser(user_entity_id) {
+        let user_despawned = false;
+        for (let p = 0; p < this.ships_to_players.length; ++p) {
+            if (this.ships_to_players[p] !== null && this.ships_to_players[p].wasm_entity_id === user_entity_id) {
+                this.ships_to_players[p] = null;
+                user_despawned = true;
+                break;
             }
+        }
+
+        this.updatePlayerList();
+
+        if (user_despawned) {
+            this.broadcastGameState();
         }
     }
 

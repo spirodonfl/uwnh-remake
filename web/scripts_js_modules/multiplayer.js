@@ -2,6 +2,7 @@ import { RyansBackendSecondaryHole } from './websocket-ryans-backend-secondary-h
 import { globals } from './globals.js';
 import { globalStyles } from "./global-styles.js";
 import { wasm } from './injector_wasm.js';
+import { FRAMES } from './frames.js';
 
 export class Multiplayer extends HTMLElement {
     constructor() {
@@ -11,6 +12,7 @@ export class Multiplayer extends HTMLElement {
         // TODO: Share in a common module/webcomponent
         this.ships_to_players = [null, null, null, null, null];
         this.ships_to_players_colors = ['#e28383', '#9e9ef9', '#79df79', 'yellow', '#df70df'];
+        this.kraken_enabled = false;
 
         // TODO: Fun fact! Unless you inject the element onto the page
         // (which you don't want to do, in this case, until you need it)
@@ -150,17 +152,8 @@ export class Multiplayer extends HTMLElement {
             } else if (e.data.user_despawned) {
                 this.ships_to_players = e.data.data;
                 this.updatePlayerList();
-            // } else if (e.data.update_health) {
-            //     for (var i = 0; i < e.data.update_health; ++i) {
-            //         if (e.data.update_health[i] !== null && e.data.update_health[i] !== undefined && e.data.update_health[i] > 0) {
-            //             wasm.game_entitySetHealth(this.ships_to_players[i].wasm_entity_id, e.data.update_health[i]);
-            //         } else {
-            //             // TODO: Probably should make sure this user doesn't exist in this.ships_to_players && despawn if they do
-            //         }
-            //     }
             } else if (e.data.game_state) {
                 console.log(e.data.game_state);
-                // TODO: Update ship positions && health && this.ships_to_players with colors
                 this.ships_to_players = e.data.game_state.ships_to_players;
                 for (var i = 0; i < this.ships_to_players.length; ++i) {
                     if (this.ships_to_players[i] !== null) {
@@ -168,12 +161,27 @@ export class Multiplayer extends HTMLElement {
                         wasm.game_entitySetHealth(entity_id, e.data.game_state.health[i]);
                         wasm.game_entitySetPositionX(entity_id, e.data.game_state.positions[i][0]);
                         wasm.game_entitySetPositionY(entity_id, e.data.game_state.positions[i][1]);
+                    } else {
+                        // TODO: take what the entity_id WOULD be (I guess?) and set its collision to false
+                        // also hide it (reverse spawn animation?)
                     }
                 }
+                if (e.data.game_state.kraken_enabled !== this.kraken_enabled) {
+                    if (e.data.game_state.kraken_enabled) {
+                        this.enableKraken();
+                    } else {
+                        this.disableKraken();
+                    }
+                }
+                // TODO: STOP USING MAGIC NUMBERS DAMMIT
+                let kraken_entity_id = 7;
+                wasm.game_entitySetPositionX(kraken_entity_id, e.data.game_state.kraken_position[0]);
+                wasm.game_entitySetPositionY(kraken_entity_id, e.data.game_state.kraken_position[1]);
+                wasm.game_entitySetHealth(kraken_entity_id, e.data.game_state.kraken_health);
             }
             console.log('ships to players', this.ships_to_players);
         });
-        // TODO: Connect to RyansBackendSecondaryHole via twitch I guess
+        // TODO: Potentially add client side twitch auth here
         if (window.USER) {
             RyansBackendSecondaryHole.init(window.USER.login, window.USER.username);
         } else {
@@ -221,6 +229,23 @@ export class Multiplayer extends HTMLElement {
     disconnectedCallback() {}
     adoptedCallback() {}
     attributeChangedCallback() {}
+
+    // TODO: Damn it we need a common place for this multiplayer stuff
+    enableKraken() {
+        this.kraken_enabled = true;
+        // TODO: Don't rely on magic numbers here!
+        let entity_id = 7;
+        let entity_layer = 2;
+        wasm.game_entityEnableCollision(entity_id);
+        document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]').style.display = 'block';
+    }
+    disableKraken() {
+        this.kraken_enabled = false;
+        let entity_id = 7;
+        let entity_layer = 2;
+        wasm.game_entityDisableCollision(entity_id);
+        document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]').style.display = 'none';
+    }
 
     // TODO: This is shared with the multiplayer_host too. Maybe create a common component or something
     updatePlayerList() {

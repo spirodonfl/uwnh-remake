@@ -321,6 +321,7 @@ pub const EntityDataStruct = struct {
     health: ComponentHealth = undefined,
     movement: ComponentMovement = undefined,
     attack: ComponentAttack = undefined,
+    is_collision: bool = false,
     // TODO: Move this to movement component?
     position: [2]u16 = .{ 0, 0 },
     pub fn init(self: *EntityDataStruct) !void {
@@ -344,11 +345,11 @@ pub const EntityDataStruct = struct {
         try self.messages.append(allocator, message);
     }
     pub fn isCollision(self: *EntityDataStruct) bool {
-        if (self.embedded.readData(enums.EntityDataEnum.IsCollision.int(), .Little) == 1) {
-            return true;
-        }
-
-        return false;
+        return self.is_collision;
+        // if (self.embedded.readData(enums.EntityDataEnum.IsCollision.int(), .Little) == 1) {
+        //     return true;
+        // }
+        // return false;
     }
     pub fn getType(self: *EntityDataStruct) u16 {
         return self.embedded.readData(enums.EntityDataEnum.Type.int(), .Little);
@@ -360,6 +361,10 @@ pub const EntityDataStruct = struct {
         return self.embedded.readData(enums.EntityDataEnum.ID.int(), .Little);
     }
     pub fn loadComponents(self: *EntityDataStruct) !void {
+        // I guess "is collision" is kinda a component of sorts
+        if (self.embedded.readData(enums.EntityDataEnum.IsCollision.int(), .Little) == 1) {
+            self.is_collision = true;
+        }
         if (self.embedded.readData(enums.EntityDataEnum.ComponentHealth.int(), .Little) == 1) {
             // std.log.info("health component found", .{});
 
@@ -599,6 +604,24 @@ pub fn entityGetType(entity_id: u16) u16 {
     }
 
     return 0;
+}
+// @wasm
+pub fn entityEnableCollision(entity_id: u16) void {
+    var entity_index = getEntityById(entity_id);
+    if (entity_index == 0) {
+        @panic("Entity not found");
+    }
+    var entity = entities_list.at(entity_index - 1);
+    entity.is_collision = true;
+}
+// @wasm
+pub fn entityDisableCollision(entity_id: u16) void {
+    var entity_index = getEntityById(entity_id);
+    if (entity_index == 0) {
+        @panic("Entity not found");
+    }
+    var entity = entities_list.at(entity_index - 1);
+    entity.is_collision = true;
 }
 // @wasm
 pub fn getEntitiesLength() u16 {

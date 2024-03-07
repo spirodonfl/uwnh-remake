@@ -7,6 +7,7 @@ import '../components/draggable.js';
 import { Multiplayer } from './multiplayer.js';
 import { MultiplayerHost } from './multiplayer_host.js';
 import { globalStyles } from "./global-styles.js";
+import { FRAMES } from './frames.js';
 
 let current_time_stamp = new Date().getTime();
 let previous_time_stamp = 0;
@@ -39,6 +40,7 @@ function tick() {
     if (now - then >= interval - delta) {
         delta = Math.min(interval, delta + now - then - interval);
         then = now;
+        FRAMES.runOnFrames();
         updateStats();
 
         wasm.game_processTick();
@@ -50,10 +52,22 @@ function tick() {
                 // TODO: Fix magic number here. This is also on Zig side
                 if (diff === 69) {
                     var attacker_entity_id = wasm.diff_getData((l + 1));
+                    var attacker_entity_type = wasm.game_entityGetType(attacker_entity_id);
                     var attackee_entity_id = wasm.diff_getData((l + 2));
-                    var multiplayer_host_element = document.querySelector('multiplayer-host-component');
-                    if (multiplayer_host_element) {
-                        multiplayer_host_element.incrementLeaderboard(attacker_entity_id, attackee_entity_id);
+                    // TODO: referencing multiplayer-host-component stuff is weird here. global events maybe?
+                    if (attacker_entity_type < 3) {
+                        var multiplayer_host_element = document.querySelector('multiplayer-host-component');
+                        if (multiplayer_host_element) {
+                            multiplayer_host_element.incrementLeaderboard(attacker_entity_id, attackee_entity_id);
+                        }
+                    } else if (attacker_entity_type == 99) {                        
+                        var health = wasm.game_entityGetHealth(attackee_entity_id);
+                        if (health === 0) {
+                            var multiplayer_host_element = document.querySelector('multiplayer-host-component');
+                            if (multiplayer_host_element) {
+                                multiplayer_host_element.despawnUser(attackee_entity_id);
+                            }
+                        }
                     }
                     l += 2;
                 }

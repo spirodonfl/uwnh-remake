@@ -18,13 +18,13 @@ pub const ComponentMovement = struct {
         }
     }
     pub fn intendedMoveDown(self: *ComponentMovement) u16 {
-        if (self.parent.position[1] < viewport.getSizeHeight() - 1) {
+        if (self.parent.position[1] < game.worlds_list.at(game.current_world_index).getHeight() - 1) {
             return self.parent.position[1] + 1;
         }
         return self.parent.position[1];
     }
     pub fn moveDown(self: *ComponentMovement) void {
-        if (self.parent.position[1] < viewport.getSizeHeight() - 1) {
+        if (self.parent.position[1] < game.worlds_list.at(game.current_world_index).getHeight() - 1) {
             self.parent.position[1] += 1;
         }
     }
@@ -40,13 +40,13 @@ pub const ComponentMovement = struct {
         }
     }
     pub fn intendedMoveRight(self: *ComponentMovement) u16 {
-        if (self.parent.position[0] < viewport.getSizeWidth() - 1) {
+        if (self.parent.position[0] < game.worlds_list.at(game.current_world_index).getWidth() - 1) {
             return self.parent.position[0] + 1;
         }
         return self.parent.position[0];
     }
     pub fn moveRight(self: *ComponentMovement) void {
-        if (self.parent.position[0] < viewport.getSizeWidth() - 1) {
+        if (self.parent.position[0] < game.worlds_list.at(game.current_world_index).getWidth() - 1) {
             self.parent.position[0] += 1;
         }
     }
