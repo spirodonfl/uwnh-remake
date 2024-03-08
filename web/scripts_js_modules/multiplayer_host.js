@@ -428,6 +428,7 @@ export class MultiplayerHost extends HTMLElement {
                             "kraken_enabled": this.kraken_enabled,
                             "kraken_position": [wasm.game_entityGetPositionX(kraken_entity_id), wasm.game_entityGetPositionY(kraken_entity_id)],
                             "kraken_health": wasm.game_entityGetHealth(kraken_entity_id),
+                            "kraken_image": this.current_kraken_image,
                         }
                     }
                 }
