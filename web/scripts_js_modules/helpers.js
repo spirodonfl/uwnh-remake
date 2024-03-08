@@ -62,3 +62,14 @@ export function swapElements(arr, index1, index2) {
         console.log("One or both indices are out of bounds for the given array.");
     }
 }
+
+export function getRandomKey(obj) {
+    // Step 1: Get all the keys of the object
+    var keys = Object.keys(obj);
+    
+    // Step 2: Generate a random index
+    var randomIndex = Math.floor(Math.random() * keys.length);
+    
+    // Step 3: Return the key at the random index
+    return keys[randomIndex];
+}
