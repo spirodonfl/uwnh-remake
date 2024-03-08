@@ -447,7 +447,7 @@ export class MultiplayerHost extends HTMLElement {
             if (this.ships_to_players[i] !== null) {
                 var color = this.ships_to_players_colors[i];
                 var entity_id = this.ships_to_players[i].wasm_entity_id;
-                var entity_layer = was.game_getCurrentWorldEntityLayer();
+                var entity_layer = wasm.game_getCurrentWorldEntityLayer();
                 game_component.shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]').setBorder(color);
                 players_element.innerHTML += '<span style="color:' + color + ';">' + this.ships_to_players[i].username + '</span><br />';
             }

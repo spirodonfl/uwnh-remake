@@ -252,6 +252,7 @@ export class Multiplayer extends HTMLElement {
                 }
                 // TODO: STOP USING MAGIC NUMBERS DAMMIT
                 let kraken_entity_id = 7;
+                let entity_layer = wasm.game_getCurrentWorldEntityLayer();
                 wasm.game_entitySetPositionX(kraken_entity_id, e.data.game_state.kraken_position[0]);
                 wasm.game_entitySetPositionY(kraken_entity_id, e.data.game_state.kraken_position[1]);
                 wasm.game_entitySetHealth(kraken_entity_id, e.data.game_state.kraken_health);
