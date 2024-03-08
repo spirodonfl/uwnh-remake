@@ -61,19 +61,15 @@ export class Entity extends HTMLElement {
         this.animation_frame = 0;
     }
     updateAnimationFrame() {
-        // TODO: Dont use magic numbers here you dummy
         ++this.animation_frame;
-        if (this.animation_frame >= 7) {
+        if (this.animation_frame >= this.getImageCoordsFrames(this.layer, this.entity_id)) {
             this.animation_frame = 0;
         }
 
-        // TODO: update the background position based on whater bg x,y coords here
-        var image_frame_coords = this.getImageCoords(this.layer, this.entity_id, 0);
+        let image_frame_coords = this.getImageCoords(this.layer, this.entity_id, this.animation_frame);
         if (image_frame_coords !== null && image_frame_coords !== undefined) {
             let x = image_frame_coords[0];
             let y = image_frame_coords[1];
-            // TODO: Remove this hack
-            x += (this.animation_frame * 64);
             this.style.backgroundPosition = '-' + x + 'px -' + y + 'px';
         }
     }
@@ -113,6 +109,20 @@ export class Entity extends HTMLElement {
             return null;
         }
         return globals.IMAGE_DATA[current_world_index][layer][id][frame];
+        // TODO: Real entities (npcs and characters and other "moving" things should have a default image)
+    }
+    getImageCoordsFrames(layer, id) {
+        var current_world_index = _GAME.game_getCurrentWorldIndex();
+        if (!globals.IMAGE_DATA[current_world_index]) {
+            return null;
+        }
+        if (!globals.IMAGE_DATA[current_world_index][layer]) {
+            return null;
+        }
+        if (!globals.IMAGE_DATA[current_world_index][layer][id]) {
+            return null;
+        }
+        return Object.keys(globals.IMAGE_DATA[current_world_index][layer][id]).length;
         // TODO: Real entities (npcs and characters and other "moving" things should have a default image)
     }
 
