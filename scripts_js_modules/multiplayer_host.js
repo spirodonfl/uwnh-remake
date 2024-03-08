@@ -1,8 +1,9 @@
 import { RyansBackendMainHole } from './websocket-ryans-backend-main-hole.js';
-import { globals } from './globals.js';
+import { globals, possibleKrakenImages } from './globals.js';
 import { globalStyles } from "./global-styles.js";
 import { wasm } from './injector_wasm.js';
 import { FRAMES } from './frames.js';
+import { getRandomKey } from './helpers.js';
 
 export class MultiplayerHost extends HTMLElement {
     constructor() {
@@ -12,7 +13,8 @@ export class MultiplayerHost extends HTMLElement {
         // TODO: Share in a common module/webcomponent
         this.ships_to_players = [null, null, null, null, null];
         this.ships_to_players_colors = ['#e28383', '#9e9ef9', '#79df79', 'yellow', '#df70df'];
-        this.kraken_enabled = true;
+        this.kraken_enabled = false;
+        this.current_kraken_image = 'squid';
 
         // TODO: Fun fact! Unless you inject the element onto the page
         // (which you don't want to do, in this case, until you need it)
@@ -275,6 +277,7 @@ export class MultiplayerHost extends HTMLElement {
             this.togglePlayerList();
         });
         this.shadowRoot.getElementById('enable_kraken').addEventListener('click', () => {
+            this.randomizeKraken();
             this.enableKraken();
             this.broadcastGameState();
         });
@@ -282,11 +285,27 @@ export class MultiplayerHost extends HTMLElement {
             this.disableKraken();
             this.broadcastGameState();
         });
+        this.shadowRoot.getElementById('set_kraken_health').addEventListener('click', () => {
+            let kraken_entity_id = 7;
+            let health = this.shadowRoot.getElementById('kraken_health').value;
+            wasm.game_entitySetHealth(kraken_entity_id, health);
+            this.broadcastGameState();
+        });
+        this.shadowRoot.getElementById('set_kraken_image').addEventListener('click', () => {
+            let kraken_entity_id = 7;
+            let image = this.shadowRoot.getElementById('kraken_image').value;
+            if (possibleKrakenImages[image]) {
+                this.current_kraken_image = image;
+                let entity_layer = wasm.game_getCurrentWorldEntityLayer();
+                let image_data = globals.IMAGE_DATA[0][entity_layer][kraken_entity_id];
+                if (image_data) {
+                    image_data[0][0] = possibleKrakenImages[image].x * 64;
+                    image_data[0][1] = possibleKrakenImages[image].y * 64;
+                }
+                this.broadcastGameState();
+            }
+        });
 
-        // Just in case the kraken is enabled by default
-        if (this.kraken_enabled) {
-            this.enableKraken();
-        }
         FRAMES.addRunOnFrames(30, false, () => {
             if (this.kraken_enabled) {
                 let entity_id = 7;
@@ -329,15 +348,28 @@ export class MultiplayerHost extends HTMLElement {
     adoptedCallback() {}
     attributeChangedCallback() {}
 
+    randomizeKraken() {
+        let kraken_entity_id = 7;
+        let entity_layer = wasm.game_getCurrentWorldEntityLayer();
+        let random_kraken_image = getRandomKey(possibleKrakenImages);
+        this.current_kraken_image = random_kraken_image;
+        let image_data = globals.IMAGE_DATA[0][entity_layer][kraken_entity_id];
+        if (image_data) {
+            image_data[0][0] = possibleKrakenImages[random_kraken_image].x * 64;
+            image_data[0][1] = possibleKrakenImages[random_kraken_image].y * 64;
+        }
+    }
     // TODO: Damn it we need a common place for this multiplayer stuff
     enableKraken() {
         this.kraken_enabled = true;
         // TODO: Don't rely on magic numbers here!
-        let entity_id = 7;
+        let kraken_entity_id = 7;
         let entity_layer = wasm.game_getCurrentWorldEntityLayer();
-        wasm.game_entitySetHealth(entity_id, 44);
-        wasm.game_entityEnableCollision(entity_id);
-        var kraken_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
+        if (wasm.game_entityGetHealth(kraken_entity_id) === 0) {
+            wasm.game_entitySetHealth(kraken_entity_id, 44);
+        }
+        wasm.game_entityEnableCollision(kraken_entity_id);
+        var kraken_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + kraken_entity_id + '"][layer="' + entity_layer + '"]');
         if (kraken_element) {
             kraken_element.style.display = 'block';
         }
@@ -380,6 +412,7 @@ export class MultiplayerHost extends HTMLElement {
                             "kraken_enabled": this.kraken_enabled,
                             "kraken_position": [wasm.game_entityGetPositionX(kraken_entity_id), wasm.game_entityGetPositionY(kraken_entity_id)],
                             "kraken_health": wasm.game_entityGetHealth(kraken_entity_id),
+                            "kraken_image": this.current_kraken_image,
                         }
                     }
                 }
@@ -516,6 +549,10 @@ export class MultiplayerHost extends HTMLElement {
                     <input type="button" id="toggle_player_list" value="Toggle Player List" />
                     <input type="button" id="enable_kraken" value="Enable Kraken" />
                     <input type="button" id="disable_kraken" value="Disable Kraken" />
+                    <input type="text" id="kraken_image" value="${this.current_kraken_image}" />
+                    <input type="button" id="set_kraken_image" value="Set Kraken Image" />
+                    <input type="text" id="kraken_health" value="44" />
+                    <input type="button" id="set_kraken_health" value="Set Kraken Health" />
                 </div>
             </x-draggable>
         `;

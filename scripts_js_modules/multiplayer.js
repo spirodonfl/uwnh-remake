@@ -1,5 +1,5 @@
 import { RyansBackendSecondaryHole } from './websocket-ryans-backend-secondary-hole.js';
-import { globals } from './globals.js';
+import { globals, possibleKrakenImages } from './globals.js';
 import { globalStyles } from "./global-styles.js";
 import { wasm } from './injector_wasm.js';
 import { FRAMES } from './frames.js';
@@ -490,10 +490,6 @@ export class Multiplayer extends HTMLElement {
                     <input type="button" id="down" value="Move Down" />
                     <input type="button" id="left" value="Move Left" />
                     <input type="button" id="right" value="Move Right" />
-
-                    <input type="button" id="enable_kraken">Enable Kraken</input>
-                    <input type="button" id="disable_kraken">Disable Kraken</input>
-                    <input type="button" id="reset">Reset</input>
                 </div>
             </x-draggable>
             <x-draggable name="player-list" id="player-list" class="hidden">
