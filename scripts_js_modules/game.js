@@ -333,6 +333,17 @@ export class Game extends HTMLElement {
                 }
             }
         });
+
+        // TODO: Remove this hack
+        this.layer_zero_rendered = false;
+        FRAMES.addRunOnFrames(10, false, () => {
+            let entity_components = this.shadowRoot.querySelectorAll('entity-component');
+            for (let e = 0; e < entity_components.length; ++e) {
+                if (entity_components[e].auto_animate) {
+                    entity_components[e].updateAnimationFrame();
+                }
+            }
+        });
     }
 
     loadJsonFile(file_path, callback) {
@@ -364,6 +375,8 @@ export class Game extends HTMLElement {
         // TODO: Be smart. Only remove components you need and update existing ones
         var entity_components = this.shadowRoot.getElementById('view').querySelectorAll('entity-component');
         for (var i = 0; i < entity_components.length; ++i) {
+            // TODO: Remove this hack
+            if (entity_components[i].layer === 0) { continue; }
             entity_components[i].remove();
         }
         var y = 0;
@@ -376,6 +389,8 @@ export class Game extends HTMLElement {
             if (wasm.viewport_getData(viewport_x, viewport_y)) {
                 var total_layers = wasm.game_getCurrentWorldTotalLayers();
                 for (var layer = 0; layer < total_layers; ++layer) {
+                    // TODO: Remove this hack
+                    if (layer === 0 && this.layer_zero_rendered === true) { continue; }
                     if (layer === wasm.game_getCurrentWorldCollisionLayer()) { continue; }
                     if (layer === wasm.game_getCurrentWorldEntityLayer()) {
                         // TODO: Deal with entities properly here
@@ -397,12 +412,17 @@ export class Game extends HTMLElement {
                             new_entity.setViewportXY(viewport_x, viewport_y);
                             new_entity.setLayer(layer);
                             new_entity.setEntityId(tile_id);
+                            if (layer === 0) {
+                                new_entity.setAnimationProperties();
+                            }
                             this.shadowRoot.getElementById('view').appendChild(new_entity);
                         }
                     }
                 }
             }
         }
+        // TODO: Remove this hack
+        this.layer_zero_rendered = true;
         globals.EVENTBUS.triggerEvent('game-rendered', []);
     }
 

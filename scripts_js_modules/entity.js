@@ -8,6 +8,9 @@ export class Entity extends HTMLElement {
         this.entity_id = null;
         this.health = null;
         this.type = null;
+        this.auto_animate = null;
+        this.animation_frame = null;
+        this.layer = null;
         this.attachShadow({mode: 'open'});
     }
 
@@ -52,6 +55,27 @@ export class Entity extends HTMLElement {
     setViewportY(value) {
         this.viewport_y = value;
         this.top = (this.viewport_y * (globals.SIZE * globals.SCALE));
+    }
+    setAnimationProperties() {
+        this.auto_animate = 1;
+        this.animation_frame = 0;
+    }
+    updateAnimationFrame() {
+        // TODO: Dont use magic numbers here you dummy
+        ++this.animation_frame;
+        if (this.animation_frame >= 7) {
+            this.animation_frame = 0;
+        }
+
+        // TODO: update the background position based on whater bg x,y coords here
+        var image_frame_coords = this.getImageCoords(this.layer, this.entity_id, 0);
+        if (image_frame_coords !== null && image_frame_coords !== undefined) {
+            let x = image_frame_coords[0];
+            let y = image_frame_coords[1];
+            // TODO: Remove this hack
+            x += (this.animation_frame * 64);
+            this.style.backgroundPosition = '-' + x + 'px -' + y + 'px';
+        }
     }
 
     connectedCallback() {
