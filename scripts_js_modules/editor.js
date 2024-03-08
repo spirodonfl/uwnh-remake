@@ -2,7 +2,7 @@ import { wasm } from './injector_wasm.js';
 import '../components/draggable.js';
 import { globals } from './globals.js';
 import { globalStyles } from './global-styles.js';
-import { addEventListenerWithRemoval } from './helpers.js';
+import { addEventListenerWithRemoval, removeAndReorder } from './helpers.js';
 
 export class Editor extends HTMLElement {
     constructor() {
@@ -253,10 +253,10 @@ export class Editor extends HTMLElement {
             // TODO: What about animations?
             let current_world_index = wasm.game_getCurrentWorldIndex();
             if (!globals.IMAGE_DATA[current_world_index]) {
-                globals.IMAGE_DATA[current_world_index] = {};
+                globals.IMAGE_DATA[current_world_index] = [];
             }
             if (!globals.IMAGE_DATA[current_world_index][layer_id]) {
-                globals.IMAGE_DATA[current_world_index][layer_id] = {};
+                globals.IMAGE_DATA[current_world_index][layer_id] = [];
             }
             globals.IMAGE_DATA[current_world_index][layer_id][data_id] = [
                 // TODO: Actually only store the x/y coords, not the translated
@@ -409,7 +409,7 @@ export class Editor extends HTMLElement {
                             remove_frame.setAttribute('frame-id', f);
                             remove_frame.removeListener = addEventListenerWithRemoval(remove_frame, 'click', (e) => {
                                 let frame_id = parseInt(e.target.getAttribute('frame-id'));
-                                this.last_image_data = removeAndReorder(this.last_image_data, frame_id);
+                                this.last_image_data.splice(frame_id, 1);
                                 this.shadowRoot.getElementById('total_frames').innerHTML = 'Total Frames: ' + Object.keys(this.last_image_data).length;
                                 this.extractImageFromData();
                             });
@@ -470,7 +470,7 @@ export class Editor extends HTMLElement {
             remove_frame.removeListener = addEventListenerWithRemoval(remove_frame, 'click', (e) => {
                 // TODO: DRY
                 let frame_id = parseInt(e.target.getAttribute('frame-id'));
-                this.last_image_data = removeAndReorder(this.last_image_data, frame_id);
+                this.last_image_data.splice(frame_id, 1);
                 this.shadowRoot.getElementById('total_frames').innerHTML = 'Total Frames: ' + Object.keys(this.last_image_data).length;
                 this.extractImageFromData();
             });

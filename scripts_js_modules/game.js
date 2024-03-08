@@ -110,6 +110,9 @@ window.memoryToBin = function (memory_start, memory_length, file_name) {
 window.generateBlob = function (data) {
     return new Blob([new Uint16Array(data)], {type: 'application/octet-stream'});
 };
+window.generateBlobFromJsonString = function (data) {
+    return new Blob([data], {type: 'application/json'});
+};
 window.editorDownload = function (data, file_name) {
     const link = document.createElement('a');
     const url = URL.createObjectURL(data);
