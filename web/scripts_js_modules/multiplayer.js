@@ -288,11 +288,11 @@ export class Multiplayer extends HTMLElement {
 
     // TODO: This is shared with the multiplayer_host too. Maybe create a common component or something
     updatePlayerList() {
-        var players_element = this.shadowRoot.getElementById('players');
+        let players_element = this.shadowRoot.getElementById('players');
         players_element.innerHTML = '';
-        var game_component = document.querySelector('game-component');
-        var entity_components = game_component.shadowRoot.querySelector('entity-component');
-        if (entity_components.length > 0) {
+        let game_component = document.querySelector('game-component');
+        let entity_components = game_component.shadowRoot.querySelector('entity-component');
+        if (entity_components && entity_components.length > 0) {
             for (var e = 0; e < entity_components.length; ++e) {
                 entity_components[e].clearBorder();
             }
