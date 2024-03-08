@@ -16,6 +16,8 @@ export class Entity extends HTMLElement {
 
     setBorder(color) {
         this.style.border = `4px solid ${color}`;
+        // TODO: Should move this to its own function and its really only for multiplayer anyways
+        this.style.backgroundColor = `${color}50`;
     }
     clearBorder() {
         this.style.border = 'none';
@@ -126,6 +128,32 @@ export class Entity extends HTMLElement {
         // TODO: Real entities (npcs and characters and other "moving" things should have a default image)
     }
 
+    hideRanges() {
+        this.shadowRoot.querySelectorAll('.range').forEach(range => {
+            range.classList.add('hidden');
+        });
+    }
+    showRangeLeft() {
+        this.hideRanges();
+        this.shadowRoot.getElementById('range_left').classList.remove('hidden');
+        this.shadowRoot.getElementById('range_left_2').classList.remove('hidden');
+    }
+    showRangeRight() {
+        this.hideRanges();
+        this.shadowRoot.getElementById('range_right').classList.remove('hidden');
+        this.shadowRoot.getElementById('range_right_2').classList.remove('hidden');
+    }
+    showRangeUp() {
+        this.hideRanges();
+        this.shadowRoot.getElementById('range_up').classList.remove('hidden');
+        this.shadowRoot.getElementById('range_up_2').classList.remove('hidden');
+    }
+    showRangeDown() {
+        this.hideRanges();
+        this.shadowRoot.getElementById('range_down').classList.remove('hidden');
+        this.shadowRoot.getElementById('range_down_2').classList.remove('hidden');
+    }
+
     render() {
         var image_frame_coords = this.getImageCoords(this.layer, this.entity_id, 0);
         if (image_frame_coords !== null && image_frame_coords !== undefined) {
@@ -148,8 +176,26 @@ export class Entity extends HTMLElement {
                 bottom: 0px;
                 left: 0px;
             }
+            .range {
+                border: 2px solid red;
+                width: 64px;
+                height: 64px;
+                position: absolute;
+            }
             </style>
             <div id="health_value" class="text-shadow"></div>
+
+            <div id="range_left" class="range hidden" style="left: -64px;"></div>
+            <div id="range_left_2" class="range hidden" style="left: -128px;"></div>
+
+            <div id="range_right" class="range hidden" style="right: -64px;"></div>
+            <div id="range_right_2" class="range hidden" style="right: -128px;"></div>
+
+            <div id="range_up" class="range hidden" style="top: -64px;"></div>
+            <div id="range_up_2" class="range hidden" style="top: -128px;"></div>
+
+            <div id="range_down" class="range hidden" style="bottom: -64px;"></div>
+            <div id="range_down_2" class="range hidden" style="bottom: -128px;"></div>
         `;
     }
 }

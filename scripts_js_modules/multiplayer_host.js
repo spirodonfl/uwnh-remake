@@ -52,6 +52,50 @@ export class MultiplayerHost extends HTMLElement {
                     this.togglePlayerList();
                 }
             },
+            {
+                description: 'Move camera up',
+                context: globals.MODES.indexOf('MULTIPLAYER_HOST'),
+                code: 'ArrowUp',
+                friendlyCode: '↑',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    document.querySelector('game-component').moveCameraUp();
+                }
+            },
+            {
+                description: 'Move camera down',
+                context: globals.MODES.indexOf('MULTIPLAYER_HOST'),
+                code: 'ArrowDown',
+                friendlyCode: '↓',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    document.querySelector('game-component').moveCameraDown();
+                }
+            },
+            {
+                description: 'Move camera left',
+                context: globals.MODES.indexOf('MULTIPLAYER_HOST'),
+                code: 'ArrowLeft',
+                friendlyCode: '←',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    document.querySelector('game-component').moveCameraLeft();
+                }
+            },
+            {
+                description: 'Move camera right',
+                context: globals.MODES.indexOf('MULTIPLAYER_HOST'),
+                code: 'ArrowRight',
+                friendlyCode: '→',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    document.querySelector('game-component').moveCameraRight();
+                }
+            },
         ];
     }
 
@@ -69,6 +113,8 @@ export class MultiplayerHost extends HTMLElement {
             } else if (this.kraken_enabled === true) {
                 this.enableKraken();
             }
+            this.broadcastGameState();
+            this.updatePlayerList();
         });
         globals.EVENTBUS.addEventListener('opened-ryans-backend-main-hole', (e) => {
             // console.log('opened')
@@ -163,8 +209,6 @@ export class MultiplayerHost extends HTMLElement {
                     break;
                 }
             }
-            this.broadcastGameState();
-            this.updatePlayerList();
         });
         globals.EVENTBUS.addEventListener('user-moves-right', (e) => {
             console.log('User wants to move right');
@@ -187,8 +231,6 @@ export class MultiplayerHost extends HTMLElement {
                     break;
                 }
             }
-            this.broadcastGameState();
-            this.updatePlayerList();
         });
         globals.EVENTBUS.addEventListener('user-moves-down', (e) => {
             console.log('User wants to move down');
@@ -199,8 +241,6 @@ export class MultiplayerHost extends HTMLElement {
                     break;
                 }
             }
-            this.broadcastGameState();
-            this.updatePlayerList();
         });
         globals.EVENTBUS.addEventListener('user-attacks', (e) => {
             console.log('User wants to attack');
@@ -211,8 +251,6 @@ export class MultiplayerHost extends HTMLElement {
                     break;
                 }
             }
-            this.broadcastGameState();
-            this.updatePlayerList();
         });
 
 
@@ -296,7 +334,8 @@ export class MultiplayerHost extends HTMLElement {
         this.kraken_enabled = true;
         // TODO: Don't rely on magic numbers here!
         let entity_id = 7;
-        let entity_layer = 2;
+        let entity_layer = wasm.game_getCurrentWorldEntityLayer();
+        wasm.game_entitySetHealth(entity_id, 44);
         wasm.game_entityEnableCollision(entity_id);
         var kraken_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
         if (kraken_element) {
@@ -306,7 +345,7 @@ export class MultiplayerHost extends HTMLElement {
     disableKraken() {
         this.kraken_enabled = false;
         let entity_id = 7;
-        let entity_layer = 2;
+        let entity_layer = wasm.game_getCurrentWorldEntityLayer();
         wasm.game_entityDisableCollision(entity_id);
         var kraken_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
         if (kraken_element) {
