@@ -58,5 +58,21 @@ export const globalStyles = `
     .text-shadow {
         text-shadow: 0px 0px 4px black, 0px 0px 4px black, 0px 0px 4px black, 0px 0px 4px black, 0px 0px 4px black, 0px 0px 4px black;
     }
+    .auto-cols {
+        display: grid;
+        grid-auto-flow: column;
+        align-items: center;
+    }
+    .small-button {
+        cursor: pointer;
+        padding: 0.5em;
+        margin: 0.5em;
+        border: 2px solid rgb(158 158 158);
+        background-color: transparent;
+        color: white;
+        border-radius: 4px;
+        text-align: center;
+        text-transform: uppercase;
+    }
     </style>
 `;

@@ -106,6 +106,33 @@ pub const WorldDataStruct = struct {
     embedded_layers: std.ArrayListUnmanaged(EmbeddedDataStruct) = .{},
     entities_list: std.ArrayListUnmanaged(u16) = .{},
     entities_initialized: bool = false,
+    pub fn getTotalLayers(self: *WorldDataStruct) usize {
+        return self.embedded_layers.items.len;
+    }
+    pub fn getCollisionLayer(self: *WorldDataStruct) u16 {
+        return self.readData(enums.WorldDataEnum.CollisionLayer.int());
+    }
+    pub fn getEntityLayer(self: *WorldDataStruct) u16 {
+        return self.readData(enums.WorldDataEnum.EntityLayer.int());
+    }
+    pub fn setTotalLayers(self: *WorldDataStruct, total_layers: u16) !void {
+        if (self.embedded_data.raw_data.items.len == 0) {
+            try self.embedded_data.readToRawData();
+        }
+        self.embedded_data.raw_data.items[enums.WorldDataEnum.TotalLayers.int()] = total_layers;
+    }
+    pub fn setEntityLayer(self: *WorldDataStruct, entity_layer: u16) !void {
+        if (self.embedded_data.raw_data.items.len == 0) {
+            try self.embedded_data.readToRawData();
+        }
+        self.embedded_data.raw_data.items[enums.WorldDataEnum.EntityLayer.int()] = entity_layer;
+    }
+    pub fn setCollisionLayer(self: *WorldDataStruct, collision_layer: u16) !void {
+        if (self.embedded_data.raw_data.items.len == 0) {
+            try self.embedded_data.readToRawData();
+        }
+        self.embedded_data.raw_data.items[enums.WorldDataEnum.CollisionLayer.int()] = collision_layer;
+    }
     pub fn setEmbeddedData(self: *WorldDataStruct, embedded: EmbeddedDataStruct) void {
         self.embedded_data = embedded;
     }
@@ -804,19 +831,33 @@ pub fn getCurrentWorldHeight() u16 {
 }
 // @wasm
 pub fn getCurrentWorldCollisionLayer() u16 {
-    return worlds_list.at(current_world_index).readData(enums.WorldDataEnum.CollisionLayer.int());
+    return worlds_list.at(current_world_index).getCollisionLayer();
 }
 // @wasm
 pub fn getCurrentWorldEntityLayer() u16 {
-    return worlds_list.at(current_world_index).readData(enums.WorldDataEnum.EntityLayer.int());
+    return worlds_list.at(current_world_index).getEntityLayer();
+}
+// TODO: This is an editor function, move it
+// @wasm
+pub fn setCurrentWorldCollisionLayer(layer_index: u16) !void {
+    try worlds_list.at(current_world_index).setCollisionLayer(layer_index);
+}
+// TODO: This is an editor function, move it
+// @wasm
+pub fn setCurrentWorldEntityLayer(layer_index: u16) !void {
+    try worlds_list.at(current_world_index).setEntityLayer(layer_index);
 }
 // @wasm
 pub fn getCurrentWorldTotalLayers() u16 {
-    return worlds_list.at(current_world_index).readData(enums.WorldDataEnum.TotalLayers.int());
+    return @as(u16, @intCast(worlds_list.at(current_world_index).getTotalLayers()));
 }
 // @wasm
 pub fn getWorldData(world_index: u16, layer_index: u16, x: u16, y: u16) u16 {
     return worlds_list.at(world_index).getCoordinateData(layer_index, x, y);
+}
+// @wasm
+pub fn getCurrentWorldLayerRawData(layer_index: u16, x: u16, y: u16) u16 {
+    return worlds_list.at(current_world_index).readLayer(layer_index, (y * worlds_list.at(current_world_index).getWidth()) + x);
 }
 // @wasm
 pub fn resetWorldData(world_index: u16) !void {

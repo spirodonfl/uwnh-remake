@@ -123,6 +123,28 @@ pub fn removeColumnFromWorld(world_index: u16) !void {
 
 // TODO: Restructure layer order (maybe)
 // TODO: Alternative to above, injectLayerAfter / injectLayerBefore
+// @wasm
+pub fn moveLayer(world_index: u16, layer_index: u16, new_index: u16) !void {
+    var world = game.worlds_list.at(world_index);
+
+    // Check if the indices are valid
+    if (layer_index >= world.embedded_layers.items.len or new_index >= world.embedded_layers.items.len) {
+        return error.InvalidIndex;
+    }
+
+    // Remove the element from the source index
+    // const value = world.embedded_layers.items[layer_index];
+    const value = world.embedded_layers.swapRemove(layer_index);
+
+    if (layer_index == world.getCollisionLayer()) {
+        try world.setCollisionLayer(new_index);
+    } else if (layer_index == world.getEntityLayer()) {
+        try world.setEntityLayer(new_index);
+    }
+
+    // Insert the element at the destination index
+    try world.embedded_layers.insert(game.allocator, new_index, value);
+}
 
 // --- CREATION ---
 // @wasm
