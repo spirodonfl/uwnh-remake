@@ -267,6 +267,7 @@ export class Multiplayer extends HTMLElement {
         // TODO: Potentially add client side twitch auth here
         if (window.USER) {
             this.user = window.USER;
+            this.user.username = this.user.username.toLowerCase();
             RyansBackendSecondaryHole.init(window.USER.login, window.USER.username.toLowerCase());
             console.log('ROLE:', window.USER.role);
             if (window.USER.role === 'mod' || window.USER.role === 'vip') {
