@@ -127,9 +127,9 @@ export class Entity extends HTMLElement {
     }
 
     render() {
-        this.style.backgroundImage = `url("${globals.ATLAS_PNG_FILENAME}")`;
         var image_frame_coords = this.getImageCoords(this.layer, this.entity_id, 0);
         if (image_frame_coords !== null && image_frame_coords !== undefined) {
+            this.style.backgroundImage = `url("${globals.ATLAS_PNG_FILENAME}")`;
             this.style.backgroundPosition = '-' + image_frame_coords[0] + 'px -' + image_frame_coords[1] + 'px';
         }
         this.shadowRoot.innerHTML = `

@@ -52,3 +52,13 @@ export function convertObjectToNestedArray(obj) {
 
     return result;
 }
+
+export function swapElements(arr, index1, index2) {
+    // Check if the indices are valid and within the array bounds
+    if (index1 >= 0 && index1 < arr.length && index2 >= 0 && index2 < arr.length) {
+        // Use array destructuring to swap the elements
+        [arr[index1], arr[index2]] = [arr[index2], arr[index1]];
+    } else {
+        console.log("One or both indices are out of bounds for the given array.");
+    }
+}
