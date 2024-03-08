@@ -20,3 +20,35 @@ export function removeAndReorder(obj, indexToRemove) {
 
     return newObj;
 }
+
+export function flattenObjectToArray(obj) {
+    let result = [];
+
+    for (let key in obj) {
+        if (typeof obj[key] === 'object' && obj[key] !== null) {
+            // If the value is an object, recursively flatten it
+            result = result.concat(flattenObjectToArray(obj[key]));
+        } else {
+            // If the value is not an object, add it to the result array
+            result.push(obj[key]);
+        }
+    }
+
+    return result;
+}
+
+export function convertObjectToNestedArray(obj) {
+    let result = [];
+
+    for (let key in obj) {
+        if (typeof obj[key] === 'object' && obj[key] !== null) {
+            // If the value is an object, recursively convert it to a nested array
+            result[key] = convertObjectToNestedArray(obj[key]);
+        } else {
+            // If the value is not an object, add it to the result array
+            result[key] = obj[key];
+        }
+    }
+
+    return result;
+}
