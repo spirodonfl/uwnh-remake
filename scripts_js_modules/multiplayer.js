@@ -13,6 +13,7 @@ export class Multiplayer extends HTMLElement {
         this.ships_to_players = [null, null, null, null, null];
         this.ships_to_players_colors = ['#e28383', '#9e9ef9', '#79df79', 'yellow', '#df70df'];
         this.kraken_enabled = false;
+        this.kraken_image = null;
         this.user = null;
         this.last_move_direction = null;
 
@@ -254,6 +255,11 @@ export class Multiplayer extends HTMLElement {
                 wasm.game_entitySetPositionX(kraken_entity_id, e.data.game_state.kraken_position[0]);
                 wasm.game_entitySetPositionY(kraken_entity_id, e.data.game_state.kraken_position[1]);
                 wasm.game_entitySetHealth(kraken_entity_id, e.data.game_state.kraken_health);
+                let image_data = globals.IMAGE_DATA[0][entity_layer][kraken_entity_id];
+                if (image_data) {
+                    image_data[0][0] = possibleKrakenImages[e.data.game_state.kraken_image].x * 64;
+                    image_data[0][1] = possibleKrakenImages[e.data.game_state.kraken_image].y * 64;
+                }
             }
             console.log('ships to players', this.ships_to_players);
         });
