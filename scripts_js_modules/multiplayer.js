@@ -212,9 +212,9 @@ export class Multiplayer extends HTMLElement {
                 this.togglePlayerList();
             }
             // TODO: Enable these when roles are ready
-            this.shadowRoot.querySelector('enable_kraken').classList.add('hidden');
-            this.shadowRoot.querySelector('disable_kraken').classList.add('hidden');
-            this.shadowRoot.querySelector('reset').classList.add('hidden');
+            // this.shadowRoot.querySelector('enable_kraken').classList.add('hidden');
+            // this.shadowRoot.querySelector('disable_kraken').classList.add('hidden');
+            // this.shadowRoot.querySelector('reset').classList.add('hidden');
         } else {
             const params = new Proxy(new URLSearchParams(window.location.search), {
                 get: (searchParams, prop) => searchParams.get(prop),
