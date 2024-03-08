@@ -292,8 +292,10 @@ export class Multiplayer extends HTMLElement {
         players_element.innerHTML = '';
         var game_component = document.querySelector('game-component');
         var entity_components = game_component.shadowRoot.querySelector('entity-component');
-        for (var e = 0; e < entity_components.length; ++e) {
-            entity_components[e].clearBorder();
+        if (entity_components.length > 0) {
+            for (var e = 0; e < entity_components.length; ++e) {
+                entity_components[e].clearBorder();
+            }
         }
         for (var i = 0; i < this.ships_to_players.length; ++i) {
             if (this.ships_to_players[i] !== null) {
