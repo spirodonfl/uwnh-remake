@@ -333,6 +333,7 @@ export class Game extends HTMLElement {
             for (var i = 0; i < this.inputs.length; ++i) {
                 let input = this.inputs[i];
                 if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
+                    console.log('game', [input.context, globals.MODE]);
                     if (input.context === globals.MODES.indexOf('ALL') || input.context === globals.MODE) {
                         input.callback();
                     }
