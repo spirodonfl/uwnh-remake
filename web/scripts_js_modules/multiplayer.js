@@ -267,7 +267,7 @@ export class Multiplayer extends HTMLElement {
         // TODO: Potentially add client side twitch auth here
         if (window.USER) {
             this.user = window.USER;
-            RyansBackendSecondaryHole.init(window.USER.login, window.USER.username);
+            RyansBackendSecondaryHole.init(window.USER.login, window.USER.username.toLowerCase());
             console.log('ROLE:', window.USER.role);
             if (window.USER.role === 'mod' || window.USER.role === 'vip') {
                 // TODO: .. add controls for reset, disable/enable kraken, other perks
@@ -285,7 +285,7 @@ export class Multiplayer extends HTMLElement {
                 get: (searchParams, prop) => searchParams.get(prop),
             });
             this.user = {
-                username: params.username,
+                username: params.username.toLowerCase(),
                 login: params.login,
                 role: null
             };

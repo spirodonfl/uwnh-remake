@@ -178,13 +178,9 @@ export class MultiplayerHost extends HTMLElement {
                 }
 
                 this.updatePlayerList();
-
-                if (user_spawned) {
-                    this.broadcastGameState();
-                }
-
                 console.log(this.ships_to_players);
             }
+            this.broadcastGameState();
         });
         globals.EVENTBUS.addEventListener('user-despawns', (e) => {
             console.log('User wants to despawn');
