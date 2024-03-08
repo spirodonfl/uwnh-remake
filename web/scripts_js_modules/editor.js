@@ -2,7 +2,7 @@ import { wasm } from './injector_wasm.js';
 import '../components/draggable.js';
 import { globals } from './globals.js';
 import { globalStyles } from './global-styles.js';
-import { addEventListenerWithRemoval, removeAndReorder } from './helpers.js';
+import { addEventListenerWithRemoval, removeAndReorder, swapElements } from './helpers.js';
 
 export class Editor extends HTMLElement {
     constructor() {
@@ -150,6 +150,17 @@ export class Editor extends HTMLElement {
                 let entity_id = wasm.game_getEntityIdByIndex(i);
                 if (!this.shadowRoot.getElementById("entity_id_" + entity_id)) {
                     this.shadowRoot.getElementById('entity_id').innerHTML += `<option id="entity_id_${entity_id}" value="${entity_id}">${entity_id}</option>`;
+                }
+            }
+
+            // Make sure IMAGE_DATA has an entry for each layer in the world
+            if (!globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()]) {
+                globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()] = [];
+            }
+            let total_layers = wasm.game_getCurrentWorldTotalLayers();
+            for (let i = 0; i < total_layers; ++i) {
+                if (!globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()][i]) {
+                    globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()][i] = [];
                 }
             }
         });
@@ -565,6 +576,7 @@ export class Editor extends HTMLElement {
             let layer_type = 'G';
             let is_entity_layer = false;
             let is_collision_layer = false;
+            console.log('Current entity layer', wasm.game_getCurrentWorldEntityLayer());
             if (i === wasm.game_getCurrentWorldEntityLayer()) {
                 is_entity_layer = true;
                 layer_type = 'E';
@@ -608,6 +620,7 @@ export class Editor extends HTMLElement {
                         console.log('layer_list_move_up, current_layer', current_layer);
                         if (current_layer > 0) {
                             wasm.editor_moveLayer(0, current_layer, (current_layer - 1));
+                            swapElements(globals.IMAGE_DATA[0], current_layer, current_layer - 1);
                             wasm.diff_addData(0);
                             this.listWorldLayers();
                             this.renderViewportData();
@@ -620,6 +633,7 @@ export class Editor extends HTMLElement {
                         // TODO: Ideally we keep total_layers contained within this function
                         if (current_layer < (total_layers - 1)) {
                             wasm.editor_moveLayer(0, current_layer, (current_layer + 1));
+                            swapElements(globals.IMAGE_DATA[0], current_layer, current_layer + 1);
                             wasm.diff_addData(0);
                             this.listWorldLayers();
                             this.renderViewportData();
@@ -715,6 +729,12 @@ export class Editor extends HTMLElement {
         this.renderViewportData();
     }
 
+    extractCurrentWorldMemory() {
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        let start = wasm.editor_getWorldMemoryLocation(current_world_index);
+        let length = wasm.editor_getWorldMemoryLength(current_world_index);
+        return extractMemory(start, length);
+    }
     extractCurrentWorldData() {
         let current_world_index = wasm.game_getCurrentWorldIndex();
         let start = wasm.editor_getWorldMemoryLocation(current_world_index);
@@ -766,9 +786,22 @@ export class Editor extends HTMLElement {
                 let memory = extractMemory(start, end);
                 console.log(memory);
             break;
-        case 'moveLayerOrder':
-            wasm.editor_moveLayer(0, 0, 1);
+        case 'layerStuff':
+            let current_world_index = wasm.game_getCurrentWorldIndex();
+            let width = wasm.game_getCurrentWorldWidth();
+            let height = wasm.game_getCurrentWorldHeight();
+            let new_editor_layer_index = wasm.editor_createLayer(width, height);
+            wasm.editor_attachLayerToWorld(new_editor_layer_index, current_world_index);
+            let total_layers = wasm.game_getCurrentWorldTotalLayers();
+            let new_index = 0;
+            wasm.editor_moveLayer(current_world_index, (total_layers - 1), new_index);
+            globals.IMAGE_DATA[0].push([]);
+            globals.IMAGE_DATA[0].push([]);
+            swapElements(globals.IMAGE_DATA[0], (total_layers - 1), new_index);
+            // wasm.editor_moveLayer(0, 0, 1);
             wasm.diff_addData(0);
+            this.renderViewportData();
+            this.listWorldLayers();
             break;
         }
     }
@@ -867,31 +900,6 @@ export class Editor extends HTMLElement {
                 </div>
             </x-draggable>
         `;
-    }
-
-    test_updateWorldLayerData() {
-        wasm.editor_setWorldLayerCoordinateData(0, 0, 0, 0, 23);
-        this.renderViewportData();
-    }
-    test_clearWorldLayerData() {
-        wasm.game_resetWorldLayerData(0, 0);
-        this.renderViewportData();
-    }
-    test_addRowToWorld() {
-        wasm.editor_addRowToWorld(0);
-        wasm.game_loadWorld(0);
-        console.log([wasm.game_getCurrentWorldWidth(), wasm.game_getCurrentWorldHeight()]);
-        document.querySelector('game-component').renderGame();
-        document.querySelector('editor-component').renderViewportData();
-    }
-    test_addRowsToWorld() {
-        for (let i = 0; i < 20; ++i) {
-            wasm.editor_addRowToWorld(0);
-            wasm.game_loadWorld(0);
-            console.log([wasm.game_getCurrentWorldWidth(), wasm.game_getCurrentWorldHeight()]);
-            document.querySelector('game-component').renderGame();
-            document.querySelector('editor-component').renderViewportData();
-        }
     }
 }
 customElements.define('editor-component', Editor);

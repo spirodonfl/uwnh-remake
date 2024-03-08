@@ -137,7 +137,7 @@ pub const WorldDataStruct = struct {
         self.embedded_data = embedded;
     }
     pub fn addEmbeddedLayer(self: *WorldDataStruct, embedded: EmbeddedDataStruct) !void {
-        try self.embedded_layers.append(gpa_allocator.allocator(), embedded);
+        try self.embedded_layers.append(allocator, embedded);
     }
     pub fn readData(self: *WorldDataStruct, index: u16) u16 {
         return self.embedded_data.readData(index, .Little);

@@ -127,23 +127,45 @@ pub fn removeColumnFromWorld(world_index: u16) !void {
 pub fn moveLayer(world_index: u16, layer_index: u16, new_index: u16) !void {
     var world = game.worlds_list.at(world_index);
 
+    std.log.info("Moving layer from {d} to {d}", .{layer_index, new_index});
+    std.log.info("Layer count: {d}", .{world.embedded_layers.items.len});
+    std.log.info("Current entity & collision layers {d} {d}", .{world.getEntityLayer(), world.getCollisionLayer()});
     // Check if the indices are valid
     if (layer_index >= world.embedded_layers.items.len or new_index >= world.embedded_layers.items.len) {
+        // TODO: THIS WORKS you should use this more often when you're not pumping out WASM functions...
         return error.InvalidIndex;
     }
 
-    // Remove the element from the source index
-    // const value = world.embedded_layers.items[layer_index];
-    const value = world.embedded_layers.swapRemove(layer_index);
+    // // Temporarily store the element at layer_index
+    // const current_layer_value = world.embedded_layers.items[layer_index];
+    // // Temporarily store the element at new_index
+    // const target_layer_value = world.embedded_layers.items[new_index];
+
+    // Directly swap the values at the specified indices
+    const temp = world.embedded_layers.items[layer_index];
+    world.embedded_layers.items[layer_index] = world.embedded_layers.items[new_index];
+    world.embedded_layers.items[new_index] = temp;
 
     if (layer_index == world.getCollisionLayer()) {
         try world.setCollisionLayer(new_index);
     } else if (layer_index == world.getEntityLayer()) {
+        // std.log.info("setting new entity layer", .{});
         try world.setEntityLayer(new_index);
+    } else if (new_index == world.getCollisionLayer()) {
+        try world.setCollisionLayer(layer_index);
+    } else if (new_index == world.getEntityLayer()) {
+        try world.setEntityLayer(layer_index);
     }
 
-    // Insert the element at the destination index
-    try world.embedded_layers.insert(game.allocator, new_index, value);
+    // // Remove the elements at layer_index and new_index
+    // _ = world.embedded_layers.swapRemove(layer_index);
+    // _ = world.embedded_layers.swapRemove(new_index);
+
+    // // Insert the elements back in their new positions
+    // // First, insert the element that was originally at layer_index to new_index
+    // try world.embedded_layers.insert(game.allocator, new_index, current_layer_value);
+    // // Then, insert the element that was originally at new_index to layer_index
+    // try world.embedded_layers.insert(game.allocator, layer_index, target_layer_value);
 }
 
 // --- CREATION ---
