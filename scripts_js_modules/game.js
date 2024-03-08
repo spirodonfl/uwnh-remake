@@ -298,6 +298,15 @@ export class Game extends HTMLElement {
         globals.INPUTS = globals.INPUTS.concat(this.inputs);
         this.shadowRoot.getElementById('mode').innerText = globals.MODES[globals.MODE];
 
+        // TODO: This is kinda weird to put here, it's not the multiplayer file, but we need it here otherwise nothing initializes
+        if (window.USER) {
+            var multiplayer_element = document.querySelector('multiplayer-component');
+            if (!multiplayer_element) {
+                multiplayer_element = document.createElement('multiplayer-component');
+                document.body.appendChild(multiplayer_element);
+            }
+        }
+
         var atlas = new Image();
         atlas.onload = () => {
             this.atlas_loaded = true;

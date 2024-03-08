@@ -203,6 +203,18 @@ export class Multiplayer extends HTMLElement {
         // TODO: Potentially add client side twitch auth here
         if (window.USER) {
             RyansBackendSecondaryHole.init(window.USER.login, window.USER.username);
+            console.log('ROLE:', window.USER.role);
+            if (window.USER.role === 'mod' || window.USER.role === 'vip') {
+                // TODO: .. add controls for reset, disable/enable kraken, other perks
+                // TODO: automatically go into MULTIPlAYER mode, show controls
+                globals.MODE = globals.MODES.indexOf('MULTIPLAYER');
+                this.toggleOnScreenControls();
+                this.togglePlayerList();
+            }
+            // TODO: Enable these when roles are ready
+            this.shadowRoot.querySelector('enable_kraken').classList.add('hidden');
+            this.shadowRoot.querySelector('disable_kraken').classList.add('hidden');
+            this.shadowRoot.querySelector('reset').classList.add('hidden');
         } else {
             const params = new Proxy(new URLSearchParams(window.location.search), {
                 get: (searchParams, prop) => searchParams.get(prop),
@@ -331,6 +343,10 @@ export class Multiplayer extends HTMLElement {
                     <input type="button" id="down" value="Move Down" />
                     <input type="button" id="left" value="Move Left" />
                     <input type="button" id="right" value="Move Right" />
+
+                    <input type="button" id="enable_kraken">Enable Kraken</input>
+                    <input type="button" id="disable_kraken">Disable Kraken</input>
+                    <input type="button" id="reset">Reset</input>
                 </div>
             </x-draggable>
             <x-draggable name="player-list" id="player-list" class="hidden">
