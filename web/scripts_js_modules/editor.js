@@ -223,24 +223,24 @@ export class Editor extends HTMLElement {
             this.shadowRoot.getElementById('wasm_entity_attack_component_on_off').value = memory[6];
         });
         this.shadowRoot.getElementById('clickable_view').addEventListener('click', (e) => {
-            // TODO: Holy crap this code is weird
             let game_component = document.querySelector('game-component');
             let x = e.clientX - game_component.x_padding;
             let y = e.clientY - game_component.y_padding;
-            x = Math.floor(x / (globals.SIZE * globals.SCALE));
-            y = Math.floor(y / (globals.SIZE * globals.SCALE));
+
+            let size = (globals.SIZE * globals.SCALE);
+
+            x = Math.floor(x / size);
+            y = Math.floor(y / size);
+
             this.last_click.x = x;
             this.last_click.y = y;
+
             let clicked_view = this.shadowRoot.getElementById('clicked_view');
             clicked_view.style.display = 'block';
-            clicked_view.style.width = (globals.SIZE * globals.SCALE) + 'px';
-            clicked_view.style.height = (globals.SIZE * globals.SCALE) + 'px';
-            clicked_view.style.left = game_component.x_padding + (x * (globals.SIZE * globals.SCALE)) + 'px';
-            clicked_view.style.top = game_component.y_padding + (y * (globals.SIZE * globals.SCALE)) + 'px';
-            // if (wasm.viewport_getData(x, y)) {
-            //     let data_id = wasm.game_getWorldDataAtViewportCoordinate(this.current_layer, x, y);
-            //     this.shadowRoot.getElementById('current_data_id').value = data_id;
-            // }
+            clicked_view.style.width = size + 'px';
+            clicked_view.style.height = size + 'px';
+            clicked_view.style.left = game_component.x_padding + (x * size) + 'px';
+            clicked_view.style.top = game_component.y_padding + (y * size) + 'px';
         });
         this.shadowRoot.getElementById('atlas_img').addEventListener('click', (e) => {
             let original_x = e.offsetX;

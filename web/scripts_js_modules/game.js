@@ -59,6 +59,9 @@ function tick() {
                         var multiplayer_host_element = document.querySelector('multiplayer-host-component');
                         if (multiplayer_host_element) {
                             multiplayer_host_element.incrementLeaderboard(attacker_entity_id, attackee_entity_id);
+                            if (attackee_entity_id === 7) {
+                                multiplayer_host_element.disableKraken();
+                            }
                         }
                     } else if (attacker_entity_type == 99) {                        
                         var health = wasm.game_entityGetHealth(attackee_entity_id);
@@ -391,7 +394,6 @@ export class Game extends HTMLElement {
                     if (layer === wasm.game_getCurrentWorldCollisionLayer()) { continue; }
                     if (layer === wasm.game_getCurrentWorldEntityLayer()) {
                         // TODO: Deal with entities properly here
-                        // TODO: Some IDs are not showing up, probably because they don't have data. Show them anyways
                         var entity_id = wasm.game_getWorldDataAtViewportCoordinate(layer, viewport_x, viewport_y);
                         if (entity_id > 0) {
                             var new_entity = document.createElement('entity-component');

@@ -3,6 +3,7 @@ const ArrayList = std.ArrayList;
 
 const game = @import("game.zig");
 const debug = @import("debug.zig");
+const diff = @import("diff.zig");
 
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
 const allocator = arena.allocator();
@@ -16,9 +17,10 @@ pub fn setSize(width: u16, height: u16) void {
     size[1] = height;
 }
 // @wasm
-pub fn setCamera(x: u16, y: u16) void {
+pub fn setCamera(x: u16, y: u16) !void {
     camera[0] = x;
     camera[1] = y;
+    try diff.addData(0);
 }
 // @wasm
 pub fn getCameraX() u16 {
@@ -29,33 +31,39 @@ pub fn getCameraY() u16 {
     return camera[1];
 }
 // @wasm
-pub fn moveCameraUp() void {
+pub fn moveCameraUp() !void {
     if (camera[1] > 0) {
         camera[1] -= 1;
+        try diff.addData(0);
     }
 }
 // @wasm
-pub fn moveCameraDown() void {
+pub fn moveCameraDown() !void {
+    var height = game.worlds_list.at(game.current_world_index).getHeight();
     if (
-        game.worlds_list.at(game.current_world_index).getHeight() > size[1]
-        and camera[1] < game.worlds_list.at(game.current_world_index).getHeight()
+        height > size[1]
+        and (camera[1] + size[1]) < height
     ) {
         camera[1] += 1;
+        try diff.addData(0);
     }
 }
 // @wasm
-pub fn moveCameraLeft() void {
+pub fn moveCameraLeft() !void {
     if (camera[0] > 0) {
         camera[0] -= 1;
+        try diff.addData(0);
     }
 }
 // @wasm
-pub fn moveCameraRight() void {
+pub fn moveCameraRight() !void {
+    var width = game.worlds_list.at(game.current_world_index).getWidth();
     if (
-        game.worlds_list.at(game.current_world_index).getWidth() > size[0]
-        and camera[0] < game.worlds_list.at(game.current_world_index).getWidth()
+        width > size[0]
+        and (camera[0] + size[0]) < width
     ) {
         camera[0] += 1;
+        try diff.addData(0);
     }
 }
 // @wasm

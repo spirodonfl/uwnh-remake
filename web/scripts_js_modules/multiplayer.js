@@ -13,6 +13,8 @@ export class Multiplayer extends HTMLElement {
         this.ships_to_players = [null, null, null, null, null];
         this.ships_to_players_colors = ['#e28383', '#9e9ef9', '#79df79', 'yellow', '#df70df'];
         this.kraken_enabled = false;
+        this.user = null;
+        this.last_move_direction = null;
 
         // TODO: Fun fact! Unless you inject the element onto the page
         // (which you don't want to do, in this case, until you need it)
@@ -60,7 +62,7 @@ export class Multiplayer extends HTMLElement {
                 shiftKey: true,
                 ctrlKey: false,
                 callback: () => {
-                    RyansBackendSecondaryHole.ws.send(JSON.stringify({"cmd": "spawn"}));
+                    this.sendSpawn();
                 }
             },
             {
@@ -71,7 +73,7 @@ export class Multiplayer extends HTMLElement {
                 shiftKey: true,
                 ctrlKey: false,
                 callback: () => {
-                    RyansBackendSecondaryHole.ws.send(JSON.stringify({"cmd": "despawn"}));
+                    this.sendDespawn();
                 }
             },
             {
@@ -82,7 +84,7 @@ export class Multiplayer extends HTMLElement {
                 shiftKey: false,
                 ctrlKey: false,
                 callback: () => {
-                    RyansBackendSecondaryHole.ws.send(JSON.stringify({"cmd": "up"}));
+                    this.sendUp();
                 }
             },
             {
@@ -93,7 +95,7 @@ export class Multiplayer extends HTMLElement {
                 shiftKey: false,
                 ctrlKey: false,
                 callback: () => {
-                    RyansBackendSecondaryHole.ws.send(JSON.stringify({"cmd": "down"}));
+                    this.sendDown();
                 }
             },
             {
@@ -104,7 +106,7 @@ export class Multiplayer extends HTMLElement {
                 shiftKey: false,
                 ctrlKey: false,
                 callback: () => {
-                    RyansBackendSecondaryHole.ws.send(JSON.stringify({"cmd": "right"}));
+                    this.sendRight();
                 }
             },
             {
@@ -115,7 +117,7 @@ export class Multiplayer extends HTMLElement {
                 shiftKey: false,
                 ctrlKey: false,
                 callback: () => {
-                    RyansBackendSecondaryHole.ws.send(JSON.stringify({"cmd": "left"}));
+                    this.sendLeft();
                 }
             },
             {
@@ -126,7 +128,51 @@ export class Multiplayer extends HTMLElement {
                 shiftKey: false,
                 ctrlKey: false,
                 callback: () => {
-                    RyansBackendSecondaryHole.ws.send(JSON.stringify({"cmd": "attack"}));
+                    this.sendAttack();
+                }
+            },
+            {
+                description: 'Move camera up',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'ArrowUp',
+                friendlyCode: '↑',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    document.querySelector('game-component').moveCameraUp();
+                }
+            },
+            {
+                description: 'Move camera down',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'ArrowDown',
+                friendlyCode: '↓',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    document.querySelector('game-component').moveCameraDown();
+                }
+            },
+            {
+                description: 'Move camera left',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'ArrowLeft',
+                friendlyCode: '←',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    document.querySelector('game-component').moveCameraLeft();
+                }
+            },
+            {
+                description: 'Move camera right',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'ArrowRight',
+                friendlyCode: '→',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    document.querySelector('game-component').moveCameraRight();
                 }
             },
         ];
@@ -144,6 +190,17 @@ export class Multiplayer extends HTMLElement {
                 this.disableKraken();
             } else if (this.kraken_enabled === true) {
                 this.enableKraken();
+            }
+            if (this.inGame() && this.last_move_direction !== null && this.findOwnEntityElement()) {
+                if (this.last_move_direction === 'left') {
+                    this.findOwnEntityElement().showRangeLeft();
+                } else if (this.last_move_direction === 'right') {
+                    this.findOwnEntityElement().showRangeRight();
+                } else if (this.last_move_direction === 'up') {
+                    this.findOwnEntityElement().showRangeUp();
+                } else if (this.last_move_direction === 'down') {
+                    this.findOwnEntityElement().showRangeDown();
+                }
             }
         });
         globals.EVENTBUS.addEventListener('opened-ryans-backend-secondary-hole', (e) => {
@@ -202,6 +259,7 @@ export class Multiplayer extends HTMLElement {
         });
         // TODO: Potentially add client side twitch auth here
         if (window.USER) {
+            this.user = window.USER;
             RyansBackendSecondaryHole.init(window.USER.login, window.USER.username);
             console.log('ROLE:', window.USER.role);
             if (window.USER.role === 'mod' || window.USER.role === 'vip') {
@@ -219,6 +277,11 @@ export class Multiplayer extends HTMLElement {
             const params = new Proxy(new URLSearchParams(window.location.search), {
                 get: (searchParams, prop) => searchParams.get(prop),
             });
+            this.user = {
+                username: params.username,
+                login: params.login,
+                role: null
+            };
             RyansBackendSecondaryHole.init(params.login, params.username);
         }
 
@@ -235,25 +298,25 @@ export class Multiplayer extends HTMLElement {
         });
 
         this.shadowRoot.getElementById('spawn').addEventListener('click', () => {
-            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'spawn'}));
+            this.sendSpawn()
         });
         this.shadowRoot.getElementById('left').addEventListener('click', () => {
-            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'left'}));
+            this.sendLeft();
         });
         this.shadowRoot.getElementById('right').addEventListener('click', () => {
-            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'right'}));
+            this.sendRight();
         });
         this.shadowRoot.getElementById('up').addEventListener('click', () => {
-            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'up'}));
+            this.sendUp();
         });
         this.shadowRoot.getElementById('down').addEventListener('click', () => {
-            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'down'}));
+            this.sendDown();
         });
         this.shadowRoot.getElementById('despawn').addEventListener('click', () => {
-            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'despawn'}));
+            this.sendDespawn();
         });
         this.shadowRoot.getElementById('attack').addEventListener('click', () => {
-            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'attack'}));
+            this.sendAttack();
         });
     }
 
@@ -261,12 +324,91 @@ export class Multiplayer extends HTMLElement {
     adoptedCallback() {}
     attributeChangedCallback() {}
 
+    inGame() {
+        if (this.user !== null) {
+            for (let p = 0; p < this.ships_to_players.length; ++p) {
+                if (this.ships_to_players[p] !== null && this.ships_to_players[p].username === this.user.username) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    getOwnEntityId() {
+        if (this.user !== null) {
+            for (let p = 0; p < this.ships_to_players.length; ++p) {
+                if (this.ships_to_players[p] !== null && this.ships_to_players[p].username === this.user.username) {
+                    return this.ships_to_players[p].wasm_entity_id;
+                }
+            }
+        }
+        return false;
+    }
+    findOwnEntityElement() {
+        let entity_layer_index = wasm.game_getCurrentWorldEntityLayer();
+        let entity_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + this.getOwnEntityId() + '"][layer="' + entity_layer_index + '"]');
+        if (entity_element) {
+            return entity_element;
+        }
+        return false;
+    }
+    sendSpawn() {
+        RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'spawn'}));
+    }
+    sendDespawn() {
+        if (this.inGame()) {
+            // TODO: Remove range highlighter
+            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'despawn'}));
+        }
+    }
+    sendAttack() {
+        if (this.inGame()) {
+            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'attack'}));
+        }
+    }
+    sendLeft() {
+        if (this.inGame()) {
+            this.last_move_direction = 'left';
+            if (this.findOwnEntityElement()) {
+                this.findOwnEntityElement().showRangeLeft();
+            }
+            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'left'}));
+        }
+    }
+    sendRight() {
+        if (this.inGame()) {
+            this.last_move_direction = 'right';
+            if (this.findOwnEntityElement()) {
+                this.findOwnEntityElement().showRangeRight();
+            }
+            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'right'}));
+        }
+    }
+    sendUp() {
+        if (this.inGame()) {
+            this.last_move_direction = 'up';
+            if (this.findOwnEntityElement()) {
+                this.findOwnEntityElement().showRangeUp();
+            }
+            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'up'}));
+        }
+    }
+    sendDown() {
+        if (this.inGame()) {
+            this.last_move_direction = 'down';
+            if (this.findOwnEntityElement()) {
+                this.findOwnEntityElement().showRangeDown();
+            }
+            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'down'}));
+        }
+    }
+
     // TODO: Damn it we need a common place for this multiplayer stuff
     enableKraken() {
         this.kraken_enabled = true;
         // TODO: Don't rely on magic numbers here!
         let entity_id = 7;
-        let entity_layer = 2;
+        let entity_layer = wasm.game_getCurrentWorldEntityLayer();
         wasm.game_entityEnableCollision(entity_id);
         var kraken_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
         if (kraken_element) {
@@ -277,7 +419,7 @@ export class Multiplayer extends HTMLElement {
     disableKraken() {
         this.kraken_enabled = false;
         let entity_id = 7;
-        let entity_layer = 2;
+        let entity_layer = wasm.game_getCurrentWorldEntityLayer();
         wasm.game_entityDisableCollision(entity_id);
         var kraken_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
         if (kraken_element) {
@@ -302,8 +444,11 @@ export class Multiplayer extends HTMLElement {
                 var color = this.ships_to_players_colors[i];
                 var entity_id = this.ships_to_players[i].wasm_entity_id;
                 // TODO: Pull this from wasm instead of magic numbers
-                var entity_layer = 2;
-                game_component.shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]').setBorder(color);
+                var entity_layer = wasm.game_getCurrentWorldEntityLayer();
+                let player_element = game_component.shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
+                if (player_element) {
+                    player_element.setBorder(color);
+                }
                 players_element.innerHTML += '<span style="color:' + color + ';">' + this.ships_to_players[i].username + '</span><br />';
             }
         }

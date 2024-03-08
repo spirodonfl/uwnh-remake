@@ -349,6 +349,7 @@ pub const EntityDataStruct = struct {
     movement: ComponentMovement = undefined,
     attack: ComponentAttack = undefined,
     is_collision: bool = false,
+    direction: u16 = 0, // 0 = up, 1 = down, 2 = left, 3 = right (USE AN ENUM TODO:)
     // TODO: Move this to movement component?
     position: [2]u16 = .{ 0, 0 },
     pub fn init(self: *EntityDataStruct) !void {
@@ -423,7 +424,7 @@ pub const EntityDataStruct = struct {
             };
             // TODO: This is special code. Remove it and make it better / dynamic!
             if (self.getType() == 99) {
-                self.attack.default_attack_damage = 3;
+                self.attack.default_damage = 3;
             }
         }
     }
@@ -436,10 +437,14 @@ pub const EntityDataStruct = struct {
                     var current_world = worlds_list.at(current_world_index);
                     var intended_x = self.position[0];
                     var intended_y = self.movement.intendedMoveUp();
-                    if (current_world.checkEntityCollision(intended_x, intended_y) == false)
+                    if (intended_y < current_world.getHeight())
                     {
-                        self.movement.moveUp();
-                        try diff.addData(0);
+                        if (current_world.checkEntityCollision(intended_x, intended_y) == false)
+                        {
+                            self.direction = 0;
+                            self.movement.moveUp();
+                            try diff.addData(0);
+                        }
                     }
                 },
                 enums.GameMessagesEventsEnum.MoveDown.int() => {
@@ -447,10 +452,14 @@ pub const EntityDataStruct = struct {
                     var current_world = worlds_list.at(current_world_index);
                     var intended_x = self.position[0];
                     var intended_y = self.movement.intendedMoveDown();
-                    if (current_world.checkEntityCollision(intended_x, intended_y) == false)
+                    if (intended_y < current_world.getHeight())
                     {
-                        self.movement.moveDown();
-                        try diff.addData(0);
+                        if (current_world.checkEntityCollision(intended_x, intended_y) == false)
+                        {
+                            self.direction = 1;
+                            self.movement.moveDown();
+                            try diff.addData(0);
+                        }
                     }
                 },
                 enums.GameMessagesEventsEnum.MoveLeft.int() => {
@@ -458,10 +467,14 @@ pub const EntityDataStruct = struct {
                     var current_world = worlds_list.at(current_world_index);
                     var intended_x = self.movement.intendedMoveLeft();
                     var intended_y = self.position[1];
-                    if (current_world.checkEntityCollision(intended_x, intended_y) == false)
+                    if (intended_x < current_world.getWidth())
                     {
-                        self.movement.moveLeft();
-                        try diff.addData(0);
+                        if (current_world.checkEntityCollision(intended_x, intended_y) == false)
+                        {
+                            self.direction = 2;
+                            self.movement.moveLeft();
+                            try diff.addData(0);
+                        }
                     }
                 },
                 enums.GameMessagesEventsEnum.MoveRight.int() => {
@@ -469,10 +482,14 @@ pub const EntityDataStruct = struct {
                     var current_world = worlds_list.at(current_world_index);
                     var intended_x = self.movement.intendedMoveRight();
                     var intended_y = self.position[1];
-                    if (current_world.checkEntityCollision(intended_x, intended_y) == false)
+                    if (intended_x < current_world.getWidth())
                     {
-                        self.movement.moveRight();
-                        try diff.addData(0);
+                        if (current_world.checkEntityCollision(intended_x, intended_y) == false)
+                        {
+                            self.direction = 3;
+                            self.movement.moveRight();
+                            try diff.addData(0);
+                        }
                     }
                 },
                 enums.GameMessagesEventsEnum.Attack.int() => {
@@ -482,7 +499,12 @@ pub const EntityDataStruct = struct {
                     // } else {
                     //     std.log.info("Attack message missing target", .{});
                     // }
-                    try self.attack.attack();
+                    if (self.getType() <= 3) {
+                        try self.attack.directionalAttack();
+                    } else {
+                        // TODO: This is for the kraken. Hacky. FIX
+                        try self.attack.attack();
+                    }
                 },
                 else => {
                     std.log.info("Unknown message command: {d}", .{message.command});
@@ -703,6 +725,7 @@ pub fn entitySetPositionX(entity_id: u16, value: u16) !void {
     }
     var entity = entities_list.at(entity_index - 1);
     entity.setPositionX(value);
+    try diff.addData(0);
 }
 // @wasm
 pub fn entitySetPositionY(entity_id: u16, value: u16) !void {
@@ -713,6 +736,7 @@ pub fn entitySetPositionY(entity_id: u16, value: u16) !void {
     }
     var entity = entities_list.at(entity_index - 1);
     entity.setPositionY(value);
+    try diff.addData(0);
 }
 // @wasm
 pub fn initializeGame() !bool {
