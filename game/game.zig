@@ -14,7 +14,6 @@ var GAME_INITIALIZED: bool = false;
 
 const enums = @import("enums.zig");
 const embeds = @import("embeds.zig");
-const helpers = @import("helpers.zig");
 const diff = @import("diff.zig");
 const editor = @import("editor.zig");
 const viewport = @import("viewport.zig");
