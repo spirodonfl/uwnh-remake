@@ -145,14 +145,7 @@ export class Editor extends HTMLElement {
         globals.EVENTBUS.addEventListener('viewport-size', (e) => {
             this.onViewportSize(e);
 
-            // TODO: Move this to a more global area. What if you add an entity on the fly?
-            let entities = wasm.game_getEntitiesLength();
-            for (let i = 0; i < entities; ++i) {
-                let entity_id = wasm.game_getEntityIdByIndex(i);
-                if (!this.shadowRoot.getElementById("entity_id_" + entity_id)) {
-                    this.shadowRoot.getElementById('entity_id').innerHTML += `<option id="entity_id_${entity_id}" value="${entity_id}">${entity_id}</option>`;
-                }
-            }
+            this.updateEntitiesList();
 
             // Make sure IMAGE_DATA has an entry for each layer in the world
             if (!globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()]) {
@@ -364,6 +357,17 @@ export class Editor extends HTMLElement {
     adoptedCallback() {}
     attributeChangedCallback() {}
 
+    updateEntitiesList() {
+        let entities = wasm.game_getEntitiesLength();
+        console.log('updateEntitiesList->count', entities);
+        for (let i = 0; i < entities; ++i) {
+            let entity_id = wasm.game_getEntityIdByIndex(i);
+            if (!this.shadowRoot.getElementById("entity_id_" + entity_id)) {
+                this.shadowRoot.getElementById('entity_id').innerHTML += `<option id="entity_id_${entity_id}" value="${entity_id}">${entity_id}</option>`;
+            }
+        }
+    }
+
     extractDataFromSelectedCoord() {
         if (wasm.viewport_getData(this.last_click.x, this.last_click.y)) {
             let data_id = wasm.game_getWorldDataAtViewportCoordinate(this.current_layer, this.last_click.x, this.last_click.y);
@@ -517,11 +521,13 @@ export class Editor extends HTMLElement {
         let data_id = parseInt(this.shadowRoot.getElementById('current_data_id').value);
         let x = wasm.game_translateViewportXToWorldX(this.last_click.x);
         let y = wasm.game_translateViewportYToWorldY(this.last_click.y);
-        // TODO: Pull the actual current world as the first parameter
+        let current_world_index = wasm.game_getCurrentWorldIndex();
         wasm.editor_setWorldLayerCoordinateData(0, layer_id, x, y, data_id);
         this.renderViewportData();
-        let game_component = document.querySelector('game-component');
-        game_component.renderGame();
+        document.querySelector('game-component').renderGame();
+        if (layer_id == wasm.game_getCurrentWorldEntityLayer()) {
+            this.updateEntitiesList();
+        }
     }
     applyDataZeroToLayerCoordinate() {
         let layer_id = parseInt(this.shadowRoot.getElementById('current_layer_id').value);
