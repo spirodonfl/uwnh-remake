@@ -1,11 +1,4 @@
 const _WASM_IMPORTS = {
-    debug_getData(index) {},
-    debug_addData(value) {},
-    debug_getLength() {},
-    debug_clearAll() {},
-    debug_testPanic() {},
-    debug_testBreakpoint() {},
-    debug_testTrap() {},
     diff_getData(index) {},
     diff_getLength() {},
     diff_addData(data) {},
