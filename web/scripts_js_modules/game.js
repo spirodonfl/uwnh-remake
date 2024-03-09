@@ -401,12 +401,12 @@ export class Game extends HTMLElement {
                 [
                     1, // Should be staticized (bool)
                     0, // already rendered
-                    '../images/world_0_layer_0_frame_0.png',
+                    import.meta.resolve('../images/world_0_layer_0_frame_0.png'),
                 ],
                 [
                     1, // Should be staticized (bool)
                     0, // already rendered
-                    '../images/world_0_layer_1_frame_0.png'
+                    import.meta.resolve('../images/world_0_layer_1_frame_0.png'),
                 ],
                 null
             ]
@@ -417,11 +417,22 @@ export class Game extends HTMLElement {
             entity_components[i].remove();
         }
 
+        // for (let i = 0; i < this.static_layers[0].length; ++i) {
+        //     if (this.static_layers[0][i] !== null) {
+        //         let static_layer = this.shadowRoot.getElementById('static-layer-' + i);
+        //         if (static_layer) {
+        //             static_layer.remove();
+        //         }
+        //     }
+        // }
+        // TODO: Simply update the camera backgroundPosition instead of removing all the time
         for (let i = 0; i < this.static_layers[0].length; ++i) {
             if (this.static_layers[0][i] !== null) {
                 let static_layer = this.shadowRoot.getElementById('static-layer-' + i);
                 if (static_layer) {
-                    static_layer.remove();
+                    let camera_x = wasm.viewport_getCameraX();
+                    let camera_y = wasm.viewport_getCameraY();
+                    static_layer.style.backgroundPosition = '-' + (camera_x * 64) + 'px -' + (camera_y * 64) + 'px';
                 }
             }
         }
