@@ -133,6 +133,22 @@ export class Game extends HTMLElement {
         this.atlas_loaded = false;
         this.layer_id_to_image_loaded = false;
 
+        this.static_layers = [
+            [
+                [
+                    1, // Should be staticized (bool)
+                    0, // already rendered
+                    import.meta.resolve('../images/world_0_layer_0_frame_0.png'),
+                ],
+                [
+                    1, // Should be staticized (bool)
+                    0, // already rendered
+                    import.meta.resolve('../images/world_0_layer_1_frame_0.png'),
+                ],
+                null
+            ]
+        ];
+
         this.inputs = [
             {
                 description: 'Toggle the main menu',
@@ -396,21 +412,6 @@ export class Game extends HTMLElement {
     }
 
     renderGame() {
-        this.static_layers = [
-            [
-                [
-                    1, // Should be staticized (bool)
-                    0, // already rendered
-                    import.meta.resolve('../images/world_0_layer_0_frame_0.png'),
-                ],
-                [
-                    1, // Should be staticized (bool)
-                    0, // already rendered
-                    import.meta.resolve('../images/world_0_layer_1_frame_0.png'),
-                ],
-                null
-            ]
-        ];
         // TODO: Be smart. Only remove components you need and update existing ones
         var entity_components = this.shadowRoot.getElementById('view').querySelectorAll('entity-component');
         for (var i = 0; i < entity_components.length; ++i) {
@@ -433,6 +434,10 @@ export class Game extends HTMLElement {
                     let camera_x = wasm.viewport_getCameraX();
                     let camera_y = wasm.viewport_getCameraY();
                     static_layer.style.backgroundPosition = '-' + (camera_x * 64) + 'px -' + (camera_y * 64) + 'px';
+                } else {
+                    this.static_layers[0][i][1] = 1;
+                    static_layer = this.createStaticLayer(i, this.static_layers[0][i][2]);
+                    this.shadowRoot.getElementById('view').appendChild(static_layer);
                 }
             }
         }
@@ -447,21 +452,9 @@ export class Game extends HTMLElement {
             if (wasm.viewport_getData(viewport_x, viewport_y)) {
                 var total_layers = wasm.game_getCurrentWorldTotalLayers();
                 for (var layer = 0; layer < total_layers; ++layer) {
-                    if (layer === wasm.game_getCurrentWorldCollisionLayer()) { continue; }
+                    if (layer === wasm.game_getCurrentWorldCollisionLayer()) { continue; } 
 
-                    if (
-                        this.static_layers[0][layer]
-                        && this.static_layers[0][layer] !== null
-                        && this.static_layers[0][layer][0] === 1
-                    ) {
-                        if (this.static_layers[0][layer][1] === 0) {
-                            this.static_layers[0][layer][1] = 1;
-                            var static_layer = this.createStaticLayer(layer, this.static_layers[0][layer][2]);
-                            this.shadowRoot.getElementById('view').appendChild(static_layer);
-                        } else {
-                            continue;
-                        }
-                    }
+                    if (this.static_layers[0][layer] && this.static_layers[0][layer][1] === 1) { continue; }
 
                     if (layer === wasm.game_getCurrentWorldEntityLayer()) {
                         // TODO: Deal with entities properly here
