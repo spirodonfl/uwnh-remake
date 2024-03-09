@@ -1,5 +1,4 @@
 pub const game = @import("game.zig");
-pub const debug = @import("debug.zig");
 pub const diff = @import("diff.zig");
 pub const editor = @import("editor.zig");
 pub const renderer = @import("renderer.zig");

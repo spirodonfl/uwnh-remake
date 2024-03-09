@@ -22,7 +22,6 @@ pub var events_list = std.ArrayListUnmanaged(GameEvent){};
 
 const enums = @import("enums.zig");
 const embeds = @import("embeds.zig");
-const debug = @import("debug.zig");
 const helpers = @import("helpers.zig");
 const renderer = @import("renderer.zig");
 const diff = @import("diff.zig");
@@ -90,6 +89,7 @@ fn console_log_write_zig(context: void, bytes: []const u8) !usize {
 }
 extern fn console_log_write(ptr: [*]const u8, len: usize) void;
 extern fn console_log_flush() void;
+
 // -----------------------------------------------------------------------------------------
 pub const GameMessage = struct {
     command: u16,
@@ -101,6 +101,7 @@ pub const GameEvent = struct {
     data: std.ArrayListUnmanaged(u16) = .{},
     force: bool,
 };
+
 pub const WorldDataStruct = struct {
     embedded_data: EmbeddedDataStruct = undefined,
     embedded_layers: std.ArrayListUnmanaged(EmbeddedDataStruct) = .{},

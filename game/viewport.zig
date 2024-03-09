@@ -2,7 +2,6 @@ const std = @import("std");
 const ArrayList = std.ArrayList;
 
 const game = @import("game.zig");
-const debug = @import("debug.zig");
 const diff = @import("diff.zig");
 
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);

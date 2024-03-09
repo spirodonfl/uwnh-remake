@@ -13,6 +13,7 @@ export class Editor extends HTMLElement {
         this.current_data_id = 0;
         this.last_click = {x: 0, y: 0};
         this.last_atlas_click = {x: 0, y: 0};
+        this.wasm = wasm;
 
         this.inputs = [
             {
