@@ -24,10 +24,10 @@ pub fn setWorldLayerCoordinateData(world_id: u16, layer_index: u16, x: u16, y: u
     for (0..game.worlds_list.len) |i| {
         var world = game.worlds_list.at(i);
         if (world.embedded_data.readData(enums.WorldDataEnum.ID.int(), .Little) == world_id) {
-            if (layer_index == world.embedded_data.readData(enums.WorldDataEnum.EntityLayer.int(), .Little)) {
-                try world.addEntity(value, x, y);
-            }
+            // NOTE: If you are messing with an entity layer, you will have to create an entity with an ID that matches this value
+            // std.log.info("continuing", .{});
             try world.embedded_layers.items[layer_index].readToRawData();
+            // std.log.info("continuing2", .{});
             var index = (y * world.getWidth()) + x;
             // std.log.info("Setting world layer coordinate data: {d} {d}", .{index, value});
             world.embedded_layers.items[layer_index].raw_data.items[index] = value;

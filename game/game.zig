@@ -171,6 +171,9 @@ pub const WorldDataStruct = struct {
                         }
                     }
                 }
+                var index: u16 = (y * self.getWidth()) + x;
+                const data = self.readLayer(layer, index);
+                return data;
             }
         } else {
             var index: u16 = (y * self.getWidth()) + x;
@@ -234,13 +237,11 @@ pub const WorldDataStruct = struct {
         }
         if (!exists) {
             try self.entities_list.append(allocator, entity_id);
-            for (0..entities_list.len) |i| {
-                if (entities_list.at(i).getId() == entity_id) {
-                    entities_list.at(i).position[0] = position_x;
-                    entities_list.at(i).position[1] = position_y;
-                    return;
-                }
-            }
+            var new_entity = EntityDataStruct{
+                .position = .{ position_x, position_y },
+                .embedded = EmbeddedDataStruct{},
+            };
+            try entities_list.append(allocator, new_entity);
         }
     }
     pub fn removeEntity(self: *WorldDataStruct, entity_id: u16) !void {
@@ -307,6 +308,7 @@ pub const EmbeddedDataStruct = struct {
     }
     pub fn readToRawData(self: *EmbeddedDataStruct) !void {
         if (self.raw_data.items.len == 0) {
+            // std.log.info("about to read raw data", .{});
             var length: u16 = @as(u16, @intCast(embeds.embeds[self.file_index].len));
             length = length / 2;
             try self.raw_data.resize(allocator, length);
@@ -319,6 +321,7 @@ pub const EmbeddedDataStruct = struct {
                 self.raw_data.items[i_converted] = value;
                 // std.log.info("new_data[i] {d}",.{self.raw_data.items[i_converted]});
             }
+            // std.log.info("done reading raw data (length: {d})", .{self.raw_data.items.len});
         }
     }
     pub fn appendToRawData(self: *EmbeddedDataStruct, value: u16) !void {

@@ -93,18 +93,6 @@ window.extractMemory = function (memory_start, memory_length) {
         data.push(data_view.getUint16(current_position, true));
     }
     return data;
-
-    /**
-     *  
-var entity_type = 99; // 99, 98, 1, 3(x4)
-var entity_id = 1;
-wasm.editor_createEntity(entity_type, entity_id);
-var start = wasm.editor_getEntityMemoryLocation(entity_id);
-var length = wasm.editor_getEntityMemoryLength(entity_id);
-var entity_data = extractMemory(start, length);
-var entity_data_as_blob = generateBlob(entity_data);
-editorDownload(entity_data_as_blob, 'entity_' + (entity_id - 1) + '.bin');
-     */
 }
 window.memoryToBin = function (memory_start, memory_length, file_name) {
     let blob = generateBlob(extractMemory(memory_start, memory_length));
