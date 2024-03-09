@@ -177,11 +177,11 @@ export class Multiplayer extends HTMLElement {
                 }
             },
         ];
+        globals.INPUTS = globals.INPUTS.concat(this.inputs);
     }
 
     connectedCallback() {
         this.render();
-        globals.INPUTS = globals.INPUTS.concat(this.inputs);
         globals.EVENTBUS.addEventListener('viewport-size', (e) => {
             this.updatePlayerList();
         });
@@ -298,7 +298,6 @@ export class Multiplayer extends HTMLElement {
             for (var i = 0; i < this.inputs.length; ++i) {
                 let input = this.inputs[i];
                 if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
-                    console.log('multiplayer', [input.context, globals.MODE]);
                     if (input.context === globals.MODES.indexOf('ALL') || input.context === globals.MODE) {
                         input.callback();
                     }
@@ -452,7 +451,6 @@ export class Multiplayer extends HTMLElement {
             if (this.ships_to_players[i] !== null) {
                 var color = this.ships_to_players_colors[i];
                 var entity_id = this.ships_to_players[i].wasm_entity_id;
-                // TODO: Pull this from wasm instead of magic numbers
                 var entity_layer = wasm.game_getCurrentWorldEntityLayer();
                 let player_element = game_component.shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
                 if (player_element) {

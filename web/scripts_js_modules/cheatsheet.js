@@ -19,11 +19,11 @@ export class CheatSheet extends HTMLElement {
                 }
             }
         ];
+        globals.INPUTS = globals.INPUTS.concat(this.inputs);
     }
 
     connectedCallback() {
         this.render();
-        globals.INPUTS = globals.INPUTS.concat(this.inputs);
         // TODO: A better way to not repeat our input functionality here
         document.addEventListener('keydown', (e) => {
             for (var i = 0; i < this.inputs.length; ++i) {

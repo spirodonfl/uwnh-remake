@@ -237,11 +237,6 @@ pub const WorldDataStruct = struct {
         }
         if (!exists) {
             try self.entities_list.append(allocator, entity_id);
-            var new_entity = EntityDataStruct{
-                .position = .{ position_x, position_y },
-                .embedded = EmbeddedDataStruct{},
-            };
-            try entities_list.append(allocator, new_entity);
         }
     }
     pub fn removeEntity(self: *WorldDataStruct, entity_id: u16) !void {
@@ -416,7 +411,7 @@ pub const EntityDataStruct = struct {
                 .parent = self,
                 .entity_id = self.getId()
             };
-            // TODO: This is special code. Remove it and make it better / dynamic!
+            // TODO: This is special code. Remove it and make it better / dynamic as part of entity binary data
             if (self.getType() == 99) {
                 self.attack.default_damage = 3;
             }

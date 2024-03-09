@@ -127,11 +127,11 @@ export class Editor extends HTMLElement {
                 }
             },
         ];
+        globals.INPUTS = globals.INPUTS.concat(this.inputs);
     }
 
     connectedCallback() {
         this.render();
-        globals.INPUTS = globals.INPUTS.concat(this.inputs);
         // Listen to game-component for custom event called 'viewport-size'
         let game_component = document.querySelector('game-component');
         globals.EVENTBUS.addEventListener('mode-change', (e) => {
@@ -255,7 +255,6 @@ export class Editor extends HTMLElement {
             let data_id = parseInt(this.shadowRoot.getElementById('current_data_id').value);
             let x = this.last_atlas_click.x;
             let y = this.last_atlas_click.y;
-            // TODO: What about animations?
             let current_world_index = wasm.game_getCurrentWorldIndex();
             if (!globals.IMAGE_DATA[current_world_index]) {
                 globals.IMAGE_DATA[current_world_index] = [];
@@ -366,6 +365,47 @@ export class Editor extends HTMLElement {
                 this.shadowRoot.getElementById('entity_id').innerHTML += `<option id="entity_id_${entity_id}" value="${entity_id}">${entity_id}</option>`;
             }
         }
+    }
+
+    staticizeLayer() {
+        let canvas = document.createElement('canvas');
+        canvas.width = wasm.game_getCurrentWorldWidth() * 64;
+        canvas.height = wasm.game_getCurrentWorldHeight() * 64;
+        let ctx = canvas.getContext('2d');
+        let current_layer = this.current_layer;
+        let y = 0;
+        let x = 0;
+        let atlas_image = new Image();
+        atlas_image.src = globals.ATLAS_PNG_FILENAME;
+        atlas_image.onload = () => {
+            for (let i = 0; i < (wasm.game_getCurrentWorldWidth() * wasm.game_getCurrentWorldHeight()); ++i) {
+                let x = i % wasm.game_getCurrentWorldWidth();
+                let y = Math.floor(i / wasm.game_getCurrentWorldWidth());
+                let data = wasm.game_getWorldData(wasm.game_getCurrentWorldIndex(), current_layer, x, y);
+                let entity_image_data = globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()][current_layer][data];
+                if (entity_image_data) {
+                    ctx.drawImage(
+                        atlas_image,
+                        entity_image_data[0][0],
+                        entity_image_data[0][1],
+                        64,
+                        64,
+                        x * 64,
+                        y * 64,
+                        64,
+                        64
+                    );
+                }
+            }
+            let staticized_layer = canvas.toDataURL('image/png');
+            let staticized_layer_image = new Image();
+            staticized_layer_image.src = staticized_layer;
+            // download image as a file
+            let a = document.createElement('a');
+            a.href = staticized_layer;
+            a.download = 'staticized_layer.png';
+            a.click();
+        };
     }
 
     extractDataFromSelectedCoord() {
@@ -615,7 +655,6 @@ export class Editor extends HTMLElement {
                 button.setAttribute('id', buttons[b]);
                 button.setAttribute('layer-id', i);
                 button.innerHTML = buttons[(b + 1)];
-                // TODO: This
                 let listener = null;
                 if (buttons[b] === 'layer_list_view') {
                     listener = addEventListenerWithRemoval(button, 'click', (e) => {
