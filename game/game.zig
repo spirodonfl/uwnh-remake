@@ -228,6 +228,8 @@ pub const WorldDataStruct = struct {
         self.entities_initialized = true;
     }
     pub fn addEntity(self: *WorldDataStruct, entity_id: u16, position_x: u16, position_y: u16) !void {
+        _ = position_x;
+        _ = position_y;
         var exists: bool = false;
         for (0..self.entities_list.items.len) |i| {
             if (self.entities_list.items[i] == entity_id) {
