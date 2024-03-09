@@ -17,13 +17,7 @@ pub fn getTotalLayers() u16 {
 // @wasm
 pub fn attachLayerToWorld(layer_index: u16, world_index: u16) !void {
     try game.worlds_list.at(world_index).addEmbeddedLayer(layers.items[layer_index]);
-    // TODO: Update total game layers
 }
-
-// TODO: Finish this function
-// setWorldTotalLayers(world_index: u16, total_layers: u16)
-// world.readToRawData()
-// world.raw_data[enums.WorldDataEnum.TotalLayers.int()] = total_layers
 
 // @wasm
 pub fn setWorldLayerCoordinateData(world_id: u16, layer_index: u16, x: u16, y: u16, value: u16) !void {
@@ -121,8 +115,6 @@ pub fn removeColumnFromWorld(world_index: u16) !void {
     world.embedded_data.raw_data.items[enums.WorldDataEnum.Width.int()] = new_width;
 }
 
-// TODO: Restructure layer order (maybe)
-// TODO: Alternative to above, injectLayerAfter / injectLayerBefore
 // @wasm
 pub fn moveLayer(world_index: u16, layer_index: u16, new_index: u16) !void {
     var world = game.worlds_list.at(world_index);

@@ -1,14 +1,5 @@
 // Note: make sure to remain on ZIG 0.11.0
 
-// TODO: Scripts
-// Outer array is script line
-// Inner array is command for line (need to create legend for inner array commands)
-// if [0] = 0 = moveEntity
-// -- [1] = entityIndex
-// -- [2] = direction (0 = left, 1 = right, 2 = up, 3 = down) (EXAMPLE)
-// script: [2][3]u8 = .{ .{ 0, 0, 0 }, .{ 0, 0, 0 } };
-// runScript(scriptIndex: u8)
-
 const std = @import("std");
 const ArrayList = std.ArrayList;
 
@@ -17,13 +8,13 @@ pub var allocator = gpa_allocator.allocator();
 pub var entities_list = std.SegmentedList(EntityDataStruct, 32){};
 pub var worlds_list = std.SegmentedList(WorldDataStruct, 32){};
 pub var current_world_index: u16 = 0;
-var GAME_INITIALIZED: bool = false;
 pub var events_list = std.ArrayListUnmanaged(GameEvent){};
+
+var GAME_INITIALIZED: bool = false;
 
 const enums = @import("enums.zig");
 const embeds = @import("embeds.zig");
 const helpers = @import("helpers.zig");
-const renderer = @import("renderer.zig");
 const diff = @import("diff.zig");
 const editor = @import("editor.zig");
 const viewport = @import("viewport.zig");
@@ -550,56 +541,6 @@ pub fn entityDecrementHealth(entity: u16) u16 {
     return entities_list.at(entity).health.current_value;
 }
 // @wasm
-pub fn entityAttack(entity: u16, target: u16, crit_buff: bool) !bool {
-    var target_coords: [2]u16 = .{ 0, 0 };
-    var entity_coords: [2]u16 = .{ 0, 0 };
-    // Determine if entity is next to target
-    // If so, decrement target health
-    var world = worlds_list.at(current_world_index);
-    var w = world.getWidth();
-    var h = world.getHeight();
-    var size = w * h;
-    for (0..size) |i| {
-        var x: u16 = @as(u16, @intCast(i % w));
-        var y: u16 = @as(u16, @intCast(i / w));
-        // TODO: Update magic number 2 to be ENTITY_LAYER
-        var value = getWorldData(current_world_index, 2, x, y);
-        if (value == (entity + 1)) {
-            entity_coords = .{ x, y };
-        } else if (value == (target + 1)) {
-            target_coords = .{ x, y };
-        }
-    }
-
-    var target_plus_one_y = target_coords[1] + 1;
-    // TODO: If plus one is greater than height, then don't add one
-    var target_minus_one_y = target_coords[1];
-    if (target_coords[1] > 0) {
-        target_minus_one_y = target_coords[1] - 1;
-    }
-    var target_plus_one_x = target_coords[0] + 1;
-    // TODO: If plus one is greater than width, then don't add one
-    var target_minus_one_x = target_coords[0];
-    if (target_coords[0] > 0) {
-        target_minus_one_x = target_coords[0] - 1;
-    }
-    if ((entity_coords[0] == target_coords[0] and (entity_coords[1] == target_plus_one_y or entity_coords[1] == target_minus_one_y)) or
-        (entity_coords[1] == target_coords[1] and (entity_coords[0] == target_plus_one_x or entity_coords[0] == target_minus_one_x)))
-    {
-        try diff.addData(0);
-        if (crit_buff) {
-            _ = entityDecrementHealth(target);
-            _ = entityDecrementHealth(target);
-            _ = entityDecrementHealth(target);
-        } else {
-            _ = entityDecrementHealth(target);
-        }
-        return true;
-    }
-
-    return false;
-}
-// @wasm
 pub fn entityGetHealth(entity_id: u16) u16 {
     var entity_index = getEntityById(entity_id);
     if (entity_index == 0) {
@@ -607,44 +548,6 @@ pub fn entityGetHealth(entity_id: u16) u16 {
     }
     var entity = entities_list.at(entity_index - 1);
     return entity.health.current_value;
-}
-// @wasm
-pub fn entityGetWorldX(entity: u16) !u16 {
-    // TODO: Update this so we
-    // (a) use world.ENTITY_LAYER
-    // (b) use world.position_layer
-    var world = worlds_list.at(current_world_index);
-    var w = world.getWidth();
-    var h = world.getHeight();
-    var size = w * h;
-    for (0..size) |i| {
-        var x: u16 = @as(u16, @intCast(i % w));
-        var y: u16 = @as(u16, @intCast(i / w));
-        if (getWorldData(current_world_index, 2, x, y) == (entity + 1)) {
-            return x;
-        }
-    }
-
-    @panic("Entity not found in world");
-}
-// @wasm
-pub fn entityGetWorldY(entity: u16) !u16 {
-    // TODO: Update this so we
-    // (a) use world.ENTITY_LAYER
-    // (b) use world.position_layer
-    var world = worlds_list.at(current_world_index);
-    var w = world.getWidth();
-    var h = world.getHeight();
-    var size = w * h;
-    for (0..size) |i| {
-        var x: u16 = @as(u16, @intCast(i % w));
-        var y: u16 = @as(u16, @intCast(i / w));
-        if (getWorldData(current_world_index, 2, x, y) == (entity + 1)) {
-            return y;
-        }
-    }
-
-    @panic("Entity not found in world");
 }
 // @wasm
 pub fn entityGetType(entity_id: u16) u16 {

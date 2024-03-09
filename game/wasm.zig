@@ -1,7 +1,6 @@
 pub const game = @import("game.zig");
 pub const diff = @import("diff.zig");
 pub const editor = @import("editor.zig");
-pub const renderer = @import("renderer.zig");
 pub const viewport = @import("viewport.zig");
 pub const inputs = @import("inputs.zig");
 pub const messages = @import("messages.zig");
