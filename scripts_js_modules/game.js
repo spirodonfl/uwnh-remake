@@ -386,10 +386,8 @@ export class Game extends HTMLElement {
         let static_layer = document.createElement('div');
         static_layer.id = 'static-layer-' + layer_id;
         static_layer.style.position = 'absolute';
-        // static_layer.style.width = wasm.game_getCurrentWorldWidth() * 64;
-        static_layer.style.width = this.width * 64;
-        // static_layer.style.height = wasm.game_getCurrentWorldHeight() * 64;
-        static_layer.style.height = this.height * 64;
+        static_layer.style.width = wasm.viewport_getSizeWidth() * 64;
+        static_layer.style.height = wasm.viewport_getSizeHeight() * 64;
         static_layer.style.backgroundImage = 'url(' + image_path + ')';
         // static_layer.style.backgroundSize = '100% 100%';
         // static_layer.style.backgroundRepeat = 'no-repeat';
@@ -434,8 +432,8 @@ export class Game extends HTMLElement {
                     let camera_x = wasm.viewport_getCameraX();
                     let camera_y = wasm.viewport_getCameraY();
                     static_layer.style.backgroundPosition = '-' + (camera_x * 64) + 'px -' + (camera_y * 64) + 'px';
-                    static_layer.style.width = this.width * 64;
-                    static_layer.style.height = this.height * 64;
+                    static_layer.style.width = wasm.viewport_getSizeWidth() * 64;
+                    static_layer.style.height = wasm.viewport_getSizeHeight() * 64;
                 } else {
                     this.static_layers[0][i][1] = 1;
                     static_layer = this.createStaticLayer(i, this.static_layers[0][i][2]);
