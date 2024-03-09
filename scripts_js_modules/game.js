@@ -434,6 +434,8 @@ export class Game extends HTMLElement {
                     let camera_x = wasm.viewport_getCameraX();
                     let camera_y = wasm.viewport_getCameraY();
                     static_layer.style.backgroundPosition = '-' + (camera_x * 64) + 'px -' + (camera_y * 64) + 'px';
+                    static_layer.style.width = this.width * 64;
+                    static_layer.style.height = this.height * 64;
                 } else {
                     this.static_layers[0][i][1] = 1;
                     static_layer = this.createStaticLayer(i, this.static_layers[0][i][2]);
