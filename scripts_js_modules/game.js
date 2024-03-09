@@ -2,12 +2,13 @@ import { wasm } from './injector_wasm.js';
 import './entity.js';
 import './collision-entity.js';
 import './viewport-entity.js';
-import { globals } from './globals.js';
+import { globals, possibleKrakenImages } from './globals.js';
 import '../components/draggable.js';
 import { Multiplayer } from './multiplayer.js';
 import { MultiplayerHost } from './multiplayer_host.js';
 import { globalStyles } from "./global-styles.js";
 import { FRAMES } from './frames.js';
+import { getRandomKey } from './helpers.js';
 
 let current_time_stamp = new Date().getTime();
 let previous_time_stamp = 0;
@@ -321,7 +322,6 @@ export class Game extends HTMLElement {
             for (var i = 0; i < this.inputs.length; ++i) {
                 let input = this.inputs[i];
                 if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
-                    console.log('game', [input.context, globals.MODE]);
                     if (input.context === globals.MODES.indexOf('ALL') || input.context === globals.MODE) {
                         input.callback();
                     }
@@ -364,12 +364,68 @@ export class Game extends HTMLElement {
         xhr.send();
     }
 
+    createStaticLayer(layer_id, image_path) {
+        let camera_x = wasm.viewport_getCameraX();
+        let camera_y = wasm.viewport_getCameraY();
+        let static_layer = document.createElement('div');
+        static_layer.id = 'static-layer-' + layer_id;
+        static_layer.style.position = 'absolute';
+        // static_layer.style.width = wasm.game_getCurrentWorldWidth() * 64;
+        static_layer.style.width = this.width * 64;
+        // static_layer.style.height = wasm.game_getCurrentWorldHeight() * 64;
+        static_layer.style.height = this.height * 64;
+        static_layer.style.backgroundImage = 'url(' + image_path + ')';
+        // static_layer.style.backgroundSize = '100% 100%';
+        // static_layer.style.backgroundRepeat = 'no-repeat';
+        static_layer.style.backgroundPosition = '-' + (camera_x * 64) + 'px -' + (camera_y * 64) + 'px';
+        static_layer.style.left = '0';
+        static_layer.style.top = '0';
+        return static_layer;
+    }
+
+    randomizeKraken() {
+        let kraken_entity_id = 7;
+        let entity_layer = wasm.game_getCurrentWorldEntityLayer();
+        let random_kraken_image = getRandomKey(possibleKrakenImages);
+        this.current_kraken_image = random_kraken_image;
+        let image_data = globals.IMAGE_DATA[0][entity_layer][kraken_entity_id];
+        if (image_data) {
+            image_data[0][0] = possibleKrakenImages[random_kraken_image].x * 64;
+            image_data[0][1] = possibleKrakenImages[random_kraken_image].y * 64;
+        }
+    }
+
     renderGame() {
+        this.static_layers = [
+            [
+                [
+                    1, // Should be staticized (bool)
+                    0, // already rendered
+                    'images/world_0_layer_0_frame_0.png',
+                ],
+                [
+                    1, // Should be staticized (bool)
+                    0, // already rendered
+                    'images/world_0_layer_1_frame_0.png'
+                ],
+                null
+            ]
+        ];
         // TODO: Be smart. Only remove components you need and update existing ones
         var entity_components = this.shadowRoot.getElementById('view').querySelectorAll('entity-component');
         for (var i = 0; i < entity_components.length; ++i) {
             entity_components[i].remove();
         }
+
+        for (let i = 0; i < this.static_layers[0].length; ++i) {
+            if (this.static_layers[0][i] !== null) {
+                let static_layer = this.shadowRoot.getElementById('static-layer-' + i);
+                if (static_layer) {
+                    static_layer.remove();
+                }
+            }
+        }
+
         var y = 0;
         var x = 0;
         // var cwi = wasm.game_getCurrentWorldIndex();
@@ -381,6 +437,21 @@ export class Game extends HTMLElement {
                 var total_layers = wasm.game_getCurrentWorldTotalLayers();
                 for (var layer = 0; layer < total_layers; ++layer) {
                     if (layer === wasm.game_getCurrentWorldCollisionLayer()) { continue; }
+
+                    if (
+                        this.static_layers[0][layer]
+                        && this.static_layers[0][layer] !== null
+                        && this.static_layers[0][layer][0] === 1
+                    ) {
+                        if (this.static_layers[0][layer][1] === 0) {
+                            this.static_layers[0][layer][1] = 1;
+                            var static_layer = this.createStaticLayer(layer, this.static_layers[0][layer][2]);
+                            this.shadowRoot.getElementById('view').appendChild(static_layer);
+                        } else {
+                            continue;
+                        }
+                    }
+
                     if (layer === wasm.game_getCurrentWorldEntityLayer()) {
                         // TODO: Deal with entities properly here
                         var entity_id = wasm.game_getWorldDataAtViewportCoordinate(layer, viewport_x, viewport_y);
@@ -522,7 +593,7 @@ export class Game extends HTMLElement {
 
     updateElementCount() {
         let value = 0;
-        value += this.shadowRoot.querySelectorAll('*').length;
+        value += this.shadowRoot.getElementById('view').querySelectorAll('*').length;
         this.shadowRoot.getElementById('els_value').innerText = value;
     }
 

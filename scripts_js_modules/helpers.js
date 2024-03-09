@@ -1,3 +1,5 @@
+import { globals } from './globals.js';
+
 export function addEventListenerWithRemoval(element, event, handler) {
     element.addEventListener(event, handler);
     return () => element.removeEventListener(event, handler);
@@ -72,4 +74,21 @@ export function getRandomKey(obj) {
     
     // Step 3: Return the key at the random index
     return keys[randomIndex];
+}
+
+export function convertToLowercaseWithUnderscores(str) {
+    return str.toLowerCase().replace(/ /g, "_");
+}
+
+export function listenForKeys(parent) {
+    document.addEventListener('keydown', (e) => {
+        for (let i = 0; i < globals.INPUTS.length; ++i) {
+            let input = globals.INPUTS[i];
+            if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
+                if (input.context === globals.MODES.indexOf('ALL') || input.context === globals.MODE) {
+                    input.callback(parent);
+                }
+            }
+        }
+    });
 }
