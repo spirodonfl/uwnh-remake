@@ -401,12 +401,12 @@ export class Game extends HTMLElement {
                 [
                     1, // Should be staticized (bool)
                     0, // already rendered
-                    'images/world_0_layer_0_frame_0.png',
+                    '../images/world_0_layer_0_frame_0.png',
                 ],
                 [
                     1, // Should be staticized (bool)
                     0, // already rendered
-                    'images/world_0_layer_1_frame_0.png'
+                    '../images/world_0_layer_1_frame_0.png'
                 ],
                 null
             ]
