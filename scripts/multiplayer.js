@@ -293,18 +293,21 @@ export class Multiplayer extends HTMLElement {
                 this.shadowRoot.querySelector('#enable_kraken').addEventListener('click', () => {
                     RyansBackendSecondaryHole.ws.send(JSON.stringify({
                         cmd: 'enable_kraken',
+                        roles: window.USER.roles,
                     }));
                 });
                 this.shadowRoot.querySelector('#disable_kraken').classList.remove('hidden');
                 this.shadowRoot.querySelector('#disable_kraken').addEventListener('click', () => {
                     RyansBackendSecondaryHole.ws.send(JSON.stringify({
                         cmd: 'disable_kraken',
+                        roles: window.USER.roles,
                     }));
                 });
                 this.shadowRoot.querySelector('#reset').classList.remove('hidden');
                 this.shadowRoot.querySelector('#reset').addEventListener('click', () => {
                     RyansBackendSecondaryHole.ws.send(JSON.stringify({
                         cmd: 'reset',
+                        roles: window.USER.roles,
                     }));
                 });
             }
