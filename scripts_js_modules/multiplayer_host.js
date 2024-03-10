@@ -187,11 +187,11 @@ export class MultiplayerHost extends HTMLElement {
             var user_despawned = false;
             for (var i = 0; i < this.ships_to_players.length; ++i) {
                 if (
-                    this.ships_to_player[i]
+                    this.ships_to_players[i]
                     && this.ships_to_players[i] !== null
                     && this.ships_to_players[i].username === e.data.user
                 ) {
-                    this.ship_to_players[i] = null;
+                    this.ships_to_players[i] = null;
                     user_despawned = true;
                     // TODO: Reset this entities health and anything else we need. wait, should I?
                 }
