@@ -269,7 +269,7 @@ export class Multiplayer extends HTMLElement {
         if (window.USER) {
             this.user = window.USER;
             this.user.username = this.user.username.toLowerCase();
-            RyansBackendSecondaryHole.init(window.USER.login, window.USER.username.toLowerCase());
+            RyansBackendSecondaryHole.init(this.user.username, this.user.username, window.USER.login);
             console.log('ROLES:', window.USER.roles);
             globals.MODE = globals.MODES.indexOf('MULTIPLAYER');
             // mod, vip, sub, broadcaster

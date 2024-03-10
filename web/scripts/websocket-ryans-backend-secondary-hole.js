@@ -3,11 +3,11 @@ import { globals } from './globals.js';
 export const RyansBackendSecondaryHole = {
     ws: null,
     open: false,
-    init: function (login, name) {
+    init: function (login, name, id) {
         var url = 'wss://spirodon.games/playersocket/websocket';
         url += '?';
         url += 'channel=spirodonfl&';
-        url += 'id=lemnean_sucks_deez_nutz&';
+        url += 'id=' + id + '&';
         url += 'login=' + login + '&';
         url += 'name=' + name;
 
