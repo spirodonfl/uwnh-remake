@@ -112,7 +112,7 @@ export class MultiplayerHost extends HTMLElement {
             return;
         }
         RyansBackendMainHole.ws.send(JSON.stringify({
-            set_role: {
+            set_roles: {
                 email: email,
                 channel: channel,
                 roles: roles
