@@ -61,7 +61,7 @@ export const RyansBackendSecondaryHole = {
             } else {
                 globals.EVENTBUS.triggerEvent(
                     'message-from-ryans-backend-secondary-hole',
-                    [{data:data}]
+                    {data:data}
                 );
             }
         }
