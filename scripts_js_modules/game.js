@@ -437,6 +437,8 @@ export class Game extends HTMLElement {
                 } else {
                     this.static_layers[0][i][1] = 1;
                     static_layer = this.createStaticLayer(i, this.static_layers[0][i][2]);
+                    static_layer.style.width = (wasm.viewport_getSizeWidth() * 64) + 'px';
+                    static_layer.style.height = (wasm.viewport_getSizeHeight() * 64) + 'px';
                     this.shadowRoot.getElementById('view').appendChild(static_layer);
                 }
             }
