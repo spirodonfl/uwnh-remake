@@ -289,22 +289,22 @@ export class Multiplayer extends HTMLElement {
                 }
             }
             if (role !== null) {
-                this.shadowRoot.querySelector('enable_kraken').classList.remove('hidden');
-                this.shadowRoot.querySelector('enable_kraken').addEventListener('click', () => {
+                this.shadowRoot.querySelector('#enable_kraken').classList.remove('hidden');
+                this.shadowRoot.querySelector('#enable_kraken').addEventListener('click', () => {
                     RyansBackendSecondaryHole.ws.send(JSON.stringify({
                         cmd: 'enable_kraken',
                         role: role,
                     }));
                 });
-                this.shadowRoot.querySelector('disable_kraken').classList.remove('hidden');
-                this.shadowRoot.querySelector('disable_kraken').addEventListener('click', () => {
+                this.shadowRoot.querySelector('#disable_kraken').classList.remove('hidden');
+                this.shadowRoot.querySelector('#disable_kraken').addEventListener('click', () => {
                     RyansBackendSecondaryHole.ws.send(JSON.stringify({
                         cmd: 'disable_kraken',
                         role: role,
                     }));
                 });
-                this.shadowRoot.querySelector('reset').classList.remove('hidden');
-                this.shadowRoot.querySelector('reset').addEventListener('click', () => {
+                this.shadowRoot.querySelector('#reset').classList.remove('hidden');
+                this.shadowRoot.querySelector('#reset').addEventListener('click', () => {
                     RyansBackendSecondaryHole.ws.send(JSON.stringify({
                         cmd: 'reset',
                         role: role,
