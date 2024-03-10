@@ -369,13 +369,13 @@ export class MultiplayerHost extends HTMLElement {
             this.broadcastGameState();
         });
         globals.EVENTBUS.addEventListener('user-despawns', (e) => {
-            console.log('User wants to despawn');
+            console.log('User wants to despawn', e);
             let user_despawned = false;
             for (let i = 0; i < this.ships_to_players.length; ++i) {
                 if (
                     this.ships_to_players[i]
                     && this.ships_to_players[i] !== null
-                    && this.ships_to_players[i].username === e.data.user
+                    && this.ships_to_players[i].username === e.user
                 ) {
                     this.ships_to_players[i] = null;
                     user_despawned = true;
@@ -387,9 +387,9 @@ export class MultiplayerHost extends HTMLElement {
             this.updatePlayerList();
         });
         globals.EVENTBUS.addEventListener('user-moves-left', (e) => {
-            console.log('User wants to move left');
+            console.log('User wants to move left', e);
             for (let i = 0; i < this.ships_to_players.length; ++i) {
-                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.data.user) {
+                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.user) {
                     console.log('sending message for user move left [' + this.ships_to_players[i].wasm_entity_id + ']');
                     wasm.messages_moveLeft(this.ships_to_players[i].wasm_entity_id, 0);
                     break;
@@ -397,9 +397,9 @@ export class MultiplayerHost extends HTMLElement {
             }
         });
         globals.EVENTBUS.addEventListener('user-moves-right', (e) => {
-            console.log('User wants to move right');
+            console.log('User wants to move right', e);
             for (let i = 0; i < this.ships_to_players.length; ++i) {
-                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.data.user) {
+                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.user) {
                     console.log('sending message for user move right [' + this.ships_to_players[i].wasm_entity_id + ']');
                     wasm.messages_moveRight(this.ships_to_players[i].wasm_entity_id, 0);
                     break;
@@ -409,9 +409,9 @@ export class MultiplayerHost extends HTMLElement {
             this.updatePlayerList();
         });
         globals.EVENTBUS.addEventListener('user-moves-up', (e) => {
-            console.log('User wants to move up');
+            console.log('User wants to move up', e);
             for (let i = 0; i < this.ships_to_players.length; ++i) {
-                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.data.user) {
+                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.user) {
                     console.log('sending message for user move up [' + this.ships_to_players[i].wasm_entity_id + ']');
                     wasm.messages_moveUp(this.ships_to_players[i].wasm_entity_id, 0);
                     break;
@@ -419,9 +419,9 @@ export class MultiplayerHost extends HTMLElement {
             }
         });
         globals.EVENTBUS.addEventListener('user-moves-down', (e) => {
-            console.log('User wants to move down');
+            console.log('User wants to move down', e);
             for (let i = 0; i < this.ships_to_players.length; ++i) {
-                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.data.user) {
+                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.user) {
                     console.log('sending message for user move down [' + this.ships_to_players[i].wasm_entity_id + ']');
                     wasm.messages_moveDown(this.ships_to_players[i].wasm_entity_id, 0);
                     break;
@@ -429,9 +429,9 @@ export class MultiplayerHost extends HTMLElement {
             }
         });
         globals.EVENTBUS.addEventListener('user-attacks', (e) => {
-            console.log('User wants to attack');
+            console.log('User wants to attack', e);
             for (let i = 0; i < this.ships_to_players.length; ++i) {
-                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.data.user) {
+                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.user) {
                     console.log('sending message for user attack [' + this.ships_to_players[i].wasm_entity_id + ']');
                     wasm.messages_attack(this.ships_to_players[i].wasm_entity_id, 0);
                     break;
