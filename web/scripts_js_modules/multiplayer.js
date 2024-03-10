@@ -364,10 +364,8 @@ export class Multiplayer extends HTMLElement {
         RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'spawn'}));
     }
     sendDespawn() {
-        if (this.inGame()) {
-            // TODO: Remove range highlighter
-            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'despawn'}));
-        }
+        // TODO: Remove range highlighter
+        RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'despawn'}));
     }
     sendAttack() {
         if (this.inGame()) {

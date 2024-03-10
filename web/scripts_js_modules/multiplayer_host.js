@@ -189,13 +189,11 @@ export class MultiplayerHost extends HTMLElement {
                 if (this.ships_to_player[i] !== undefined && this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.data.user) {
                     this.ship_to_players[i] = null;
                     user_despawned = true;
-                    // TODO: Reset this entities health and anything else we need
+                    // TODO: Reset this entities health and anything else we need. wait, should I?
                 }
             }
 
-            if (user_despawned) {
-                this.broadcastGameState();
-            }
+            this.broadcastGameState();
             this.updatePlayerList();
         });
         globals.EVENTBUS.addEventListener('user-moves-left', (e) => {
