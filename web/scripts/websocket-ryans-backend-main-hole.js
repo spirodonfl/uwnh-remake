@@ -4,6 +4,7 @@ const RyansBackendMainHoleConfig = {
     "set_filters": {
         "commands": [
             "up", "down", "left", "right", "attack", "spawn", "despawn", "kraken", "reset", "done", "setrole",
+            "enable_kraken", "disable_kraken",
         ],
         "matches": [
             // "^[lurda0-9]+$",
