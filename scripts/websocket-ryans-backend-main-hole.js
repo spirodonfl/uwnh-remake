@@ -3,7 +3,7 @@ import { globals } from './globals.js';
 const RyansBackendMainHoleConfig = {
     "set_filters": {
         "commands": [
-            "up", "down", "left", "right", "attack", "spawn", "despawn", "kraken", "reset", "done"
+            "up", "down", "left", "right", "attack", "spawn", "despawn", "kraken", "reset", "done", "setrole",
         ],
         "matches": [
             // "^[lurda0-9]+$",
@@ -13,35 +13,7 @@ const RyansBackendMainHoleConfig = {
     "set_rate": 50,
     "set_queue_limit": 10,
 };
-const RyansBackendMainHoleIncrementLeaderboardScore = function (user) {
-    return {
-        increment_score: {
-            user: user,
-            inc: 1
-        }
-    }
-};
-/**
-{
-    "broadcast": {
-        "payload": {
-            "players": this.SHIPS_TO_PLAYER,
-            "health": health,
-            "kraken": this.KRAKEN_PLAYER,
-            "player_coords": player_coords,
-            "kraken_coords": kraken_coords,
-            "kraken_health": kraken_health,
-            "kraken_on": OCTOPUS[3],
-        },
-    }
-}
-{
-    "send": {
-        "user": "spirodonfl",
-        "payload": { "spawn": true }
-    }
-}
-*/
+
 export const RyansBackendMainHole = {
     ws: null,
     init: function () {
@@ -52,17 +24,20 @@ export const RyansBackendMainHole = {
         // url += 'login=spirodonfl&';
         // url += 'name=spirodonf';
 
-        this.ws = new WebSocket(url);
-        this.ws.onerror = (e) => { this.onerror(e); };
-        this.ws.onclose = (e) => { this.onclose(e); };
-        this.ws.onopen = (e) => { this.onopen(e); };
-        this.ws.onmessage = (e) => { this.onmessage(e); };
+        if (this.ws === null) {
+            this.ws = new WebSocket(url);
+            this.ws.onerror = (e) => { this.onerror(e); };
+            this.ws.onclose = (e) => { this.onclose(e); };
+            this.ws.onopen = (e) => { this.onopen(e); };
+            this.ws.onmessage = (e) => { this.onmessage(e); };
+        }
     },
     onerror: function (e) {
-        console.error('Ryans Backend Main Hole could not handle the heat', e)
+        console.error('Ryans Backend Main Hole could not handle the heat', e);
     },
     onclose: function (e) {
         console.error('Ryans Backend Main Hole is closed for business', e);
+        this.ws = null;
     },
     onopen: function (e) {
         console.log('Ryans backend main hole is fully gaped', e);
@@ -111,6 +86,33 @@ export const RyansBackendMainHole = {
                             globals.EVENTBUS.triggerEvent('user-moves-down', [{data: {user, role}}]);
                         } else if (cmd === 'attack') {
                             globals.EVENTBUS.triggerEvent('user-attacks', [{data: {user, role}}]);
+                        } else if (
+                            cmd === 'enable_kraken'
+                            && (
+                                role === 'mod'
+                                || role === 'vip'
+                                || role === 'broadcaster'
+                            )
+                        ){
+                            globals.EVENTBUS.triggerEvent('enable-kraken', [{data: {user, role}}]);
+                        } else if (
+                            cmd === 'disable_kraken'
+                            && (
+                                role === 'mod'
+                                || role === 'vip'
+                                || role === 'broadcaster'
+                            )
+                        ){
+                            globals.EVENTBUS.triggerEvent('disable-kraken', [{data: {user, role}}]);
+                        } else if (
+                            cmd === 'reset'
+                            && (
+                                role === 'mod'
+                                || role === 'vip'
+                                || role === 'broadcaster'
+                            )
+                        ){
+                            window.location.reload();
                         } else {
                             cmd = cmd.split(' ')[0];
                             console.log('cmd after split', cmd);

@@ -136,12 +136,12 @@ export class Game extends HTMLElement {
         this.static_layers = [
             [
                 [
-                    1, // Should be staticized (bool)
+                    0, // Should be staticized (bool)
                     0, // already rendered
                     import.meta.resolve('../images/world_0_layer_0_frame_0.png'),
                 ],
                 [
-                    1, // Should be staticized (bool)
+                    0, // Should be staticized (bool)
                     0, // already rendered
                     import.meta.resolve('../images/world_0_layer_1_frame_0.png'),
                 ],
@@ -318,6 +318,18 @@ export class Game extends HTMLElement {
             }
             this.changeMode();
         }
+        const params = new Proxy(new URLSearchParams(window.location.search), {
+            get: (searchParams, prop) => searchParams.get(prop),
+        });
+        if (params.host === 'true') {
+            var multiplayer_host_element = document.querySelector('multiplayer-host-component');
+            if (!multiplayer_host_element) {
+                multiplayer_host_element = document.createElement('multiplayer-host-component');
+                document.body.appendChild(multiplayer_host_element);
+            }
+            this.changeMode();
+            this.changeMode();
+        }
 
         var atlas = new Image();
         atlas.onload = () => {
@@ -417,17 +429,8 @@ export class Game extends HTMLElement {
             entity_components[i].remove();
         }
 
-        // for (let i = 0; i < this.static_layers[0].length; ++i) {
-        //     if (this.static_layers[0][i] !== null) {
-        //         let static_layer = this.shadowRoot.getElementById('static-layer-' + i);
-        //         if (static_layer) {
-        //             static_layer.remove();
-        //         }
-        //     }
-        // }
-        // TODO: Simply update the camera backgroundPosition instead of removing all the time
         for (let i = 0; i < this.static_layers[0].length; ++i) {
-            if (this.static_layers[0][i] !== null) {
+            if (this.static_layers[0][i] !== null && this.static_layers[0][i][0] === 1) {
                 let static_layer = this.shadowRoot.getElementById('static-layer-' + i);
                 if (static_layer) {
                     let camera_x = wasm.viewport_getCameraX();
@@ -606,17 +609,6 @@ export class Game extends HTMLElement {
 
     toggleMainMenuDisplay() {
         this.shadowRoot.getElementById('main_menu').classList.toggle('hidden');
-    }
-
-    __test_createEntity() {
-        var entity_type = 3; // 99, 98, 1, 3(x4)
-        var entity_id = 2;
-        wasm.editor_createEntity(entity_type, entity_id);
-        var start = wasm.editor_getEntityMemoryLocation(entity_id);
-        var length = wasm.editor_getEntityMemoryLength(entity_id);
-        var entity_data = extractMemory(start, length);
-        var entity_data_as_blob = generateBlob(entity_data);
-        editorDownload(entity_data_as_blob, 'entity_' + (entity_id - 1) + '.bin');
     }
 
     sizeView () {

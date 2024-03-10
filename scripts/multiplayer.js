@@ -270,18 +270,49 @@ export class Multiplayer extends HTMLElement {
             this.user = window.USER;
             this.user.username = this.user.username.toLowerCase();
             RyansBackendSecondaryHole.init(window.USER.login, window.USER.username.toLowerCase());
-            console.log('ROLE:', window.USER.role);
-            if (window.USER.role === 'mod' || window.USER.role === 'vip') {
-                // TODO: .. add controls for reset, disable/enable kraken, other perks
-                // TODO: automatically go into MULTIPlAYER mode, show controls
-                globals.MODE = globals.MODES.indexOf('MULTIPLAYER');
-                this.toggleOnScreenControls();
-                this.togglePlayerList();
+            console.log('ROLES:', window.USER.roles);
+            globals.MODE = globals.MODES.indexOf('MULTIPLAYER');
+            // mod, vip, sub, broadcaster
+            let role = null;
+            if (
+                window.USER.roles.indexOf('mod') !== -1
+                || window.USER.roles.indexOf('vip') !== -1
+                || window.USER.roles.indexOf('broadcaster') !== -1
+            ) {
+                for (var r = 0; r < window.USER.roles.length; ++r) {
+                    if (window.USER.roles[r] === 'broadcaster') {
+                        role = 'broadcaster';
+                        break;
+                    } else if (window.USER.roles[r] === 'mod') {
+                        role = 'mod';
+                        break;
+                    } else if (window.USER.roles[r] === 'vip') {
+                        role = 'vip';
+                        break;
+                    }
+                }
+                this.shadowRoot.querySelector('enable_kraken').classList.remove('hidden');
+                this.shadowRoot.querySelector('enable_kraken').addEventListener('click', () => {
+                    RyansBackendSecondaryHole.ws.send(JSON.stringify({
+                        cmd: 'enable_kraken',
+                        role: role,
+                    }));
+                });
+                this.shadowRoot.querySelector('disable_kraken').classList.remove('hidden');
+                this.shadowRoot.querySelector('disable_kraken').addEventListener('click', () => {
+                    RyansBackendSecondaryHole.ws.send(JSON.stringify({
+                        cmd: 'disable_kraken',
+                        role: role,
+                    }));
+                });
+                this.shadowRoot.querySelector('reset').classList.remove('hidden');
+                this.shadowRoot.querySelector('reset').addEventListener('click', () => {
+                    RyansBackendSecondaryHole.ws.send(JSON.stringify({
+                        cmd: 'reset',
+                        role: role,
+                    }));
+                });
             }
-            // TODO: Enable these when roles are ready
-            // this.shadowRoot.querySelector('enable_kraken').classList.add('hidden');
-            // this.shadowRoot.querySelector('disable_kraken').classList.add('hidden');
-            // this.shadowRoot.querySelector('reset').classList.add('hidden');
         } else {
             const params = new Proxy(new URLSearchParams(window.location.search), {
                 get: (searchParams, prop) => searchParams.get(prop),
@@ -496,6 +527,10 @@ export class Multiplayer extends HTMLElement {
                     <input type="button" id="down" value="Move Down" />
                     <input type="button" id="left" value="Move Left" />
                     <input type="button" id="right" value="Move Right" />
+
+                    <input type="button" id="enable_kraken" class="hidden" value="Enable Kraken" />
+                    <input type="button" id="disable_kraken" class="hidden" value="Disable Kraken" />
+                    <input type="button" id="reset" class="hidden" value="Reset Game" />
                 </div>
             </x-draggable>
             <x-draggable name="player-list" id="player-list" class="hidden">
