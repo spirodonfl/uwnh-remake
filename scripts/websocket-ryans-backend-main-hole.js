@@ -70,12 +70,12 @@ export const RyansBackendMainHole = {
                     var user = data.data.commands[i].user.toLowerCase();
                     if (user.length === 0) { continue; }
                     var cmd = data.data.commands[i].cmd;
-                    var role = data.data.commands[i].role;
+                    var roles = data.data.commands[i].roles;
 
                     if (cmd.length > 0) {
                         if (cmd === 'spawn') {
                             // TODO: Update all "triggerEvents" with new argument handling
-                            globals.EVENTBUS.triggerEvent('user-spawns', {user, role});
+                            globals.EVENTBUS.triggerEvent('user-spawns', {user, roles});
                         } else if (cmd === 'despawn') {
                             globals.EVENTBUS.triggerEvent('user-despawns', [{data: {user, role}}]);
                         } else if (cmd === 'left') {
@@ -90,32 +90,29 @@ export const RyansBackendMainHole = {
                             globals.EVENTBUS.triggerEvent('user-attacks', [{data: {user, role}}]);
                         } else if (
                             cmd === 'enable_kraken'
-                            // TODO: Fix when roles are fixed
-                            // && (
-                            //     role === 'mod'
-                            //     || role === 'vip'
-                            //     || role === 'broadcaster'
-                            // )
+                            && (
+                                roles.indexOf('mod') > -1
+                                || roles.indexOf('vip') > -1
+                                || roles.indexOf('broadcaster') > -1
+                            )
                         ){
-                            globals.EVENTBUS.triggerEvent('enable-kraken', {user, role});
+                            globals.EVENTBUS.triggerEvent('enable-kraken', {user, roles});
                         } else if (
                             cmd === 'disable_kraken'
-                            // TODO: Fix when roles are fixed
-                            // && (
-                            //     role === 'mod'
-                            //     || role === 'vip'
-                            //     || role === 'broadcaster'
-                            // )
+                            && (
+                                roles.indexOf('mod') > -1
+                                || roles.indexOf('vip') > -1
+                                || roles.indexOf('broadcaster') > -1
+                            )
                         ){
                             globals.EVENTBUS.triggerEvent('disable-kraken', {user, role});
                         } else if (
                             cmd === 'reset'
-                            // TODO: Fix when roles are fixed
-                            // && (
-                            //     role === 'mod'
-                            //     || role === 'vip'
-                            //     || role === 'broadcaster'
-                            // )
+                            && (
+                                roles.indexOf('mod') > -1
+                                || roles.indexOf('vip') > -1
+                                || roles.indexOf('broadcaster') > -1
+                            )
                         ){
                             window.location.reload();
                         } else {
