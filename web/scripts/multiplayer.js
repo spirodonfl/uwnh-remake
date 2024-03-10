@@ -268,21 +268,21 @@ export class Multiplayer extends HTMLElement {
         // TODO: Potentially add client side twitch auth here
         if (window.USER) {
             this.user = window.USER;
-            this.user.username = this.user.username.toLowerCase();
-            RyansBackendSecondaryHole.init(this.user.username, this.user.username, window.USER.login);
-            console.log('ROLES:', window.USER.roles);
+            this.user.display_name = this.user.display_name.toLowerCase();
+            RyansBackendSecondaryHole.init(this.user.display_name, this.user.display_name, window.USER.id);
             globals.MODE = globals.MODES.indexOf('MULTIPLAYER');
             // mod, vip, sub, broadcaster
             let role = null;
-            if (window.USER.roles.length > 0) {
-                for (var r = 0; r < window.USER.roles.length; ++r) {
-                    if (window.USER.roles[r].role === 'broadcaster') {
+            if (this.user.channel_roles.length > 0) {
+                let roles = this.user.channel_roles;
+                for (var r = 0; r < roles.length; ++r) {
+                    if (roles[r].role === 'broadcaster') {
                         role = 'broadcaster';
                         break;
-                    } else if (window.USER.roles[r].role === 'mod') {
+                    } else if (roles[r].role === 'mod') {
                         role = 'mod';
                         break;
-                    } else if (window.USER.roles[r].role === 'vip') {
+                    } else if (roles[r].role === 'vip') {
                         role = 'vip';
                         break;
                     }
@@ -293,21 +293,18 @@ export class Multiplayer extends HTMLElement {
                 this.shadowRoot.querySelector('#enable_kraken').addEventListener('click', () => {
                     RyansBackendSecondaryHole.ws.send(JSON.stringify({
                         cmd: 'enable_kraken',
-                        roles: window.USER.roles,
                     }));
                 });
                 this.shadowRoot.querySelector('#disable_kraken').classList.remove('hidden');
                 this.shadowRoot.querySelector('#disable_kraken').addEventListener('click', () => {
                     RyansBackendSecondaryHole.ws.send(JSON.stringify({
                         cmd: 'disable_kraken',
-                        roles: window.USER.roles,
                     }));
                 });
                 this.shadowRoot.querySelector('#reset').classList.remove('hidden');
                 this.shadowRoot.querySelector('#reset').addEventListener('click', () => {
                     RyansBackendSecondaryHole.ws.send(JSON.stringify({
                         cmd: 'reset',
-                        roles: window.USER.roles,
                     }));
                 });
             }
