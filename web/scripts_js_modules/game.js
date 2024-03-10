@@ -316,6 +316,7 @@ export class Game extends HTMLElement {
                 multiplayer_element = document.createElement('multiplayer-component');
                 document.body.appendChild(multiplayer_element);
             }
+            this.changeMode();
         }
 
         var atlas = new Image();
