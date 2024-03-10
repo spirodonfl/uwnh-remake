@@ -59,6 +59,9 @@ export const RyansBackendSecondaryHole = {
             if (data.errors && data.errors.length > 0) {
                 console.error('Ryans backend main hole basically shat the bed', data.errors);
             } else {
+                if (data.reset) {
+                    window.location.reload();
+                }
                 globals.EVENTBUS.triggerEvent(
                     'message-from-ryans-backend-secondary-hole',
                     {data:data}

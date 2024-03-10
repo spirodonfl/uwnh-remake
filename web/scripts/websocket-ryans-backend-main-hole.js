@@ -113,6 +113,13 @@ export const RyansBackendMainHole = {
                                 || roles.indexOf('broadcaster') > -1
                             )
                         ){
+                            this.ws.send(JSON.stringify({
+                                "broadcast": {
+                                    "payload": {
+                                        "reset": true,
+                                    }
+                                }
+                            }));
                             window.location.reload();
                         } else {
                             cmd = cmd.split(' ')[0];
