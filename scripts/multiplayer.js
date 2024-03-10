@@ -1,193 +1,509 @@
-// This file handles player connectivity for multi-player
-var MULTIPLAYER = {
-    ws: null,
-    current_user: {
-        id: 0,
-        name: 'spirodonfl',
-        login: 'spirodonfl',
-    },
-    spawned: false,
-    init: function () {
-        // TODO: This
-    },
-    handleInput: function (e) {
-// function handleInput(e) {
-//   switch (e.code) {
-//     case "KeyW": return MULTIPLAYER.sendUp();
-//     case "KeyA": return MULTIPLAYER.sendLeft();
-//     case "KeyS": return MULTIPLAYER.sendDown();
-//     case "KeyD": return MULTIPLAYER.sendRight();
-//     case "KeyC": return MULTIPLAYER.connectToRyahnsBackend();
-//     case "KeyP": return MULTIPLAYER.sendSpawn();
-//     case "Space": return MULTIPLAYER.sendAttack();
-//   }
-// }
-        console.log('MULTIPLAYER INPUT', e);
-        if (e.code === 'KeyW') {
-            MULTIPLAYER.sendUp();
-        } else if (e.code === 'KeyA') {
-            MULTIPLAYER.sendLeft();
-        } else if (e.code === 'KeyS') {
-            MULTIPLAYER.sendDown();
-        } else if (e.code === 'KeyD') {
-            MULTIPLAYER.sendRight();
-        } else if (e.code === 'KeyC') {
-            MULTIPLAYER.connectToRyansBackend();
-        } else if (e.code === 'KeyP') {
-            MULTIPLAYER.sendSpawn();
-        } else if (e.code === 'Space') {
-            MULTIPLAYER.sendAttack();
-        }
-    },
-    sendDone() {
-        // if (!spawned) { return; }
-        MULTIPLAYER.ws.send(JSON.stringify({
-            "cmd": "done",
-        }));
-        // spawned = false;
-        // TODO: UI update controls
-    },
-    sendDown() {
-        // if (!spawned) { return; }
-        MULTIPLAYER.ws.send(JSON.stringify({
-            "cmd": "down",
-        }));
-    },
-    sendUp() {
-        // if (!spawned) { return; }
-        MULTIPLAYER.ws.send(JSON.stringify({
-            "cmd": "up",
-        }));
-    },
-    sendLeft() {
-        // if (!spawned) { return; }
-        MULTIPLAYER.ws.send(JSON.stringify({
-            "cmd": "left",
-        }));
-    },
-    sendRight() {
-        // if (!spawned) { return; }
-        MULTIPLAYER.ws.send(JSON.stringify({
-            "cmd": "right",
-        }));
-    },
-    sendSpawn() {
-        // if (spawned) { return; }
-        MULTIPLAYER.ws.send(JSON.stringify({
-            "cmd": "spawn",
-        }));
-        // TODO: Ask ryan if we can send messages *back to the player* so we know if they spawned and whatnot
-        // spawned = true;
-    },
-    sendAttack() {
-        // if (!spawned) { return; }
-        MULTIPLAYER.ws.send(JSON.stringify({
-            "cmd": "attack",
-        }));
-    },
-    connectToRyansBackend: function () {
-        var url = 'wss://spirodon.games/playersocket/websocket';
-        url += '?';
-        url += 'channel=spirodonfl&';
-        url += 'id=lemnean_sucks_deez_nutz&';
-        url += 'login=' + MULTIPLAYER.current_user.login + '&';
-        url += 'name=' + MULTIPLAYER.current_user.name;
-        MULTIPLAYER.ws = new WebSocket(url);
-        MULTIPLAYER.ws.onerror = function(e) {
-            console.error(e);
-            MULTIPLAYER.ws.close();
-        };
-        MULTIPLAYER.ws.onclose = function(e) {
-            console.log('Connection Closed');
-            console.error(e);
-        };
-        MULTIPLAYER.ws.onmessage = function(event) {
-            var data = JSON.parse(event.data);
-            console.log('PLAYERINRYANSBACKEND', data);
-            var user = data.user;
-            if (data.spawn) {
-                TWITCH.userSpawn(user);
-            } else if (data.moveLeft) {
-                TWITCH.handleLeft(user);
-            } else if (data.moveRight) {
-                TWITCH.handleRight(user);
-            } else if (data.moveUp) {
-                TWITCH.handleUp(user);
-            } else if (data.moveDown) {
-                TWITCH.handleDown(user);
-            } else if (data.attack) {
-                TWITCH.handleAttack(user);
-            } else if (data.done) {
-                TWITCH.handleDone(user);
-            }
-            // TODO: Kraken
-            // On main server, kraken moves randomly
-            // need to send kraken location to all clients
-            // do NOT move kraken randomly on client side
-        };
-        MULTIPLAYER.ws.onopen = function(e) {
-            console.log('Connection Open');
-            console.info(e);
-            MULTIPLAYER.init();
-        };
+import { RyansBackendSecondaryHole } from './websocket-ryans-backend-secondary-hole.js';
+import { globals, possibleKrakenImages } from './globals.js';
+import { globalStyles } from "./global-styles.js";
+import { wasm } from './injector_wasm.js';
+import { FRAMES } from './frames.js';
+
+export class Multiplayer extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({mode: 'open'});
+
+        // TODO: Share in a common module/webcomponent
+        this.ships_to_players = [null, null, null, null, null];
+        this.ships_to_players_colors = ['#e28383', '#9e9ef9', '#79df79', 'yellow', '#df70df'];
+        this.kraken_enabled = false;
+        this.kraken_image = null;
+        this.user = null;
+        this.last_move_direction = null;
+
+        // TODO: Fun fact! Unless you inject the element onto the page
+        // (which you don't want to do, in this case, until you need it)
+        // the inputs don't get registered globally so the cheatsheet
+        // doesn't update until the element exists
+        this.inputs = [
+            // {
+            //     description: 'Toggle Leaderboard',
+            //     context: globals.MODES.indexOf('MULTIPLAYER'),
+            //     code: 'Digit1',
+            //     friendlyCode: 'Shift+1',
+            //     shiftKey: true,
+            //     ctrlKey: false,
+            //     callback: () => {
+            //         this.toggleLeaderboardDisplay();
+            //     }
+            // },
+            {
+                description: 'Toggle On-Screen Controls',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'Digit2',
+                friendlyCode: 'Shift+2',
+                shiftKey: true,
+                ctrlKey: false,
+                callback: () => {
+                    this.toggleOnScreenControls();
+                }
+            },
+            {
+                description: 'Toggle Player List',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'Digit3',
+                friendlyCode: 'Shift+3',
+                shiftKey: true,
+                ctrlKey: false,
+                callback: () => {
+                    this.togglePlayerList();
+                }
+            },
+            {
+                description: 'Spawn',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'KeyS',
+                friendlyCode: 'Shift+S',
+                shiftKey: true,
+                ctrlKey: false,
+                callback: () => {
+                    this.sendSpawn();
+                }
+            },
+            {
+                description: 'Despawn',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'KeyD',
+                friendlyCode: 'Shift+D',
+                shiftKey: true,
+                ctrlKey: false,
+                callback: () => {
+                    this.sendDespawn();
+                }
+            },
+            {
+                description: 'Move Up',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'KeyI',
+                friendlyCode: 'I',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.sendUp();
+                }
+            },
+            {
+                description: 'Move Down',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'KeyK',
+                friendlyCode: 'K',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.sendDown();
+                }
+            },
+            {
+                description: 'Move Right',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'KeyL',
+                friendlyCode: 'L',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.sendRight();
+                }
+            },
+            {
+                description: 'Move Left',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'KeyJ',
+                friendlyCode: 'J',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.sendLeft();
+                }
+            },
+            {
+                description: 'Attack',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'Space',
+                friendlyCode: 'Space',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.sendAttack();
+                }
+            },
+            {
+                description: 'Move camera up',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'ArrowUp',
+                friendlyCode: '↑',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    document.querySelector('game-component').moveCameraUp();
+                }
+            },
+            {
+                description: 'Move camera down',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'ArrowDown',
+                friendlyCode: '↓',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    document.querySelector('game-component').moveCameraDown();
+                }
+            },
+            {
+                description: 'Move camera left',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'ArrowLeft',
+                friendlyCode: '←',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    document.querySelector('game-component').moveCameraLeft();
+                }
+            },
+            {
+                description: 'Move camera right',
+                context: globals.MODES.indexOf('MULTIPLAYER'),
+                code: 'ArrowRight',
+                friendlyCode: '→',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    document.querySelector('game-component').moveCameraRight();
+                }
+            },
+        ];
+        globals.INPUTS = globals.INPUTS.concat(this.inputs);
     }
-}
 
-window.addEventListener('load', function() {
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    for (var [key, value] of params) {
-        console.log('HASH');
-        console.log(key, value);
-    } 
-    const multiplayer = params.get('multiplayer');
-    const accessToken = params.get('access_token');
-    if (multiplayer) {
-        const clientId = 'pprdxqu1w21gxcn504lhg7acfe9sop'; // Replace with your client ID
-        const redirectUri = encodeURIComponent('https://spirodon.games/game'); // Replace with your redirect URI
-        const scope = encodeURIComponent('user:read:email'); // Request user's email
-        const responseType = 'token'; // We want an access token
-        const state = 'YOUR_STATE'; // Optional, but recommended for CSRF protection
-
-        const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&scope=${scope}&state=${state}`;
-
-        // Redirect the user to the Twitch authorization page
-        window.location.href = authUrl;
-    } else if (accessToken) {
-        LOADER.events.addEventListener('loaded', function () {
-            if (!_GAME) {
-               console.error('GAME NOT LOADED');
-               return false;
-            }
-
-            TWITCH.init();
-            INPUT.MODE = INPUT.MODES.indexOf('Multiplayer');
-            EDITOR.updateGameMode();
+    connectedCallback() {
+        this.render();
+        globals.EVENTBUS.addEventListener('viewport-size', (e) => {
+            this.updatePlayerList();
         });
-        // Step  4: Use the access token to make authenticated requests
-        console.log('Access token:', accessToken);
-        // Example: Fetch user's email
-        fetch('https://api.twitch.tv/helix/users', {
-            headers: {
-                'Client-ID': 'pprdxqu1w21gxcn504lhg7acfe9sop',
-                'Authorization': `Bearer ${accessToken}`
+        globals.EVENTBUS.addEventListener('game-rendered', (e) => {
+            this.updatePlayerList();
+            if (this.kraken_enabled === false) {
+                this.disableKraken();
+            } else if (this.kraken_enabled === true) {
+                this.enableKraken();
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.data && data.data.length) {
-                const user = data.data[0];
-                console.log('User:', user);
-                console.log('User ID', user.id);
-                console.log('User login', user.login);
-                console.log('User display name', user.display_name);
-                MULTIPLAYER.current_user.id = user.id;
-                MULTIPLAYER.current_user.login = user.login;
-                MULTIPLAYER.current_user.name = user.display_name;
-                MULTIPLAYER.connectToRyansBackend();
-                MULTIPLAYER.init();
+            if (this.inGame() && this.last_move_direction !== null && this.findOwnEntityElement()) {
+                if (this.last_move_direction === 'left') {
+                    this.findOwnEntityElement().showRangeLeft();
+                } else if (this.last_move_direction === 'right') {
+                    this.findOwnEntityElement().showRangeRight();
+                } else if (this.last_move_direction === 'up') {
+                    this.findOwnEntityElement().showRangeUp();
+                } else if (this.last_move_direction === 'down') {
+                    this.findOwnEntityElement().showRangeDown();
+                }
             }
-        })
-        .catch(error => console.error('Error:', error));
+        });
+        globals.EVENTBUS.addEventListener('opened-ryans-backend-secondary-hole', (e) => {
+            console.log('a', e);
+        });
+        globals.EVENTBUS.addEventListener('message-from-ryans-backend-secondary-hole', (e) => {
+            console.log('b', e);
+            if (e.data.user_spawned) {
+                // TODO: Clear these out
+                // this.ships_to_players = e.data.data;
+                // this.updatePlayerList();
+            } else if (e.data.user_despawned) {
+                // TODO: Clear these out
+                // this.ships_to_players = e.data.data;
+                // this.updatePlayerList();
+            } else if (e.data.game_state) {
+                console.log('GAME STATE:', e.data.game_state);
+                // TODO: This is terribly hacky
+                for (var g = 0; g < e.data.game_state.ships_to_players.length; ++g) {
+                    if (e.data.game_state.ships_to_players[g] === null && this.ships_to_players[g] !== null) {
+                        var entity_id = this.ships_to_players[g].wasm_entity_id;
+                        wasm.game_entitySetHealth(entity_id, 0);
+                        // TODO: Update position maybe?
+                    } else if (e.data.game_state.ships_to_players[g] !== null && this.ships_to_players[g] === null) {
+                        var entity_id = e.data.game_state.ships_to_players[g].wasm_entity_id;
+                        wasm.game_entitySetHealth(entity_id, e.data.game_state.health[g]);
+                        wasm.game_entitySetPositionX(entity_id, e.data.game_state.positions[g][0]);
+                        wasm.game_entitySetPositionY(entity_id, e.data.game_state.positions[g][1]);
+                    }
+                }
+                this.ships_to_players = e.data.game_state.ships_to_players;
+                for (var i = 0; i < this.ships_to_players.length; ++i) {
+                    if (this.ships_to_players[i] !== null) {
+                        var entity_id = this.ships_to_players[i].wasm_entity_id;
+                        wasm.game_entitySetHealth(entity_id, e.data.game_state.health[i]);
+                        wasm.game_entitySetPositionX(entity_id, e.data.game_state.positions[i][0]);
+                        wasm.game_entitySetPositionY(entity_id, e.data.game_state.positions[i][1]);
+                    }
+                }
+                if (e.data.game_state.kraken_enabled !== this.kraken_enabled) {
+                    this.kraken_enabled = e.data.game_state.kraken_enabled;
+                    if (e.data.game_state.kraken_enabled) {
+                        this.enableKraken();
+                    } else {
+                        this.disableKraken();
+                    }
+                    console.log('kraken_enabled', [this.kraken_enabled, e.data.game_state.kraken_enabled]);
+                }
+                // TODO: STOP USING MAGIC NUMBERS DAMMIT
+                let kraken_entity_id = 7;
+                let entity_layer = wasm.game_getCurrentWorldEntityLayer();
+                wasm.game_entitySetPositionX(kraken_entity_id, e.data.game_state.kraken_position[0]);
+                wasm.game_entitySetPositionY(kraken_entity_id, e.data.game_state.kraken_position[1]);
+                wasm.game_entitySetHealth(kraken_entity_id, e.data.game_state.kraken_health);
+                let image_data = globals.IMAGE_DATA[0][entity_layer][kraken_entity_id];
+                if (image_data) {
+                    image_data[0][0] = possibleKrakenImages[e.data.game_state.kraken_image].x * 64;
+                    image_data[0][1] = possibleKrakenImages[e.data.game_state.kraken_image].y * 64;
+                }
+            }
+            console.log('ships to players', this.ships_to_players);
+        });
+        // TODO: Potentially add client side twitch auth here
+        if (window.USER) {
+            this.user = window.USER;
+            this.user.username = this.user.username.toLowerCase();
+            RyansBackendSecondaryHole.init(window.USER.login, window.USER.username.toLowerCase());
+            console.log('ROLE:', window.USER.role);
+            if (window.USER.role === 'mod' || window.USER.role === 'vip') {
+                // TODO: .. add controls for reset, disable/enable kraken, other perks
+                // TODO: automatically go into MULTIPlAYER mode, show controls
+                globals.MODE = globals.MODES.indexOf('MULTIPLAYER');
+                this.toggleOnScreenControls();
+                this.togglePlayerList();
+            }
+            // TODO: Enable these when roles are ready
+            // this.shadowRoot.querySelector('enable_kraken').classList.add('hidden');
+            // this.shadowRoot.querySelector('disable_kraken').classList.add('hidden');
+            // this.shadowRoot.querySelector('reset').classList.add('hidden');
+        } else {
+            const params = new Proxy(new URLSearchParams(window.location.search), {
+                get: (searchParams, prop) => searchParams.get(prop),
+            });
+            this.user = {
+                username: params.username.toLowerCase(),
+                login: params.login,
+                role: null
+            };
+            RyansBackendSecondaryHole.init(params.login, params.username);
+        }
+
+        // TODO: A better way to not repeat our input functionality here
+        document.addEventListener('keydown', (e) => {
+            for (var i = 0; i < this.inputs.length; ++i) {
+                let input = this.inputs[i];
+                if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
+                    if (input.context === globals.MODES.indexOf('ALL') || input.context === globals.MODE) {
+                        input.callback();
+                    }
+                }
+            }
+        });
+
+        this.shadowRoot.getElementById('spawn').addEventListener('click', () => {
+            this.sendSpawn()
+        });
+        this.shadowRoot.getElementById('left').addEventListener('click', () => {
+            this.sendLeft();
+        });
+        this.shadowRoot.getElementById('right').addEventListener('click', () => {
+            this.sendRight();
+        });
+        this.shadowRoot.getElementById('up').addEventListener('click', () => {
+            this.sendUp();
+        });
+        this.shadowRoot.getElementById('down').addEventListener('click', () => {
+            this.sendDown();
+        });
+        this.shadowRoot.getElementById('despawn').addEventListener('click', () => {
+            this.sendDespawn();
+        });
+        this.shadowRoot.getElementById('attack').addEventListener('click', () => {
+            this.sendAttack();
+        });
     }
-});
+
+    disconnectedCallback() {}
+    adoptedCallback() {}
+    attributeChangedCallback() {}
+
+    inGame() {
+        if (this.user !== null) {
+            for (let p = 0; p < this.ships_to_players.length; ++p) {
+                if (this.ships_to_players[p] !== null && this.ships_to_players[p].username === this.user.username) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    getOwnEntityId() {
+        if (this.user !== null) {
+            for (let p = 0; p < this.ships_to_players.length; ++p) {
+                if (this.ships_to_players[p] !== null && this.ships_to_players[p].username === this.user.username) {
+                    return this.ships_to_players[p].wasm_entity_id;
+                }
+            }
+        }
+        return false;
+    }
+    findOwnEntityElement() {
+        let entity_layer_index = wasm.game_getCurrentWorldEntityLayer();
+        let entity_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + this.getOwnEntityId() + '"][layer="' + entity_layer_index + '"]');
+        if (entity_element) {
+            return entity_element;
+        }
+        return false;
+    }
+    sendSpawn() {
+        RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'spawn'}));
+    }
+    sendDespawn() {
+        // TODO: Remove range highlighter
+        RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'despawn'}));
+    }
+    sendAttack() {
+        if (this.inGame()) {
+            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'attack'}));
+        }
+    }
+    sendLeft() {
+        if (this.inGame()) {
+            this.last_move_direction = 'left';
+            if (this.findOwnEntityElement()) {
+                this.findOwnEntityElement().showRangeLeft();
+            }
+            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'left'}));
+        }
+    }
+    sendRight() {
+        if (this.inGame()) {
+            this.last_move_direction = 'right';
+            if (this.findOwnEntityElement()) {
+                this.findOwnEntityElement().showRangeRight();
+            }
+            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'right'}));
+        }
+    }
+    sendUp() {
+        if (this.inGame()) {
+            this.last_move_direction = 'up';
+            if (this.findOwnEntityElement()) {
+                this.findOwnEntityElement().showRangeUp();
+            }
+            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'up'}));
+        }
+    }
+    sendDown() {
+        if (this.inGame()) {
+            this.last_move_direction = 'down';
+            if (this.findOwnEntityElement()) {
+                this.findOwnEntityElement().showRangeDown();
+            }
+            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'down'}));
+        }
+    }
+
+    // TODO: Damn it we need a common place for this multiplayer stuff
+    enableKraken() {
+        this.kraken_enabled = true;
+        // TODO: Don't rely on magic numbers here!
+        let entity_id = 7;
+        let entity_layer = wasm.game_getCurrentWorldEntityLayer();
+        wasm.game_entityEnableCollision(entity_id);
+        var kraken_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
+        if (kraken_element) {
+            console.log('show kraken!');
+            kraken_element.style.display = 'block';
+        }
+    }
+    disableKraken() {
+        this.kraken_enabled = false;
+        let entity_id = 7;
+        let entity_layer = wasm.game_getCurrentWorldEntityLayer();
+        wasm.game_entityDisableCollision(entity_id);
+        var kraken_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
+        if (kraken_element) {
+            console.log('hide kraken!');
+            kraken_element.style.display = 'none';
+        }
+    }
+
+    // TODO: This is shared with the multiplayer_host too. Maybe create a common component or something
+    updatePlayerList() {
+        let players_element = this.shadowRoot.getElementById('players');
+        players_element.innerHTML = '';
+        let game_component = document.querySelector('game-component');
+        let entity_components = game_component.shadowRoot.querySelector('entity-component');
+        if (entity_components && entity_components.length > 0) {
+            for (var e = 0; e < entity_components.length; ++e) {
+                entity_components[e].clearBorder();
+            }
+        }
+        for (var i = 0; i < this.ships_to_players.length; ++i) {
+            if (this.ships_to_players[i] !== null) {
+                var color = this.ships_to_players_colors[i];
+                var entity_id = this.ships_to_players[i].wasm_entity_id;
+                var entity_layer = wasm.game_getCurrentWorldEntityLayer();
+                let player_element = game_component.shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
+                if (player_element) {
+                    player_element.setBorder(color);
+                }
+                players_element.innerHTML += '<span style="color:' + color + ';">' + this.ships_to_players[i].username + '</span><br />';
+            }
+        }
+    }
+
+    toggleLeaderboardDisplay() {
+        // TODO: Ask Ryan to let players get leaderboard data directly
+        // RyansBackendSecondaryHole.getLeaderboard();
+        // RyansBackendSecondaryHole.ws.send(JSON.stringify({"cmd": "spawn"}));
+        const leaderboard = this.shadowRoot.getElementById('leaderboard');
+        leaderboard.classList.toggle('hidden');
+    }
+
+    toggleOnScreenControls() {
+        const onScreenControls = this.shadowRoot.getElementById('on-screen-controls');
+        onScreenControls.classList.toggle('hidden');
+    }
+
+    togglePlayerList() {
+        const playerList = this.shadowRoot.getElementById('player-list');
+        playerList.classList.toggle('hidden');
+    }
+
+    render() {
+        this.shadowRoot.innerHTML = `
+            ${globalStyles}
+            <x-draggable name="leaderboard" id="leaderboard" class="hidden">
+                <div class="main-content">
+                    <div class="title">LEADERBOARD [TOP 40]</div>
+                    <div>Some_Name: 1233222</div>
+                </div>
+            </x-draggable>
+            <x-draggable name="on-screen-controls" id="on-screen-controls" class="hidden">
+                <div class="main-content">
+                    <input type="button" id="spawn" value="Spawn" />
+                    <input type="button" id="despawn" value="Despawn" />
+                    <input type="button" id="attack" value="Attack" />
+                    <input type="button" id="up" value="Move Up" />
+                    <input type="button" id="down" value="Move Down" />
+                    <input type="button" id="left" value="Move Left" />
+                    <input type="button" id="right" value="Move Right" />
+                </div>
+            </x-draggable>
+            <x-draggable name="player-list" id="player-list" class="hidden">
+                <div class="main-content">
+                    <div class="title">PLAYERS</div>
+                    <div id="players"></div>
+                </div>
+            </x-draggable>
+        `;
+    }
+};
+customElements.define('multiplayer-component', Multiplayer);

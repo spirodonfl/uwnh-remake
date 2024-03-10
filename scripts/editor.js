@@ -1,317 +1,951 @@
-var EDITOR = {
-    last_clicked_coordinates: [0, 0],
-    current_world_id: 0,
-    current_layer_id: 0,
-    current_data_id: 0,
-    // TODO: Do not hard code this. Include it in the world data.
-    collision_layer_id: 3,
-    last_npc_selected: 0,
-    // 0 = normal, 1 = auto-pull-value, 2 = show layer value on top each tile
-    mode: 0,
-    mode_as_string: ['Normal', 'Auto Pull Value', 'Show All Values'],
-    current_asset_coords: [0, 0],
-    last_clicked_element: null,
-    init: function () {
-        this.updateEditorModeDisplay();
+import { wasm } from './injector_wasm.js';
+import '../components/draggable.js';
+import { globals } from './globals.js';
+import { globalStyles } from './global-styles.js';
+import { addEventListenerWithRemoval, removeAndReorder, swapElements } from './helpers.js';
 
-        this.current_data_id_el = document.getElementById('current_data_id');
-        if (this.current_data_id_el instanceof HTMLElement) {
-            this.current_data_id_el.addEventListener('keyup', function () {
-                EDITOR.current_data_id = EDITOR.current_data_id_el.value;
-            });
-        }
-        this.current_layer_id_el = document.getElementById('current_layer_id');
-        if (this.current_layer_id_el instanceof HTMLElement) {
-            this.current_layer_id_el.addEventListener('keyup', function () {
-                EDITOR.current_layer_id = EDITOR.current_layer_id_el.value;
-            });
-        }
+export class Editor extends HTMLElement {
+    constructor() {
+        super();
+        this.attachShadow({mode: 'open'});
 
-        this.current_asset_img_el = document.getElementById('current_asset_img');
-        if (this.current_asset_img_el instanceof HTMLElement) {
-            this.current_asset_img_el.style.width = (SIZE * SCALE) + 'px';
-            this.current_asset_img_el.style.height = (SIZE * SCALE) + 'px';
-            this.current_asset_img_el.style.border = '1px solid red';
-            this.current_asset_img_el.style.backgroundImage = 'url("' + ATLAS_PNG_FILENAME + '")';
-            this.updateCurrentAssetImg();
-        }
+        this.current_layer = 0;
+        this.current_data_id = 0;
+        this.last_click = {x: 0, y: 0};
+        this.last_atlas_click = {x: 0, y: 0};
+        this.wasm = wasm;
 
-        this.last_clicked_element = document.createElement('div');
-        if (this.last_clicked_element instanceof HTMLElement) {
-            this.last_clicked_element.classList.add('hide');
-            this.last_clicked_element.style.width = (SIZE * SCALE) + 'px';
-            this.last_clicked_element.style.height = (SIZE * SCALE) + 'px';
-            this.last_clicked_element.style.position = 'absolute';
-            this.last_clicked_element.style.border = '2px solid red';
-            // TODO: Is there a better way to track & set this?
-            this.last_clicked_element.style.zIndex = 99999;
-            document.getElementById('view').appendChild(this.last_clicked_element);
-        }
+        this.inputs = [
+            {
+                description: 'Toggle Editor',
+                context: globals.MODES.indexOf('EDITOR'),
+                code: 'KeyP',
+                friendlyCode: 'P',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.shadowRoot.getElementById('editor').toggleVisibility();
+                }
+            },
+            {
+                description: 'Toggle Atlas',
+                context: globals.MODES.indexOf('EDITOR'),
+                code: 'KeyA',
+                friendlyCode: 'A',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.shadowRoot.getElementById('atlas').toggleVisibility();
+                }
+            },
+            {
+                description: 'Toggle Entity Editor',
+                context: globals.MODES.indexOf('EDITOR'),
+                code: 'KeyE',
+                friendlyCode: 'E',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.shadowRoot.getElementById('entity-editor').toggleVisibility();
+                }
+            },
+            {
+                description: 'Change Layer',
+                context: globals.MODES.indexOf('EDITOR'),
+                code: 'KeyL',
+                friendlyCode: 'L',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.incrementLayer();
+                }
+            },
+            {
+                description: 'Add Collision',
+                context: globals.MODES.indexOf('EDITOR'),
+                code: 'KeyA',
+                friendlyCode: 'SHIFT+A',
+                shiftKey: true,
+                ctrlKey: false,
+                callback: () => {
+                    this.addCollisionToCurrentWorld();
+                }
+            },
+            {
+                description: 'Delete Collision',
+                context: globals.MODES.indexOf('EDITOR'),
+                code: 'KeyD',
+                friendlyCode: 'SHIFT+D',
+                shiftKey: true,
+                ctrlKey: false,
+                callback: () => {
+                    this.removeCollisionFromCurrentWorld();
+                }
+            },
+            {
+                description: 'Apply Current Data To Layer',
+                context: globals.MODES.indexOf('EDITOR'),
+                code: 'KeyV',
+                friendlyCode: 'V',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.applyDataValueToLayerCoordinate();
+                }
+            },
+            {
+                description: 'Apply Zero Data To Layer',
+                context: globals.MODES.indexOf('EDITOR'),
+                code: 'KeyZ',
+                friendlyCode: 'Z',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.applyDataZeroToLayerCoordinate();
+                }
+            },
+            {
+                description: 'Extract Data From Selected Coord',
+                context: globals.MODES.indexOf('EDITOR'),
+                code: 'KeyX',
+                friendlyCode: 'SHIFT+X',
+                shiftKey: true,
+                ctrlKey: false,
+                callback: () => {
+                    this.extractDataFromSelectedCoord();
+                }
+            },
+            {
+                description: 'Extract Image From Data',
+                context: globals.MODES.indexOf('EDITOR'),
+                code: 'KeyI',
+                friendlyCode: 'I',
+                shiftKey: false,
+                ctrlKey: false,
+                callback: () => {
+                    this.extractImageFromData();
+                }
+            },
+        ];
+        globals.INPUTS = globals.INPUTS.concat(this.inputs);
+    }
 
-        var element_view = document.getElementById('view');
-        var element_clickable_view = document.getElementById('clickable_view');
-        element_clickable_view.addEventListener('click', function (e) {
-            let x = Math.floor(e.offsetX / (SIZE * SCALE));
-            let y = Math.floor(e.offsetY / (SIZE * SCALE));
-            EDITOR.last_clicked_coordinates = [x, y];
-            if (EDITOR.mode === 1) {
-                EDITOR.getWorldData();
+    connectedCallback() {
+        this.render();
+        // Listen to game-component for custom event called 'viewport-size'
+        let game_component = document.querySelector('game-component');
+        globals.EVENTBUS.addEventListener('mode-change', (e) => {
+            console.log('editor: mode-change');
+            if (globals.MODES.indexOf('EDITOR') === globals.MODE) {
+                this.showLayerValues();
+            } else {
+                this.hideLayerValues();
             }
-            // TODO: Better than this, generate a border div element with z-index over top of everything
-            // TODO: if you move the camera around after you clicked, you need to re-click or update coordinates
-            EDITOR.last_clicked_element.classList.remove('hide');
-            EDITOR.last_clicked_element.style.left = (x * (SIZE * SCALE)) + 'px';
-            EDITOR.last_clicked_element.style.top = (y * (SIZE * SCALE)) + 'px';
         });
-    },
-    updateCurrentAssetImg() {
-        this.current_asset_img_el.style.backgroundPosition = '-' + this.current_asset_coords[0] + 'px ' + ' -' + this.current_asset_coords[1] + 'px';
-    },
-    setWorldData() {
-        var translated_x = _GAME.game_translateViewportXToWorldX(this.last_clicked_coordinates[0]);
-        var translated_y = _GAME.game_translateViewportYToWorldY(this.last_clicked_coordinates[1]);
-        _GAME.game_setWorldData(EDITOR.current_world_id, EDITOR.current_layer_id, translated_x, translated_y, this.current_data_id);
-    },
-    setWorldDataToZero() {
-        var translated_x = _GAME.game_translateViewportXToWorldX(this.last_clicked_coordinates[0]);
-        var translated_y = _GAME.game_translateViewportYToWorldY(this.last_clicked_coordinates[1]);
-        _GAME.game_setWorldData(EDITOR.current_world_id, EDITOR.current_layer_id, translated_x, translated_y, 0);
-    },
-    getWorldData() {
-        var translated_x = _GAME.game_translateViewportXToWorldX(this.last_clicked_coordinates[0]);
-        var translated_y = _GAME.game_translateViewportYToWorldY(this.last_clicked_coordinates[1]);
-        var data_id = _GAME.game_getWorldData(EDITOR.current_world_id, EDITOR.current_layer_id, translated_x, translated_y);
-        EDITOR.current_data_id_el.value = data_id;
-        EDITOR.current_data_id = data_id;
-    },
-    incrementCurrentLayer() {
-        // TODO: We shouldn't rely on magic hardcoded value here
-        ++this.current_layer_id;
-        if (this.current_layer_id > 3) {
-            this.current_layer_id = 0;
-        }
-        this.current_layer_id_el.value = this.current_layer_id;
-        if (EDITOR.mode === 2) {
-            EDITOR.showAllTileValues();
-        }
-    },
-    removeNPC: function () {
-        var x = EDITOR.last_clicked_coordinates[0] - _GAME.viewport_getPaddingLeft();
-        var y = EDITOR.last_clicked_coordinates[1] - _GAME.viewport_getPaddingTop();
-        var current_value = _GAME.game_getWorldData(EDITOR.current_world_id, EDITOR.current_layer_id, x, y);
-        if (current_value > 0) {
-            this.last_npc_selected = current_value;
-            _GAME.game_setWorldData(EDITOR.current_world_id, EDITOR.current_layer_id, x, y, 0);
-        }
-    },
-    addNPC: function (npc_id) {
-        var x = EDITOR.last_clicked_coordinates[0] - _GAME.viewport_getPaddingLeft();
-        var y = EDITOR.last_clicked_coordinates[1] - _GAME.viewport_getPaddingTop();
-        var current_value = _GAME.game_getWorldData(EDITOR.current_world_id, EDITOR.current_layer_id, x, y);
-        if (npc_id !== null && npc_id !== undefined) {
-            this.last_npc_selected = npc_id;
-        }
-        if (current_value == 0 && this.last_npc_selected > 0) {
-            _GAME.game_setWorldData(EDITOR.current_world_id, EDITOR.current_layer_id, x, y, this.last_npc_selected);
-        }
-    },
-    addCollision: function () {
-        // this.last_clicked_coordinates
-        // _GAME.editor_addCollisionToWorld(this.last_clicked_coordinates[0], this.last_clicked_coordinates[1]);
-        var translated_x = _GAME.game_translateViewportXToWorldX(this.last_clicked_coordinates[0]);
-        var translated_y = _GAME.game_translateViewportYToWorldY(this.last_clicked_coordinates[1]);
-        _GAME.game_setWorldData(EDITOR.current_world_id, EDITOR.collision_layer_id, translated_x, translated_y, 1);
-    },
-    removeCollision: function () {
-        // TODO: Detect if there's already a collision here because we don't want the zig functions underneath to execute things like readdatafromembedded every time we run this
-        var translated_x = _GAME.game_translateViewportXToWorldX(this.last_clicked_coordinates[0]);
-        var translated_y = _GAME.game_translateViewportYToWorldY(this.last_clicked_coordinates[1]);
-        _GAME.game_setWorldData(EDITOR.current_world_id, EDITOR.collision_layer_id, translated_x, translated_y, 0);
-    },
-    addLog: function (msg) {
-        var log = document.getElementById('editor_console');
-        // log.innerHTML += msg + '\n';
-    },
-    convertArrayToBlob: function (array) {
-        const json_string = JSON.stringify(array, null, 2);
-        const blob = new Blob([json_string], { type: 'application/json' });
-        return blob;
-    },
-    editorDownload: function (data, file_name) {
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(data);
+        globals.EVENTBUS.addEventListener('viewport-size', (e) => {
+            this.onViewportSize(e);
 
-        link.href = url;
-        link.download = file_name;
-        document.body.appendChild(link);
-        link.click();
+            this.updateEntitiesList();
 
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-    },
-    extractMemory: function (memory_start, memory_length) {
-        let data_view = new DataView(_GAME.memory.buffer, 0, _GAME.memory.byteLength);
-        let data = [];
-        for (let i = 0; i < memory_length; ++i) {
-            let current_position = memory_start + (i * 2);
-            data.push(data_view.getUint16(current_position, true));
-        }
-        console.log(data);
-        return data;
-    },
-    memoryToBin: function (memory_start, memory_length, file_name) {
-        let blob = this.generateBlob(this.extractMemory(memory_start, memory_length));
-        // console.log(blob);
-        this.editorDownload(blob, file_name);
-    },
-    generateBlob: function (data) {
-        return new Blob([new Uint16Array(data)], {type: 'application/octet-stream'});
-    },
-    __tests: function (which) {
-        if (which === 1) {
-            EDITOR.memoryToBin(_GAME.editor_getEntityMemoryLocation(0), _GAME.editor_getEntityMemoryLength(0), "entity_1.bin");
-        } else if (which === 0) {
-            EDITOR.memoryToBin(_GAME.editor_getWorldMemoryLocation(0), _GAME.editor_getWorldMemoryLength(0), "world_0.bin");
-        }
-    },
-    updateInputMode: function () {
-        // This is actually inside of the twitch panel
-        if (INPUT.MODE !== 1) {
-            var collisions = document.querySelectorAll('.collision');
-            for (var i = 0; i < collisions.length; ++i) {
-                collisions[i].remove();
+            // Make sure IMAGE_DATA has an entry for each layer in the world
+            if (!globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()]) {
+                globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()] = [];
             }
-        } else {
-            _GAME.diff_addData(0);
+            let total_layers = wasm.game_getCurrentWorldTotalLayers();
+            for (let i = 0; i < total_layers; ++i) {
+                if (!globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()][i]) {
+                    globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()][i] = [];
+                }
+            }
+        });
+        // TODO: A better way to not repeat our input functionality here
+        document.addEventListener('keydown', (e) => {
+            for (let i = 0; i < this.inputs.length; ++i) {
+                let input = this.inputs[i];
+                if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
+                    if (input.context === globals.MODES.indexOf('ALL') || input.context === globals.MODE) {
+                        input.callback();
+                    }
+                }
+            }
+        });
+        this.shadowRoot.getElementById('extract_current_entity').addEventListener('click', (e) => {
+            let entity_id = parseInt(this.shadowRoot.getElementById('wasm_entity_id').value);
+            let start = wasm.editor_getEntityMemoryLocation(entity_id);
+            let length = wasm.editor_getEntityMemoryLength(entity_id);
+            let memory = extractMemory(start, length);
+            memory[0] = parseInt(this.shadowRoot.getElementById('wasm_entity_id').value);
+            memory[1] = parseInt(this.shadowRoot.getElementById('wasm_entity_type').value);
+            memory[2] = parseInt(this.shadowRoot.getElementById('wasm_entity_is_collision').value);
+            memory[3] = parseInt(this.shadowRoot.getElementById('wasm_entity_health_component_on_off').value);
+            memory[4] = parseInt(this.shadowRoot.getElementById('wasm_entity_health_component_default_value').value);
+            memory[5] = parseInt(this.shadowRoot.getElementById('wasm_entity_movement_component_on_off').value);
+            memory[6] = parseInt(this.shadowRoot.getElementById('wasm_entity_attack_component_on_off').value);
+            if (memory.length > 0) {
+                let entity_blob = generateBlob(memory);
+                editorDownload(entity_blob, 'entity_' + entity_id + '.bin');
+            } else {
+                console.error('Memory length of 0 when extracting entity!');
+            }
+        });
+        this.shadowRoot.getElementById('create_new_entity').addEventListener('click', (e) => {
+            let entity_id = parseInt(this.shadowRoot.getElementById('wasm_entity_id').value);
+            let entity_type = parseInt(this.shadowRoot.getElementById('wasm_entity_type').value);
+            let entity_index = wasm.editor_createEntity(entity_type, entity_id);
+            let start = wasm.editor_getEntityMemoryLocationByIndex(entity_index);
+            let length = wasm.editor_getEntityMemoryLengthByIndex(entity_index);
+            let memory = extractMemory(start, length);
+            if (memory.length > 0) {
+                let entity_blob = generateBlob(memory);
+                editorDownload(entity_blob, 'entity_' + entity_id + '.bin');
+            } else {
+                console.error('Memory length of 0 when extracting entity!');
+            }
+        });
+        this.shadowRoot.getElementById('entity_id').addEventListener('change', (e) => {
+            // console.log('entity_id chosen', e);
+            // console.log('chosen value', e.target.value);
+            let start = wasm.editor_getEntityMemoryLocation(e.target.value);
+            let length = wasm.editor_getEntityMemoryLength(e.target.value);
+            let memory = extractMemory(start, length);
+            this.shadowRoot.getElementById('wasm_entity_id').value = memory[0];
+            this.shadowRoot.getElementById('wasm_entity_type').value = memory[1];
+            this.shadowRoot.getElementById('wasm_entity_is_collision').value = memory[2];
+            this.shadowRoot.getElementById('wasm_entity_health_component_on_off').value = memory[3];
+            this.shadowRoot.getElementById('wasm_entity_health_component_default_value').value = memory[4];
+            this.shadowRoot.getElementById('wasm_entity_movement_component_on_off').value = memory[5];
+            this.shadowRoot.getElementById('wasm_entity_attack_component_on_off').value = memory[6];
+        });
+        this.shadowRoot.getElementById('clickable_view').addEventListener('click', (e) => {
+            let game_component = document.querySelector('game-component');
+            let x = e.clientX - game_component.x_padding;
+            let y = e.clientY - game_component.y_padding;
+
+            let size = (globals.SIZE * globals.SCALE);
+
+            x = Math.floor(x / size);
+            y = Math.floor(y / size);
+
+            this.last_click.x = x;
+            this.last_click.y = y;
+
+            let clicked_view = this.shadowRoot.getElementById('clicked_view');
+            clicked_view.style.display = 'block';
+            clicked_view.style.width = size + 'px';
+            clicked_view.style.height = size + 'px';
+            clicked_view.style.left = game_component.x_padding + (x * size) + 'px';
+            clicked_view.style.top = game_component.y_padding + (y * size) + 'px';
+        });
+        this.shadowRoot.getElementById('atlas_img').addEventListener('click', (e) => {
+            let original_x = e.offsetX;
+            let original_y = e.offsetY;
+            let x = Math.floor(original_x / 64);
+            let y = Math.floor(original_y / 64);
+            // console.log({offsetX: e.offsetX, offsetY: e.offsetY, x, y});
+            this.last_atlas_click.x = x;
+            this.last_atlas_click.y = y;
+            let selected_atlas_image = this.shadowRoot.getElementById('current_selected_atlas_img');
+            selected_atlas_image.style.width = '64px';
+            selected_atlas_image.style.height = '64px';
+            selected_atlas_image.style.backgroundImage = `url("${globals.ATLAS_PNG_FILENAME}")`;
+            selected_atlas_image.style.backgroundPosition = '-' + (x * 64) + 'px -' + (y * 64) + 'px';
+        });
+        this.shadowRoot.getElementById('apply_image_data').addEventListener('click', (e) => {
+            let layer_id = parseInt(this.shadowRoot.getElementById('current_layer_id').value);
+            let data_id = parseInt(this.shadowRoot.getElementById('current_data_id').value);
+            let x = this.last_atlas_click.x;
+            let y = this.last_atlas_click.y;
+            let current_world_index = wasm.game_getCurrentWorldIndex();
+            if (!globals.IMAGE_DATA[current_world_index]) {
+                globals.IMAGE_DATA[current_world_index] = [];
+            }
+            if (!globals.IMAGE_DATA[current_world_index][layer_id]) {
+                globals.IMAGE_DATA[current_world_index][layer_id] = [];
+            }
+            globals.IMAGE_DATA[current_world_index][layer_id][data_id] = [
+                // TODO: Actually only store the x/y coords, not the translated
+                [x * 64, y * 64]
+            ];
+            let game_component = document.querySelector('game-component');
+            game_component.renderGame();
+        });
+        this.shadowRoot.getElementById('apply_data_value_to_layer_coordinate_input').addEventListener('click', (e) => {
+            this.applyDataValueToLayerCoordinate();
+        });
+
+        this.shadowRoot.getElementById('add_row_input').addEventListener('click', (e) => {
+            this.addRowToWorld();
+        });
+        this.shadowRoot.getElementById('remove_row_input').addEventListener('click', (e) => {
+            this.removeRowFromWorld();
+        });
+        this.shadowRoot.getElementById('add_column_input').addEventListener('click', (e) => {
+            this.addColumnToWorld();
+        });
+        this.shadowRoot.getElementById('remove_column_input').addEventListener('click', (e) => {
+            this.removeColumnFromWorld();
+        });
+        this.shadowRoot.getElementById('extract_current_world_data_input').addEventListener('click', (e) => {
+            this.extractCurrentWorldData();
+        });
+        this.shadowRoot.getElementById('extract_current_world_layer_data_input').addEventListener('click', (e) => {
+            this.extractCurrentWorldLayerData();
+        });
+        this.shadowRoot.getElementById('extract_image_data').addEventListener('click', (e) => {
+            this.extractImageData();
+        });
+        this.shadowRoot.getElementById('add_frame').addEventListener('click', (e) => {
+            this.addFrame();
+        });
+    }
+
+    renderViewportData() {
+        if (globals.MODES.indexOf('EDITOR') === globals.MODE) {
+            let game_component = document.querySelector('game-component');
+            let viewport_entity_components = game_component.shadowRoot.getElementById('view').querySelectorAll('viewport-entity-component');
+            for (let i = 0; i < viewport_entity_components.length; ++i) {
+                viewport_entity_components[i].remove();
+            }
+            let collision_entity_components = game_component.shadowRoot.getElementById('view').querySelectorAll('collision-entity-component');
+            for (let i = 0; i < collision_entity_components.length; ++i) {
+                collision_entity_components[i].remove();
+            }
+            let y = 0;
+            let x = 0;
+            for (let i = 0; i < (game_component.width * game_component.height); ++i) {
+                let viewport_y = Math.floor(i / game_component.width);
+                let viewport_x = i % game_component.width;
+
+                if (wasm.viewport_getData(viewport_x, viewport_y)) {
+                    // TODO: this.renderCollisionData();
+                    let COLLISION_LAYER = wasm.game_getCurrentWorldCollisionLayer();
+                    let collision = wasm.game_getWorldDataAtViewportCoordinate(COLLISION_LAYER, viewport_x, viewport_y);
+                    if (collision === 1) {
+                        let collision_entity = document.createElement('collision-entity-component');
+                        collision_entity.updateSize();
+                        collision_entity.setViewportXY(viewport_x, viewport_y);
+                        collision_entity.setLayer(COLLISION_LAYER);
+                        game_component.shadowRoot.getElementById('view').appendChild(collision_entity);
+                    }
+
+                    let viewport_entity = document.createElement('viewport-entity-component');
+                    viewport_entity.updateSize();
+                    viewport_entity.setViewportXY(viewport_x, viewport_y);
+                    viewport_entity.setLayer(90);
+                    // TODO: It's weird to set the entity id to the index of the viewport
+                    viewport_entity.setEntityId(wasm.game_getWorldDataAtViewportCoordinate(this.current_layer, viewport_x, viewport_y));
+                    game_component.shadowRoot.getElementById('view').appendChild(viewport_entity);
+                }
+            }
         }
-        // TODO: Create input_mode as a CLASS so you can put it multiple panels
-        var input_mode = document.getElementById('input_mode');
-        input_mode.innerHTML = INPUT.MODES[INPUT.MODE];
-    },
-    updateEditorModeDisplay: function () {
-        var editor_mode_el = document.getElementById('current_editor_mode');
-        if (editor_mode_el instanceof HTMLElement) {
-            editor_mode_el.innerHTML = EDITOR.mode_as_string[EDITOR.mode];
+    }
+
+    onViewportSize(e) {
+        let viewport_size = e;
+        // TODO: clickable_view should be a separate component
+        this.shadowRoot.getElementById('clickable_view').style.width = (viewport_size.width * (globals.SIZE * globals.SCALE)) + 'px';
+        this.shadowRoot.getElementById('clickable_view').style.height = (viewport_size.height * (globals.SIZE * globals.SCALE)) + 'px';
+        // TODO: consider updating top && left instead of margin
+        this.shadowRoot.getElementById('clickable_view').style.margin = viewport_size.y_padding + 'px ' + viewport_size.x_padding + 'px';
+        this.renderViewportData();
+        // TODO: this.renderCollisionData();
+        this.listWorldLayers();
+    }
+
+    disconnectedCallback() {}
+    adoptedCallback() {}
+    attributeChangedCallback() {}
+
+    updateEntitiesList() {
+        let entities = wasm.game_getEntitiesLength();
+        console.log('updateEntitiesList->count', entities);
+        for (let i = 0; i < entities; ++i) {
+            let entity_id = wasm.game_getEntityIdByIndex(i);
+            if (!this.shadowRoot.getElementById("entity_id_" + entity_id)) {
+                this.shadowRoot.getElementById('entity_id').innerHTML += `<option id="entity_id_${entity_id}" value="${entity_id}">${entity_id}</option>`;
+            }
         }
-    },
-    handleInput: function (inputEvent) {
-        if (inputEvent.shiftKey === true) {
-            if (inputEvent.code === 'KeyD') {
-                // DELETE COLLISION BLOCK
-                EDITOR.removeCollision();
-            } else if (inputEvent.code === 'KeyA') {
-                // ADD COLLISION BLOCK
-                EDITOR.addCollision();
-            } else if (inputEvent.code === 'KeyE') {
-                var editor_panel = document.getElementById('editor_panel');
-                editor_panel.classList.toggle('hide');
-            } else if (inputEvent.code === 'KeyO') {
-                EDITOR.getWorldData();
-            } else if (inputEvent.code === 'KeyI') {
-                EDITOR.setWorldData();
-            } else if (inputEvent.code === 'KeyZ') {
-                EDITOR.setWorldDataToZero();
-            } else if (inputEvent.code === 'KeyL') {
-                EDITOR.incrementCurrentLayer();
-            } else if (inputEvent.code === 'KeyJ') {
-                ++EDITOR.mode;
-                if (EDITOR.mode === 2) {
-                    EDITOR.showAllTileValues();
+    }
+
+    staticizeLayer() {
+        let canvas = document.createElement('canvas');
+        canvas.width = wasm.game_getCurrentWorldWidth() * 64;
+        canvas.height = wasm.game_getCurrentWorldHeight() * 64;
+        let ctx = canvas.getContext('2d');
+        let current_layer = this.current_layer;
+        let y = 0;
+        let x = 0;
+        let atlas_image = new Image();
+        atlas_image.src = globals.ATLAS_PNG_FILENAME;
+        atlas_image.onload = () => {
+            for (let i = 0; i < (wasm.game_getCurrentWorldWidth() * wasm.game_getCurrentWorldHeight()); ++i) {
+                let x = i % wasm.game_getCurrentWorldWidth();
+                let y = Math.floor(i / wasm.game_getCurrentWorldWidth());
+                let data = wasm.game_getWorldData(wasm.game_getCurrentWorldIndex(), current_layer, x, y);
+                let entity_image_data = globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()][current_layer][data];
+                if (entity_image_data) {
+                    ctx.drawImage(
+                        atlas_image,
+                        entity_image_data[0][0],
+                        entity_image_data[0][1],
+                        64,
+                        64,
+                        x * 64,
+                        y * 64,
+                        64,
+                        64
+                    );
+                }
+            }
+            let staticized_layer = canvas.toDataURL('image/png');
+            let staticized_layer_image = new Image();
+            staticized_layer_image.src = staticized_layer;
+            // download image as a file
+            let a = document.createElement('a');
+            a.href = staticized_layer;
+            a.download = 'staticized_layer.png';
+            a.click();
+        };
+    }
+
+    extractDataFromSelectedCoord() {
+        if (wasm.viewport_getData(this.last_click.x, this.last_click.y)) {
+            let data_id = wasm.game_getWorldDataAtViewportCoordinate(this.current_layer, this.last_click.x, this.last_click.y);
+            this.shadowRoot.getElementById('current_data_id').value = data_id;
+        }
+    }
+
+    extractImageFromData() {
+        this.last_image_data = null;
+        let layer_id = parseInt(this.shadowRoot.getElementById('current_layer_id').value);
+        let data_id = parseInt(this.shadowRoot.getElementById('current_data_id').value);
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        if (globals.IMAGE_DATA[current_world_index]) {
+            if (globals.IMAGE_DATA[current_world_index][layer_id]) {
+                if (globals.IMAGE_DATA[current_world_index][layer_id][data_id]) {
+                    this.last_image_data = globals.IMAGE_DATA[current_world_index][layer_id][data_id];
+                    let frames = Object.keys(this.last_image_data).length;
+                    let selected_atlas_image = this.shadowRoot.getElementById('current_selected_atlas_img');
+                    selected_atlas_image.style.width = '64px';
+                    selected_atlas_image.style.height = '64px';
+                    selected_atlas_image.style.backgroundImage = `url("${globals.ATLAS_PNG_FILENAME}")`;
+                    selected_atlas_image.style.backgroundPosition = '-' + this.last_image_data[0][0] + 'px -' + this.last_image_data[0][1] + 'px';
+                    this.shadowRoot.getElementById('total_frames').innerHTML = 'Total Frames: ' + frames;
+                    if (frames > 0) {
+                        let frames_list = this.shadowRoot.getElementById('frames_list');
+                        // TODO: DRY repetitious. Find a better way to implement this
+                        while (frames_list.firstChild) {
+                            let auto_cols_element = frames_list.firstChild;
+                            while (auto_cols_element.firstChild) {
+                                if (auto_cols_element.firstChild.removeListener) {
+                                    auto_cols_element.firstChild.removeListener();
+                                }
+                                auto_cols_element.removeChild(auto_cols_element.firstChild);
+                            }
+                            frames_list.removeChild(frames_list.firstChild);
+                        }
+                        for (let f = 0; f < frames; ++f) {
+                            let auto_cols_element = document.createElement('div');
+                            auto_cols_element.classList.add('auto-cols');
+                            
+                            let frame_atlas_image = document.createElement('div');
+                            frame_atlas_image.classList.add('frame_atlas_img');
+                            frame_atlas_image.setAttribute('frame-id', f);
+                            frame_atlas_image.style.width = '64px';
+                            frame_atlas_image.style.height = '64px';
+                            frame_atlas_image.style.backgroundImage = `url("${globals.ATLAS_PNG_FILENAME}")`;
+                            frame_atlas_image.style.backgroundPosition = '-' + this.last_image_data[f][0] + 'px -' + this.last_image_data[f][1] + 'px';
+
+                            let frame_name = document.createElement('div');
+                            frame_name.innerHTML = 'Frame ' + f;
+
+                            let remove_frame = document.createElement('div');
+                            remove_frame.classList.add('small-button');
+                            remove_frame.innerHTML = 'Remove Frame';
+                            remove_frame.setAttribute('frame-id', f);
+                            remove_frame.removeListener = addEventListenerWithRemoval(remove_frame, 'click', (e) => {
+                                let frame_id = parseInt(e.target.getAttribute('frame-id'));
+                                this.last_image_data.splice(frame_id, 1);
+                                this.shadowRoot.getElementById('total_frames').innerHTML = 'Total Frames: ' + Object.keys(this.last_image_data).length;
+                                this.extractImageFromData();
+                            });
+
+                            let update_frame = document.createElement('div');
+                            update_frame.classList.add('small-button');
+                            update_frame.innerHTML = 'Update Frame';
+                            update_frame.setAttribute('frame-id', f);
+                            update_frame.removeListener = addEventListenerWithRemoval(update_frame, 'click', (e) => {
+                                let frame_id = parseInt(e.target.getAttribute('frame-id'));
+                                let frame_atlas_image = this.shadowRoot.querySelector('.frame_atlas_img[frame-id="' + frame_id + '"]');
+                                if (frame_atlas_image) {
+                                    frame_atlas_image.style.backgroundPosition = '-' + (this.last_atlas_click.x * 64) + 'px -' + (this.last_atlas_click.y * 64) + 'px';
+                                    this.last_image_data[frame_id] = [this.last_atlas_click.x * 64, this.last_atlas_click.y * 64];
+                                }
+                            });
+
+                            auto_cols_element.appendChild(frame_atlas_image);
+                            auto_cols_element.appendChild(frame_name);
+                            auto_cols_element.appendChild(remove_frame);
+                            auto_cols_element.appendChild(update_frame);
+
+                            frames_list.appendChild(auto_cols_element);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    addFrame() {
+        if (this.last_image_data !== null) {
+            let frames = Object.keys(this.last_image_data).length;
+            console.log('last_image_data->frames', [this.last_image_data, frames]);
+            this.last_image_data[frames] = [this.last_image_data[0][0], this.last_image_data[0][1]];
+            console.log('last_image_data->frames', [this.last_image_data, frames]);
+
+            let f = frames;
+            // TODO: DRY
+            let frames_list = this.shadowRoot.getElementById('frames_list');
+            let auto_cols_element = document.createElement('div');
+            auto_cols_element.classList.add('auto-cols');
+            
+            let frame_atlas_image = document.createElement('div');
+            frame_atlas_image.classList.add('frame_atlas_img');
+            frame_atlas_image.setAttribute('frame-id', f);
+            frame_atlas_image.style.width = '64px';
+            frame_atlas_image.style.height = '64px';
+            frame_atlas_image.style.backgroundImage = `url("${globals.ATLAS_PNG_FILENAME}")`;
+            frame_atlas_image.style.backgroundPosition = '-' + this.last_image_data[f][0] + 'px -' + this.last_image_data[f][1] + 'px';
+
+            let frame_name = document.createElement('div');
+            frame_name.innerHTML = 'Frame ' + f;
+
+            let remove_frame = document.createElement('div');
+            remove_frame.classList.add('small-button');
+            remove_frame.innerHTML = 'Remove Frame';
+            remove_frame.setAttribute('frame-id', f);
+            remove_frame.removeListener = addEventListenerWithRemoval(remove_frame, 'click', (e) => {
+                // TODO: DRY
+                let frame_id = parseInt(e.target.getAttribute('frame-id'));
+                this.last_image_data.splice(frame_id, 1);
+                this.shadowRoot.getElementById('total_frames').innerHTML = 'Total Frames: ' + Object.keys(this.last_image_data).length;
+                this.extractImageFromData();
+            });
+
+            let update_frame = document.createElement('div');
+            update_frame.classList.add('small-button');
+            update_frame.innerHTML = 'Update Frame';
+            update_frame.setAttribute('frame-id', f);
+            update_frame.removeListener = addEventListenerWithRemoval(update_frame, 'click', (e) => {
+                let frame_id = parseInt(e.target.getAttribute('frame-id'));
+                let frame_atlas_image = this.shadowRoot.querySelector('.frame_atlas_img[frame-id="' + frame_id + '"]');
+                if (frame_atlas_image) {
+                    frame_atlas_image.style.backgroundPosition = '-' + (this.last_atlas_click.x * 64) + 'px -' + (this.last_atlas_click.y * 64) + 'px';
+                    this.last_image_data[frame_id] = [this.last_atlas_click.x * 64, this.last_atlas_click.y * 64];
+                }
+            });
+
+            auto_cols_element.appendChild(frame_atlas_image);
+            auto_cols_element.appendChild(frame_name);
+            auto_cols_element.appendChild(remove_frame);
+            auto_cols_element.appendChild(update_frame);
+
+            frames_list.appendChild(auto_cols_element);
+        }
+    }
+    getImageData() {
+        return globals.IMAGE_DATA;
+    }
+
+    applyDataValueToLayerCoordinate() {
+        let layer_id = parseInt(this.shadowRoot.getElementById('current_layer_id').value);
+        let data_id = parseInt(this.shadowRoot.getElementById('current_data_id').value);
+        let x = wasm.game_translateViewportXToWorldX(this.last_click.x);
+        let y = wasm.game_translateViewportYToWorldY(this.last_click.y);
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        wasm.editor_setWorldLayerCoordinateData(0, layer_id, x, y, data_id);
+        this.renderViewportData();
+        document.querySelector('game-component').renderGame();
+        if (layer_id == wasm.game_getCurrentWorldEntityLayer()) {
+            this.updateEntitiesList();
+        }
+    }
+    applyDataZeroToLayerCoordinate() {
+        let layer_id = parseInt(this.shadowRoot.getElementById('current_layer_id').value);
+        let data_id = 0;
+        let x = wasm.game_translateViewportXToWorldX(this.last_click.x);
+        let y = wasm.game_translateViewportYToWorldY(this.last_click.y);
+        // TODO: Pull the actual current world as the first parameter
+        wasm.editor_setWorldLayerCoordinateData(0, layer_id, x, y, data_id);
+        this.renderViewportData();
+        let game_component = document.querySelector('game-component');
+        game_component.renderGame();
+    }
+
+    showLayerValues() {
+        console.log('showLayerValues');
+        let components = document.querySelector('game-component').shadowRoot.querySelectorAll('viewport-entity-component');
+        for (let e = 0; e < components.length; ++e) {
+            components[e].showValue();
+        }
+        components = document.querySelector('game-component').shadowRoot.querySelectorAll('collision-entity-component');
+        for (let c = 0; c < components.length; ++c) {
+            components[c].style.display = 'block';
+        }
+    }
+    hideLayerValues() {
+        console.log('hideLayerValues');
+        let components = document.querySelector('game-component').shadowRoot.querySelectorAll('viewport-entity-component');
+        for (let e = 0; e < components.length; ++e) {
+            components[e].hideValue();
+        }
+        components = document.querySelector('game-component').shadowRoot.querySelectorAll('collision-entity-component');
+        for (let c = 0; c < components.length; ++c) {
+            components[c].style.display = 'none';
+        }
+    }
+
+    listWorldLayers() {
+        console.log('listWorldLayers');
+        let total_layers = wasm.game_getCurrentWorldTotalLayers();
+        let world_layers_list = this.shadowRoot.getElementById('world_layers_list');
+        // TODO: Implement this listener method everywhere else
+        while (world_layers_list.firstChild) {
+            let auto_cols_element = world_layers_list.firstChild;
+            while (auto_cols_element.firstChild) {
+                if (auto_cols_element.firstChild.removeListener) {
+                    auto_cols_element.firstChild.removeListener();
+                }
+                auto_cols_element.removeChild(auto_cols_element.firstChild);
+            }
+            world_layers_list.removeChild(world_layers_list.firstChild);
+        }
+        for (let i = 0; i < total_layers; ++i) {
+            let layer_type = 'G';
+            let is_entity_layer = false;
+            let is_collision_layer = false;
+            console.log('Current entity layer', wasm.game_getCurrentWorldEntityLayer());
+            if (i === wasm.game_getCurrentWorldEntityLayer()) {
+                is_entity_layer = true;
+                layer_type = 'E';
+            }
+            if (i === wasm.game_getCurrentWorldCollisionLayer()) {
+                is_collision_layer = true;
+                layer_type = 'C';
+            }
+            let auto_cols_element = document.createElement('div');
+            auto_cols_element.classList.add('auto-cols');
+            let layer_id_element = document.createElement('div');
+            layer_id_element.innerHTML = 'Layer ' + i + '[' + layer_type + ']';
+            auto_cols_element.appendChild(layer_id_element);
+            let buttons = [
+                'layer_list_view',
+                'view',
+                'layer_list_move_up',
+                'move up',
+                'layer_list_move_down',
+                'move down',
+                'layer_list_set_as_collision_layer',
+                'set as collision layer',
+                'layer_list_set_as_entity_layer',
+                'set as entity layer',
+            ];
+            for (let b = 0; b < buttons.length; b += 2) {
+                let button = document.createElement('div');
+                button.classList.add('small-button');
+                button.setAttribute('id', buttons[b]);
+                button.setAttribute('layer-id', i);
+                button.innerHTML = buttons[(b + 1)];
+                let listener = null;
+                if (buttons[b] === 'layer_list_view') {
+                    listener = addEventListenerWithRemoval(button, 'click', (e) => {
+                        this.gotoLayer(e.target.getAttribute('layer-id'));
+                    });
+                } else if (buttons[b] === 'layer_list_move_up') {
+                    listener = addEventListenerWithRemoval(button, 'click', (e) => {
+                        let current_layer = parseInt(e.target.getAttribute('layer-id'));
+                        console.log('layer_list_move_up, current_layer', current_layer);
+                        if (current_layer > 0) {
+                            wasm.editor_moveLayer(0, current_layer, (current_layer - 1));
+                            swapElements(globals.IMAGE_DATA[0], current_layer, current_layer - 1);
+                            wasm.diff_addData(0);
+                            this.listWorldLayers();
+                            this.renderViewportData();
+                        }
+                    });
+                } else if (buttons[b] === 'layer_list_move_down') {
+                    listener = addEventListenerWithRemoval(button, 'click', (e) => {
+                        let current_layer = parseInt(e.target.getAttribute('layer-id'));
+                        console.log('layer_list_move_down, current_layer', current_layer);
+                        // TODO: Ideally we keep total_layers contained within this function
+                        if (current_layer < (total_layers - 1)) {
+                            wasm.editor_moveLayer(0, current_layer, (current_layer + 1));
+                            swapElements(globals.IMAGE_DATA[0], current_layer, current_layer + 1);
+                            wasm.diff_addData(0);
+                            this.listWorldLayers();
+                            this.renderViewportData();
+                        }
+                    });
+                } else if (buttons[b] === 'layer_list_set_as_collision_layer') {
+                    listener = addEventListenerWithRemoval(button, 'click', (e) => {
+                        let current_layer = parseInt(e.target.getAttribute('layer-id'));
+                        console.log('layer_list_set_as_collision_layer, current_layer', current_layer);
+                        wasm.game_setCurrentWorldCollisionLayer(current_layer);
+                        this.listWorldLayers();
+                        this.renderViewportData();
+                    });
+                } else if (buttons[b] === 'layer_list_set_as_entity_layer') {
+                    listener = addEventListenerWithRemoval(button, 'click', (e) => {
+                        let current_layer = parseInt(e.target.getAttribute('layer-id'));
+                        console.log('layer_list_set_as_entity_layer, current_layer', current_layer);
+                        wasm.game_setCurrentWorldEntityLayer(current_layer);
+                        this.listWorldLayers();
+                        this.renderViewportData();
+                    });
                 } else {
-                    EDITOR.hideAllTileValues();
+                    listener = addEventListenerWithRemoval(button, 'click', (e) => {});
                 }
-                if (EDITOR.mode > 2) {
-                    EDITOR.mode = 0;
-                }
-                EDITOR.updateEditorModeDisplay();
-            } else if (inputEvent.code === 'BracketLeft') {
-                this.current_asset_coords[0] -= 64;
-                if (this.current_asset_coords[0] < 0 && this.current_asset_coords[1] > 0) {
-                    this.current_asset_coords[1] -= 64;
-                }
-                if (this.current_asset_coords[0] < 0) {
-                    this.current_asset_coords[0] = (ATLAS_PNG_FILESIZE[0] - 64);
-                }
-                this.updateCurrentAssetImg();
-            } else if (inputEvent.code === 'BracketRight') {
-                this.current_asset_coords[0] += 64;
-                if (this.current_asset_coords[0] >= ATLAS_PNG_FILESIZE[0]) {
-                    this.current_asset_coords[0] = 0;
-                    this.current_asset_coords[1] += 64;
-                }
-                if (this.current_asset_coords[1] >= ATLAS_PNG_FILESIZE[1]) {
-                    this.current_asset_coords[1] = 0;
-                }
-                this.updateCurrentAssetImg();
-            } else if (inputEvent.code === 'Period') {
-                // TODO: # of frames, maybe as an input in the editor UI
-                LAYER_ID_TO_IMAGE.setImageCoords(EDITOR.current_layer_id, EDITOR.current_data_id, EDITOR.current_asset_coords[0], EDITOR.current_asset_coords[1], 1);
-                _GAME.diff_addData(0);
+                button.removeListener = listener;
+                auto_cols_element.appendChild(button);
             }
+            world_layers_list.appendChild(auto_cols_element);
         }
-    },
-    showAllTileValues: function () {
-        EDITOR.hideAllTileValues();
-        if (EDITOR.mode === 2) {
-            for (var i = 0; i < (DOM.width * DOM.height); ++i) {
-                var viewport_y = Math.floor(i / DOM.width);
-                var viewport_x = i % DOM.width;
-                var translated_x = _GAME.game_translateViewportXToWorldX(viewport_x);
-                var translated_y = _GAME.game_translateViewportYToWorldY(viewport_y);
-                var data = _GAME.game_getWorldData(EDITOR.current_world_id, EDITOR.current_layer_id, translated_x, translated_y);
-                var value_element = DOM.generateTileDiv(viewport_x, viewport_y);
-                value_element.classList.add('tile-value');
-                value_element.style.zIndex = 100;
-                value_element.innerHTML = data;
-                value_element.style.fontSize = '20px';
-                value_element.style.fontWeight = 'bold';
-                value_element.style.color = 'white';
-                value_element.style.textShadow = '0px 0px 2px black, 0px 0px 2px black, 0px 0px 2px black, 0px 0px 2px black';
-                document.getElementById('view').appendChild(value_element);
-            }
-        }
-    },
-    hideAllTileValues: function () {
-        for (var i = 0; i < (DOM.width * DOM.height); ++i) {
-            var viewport_y = Math.floor(i / DOM.width);
-            var viewport_x = i % DOM.width;
-            var translated_x = _GAME.game_translateViewportXToWorldX(viewport_x);
-            var translated_y = _GAME.game_translateViewportYToWorldY(viewport_y);
-            var data = _GAME.game_getWorldData(EDITOR.current_world_id, EDITOR.current_layer_id, translated_x, translated_y);
-            var elements = document.querySelectorAll('div.tile-value');
-            for (var e = 0; e < elements.length; ++e) {
-                if (elements[e] instanceof HTMLElement) {
-                    elements[e].remove();
-                }
-            }
-        }
-    },
+    }
 
-    // TWITCH EDITOR STUFF
-    // TODO: Should probably move this out to a twitch file of some kind
-    updateEntityName: function (entity_id, new_name) {
-        var entity_name = document.getElementById('entity_name_' + entity_id);
-        console.log('EDITOR: ', entity_name);
-        entity_name.innerHTML = new_name;
-    },
-    updateShipEditorName: function (entity_id, name) {
-        var ship_editor_name = document.getElementById('ship_' + entity_id);
-        console.log('EDITOR: ', ship_editor_name);
-        var player_index = TWITCH.SHIPS_TO_PLAYER.indexOf(name);
-        if (player_index !== -1) {
-            console.trace('EDITOR: ', TWITCH.SHIPS_TO_PLAYER_COLORCODE[player_index]);
-            ship_editor_name.innerHTML = '<span style="color: ' + TWITCH.SHIPS_TO_PLAYER_COLORCODE[player_index] + '">' + name + '</span>';
-        } else {
-            console.trace('EDITOR: NOT FOUND - ', name);
-            ship_editor_name.innerHTML = name;
+    addRowToWorld() {
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        wasm.editor_addRowToWorld(current_world_index);
+        wasm.game_loadWorld(current_world_index);
+        // TODO: Clean this up. Not necessarily a good thing to
+        // be referencing the components as HTML elements here
+        // USE GLOBAL EVENT LISTENER BUS!
+        document.querySelector('game-component').renderGame();
+        document.querySelector('editor-component').renderViewportData();
+    }
+    removeRowFromWorld() {
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        wasm.editor_removeRowFromWorld(current_world_index);
+        wasm.game_loadWorld(current_world_index);
+        // TODO: Clean this up. Not necessarily a good thing to
+        // be referencing the components as HTML elements here
+        // USE GLOBAL EVENT LISTENER BUS!
+        document.querySelector('game-component').renderGame();
+        document.querySelector('editor-component').renderViewportData();
+    }
+    addColumnToWorld() {
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        wasm.editor_addColumnToWorld(current_world_index);
+        wasm.game_loadWorld(current_world_index);
+        // TODO: Clean this up. Not necessarily a good thing to
+        // be referencing the components as HTML elements here
+        // USE GLOBAL EVENT LISTENER BUS!
+        document.querySelector('game-component').renderGame();
+        document.querySelector('editor-component').renderViewportData();
+    }
+    removeColumnFromWorld() {
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        wasm.editor_removeColumnFromWorld(current_world_index);
+        wasm.game_loadWorld(current_world_index);
+        // TODO: Clean this up. Not necessarily a good thing to
+        // be referencing the components as HTML elements here
+        // USE GLOBAL EVENT LISTENER BUS!
+        document.querySelector('game-component').renderGame();
+        document.querySelector('editor-component').renderViewportData();
+    }
+
+    incrementLayer() {
+        ++this.current_layer;
+        if (this.current_layer >= wasm.game_getCurrentWorldTotalLayers()) {
+            this.current_layer = 0;
         }
-    },
-    updateGameMode: function () {
-        var game_mode = document.getElementById('game_mode');
-        if (TWITCH.GAME_MODE === 0) {
-            game_mode.innerHTML = 'Real Time';
-        } else if (TWITCH.GAME_MODE === 1) {
-            game_mode.innerHTML = 'Turn Based';
+        this.shadowRoot.getElementById('current_layer_id').value = this.current_layer;
+        this.shadowRoot.getElementById('current_layer_id').value = this.current_layer;
+        this.shadowRoot.getElementById('current_world_layer_extract_filename').innerHTML = 'world_0_layer_' + this.current_layer + '.bin';
+        // TODO: Ideally, only update existing elements, don't remove & add them over and over
+        this.renderViewportData();
+    }
+    gotoLayer(layer_index) {
+        if (layer_index >= wasm.game_getCurrentWorldTotalLayers()) {
+            layer_index = 0;
         }
-    },
-};
+        this.current_layer = layer_index;
+        this.shadowRoot.getElementById('current_layer_id').value = this.current_layer;
+        this.shadowRoot.getElementById('current_layer_id').value = this.current_layer;
+        this.shadowRoot.getElementById('current_world_layer_extract_filename').innerHTML = 'world_0_layer_' + this.current_layer + '.bin';
+        // TODO: Ideally, only update existing elements, don't remove & add them over and over
+        this.renderViewportData();
+    }
+
+    extractCurrentWorldMemory() {
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        let start = wasm.editor_getWorldMemoryLocation(current_world_index);
+        let length = wasm.editor_getWorldMemoryLength(current_world_index);
+        return extractMemory(start, length);
+    }
+    extractCurrentWorldData() {
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        let start = wasm.editor_getWorldMemoryLocation(current_world_index);
+        let length = wasm.editor_getWorldMemoryLength(current_world_index);
+        let world_data = extractMemory(start, length);
+        let world_data_as_blob = generateBlob(world_data);
+        editorDownload(world_data_as_blob, 'world_' + current_world_index + '_data.bin');
+    }
+    extractCurrentWorldLayerData() {
+        let layer_id = this.current_layer;
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        let start = wasm.editor_getWorldLayerMemoryLocation(current_world_index, layer_id);
+        let length = wasm.editor_getWorldLayerMemoryLength(current_world_index, layer_id);
+        let layer_data = extractMemory(start, length);
+        let layer_data_as_blob = generateBlob(layer_data);
+        editorDownload(layer_data_as_blob, 'world_' + current_world_index + '_layer_' + layer_id + '.bin');
+    }
+    extractImageData() {
+        // TODO: Later on, implement image data per world so it's not a crazy big JSON file
+        // let current_world_index = wasm.game_getCurrentWorldIndex();
+        // let image_data = JSON.stringify(GLOBALS.IMAGE_DATA[current_world_index]);
+        let image_data = JSON.stringify(globals.IMAGE_DATA);
+        let image_data_as_blob = new Blob([image_data], {type: 'application/json'});
+        editorDownload(image_data_as_blob, 'image_data.json');
+    }
+
+    addCollisionToCurrentWorld() {
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        let x = wasm.game_translateViewportXToWorldX(this.last_click.x);
+        let y = wasm.game_translateViewportYToWorldY(this.last_click.y);
+        let collision_layer = wasm.game_getCurrentWorldCollisionLayer();
+        wasm.editor_setWorldLayerCoordinateData(current_world_index, collision_layer, x, y, 1);
+        this.renderViewportData();
+    }
+    removeCollisionFromCurrentWorld() {
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        let x = wasm.game_translateViewportXToWorldX(this.last_click.x);
+        let y = wasm.game_translateViewportYToWorldY(this.last_click.y);
+        let collision_layer = wasm.game_getCurrentWorldCollisionLayer();
+        wasm.editor_setWorldLayerCoordinateData(current_world_index, collision_layer, x, y, 0);
+        this.renderViewportData();
+    }
+
+    __tests(which) {
+        switch (which) {
+        case 'extractWorldLayerData':
+                let start = wasm.editor_getWorldLayerMemoryLocation(0, 2);
+                let end = wasm.editor_getWorldLayerMemoryLength(0, 2);
+                let memory = extractMemory(start, end);
+                console.log(memory);
+            break;
+        case 'layerStuff':
+            let current_world_index = wasm.game_getCurrentWorldIndex();
+            let width = wasm.game_getCurrentWorldWidth();
+            let height = wasm.game_getCurrentWorldHeight();
+            let new_editor_layer_index = wasm.editor_createLayer(width, height);
+            wasm.editor_attachLayerToWorld(new_editor_layer_index, current_world_index);
+            let total_layers = wasm.game_getCurrentWorldTotalLayers();
+            let new_index = 0;
+            wasm.editor_moveLayer(current_world_index, (total_layers - 1), new_index);
+            globals.IMAGE_DATA[0].push([]);
+            globals.IMAGE_DATA[0].push([]);
+            swapElements(globals.IMAGE_DATA[0], (total_layers - 1), new_index);
+            // wasm.editor_moveLayer(0, 0, 1);
+            wasm.diff_addData(0);
+            this.renderViewportData();
+            this.listWorldLayers();
+            break;
+        }
+    }
+
+    render() {
+        this.shadowRoot.innerHTML = `
+            ${globalStyles}
+            <style>
+            #editor-container {
+                padding: 0.6em;
+                display: grid;
+                grid-auto-flow: row;
+                overflow-y: auto;
+            }
+            #clickable_view {
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                z-index: 99999;
+            }
+            #clicked_view {
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                z-index: 100000;
+                display: none;
+                border: 1px solid red;
+            }
+            </style>
+            <div id="clickable_view"></div>
+            <div id="clicked_view"></div>
+            <x-draggable name="entity-editor" id="entity-editor" visible="false">
+                <div id="editor-container">
+                    <div class="title">Entity</div>
+                    <div><select id="entity_id"></select></div>
+                    <div>Entity ID: <input type="text" id="wasm_entity_id" /></div>
+                    <div>Entity Type: <input type="text" id="wasm_entity_type" /></div>
+                    <div>Entity Is Collision: <input type="text" id="wasm_entity_is_collision" /></div>
+                    <div>Entity Health Component: <input type="text" id="wasm_entity_health_component_on_off" /></div>
+                    <div>Entity Health Component Default Value:<input type="text" id="wasm_entity_health_component_default_value" /></div>
+                    <div>Entity Movement Component: <input type="text" id="wasm_entity_movement_component_on_off" /></div>
+                    <div>Entity Attack Component: <input type="text" id="wasm_entity_attack_component_on_off" /></div>
+                    <div><input type="button" id="extract_current_entity" value="Extract Current Entity" /></div>
+                    <div><input type="button" id="create_new_entity" value="Create New Entity" /></div>
+                </div>
+            </x-draggable>
+            <x-draggable name="editor" id="editor" visible="false">
+                <div id="editor-container">
+                    <div class="draggable-header"></div>
+                    <div class="title">EDITOR</div>
+                    <div class="two-column-grid" id="current_layer">
+                        <div class="input_title">Current Layer</div><input type="text" id="current_layer_id" value="0" />
+                    </div>
+                    <div class="two-column-grid" id="current_data">
+                        <div class="input_title">Current Data Value</div><input type="text" id="current_data_id" value="0" />
+                    </div>
+                    <div id="apply_data_value_to_layer_coordinate">
+                        <input type="button" id="apply_data_value_to_layer_coordinate_input" value="Apply Data Value to Selected World & Layer Coordinate" />
+                    </div>
+                    <div id="current_selected_atlas"><div id="current_selected_atlas_img" src=""></div></div>
+                    <div id="apply_image_data_wrapper">
+                        <input type="button" id="apply_image_data" value="Apply Image to Data" />
+                        <div id="total_frames">0</div>
+                        <div id="frames_list_wrapper">
+                            <div>Frames List</div>
+                            <div id="frames_list"></div>
+                            <input type="button" id="add_frame" value="Add Frame" />
+                        </div>
+                        <input type="button" id="extract_image_data" value="Extract Image to Data" />
+                    </div>
+                    <div id="add_remove_row">
+                        <input type="button" id="add_row_input" value="Add Row to World" />
+                        <input type="button" id="remove_row_input" value="Remove Row from World" />
+                    </div>
+                    <div id="add_remove_column">
+                        <input type="button" id="add_column_input" value="Add Column to World" />
+                        <input type="button" id="remove_column_input" value="Remove Column from World" />
+                    </div>
+                    <div id="extract_current_world_data">
+                        <div id="current_world_extract_filename">world_0_data.bin</div>
+                        <input type="button" id="extract_current_world_data_input" value="Extract Current World Data" />
+                    </div>
+                    <div id="extract_current_world_layer_data">
+                        <div id="current_world_layer_extract_filename">world_0_layer_0.bin</div>
+                        <input type="button" id="extract_current_world_layer_data_input" value="Extract Current World Layer Data" />
+                    </div>
+                    <div id="world_layers_list_wrapper">
+                        <div>World Layers</div>
+                        <div id="world_layers_list"></div>
+                    </div>
+                </div>
+            </x-draggable>
+            <x-draggable visible="false" name="atlas" id="atlas">
+                <div id="atlas-container">
+                    <img id="atlas_img" src="${globals.ATLAS_PNG_FILENAME}" />
+                </div>
+            </x-draggable>
+        `;
+    }
+}
+customElements.define('editor-component', Editor);
