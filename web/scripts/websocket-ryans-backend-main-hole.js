@@ -74,20 +74,19 @@ export const RyansBackendMainHole = {
 
                     if (cmd.length > 0) {
                         if (cmd === 'spawn') {
-                            // TODO: Update all "triggerEvents" with new argument handling
                             globals.EVENTBUS.triggerEvent('user-spawns', {user, roles});
                         } else if (cmd === 'despawn') {
-                            globals.EVENTBUS.triggerEvent('user-despawns', [{data: {user, role}}]);
+                            globals.EVENTBUS.triggerEvent('user-despawns', {user, roles});
                         } else if (cmd === 'left') {
-                            globals.EVENTBUS.triggerEvent('user-moves-left', [{data: {user, role}}]);
+                            globals.EVENTBUS.triggerEvent('user-moves-left', {user, roles});
                         } else if (cmd === 'right') {
-                            globals.EVENTBUS.triggerEvent('user-moves-right', [{data: {user, role}}]);
+                            globals.EVENTBUS.triggerEvent('user-moves-right', {user, roles});
                         } else if (cmd === 'up') {
-                            globals.EVENTBUS.triggerEvent('user-moves-up', [{data: {user, role}}]);
+                            globals.EVENTBUS.triggerEvent('user-moves-up', {user, roles});
                         } else if (cmd === 'down') {
-                            globals.EVENTBUS.triggerEvent('user-moves-down', [{data: {user, role}}]);
+                            globals.EVENTBUS.triggerEvent('user-moves-down', {user, roles});
                         } else if (cmd === 'attack') {
-                            globals.EVENTBUS.triggerEvent('user-attacks', [{data: {user, role}}]);
+                            globals.EVENTBUS.triggerEvent('user-attacks', {user, roles});
                         } else if (
                             cmd === 'enable_kraken'
                             && (
