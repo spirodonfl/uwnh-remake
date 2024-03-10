@@ -10,7 +10,10 @@ export const RyansBackendSecondaryHole = {
         url += 'id=lemnean_sucks_deez_nutz&';
         url += 'login=' + login + '&';
         url += 'name=' + name;
-    
+
+        if (this.ws !== null) {
+            this.ws.close();
+        }
         this.ws = new WebSocket(url);
         this.ws.onerror = (e) => { this.onerror(e); };
         this.ws.onclose = (e) => { this.onclose(e); };
