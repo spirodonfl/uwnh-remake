@@ -273,6 +273,7 @@ export class Multiplayer extends HTMLElement {
             this.user.username = this.user.display_name;
             RyansBackendSecondaryHole.init(this.user.display_name, this.user.display_name, window.USER.id);
             globals.MODE = globals.MODES.indexOf('MULTIPLAYER');
+            document.querySelector('game-component').shadowRoot.getElementById('mode').innerText = globals.MODES[globals.MODE];
             // mod, vip, sub, broadcaster
             let role = null;
             if (this.user.channel_roles.length > 0) {
