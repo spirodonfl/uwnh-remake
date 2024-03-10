@@ -316,7 +316,9 @@ export class Game extends HTMLElement {
                 multiplayer_element = document.createElement('multiplayer-component');
                 document.body.appendChild(multiplayer_element);
             }
-            this.changeMode();
+            // TODO: functionize this better than what current changeMode is
+            globals.MODE = globals.MODES.indexOf('MULTIPLAYER');
+            globals.EVENTBUS.triggerEvent('mode-change', [{mode: globals.MODES[globals.MODE]}]);
         }
         const params = new Proxy(new URLSearchParams(window.location.search), {
             get: (searchParams, prop) => searchParams.get(prop),
@@ -327,8 +329,9 @@ export class Game extends HTMLElement {
                 multiplayer_host_element = document.createElement('multiplayer-host-component');
                 document.body.appendChild(multiplayer_host_element);
             }
-            this.changeMode();
-            this.changeMode();
+            // TODO: functionize this better than what current changeMode is
+            globals.MODE = globals.MODES.indexOf('MULTIPLAYER_HOST');
+            globals.EVENTBUS.triggerEvent('mode-change', [{mode: globals.MODES[globals.MODE]}]);
         }
 
         var atlas = new Image();
