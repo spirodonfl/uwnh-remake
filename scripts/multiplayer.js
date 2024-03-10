@@ -33,6 +33,7 @@ export class Multiplayer extends HTMLElement {
             //         this.toggleLeaderboardDisplay();
             //     }
             // },
+            // TODO: Need to also map to Numpad2,3 etc...
             {
                 description: 'Toggle On-Screen Controls',
                 context: globals.MODES.indexOf('MULTIPLAYER'),
