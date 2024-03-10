@@ -269,6 +269,8 @@ export class Multiplayer extends HTMLElement {
         if (window.USER) {
             this.user = window.USER;
             this.user.display_name = this.user.display_name.toLowerCase();
+            // TODO: Fix this. Keeping this for backwards compatibility everywhere else
+            this.user.username = this.user.display_name;
             RyansBackendSecondaryHole.init(this.user.display_name, this.user.display_name, window.USER.id);
             globals.MODE = globals.MODES.indexOf('MULTIPLAYER');
             // mod, vip, sub, broadcaster

@@ -105,7 +105,7 @@ export const RyansBackendMainHole = {
                                 || roles.indexOf('broadcaster') > -1
                             )
                         ){
-                            globals.EVENTBUS.triggerEvent('disable-kraken', {user, role});
+                            globals.EVENTBUS.triggerEvent('disable-kraken', {user, roles});
                         } else if (
                             cmd === 'reset'
                             && (
