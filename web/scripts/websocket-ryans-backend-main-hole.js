@@ -63,7 +63,7 @@ export const RyansBackendMainHole = {
             } else if (data.data.filters) {
                 globals.EVENTBUS.triggerEvent('filters-approved', []);
             } else if (data.data.leaderboard) {
-                globals.EVENTBUS.triggerEvent('leaderboard-update', [{data: data.data.leaderboard}]);
+                globals.EVENTBUS.triggerEvent('leaderboard-update', {data: data.data.leaderboard});
             } else if (data.data.commands) {
                 for (var i = 0; i < data.data.commands.length; ++i) {
                     console.log('RYANCOMMAND', data.data.commands[i]);
