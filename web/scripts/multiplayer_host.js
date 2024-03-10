@@ -185,6 +185,7 @@ export class MultiplayerHost extends HTMLElement {
             }
             leaderboard.classList.remove('hidden');
         });
+        let default_dialog_timeout = 5000;
         globals.EVENTBUS.addEventListener('follow-twitch', (e) => {
             let name = e[0];
             let dialog = document.createElement('dialog');
@@ -193,7 +194,7 @@ export class MultiplayerHost extends HTMLElement {
             dialog.showModal();
             setTimeout(() => {
                 dialog.close();
-            }, 3000);
+            }, default_dialog_timeout);
         });
         globals.EVENTBUS.addEventListener('sub-twitch', (e) => {
             let name = e[0];
@@ -203,7 +204,7 @@ export class MultiplayerHost extends HTMLElement {
             dialog.showModal();
             setTimeout(() => {
                 dialog.close();
-            }, 3000);
+            }, default_dialog_timeout);
         });
         globals.EVENTBUS.addEventListener('giftsub-twitch', (e) => {
             let name = e[0];
@@ -213,7 +214,7 @@ export class MultiplayerHost extends HTMLElement {
             dialog.showModal();
             setTimeout(() => {
                 dialog.close();
-            }, 3000);
+            }, default_dialog_timeout);
         });
         globals.EVENTBUS.addEventListener('giftbomb-twitch', (e) => {
             let name = e[0];
@@ -224,7 +225,7 @@ export class MultiplayerHost extends HTMLElement {
             dialog.showModal();
             setTimeout(() => {
                 dialog.close();
-            }, 3000);
+            }, default_dialog_timeout);
         });
         globals.EVENTBUS.addEventListener('giftbomb-twitch-anonymous', (e) => {
             let gifts = e[0];
@@ -234,7 +235,7 @@ export class MultiplayerHost extends HTMLElement {
             dialog.showModal();
             setTimeout(() => {
                 dialog.close();
-            }, 3000);
+            }, default_dialog_timeout);
         });
         globals.EVENTBUS.addEventListener('cheer-twitch', (e) => {
             let name = e[0];
@@ -245,7 +246,7 @@ export class MultiplayerHost extends HTMLElement {
             dialog.showModal();
             setTimeout(() => {
                 dialog.close();
-            }, 3000);
+            }, default_dialog_timeout);
         });
         globals.EVENTBUS.addEventListener('chat-message-twitch', (e) => {
             console.log('chat-message-twitch', e);
