@@ -4,6 +4,7 @@ import { globalStyles } from "./global-styles.js";
 import { wasm } from './injector_wasm.js';
 import { FRAMES } from './frames.js';
 import { getRandomKey } from './helpers.js';
+import { LocalStreamerbot } from './local-streamerbot.js';
 
 export class MultiplayerHost extends HTMLElement {
     constructor() {
@@ -103,6 +104,7 @@ export class MultiplayerHost extends HTMLElement {
 
     connectedCallback() {
         this.render();
+        LocalStreamerbot.init();
         globals.INPUTS = globals.INPUTS.concat(this.inputs);
         globals.EVENTBUS.addEventListener('viewport-size', (e) => {
             // TODO: Need to go around and remove the extraneous "updatePlayerList" calls we make
@@ -118,6 +120,56 @@ export class MultiplayerHost extends HTMLElement {
             this.broadcastGameState();
             this.updatePlayerList();
         });
+        globals.EVENTBUS.addEventListener('plus5health-twitch-redeemed', (e) => {
+            console.log('PLUS 5 HEALTH REDEEMED', e);
+            let user = e[0];
+            for (var i = 0; i < this.ships_to_players.length; ++i) {
+                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === user) {
+                    let entity_id = this.ships_to_players[i].wasm_entity_id;
+                    let health = wasm.game_entityGetHealth(entity_id);
+                    health += 5;
+                    if (health > 10) {
+                        health = 10;
+                    }
+                    wasm.game_entitySetHealth(entity_id, health);
+                    break;
+                }
+            }
+            this.broadcastGameState(user);
+        });
+        globals.EVENTBUS.addEventListener('plus10health-twitch-redeemed', (e) => {
+            console.log('PLUS 10 HEALTH REDEEMED', e);
+            let user = e[0];
+            for (var i = 0; i < this.ships_to_players.length; ++i) {
+                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === user) {
+                    let entity_id = this.ships_to_players[i].wasm_entity_id;
+                    let health = wasm.game_entityGetHealth(entity_id);
+                    health += 10;
+                    if (health > 10) {
+                        health = 10;
+                    }
+                    wasm.game_entitySetHealth(entity_id, health);
+                    break;
+                }
+            }
+            this.broadcastGameState(user);
+        });
+        globals.EVENTBUS.addEventListener('kraken-twitch-redeemed', (e) => {
+            console.log('KRAKEN REDEEMED', e);
+            this.enableKraken();
+            this.broadcastGameState();
+        });
+        globals.EVENTBUS.addEventListener('raid-twitch', (e) => {
+            console.log('RAID', e);
+            let name = e[0];
+            let viewers = e[1];
+            this.disableKraken();
+            this.enableKraken();
+            // TODO: STOP USING MAGIC NUMBERS
+            let kraken_entity_id = 7;
+            wasm.game_entitySetHealth(kraken_entity_id, viewers);
+            this.broadcastGameState();
+        });
         globals.EVENTBUS.addEventListener('opened-ryans-backend-main-hole', (e) => {
             // console.log('opened')
         });
@@ -132,6 +184,101 @@ export class MultiplayerHost extends HTMLElement {
                 leaderboard.innerHTML += `<div>${score.user}: ${score.total}</div>`;
             }
             leaderboard.classList.remove('hidden');
+        });
+        globals.EVENTBUS.addEventListener('follow-twitch', (e) => {
+            let name = e[0];
+            let dialog = document.createElement('dialog');
+            dialog.innerHTML = name + ' followed THANK YOU!';
+            document.body.appendChild(dialog);
+            dialog.showModal();
+            setTimeout(() => {
+                dialog.close();
+            }, 3000);
+        });
+        globals.EVENTBUS.addEventListener('sub-twitch', (e) => {
+            let name = e[0];
+            let dialog = document.createElement('dialog');
+            dialog.innerHTML = name + ' subbed THANK YOU!';
+            document.body.appendChild(dialog);
+            dialog.showModal();
+            setTimeout(() => {
+                dialog.close();
+            }, 3000);
+        });
+        globals.EVENTBUS.addEventListener('giftsub-twitch', (e) => {
+            let name = e[0];
+            let dialog = document.createElement('dialog');
+            dialog.innerHTML = name + ' gifted a sub THANK YOU!';
+            document.body.appendChild(dialog);
+            dialog.showModal();
+            setTimeout(() => {
+                dialog.close();
+            }, 3000);
+        });
+        globals.EVENTBUS.addEventListener('giftbomb-twitch', (e) => {
+            let name = e[0];
+            let gifts = e[1];
+            let dialog = document.createElement('dialog');
+            dialog.innerHTML = name + ' gifted ' + gifts + ' subs THANK YOU!';
+            document.body.appendChild(dialog);
+            dialog.showModal();
+            setTimeout(() => {
+                dialog.close();
+            }, 3000);
+        });
+        globals.EVENTBUS.addEventListener('giftbomb-twitch-anonymous', (e) => {
+            let gifts = e[0];
+            let dialog = document.createElement('dialog');
+            dialog.innerHTML = 'Anonymous gifted ' + gifts + ' subs THANK YOU!';
+            document.body.appendChild(dialog);
+            dialog.showModal();
+            setTimeout(() => {
+                dialog.close();
+            }, 3000);
+        });
+        globals.EVENTBUS.addEventListener('cheer-twitch', (e) => {
+            let name = e[0];
+            let bits = e[1];
+            let dialog = document.createElement('dialog');
+            dialog.innerHTML = name + ' cheered ' + bits + ' bits THANK YOU!';
+            document.body.appendChild(dialog);
+            dialog.showModal();
+            setTimeout(() => {
+                dialog.close();
+            }, 3000);
+        });
+        globals.EVENTBUS.addEventListener('chat-message-twitch', (e) => {
+            console.log('chat-message-twitch', e);
+            let user = e[0];
+            let role = e[1];
+            let message = e[2];
+            if (message === 'spawn') {
+                globals.EVENTBUS.triggerEvent('user-spawns', {user: user, role: role});
+            }
+            if (message === 'despawn') {
+                globals.EVENTBUS.triggerEvent('user-despawns', {user: user});
+            }
+            if (message === 'left') {
+                globals.EVENTBUS.triggerEvent('user-moves-left', {user: user});
+            }
+            if (message === 'right') {
+                globals.EVENTBUS.triggerEvent('user-moves-right', {user: user});
+            }
+            if (message === 'up') {
+                globals.EVENTBUS.triggerEvent('user-moves-up', {user: user});
+            }
+            if (message === 'down') {
+                globals.EVENTBUS.triggerEvent('user-moves-down', {user: user});
+            }
+            if (message === 'attack') {
+                globals.EVENTBUS.triggerEvent('user-attacks', {user: user});
+            }
+            if (
+                message === 'kraken'
+                && role > 1
+            ) {
+                globals.EVENTBUS.triggerEvent('kraken-twitch-redeemed', {user: user});
+            }
         });
         globals.EVENTBUS.addEventListener('user-spawns', (e) => {
             console.log('USER IS SPAWNING', e);
@@ -359,17 +506,19 @@ export class MultiplayerHost extends HTMLElement {
     }
     // TODO: Damn it we need a common place for this multiplayer stuff
     enableKraken() {
-        this.kraken_enabled = true;
-        // TODO: Don't rely on magic numbers here!
-        let kraken_entity_id = 7;
-        let entity_layer = wasm.game_getCurrentWorldEntityLayer();
-        if (wasm.game_entityGetHealth(kraken_entity_id) === 0) {
-            wasm.game_entitySetHealth(kraken_entity_id, 44);
-        }
-        wasm.game_entityEnableCollision(kraken_entity_id);
-        var kraken_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + kraken_entity_id + '"][layer="' + entity_layer + '"]');
-        if (kraken_element) {
-            kraken_element.style.display = 'block';
+        if (this.kraken_enabled === false) {
+            this.kraken_enabled = true;
+            // TODO: Don't rely on magic numbers here!
+            let kraken_entity_id = 7;
+            let entity_layer = wasm.game_getCurrentWorldEntityLayer();
+            if (wasm.game_entityGetHealth(kraken_entity_id) === 0) {
+                wasm.game_entitySetHealth(kraken_entity_id, 44);
+            }
+            wasm.game_entityEnableCollision(kraken_entity_id);
+            var kraken_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + kraken_entity_id + '"][layer="' + entity_layer + '"]');
+            if (kraken_element) {
+                kraken_element.style.display = 'block';
+            }
         }
     }
     disableKraken() {
