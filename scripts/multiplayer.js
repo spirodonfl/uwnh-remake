@@ -274,23 +274,21 @@ export class Multiplayer extends HTMLElement {
             globals.MODE = globals.MODES.indexOf('MULTIPLAYER');
             // mod, vip, sub, broadcaster
             let role = null;
-            if (
-                window.USER.roles.indexOf('mod') !== -1
-                || window.USER.roles.indexOf('vip') !== -1
-                || window.USER.roles.indexOf('broadcaster') !== -1
-            ) {
+            if (window.USER.roles.length > 0) {
                 for (var r = 0; r < window.USER.roles.length; ++r) {
-                    if (window.USER.roles[r] === 'broadcaster') {
+                    if (window.USER.roles[r].role === 'broadcaster') {
                         role = 'broadcaster';
                         break;
-                    } else if (window.USER.roles[r] === 'mod') {
+                    } else if (window.USER.roles[r].role === 'mod') {
                         role = 'mod';
                         break;
-                    } else if (window.USER.roles[r] === 'vip') {
+                    } else if (window.USER.roles[r].role === 'vip') {
                         role = 'vip';
                         break;
                     }
                 }
+            }
+            if (role !== null) {
                 this.shadowRoot.querySelector('enable_kraken').classList.remove('hidden');
                 this.shadowRoot.querySelector('enable_kraken').addEventListener('click', () => {
                     RyansBackendSecondaryHole.ws.send(JSON.stringify({
