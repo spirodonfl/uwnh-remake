@@ -187,6 +187,16 @@ export class MultiplayerHost extends HTMLElement {
             this.enableKraken();
             this.broadcastGameState();
         });
+        globals.EVENTBUS.addEventListener('enable-kraken', (e) => {
+            console.log('ENABLE KRAKEN', e);
+            this.enableKraken();
+            this.broadcastGameState();
+        });
+        globals.EVENTBUS.addEventListener('disable-kraken', (e) => {
+            console.log('DISABLE KRAKEN', e);
+            this.disableKraken();
+            this.broadcastGameState();
+        });
         globals.EVENTBUS.addEventListener('raid-twitch', (e) => {
             console.log('RAID', e);
             let name = e[0];
@@ -314,7 +324,7 @@ export class MultiplayerHost extends HTMLElement {
             let user_spawned = false;
             let user_exists = false;
             for (let i = 0; i < this.ships_to_players.length; ++i) {
-                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.data.user) {
+                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.user) {
                     user_exists = true;
                     break;
                 }
@@ -342,7 +352,7 @@ export class MultiplayerHost extends HTMLElement {
                                 if (this.ships_to_players[s_to_p] === null) {
                                     user_spawned = true;
                                     s_to_p_id = s_to_p;
-                                    this.ships_to_players[s_to_p] = {username: e.data.user, role: e.data.role, wasm_entity_id: entity_id};
+                                    this.ships_to_players[s_to_p] = {username: e.user, role: e.role, wasm_entity_id: entity_id};
                                     // TODO: Pull from default value within WASM instead of magic number-ing
                                     wasm.game_entitySetHealth(entity_id, 10);
                                     break;

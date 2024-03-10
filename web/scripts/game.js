@@ -136,12 +136,12 @@ export class Game extends HTMLElement {
         this.static_layers = [
             [
                 [
-                    0, // Should be staticized (bool)
+                    1, // Should be staticized (bool)
                     0, // already rendered
                     import.meta.resolve('../images/world_0_layer_0_frame_0.png'),
                 ],
                 [
-                    0, // Should be staticized (bool)
+                    1, // Should be staticized (bool)
                     0, // already rendered
                     import.meta.resolve('../images/world_0_layer_1_frame_0.png'),
                 ],
