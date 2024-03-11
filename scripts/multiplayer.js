@@ -292,6 +292,12 @@ export class Multiplayer extends HTMLElement {
                     }
                 }
             }
+            this.shadowRoot.querySelector('#despawn').classList.add('hidden');
+            this.shadowRoot.querySelector('#attack').classList.add('hidden');
+            this.shadowRoot.querySelector('#up').classList.add('hidden');
+            this.shadowRoot.querySelector('#down').classList.add('hidden');
+            this.shadowRoot.querySelector('#left').classList.add('hidden');
+            this.shadowRoot.querySelector('#right').classList.add('hidden');
             if (role !== null) {
                 this.shadowRoot.querySelector('#enable_kraken').classList.remove('hidden');
                 this.shadowRoot.querySelector('#enable_kraken').addEventListener('click', () => {
