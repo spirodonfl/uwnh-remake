@@ -156,6 +156,7 @@ export class MultiplayerHost extends HTMLElement {
                 document.querySelector('game-component').shadowRoot.getElementById('main_menu').removeAttribute('visible', '');
                 document.querySelector('game-component').shadowRoot.getElementById('main_menu').style.display = 'none';
                 RyansBackendMainHole.getLeaderboard();
+                this.enableKraken();
             }
         });
         globals.EVENTBUS.addEventListener('game-rendered', (e) => {
