@@ -148,13 +148,7 @@ export class MultiplayerHost extends HTMLElement {
             // TODO: Need to go around and remove the extraneous "updatePlayerList" calls we make
             this.updatePlayerList();
         });
-        globals.EVENTBUS.addEventListener('game-rendered', (e) => {
-            this.updatePlayerList();
-            if (this.kraken_enabled === false) {
-                this.disableKraken();
-            } else if (this.kraken_enabled === true) {
-                this.enableKraken();
-            }
+        globals.EVENTBUS.addEventListener('opened-ryans-backend-main-hole', (e) => {
             if (params.host === 'true') {
                 this.shadowRoot.getElementById('host-controls').style.display = 'block';
                 this.shadowRoot.getElementById('leaderboard').classList.remove('hidden');
@@ -162,6 +156,14 @@ export class MultiplayerHost extends HTMLElement {
                 document.querySelector('game-component').shadowRoot.getElementById('main_menu').removeAttribute('visible');
                 RyansBackendMainHole.getLeaderboard();
             }
+        });
+        globals.EVENTBUS.addEventListener('game-rendered', (e) => {
+            this.updatePlayerList();
+            if (this.kraken_enabled === false) {
+                this.disableKraken();
+            } else if (this.kraken_enabled === true) {
+                this.enableKraken();
+            } 
             this.broadcastGameState();
             this.updatePlayerList();
         });
