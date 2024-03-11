@@ -160,7 +160,7 @@ export class MultiplayerHost extends HTMLElement {
         });
         globals.EVENTBUS.addEventListener('plus5health-twitch-redeemed', (e) => {
             console.log('PLUS 5 HEALTH REDEEMED', e);
-            let user = e[0];
+            let user = e.user;
             for (let i = 0; i < this.ships_to_players.length; ++i) {
                 if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === user) {
                     let entity_id = this.ships_to_players[i].wasm_entity_id;
@@ -177,7 +177,7 @@ export class MultiplayerHost extends HTMLElement {
         });
         globals.EVENTBUS.addEventListener('plus10health-twitch-redeemed', (e) => {
             console.log('PLUS 10 HEALTH REDEEMED', e);
-            let user = e[0];
+            let user = e.user;
             for (let i = 0; i < this.ships_to_players.length; ++i) {
                 if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === user) {
                     let entity_id = this.ships_to_players[i].wasm_entity_id;
@@ -209,8 +209,8 @@ export class MultiplayerHost extends HTMLElement {
         });
         globals.EVENTBUS.addEventListener('raid-twitch', (e) => {
             console.log('RAID', e);
-            let name = e[0];
-            let viewers = e[1];
+            let name = e.raider;
+            let viewers = e.viewers;
             this.disableKraken();
             this.enableKraken();
             // TODO: STOP USING MAGIC NUMBERS
@@ -235,7 +235,7 @@ export class MultiplayerHost extends HTMLElement {
         });
         let default_dialog_timeout = 5000;
         globals.EVENTBUS.addEventListener('follow-twitch', (e) => {
-            let name = e[0];
+            let name = e.user;
             let dialog = document.createElement('dialog');
             dialog.innerHTML = name + ' followed THANK YOU!';
             document.body.appendChild(dialog);
@@ -245,7 +245,7 @@ export class MultiplayerHost extends HTMLElement {
             }, default_dialog_timeout);
         });
         globals.EVENTBUS.addEventListener('sub-twitch', (e) => {
-            let name = e[0];
+            let name = e.user;
             let dialog = document.createElement('dialog');
             dialog.innerHTML = name + ' subbed THANK YOU!';
             document.body.appendChild(dialog);
@@ -255,7 +255,7 @@ export class MultiplayerHost extends HTMLElement {
             }, default_dialog_timeout);
         });
         globals.EVENTBUS.addEventListener('giftsub-twitch', (e) => {
-            let name = e[0];
+            let name = e.recipient;
             let dialog = document.createElement('dialog');
             dialog.innerHTML = name + ' gifted a sub THANK YOU!';
             document.body.appendChild(dialog);
@@ -265,8 +265,8 @@ export class MultiplayerHost extends HTMLElement {
             }, default_dialog_timeout);
         });
         globals.EVENTBUS.addEventListener('giftbomb-twitch', (e) => {
-            let name = e[0];
-            let gifts = e[1];
+            let name = e.user;
+            let gifts = e.gifts;
             let dialog = document.createElement('dialog');
             dialog.innerHTML = name + ' gifted ' + gifts + ' subs THANK YOU!';
             document.body.appendChild(dialog);
@@ -276,7 +276,7 @@ export class MultiplayerHost extends HTMLElement {
             }, default_dialog_timeout);
         });
         globals.EVENTBUS.addEventListener('giftbomb-twitch-anonymous', (e) => {
-            let gifts = e[0];
+            let gifts = e.gifts;
             let dialog = document.createElement('dialog');
             dialog.innerHTML = 'Anonymous gifted ' + gifts + ' subs THANK YOU!';
             document.body.appendChild(dialog);
@@ -286,8 +286,8 @@ export class MultiplayerHost extends HTMLElement {
             }, default_dialog_timeout);
         });
         globals.EVENTBUS.addEventListener('cheer-twitch', (e) => {
-            let name = e[0];
-            let bits = e[1];
+            let name = e.user;
+            let bits = e.bits;
             let dialog = document.createElement('dialog');
             dialog.innerHTML = name + ' cheered ' + bits + ' bits THANK YOU!';
             document.body.appendChild(dialog);
@@ -298,9 +298,9 @@ export class MultiplayerHost extends HTMLElement {
         });
         globals.EVENTBUS.addEventListener('chat-message-twitch', (e) => {
             console.log('chat-message-twitch', e);
-            let user = e[0];
-            let role = e[1];
-            let message = e[2];
+            let user = e.user;
+            let role = e.role;
+            let message = e.message;
             if (message === 'spawn') {
                 globals.EVENTBUS.triggerEvent('user-spawns', {user: user, role: role});
             }

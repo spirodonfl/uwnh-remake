@@ -49,33 +49,33 @@ export const LocalStreamerbot = {
             }
             if (wsdata.event.type === 'RewardRedemption') {
                 if (wsdata.data.reward.title === 'Kraken') {
-                    globals.EVENTBUS.triggerEvent('kraken-twitch-redeemed', [[wsdata.data.user_login]]);
+                    globals.EVENTBUS.triggerEvent('kraken-twitch-redeemed', {user: wsdata.data.user_login});
                 }
                 else if (wsdata.data.reward.title === 'Poops') {
                     // TODO: Drop yoshi eggs in the water
                 }
                 else if (wsdata.data.reward.title === 'Plus5Health') {
-                    globals.EVENTBUS.triggerEvent('plus5health-twitch-redeemed', [[wsdata.data.user_login]]);
+                    globals.EVENTBUS.triggerEvent('plus5health-twitch-redeemed', {user: wsdata.data.user_login});
                 }
                 else if (wsdata.data.reward.title === 'Plus10Health') {
-                    globals.EVENTBUS.triggerEvent('plus10health-twitch-redeemed', [[wsdata.data.user_login]]);
+                    globals.EVENTBUS.triggerEvent('plus10health-twitch-redeemed', {user: wsdata.data.user_login});
                 }
             } else if (wsdata.event.type === 'Raid') {
-                globals.EVENTBUS.triggerEvent('raid-twitch', [[wsdata.data.displayName, wsdata.data.viewers]]);
+                globals.EVENTBUS.triggerEvent('raid-twitch', {raider: wsdata.data.displayName, viewers: wsdata.data.viewers});
             } else if (wsdata.event.type === 'Sub' || wsdata.event.type === 'ReSub') {
-                globals.EVENTBUS.triggerEvent('sub-twitch', [[wsdata.data.displayName]]);
+                globals.EVENTBUS.triggerEvent('sub-twitch', {user: wsdata.data.displayName});
             } else if (wsdata.event.type === 'GiftSub') {
-                globals.EVENTBUS.triggerEvent('giftsub-twitch', [[wsdata.data.recipientDisplayName]]);
+                globals.EVENTBUS.triggerEvent('giftsub-twitch', {recipient: wsdata.data.recipientDisplayName});
             } else if (wsdata.event.type === 'GiftBomb') {
                 if (wsdata.data.isAnonymous === false) {
-                    globals.EVENTBUS.triggerEvent('giftbomb-twitch', [[wsdata.data.displayName, wsdata.data.gifts]]);
+                    globals.EVENTBUS.triggerEvent('giftbomb-twitch', {user: wsdata.data.displayName, gifts: wsdata.data.gifts});
                 } else {
-                    globals.EVENTBUS.triggerEvent('giftbomb-twitch-anonymous', [[wsdata.data.gifts]]);
+                    globals.EVENTBUS.triggerEvent('giftbomb-twitch-anonymous', {gifts: wsdata.data.gifts});
                 }
             } else if (wsdata.event.type === 'Follow') {
-                globals.EVENTBUS.triggerEvent('follow-twitch', [[wsdata.data.displayName]]);
+                globals.EVENTBUS.triggerEvent('follow-twitch', {user: wsdata.data.displayName});
             } else if (wsdata.event.type === 'Cheer') {
-                globals.EVENTBUS.triggerEvent('cheer-twitch', [[wsdata.data.displayName, wsdata.data.bits]]);
+                globals.EVENTBUS.triggerEvent('cheer-twitch', {user: wsdata.data.displayName, bits: wsdata.data.bits});
             } else if (wsdata.event && wsdata.event.type === "ChatMessage") {
                 var user = wsdata.data.message.username;
                 var role = wsdata.data.message.role;
@@ -83,7 +83,7 @@ export const LocalStreamerbot = {
                 if (message.charAt(0) === '!') {
                     message = message.toLowerCase();
                     message = message.substr(1);
-                    globals.EVENTBUS.triggerEvent('chat-message-twitch', [[user, role, message]]);
+                    globals.EVENTBUS.triggerEvent('chat-message-twitch', {user, role, message});
                 }
             }
         }
