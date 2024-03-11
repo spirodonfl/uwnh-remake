@@ -157,7 +157,7 @@ export class MultiplayerHost extends HTMLElement {
             }
             if (params.host === 'true') {
                 this.shadowRoot.getElementById('host-controls').style.display = 'block';
-                this.shadowRoot.getElementById('leaderboard').style.display = 'block';
+                this.shadowRoot.getElementById('leaderboard').classList.remove('hidden');
             }
             this.broadcastGameState();
             this.updatePlayerList();
