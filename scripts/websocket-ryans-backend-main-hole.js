@@ -38,6 +38,7 @@ export const RyansBackendMainHole = {
     onopen: function (e) {
         console.log('Ryans backend main hole is fully gaped', e);
         this.ws.send(JSON.stringify(RyansBackendMainHoleConfig));
+        globals.EVENTBUS.triggerEvent('opened-ryans-backend-main-hole', {});
     },
     // This function takes the regex portion of Ryans backend and expands
     // the letter prior to any numbers so that the letter is repeated as a command
