@@ -517,14 +517,12 @@ export class Game extends HTMLElement {
             // NOTE: If you move this into "sizeView" function,
             // it borks the rendering order and causes a panic/out
             // of bounds error in WASM/ZIG
-            globals.EVENTBUS.triggerEvent('viewport-size', [
-                {
-                    width: this.width,
-                    height: this.height,
-                    x_padding: this.x_padding,
-                    y_padding: this.y_padding
-                }
-            ]);
+            globals.EVENTBUS.triggerEvent('viewport-size',{
+                width: this.width,
+                height: this.height,
+                x_padding: this.x_padding,
+                y_padding: this.y_padding
+            });
             this.renderGame();
         // });
         // resizeObserver.observe(document.body);

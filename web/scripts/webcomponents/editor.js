@@ -133,6 +133,7 @@ export class ComponentEditor extends HTMLElement {
             this.shadowRoot.getElementById('wasm_entity_attack_component_on_off').value = memory[6];
         });
         this.shadowRoot.getElementById('clickable_view').addEventListener('click', (e) => {
+            console.log('clickable_view_click', e);
             let game_component = document.querySelector('game-component');
             let x = e.clientX - game_component.x_padding;
             let y = e.clientY - game_component.y_padding;
@@ -265,6 +266,7 @@ export class ComponentEditor extends HTMLElement {
 
 
     onViewportSize(e) {
+        console.log('onViewportSize', e);
         let viewport_size = e;
         // TODO: clickable_view should be a separate component
         this.shadowRoot.getElementById('clickable_view').style.width = (viewport_size.width * (globals.SIZE * globals.SCALE)) + 'px';
