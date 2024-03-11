@@ -360,6 +360,7 @@ export class ComponentEditor extends HTMLElement {
                     if (frames > 0) {
                         let frames_list = this.shadowRoot.getElementById('frames_list');
                         // TODO: DRY repetitious. Find a better way to implement this
+                        // Use <tamplate/>
                         while (frames_list.firstChild) {
                             let auto_cols_element = frames_list.firstChild;
                             while (auto_cols_element.firstChild) {
@@ -430,6 +431,7 @@ export class ComponentEditor extends HTMLElement {
 
             let f = frames;
             // TODO: DRY
+            // use <template/>
             let frames_list = this.shadowRoot.getElementById('frames_list');
             let auto_cols_element = document.createElement('div');
             auto_cols_element.classList.add('auto-cols');
