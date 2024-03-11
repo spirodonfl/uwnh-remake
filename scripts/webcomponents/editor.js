@@ -36,40 +36,40 @@ export class ComponentEditor extends HTMLElement {
         globals.EVENTBUS.addEventListener('input', (e) => {
             console.log('editor: input', e);
 
-            if (e.input.id === 'toggle-editor') {
+            if (e.input.input_id === 'toggle_editor') {
                 this.shadowRoot.getElementById('editor').toggleVisibility();
             }
-            if (e.input.id === 'toggle-atlas') {
+            if (e.input.input_id === 'toggle_atlas') {
                 this.shadowRoot.getElementById('atlas').toggleVisibility();
             }
-            if (e.input.id === 'toggle-entity-editor') {
+            if (e.input.input_id === 'toggle_entity_editor') {
                 this.shadowRoot.getElementById('entity-editor').toggleVisibility();
             }
-            if (e.input.id === 'change-layer') {
+            if (e.input.input_id === 'change_layer') {
                 this.incrementLayer();
             }
-            if (e.input.id === 'add-collision') {
+            if (e.input.input_id === 'add_collision') {
                 this.addCollisionToCurrentWorld();
             }
-            if (e.input.id === 'delete-collision') {
+            if (e.input.input_id === 'delete_collision') {
                 this.removeCollisionFromCurrentWorld();
             }
-            if (e.input.id === 'apply-data-value-to-layer-coordinate') {
+            if (e.input.input_id === 'apply_data_value_to_layer_coordinate') {
                 this.applyDataValueToLayerCoordinate();
             }
-            if (e.input.id === 'apply-data-zero-to-layer-coordinate') {
+            if (e.input.input_id === 'apply_data_zero_to_layer_coordinate') {
                 this.applyDataZeroToLayerCoordinate();
             }
-            if (e.input.id === 'extract-data-from-selected-coord') {
+            if (e.input.input_id === 'extract_data_from_selected_coord') {
                 this.extractDataFromSelectedCoord();
             }
-            if (e.input.id === 'extract-image-from-data') {
+            if (e.input.input_id === 'extract_image_from_data') {
                 this.extractImageFromData();
             }
         });
         globals.EVENTBUS.addEventListener('click', (e) => {
             console.log('editor: click', e);
-            if (e.input.id === 'create-new-entity') {
+            if (e.input.input_id === 'create_new_entity') {
                 this.createNewEntity();
             }
         });
@@ -794,8 +794,8 @@ export class ComponentEditor extends HTMLElement {
                     <div>Entity Health Component Default Value:<input type="text" id="wasm_entity_health_component_default_value" /></div>
                     <div>Entity Movement Component: <input type="text" id="wasm_entity_movement_component_on_off" /></div>
                     <div>Entity Attack Component: <input type="text" id="wasm_entity_attack_component_on_off" /></div>
-                    <div><input type="button" input-id="" id="extract_current_entity" value="Extract Current Entity" /></div>
-                    <div><input type="button" input-id="create-new-entity" id="create_new_entity" value="Create New Entity" /></div>
+                    <div><input type="button" input-id="extract_current_entity" id="extract_current_entity" value="Extract Current Entity" /></div>
+                    <div><input type="button" input-id="create_new_entity" id="create_new_entity" value="Create New Entity" /></div>
                 </div>
             </x-draggable>
             <x-draggable name="editor" id="editor" visible="false">

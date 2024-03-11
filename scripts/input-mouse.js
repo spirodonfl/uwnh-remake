@@ -2,18 +2,18 @@ import { globals } from './globals.js';
 import { Inputs } from './inputs.js';
 
 const inputMatch = function (input_id) {
-    let input = Inputs.ALL.find(input => input.id === input_id);
+    let input = Inputs.ALL.find(input => input.input_id === input_id);
     if (!input) {
-        input = Inputs.EDITOR.find(input => input.id === input_id);
+        input = Inputs.EDITOR.find(input => input.input_id === input_id);
     }
     if (!input) {
-        input = Inputs.MULTIPLAYER.find(input => input.id === input_id);
+        input = Inputs.MULTIPLAYER.find(input => input.input_id === input_id);
     }
     if (!input) {
-        input = Inputs.MULTIPLAYERHOST.find(input => input.id === input_id);
+        input = Inputs.MULTIPLAYERHOST.find(input => input.input_id === input_id);
     }
     if (!input) {
-        input = Inputs.GAME.find(input => input.id === input_id);
+        input = Inputs.GAME.find(input => input.input_id === input_id);
     }
     return input;
 }
@@ -42,7 +42,7 @@ document.addEventListener('click', function (event) {
                 input_id = target.getAttribute('input-id');
             }
         }
-        let input = {id: input_id};
+        let input = {input_id};
         globals.EVENTBUS.triggerEvent('click', {input, event, composed_path});
     }
 });

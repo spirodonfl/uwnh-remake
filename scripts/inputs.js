@@ -13,7 +13,7 @@ const Inputs = {
 Inputs.ALL = [
     {
         description: 'Toggle the main menu',
-        id: 'toggle-main-menu',
+        input_id: 'toggle_main_menu',
         code: 'KeyX',
         friendlyCode: 'X',
         shiftKey: false,
@@ -22,7 +22,7 @@ Inputs.ALL = [
     },
     { 
         description: 'Toggle the cheatsheet',
-        id: 'toggle-cheatsheet',
+        input_id: 'toggle_cheatsheet',
         code: 'KeyH',
         friendlyCode: 'H',
         shiftKey: false,
@@ -34,7 +34,7 @@ Inputs.ALL = [
 Inputs.EDITOR = [
     {
         description: 'Toggle Editor',
-        id: 'toggle-editor',
+        input_id: 'toggle_editor',
         code: 'KeyP',
         friendlyCode: 'P',
         shiftKey: false,
@@ -43,7 +43,7 @@ Inputs.EDITOR = [
     },
     {
         description: 'Toggle Atlas',
-        id: 'toggle-atlas',
+        input_id: 'toggle_atlas',
         code: 'KeyA',
         friendlyCode: 'A',
         shiftKey: false,
@@ -52,7 +52,7 @@ Inputs.EDITOR = [
     },
     {
         description: 'Toggle Entity Editor',
-        id: 'toggle-entity-editor',
+        input_id: 'toggle_entity_editor',
         code: 'KeyE',
         friendlyCode: 'E',
         shiftKey: false,
@@ -61,7 +61,7 @@ Inputs.EDITOR = [
     },
     {
         description: 'Change Layer',
-        id: 'change-layer',
+        input_id: 'change_layer',
         code: 'KeyL',
         friendlyCode: 'L',
         shiftKey: false,
@@ -70,7 +70,7 @@ Inputs.EDITOR = [
     },
     {
         description: 'Add Collision',
-        id: 'add-collision',
+        input_id: 'add_collision',
         code: 'KeyA',
         friendlyCode: 'SHIFT+A',
         shiftKey: true,
@@ -79,7 +79,7 @@ Inputs.EDITOR = [
     },
     {
         description: 'Delete Collision',
-        id: 'delete-collision',
+        input_id: 'delete_collision',
         code: 'KeyD',
         friendlyCode: 'SHIFT+D',
         shiftKey: true,
@@ -88,7 +88,7 @@ Inputs.EDITOR = [
     },
     {
         description: 'Apply Current Data To Layer',
-        id: 'apply-current-data-to-layer',
+        input_id: 'apply_current_data_to_layer',
         code: 'KeyV',
         friendlyCode: 'V',
         shiftKey: false,
@@ -97,7 +97,7 @@ Inputs.EDITOR = [
     },
     {
         description: 'Apply Zero Data To Layer',
-        id: 'apply-zero-data-to-layer',
+        input_id: 'apply_zero_data_to_layer',
         code: 'KeyZ',
         friendlyCode: 'Z',
         shiftKey: false,
@@ -106,7 +106,7 @@ Inputs.EDITOR = [
     },
     {
         description: 'Extract Data From Selected Coord',
-        id: 'extract-data-from-selected-coord',
+        input_id: 'extract_data_from_selected_coord',
         code: 'KeyX',
         friendlyCode: 'SHIFT+X',
         shiftKey: true,
@@ -115,7 +115,7 @@ Inputs.EDITOR = [
     },
     {
         description: 'Extract Image From Data',
-        id: 'extract-image-from-data',
+        input_id: 'extract_image_from_data',
         code: 'KeyI',
         friendlyCode: 'I',
         shiftKey: false,
