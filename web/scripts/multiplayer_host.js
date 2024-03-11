@@ -142,6 +142,7 @@ export class MultiplayerHost extends HTMLElement {
             LocalStreamerbot.init();
             RyansBackendMainHole.init();
             this.togglePlayerList();
+            this.toggleLeaderboardDisplay();
         }
         globals.INPUTS = globals.INPUTS.concat(this.inputs);
         globals.EVENTBUS.addEventListener('viewport-size', (e) => {
