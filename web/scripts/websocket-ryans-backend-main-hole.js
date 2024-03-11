@@ -3,7 +3,8 @@ import { globals } from './globals.js';
 const RyansBackendMainHoleConfig = {
     "set_filters": {
         "commands": [
-            "up", "down", "left", "right", "attack", "spawn", "despawn", "kraken", "reset", "done", "setrole",
+            "up", "down", "left", "right", "attack", "spawn", 
+            "despawn", "kraken", "reset", "done", "setrole",
             "enable_kraken", "disable_kraken",
         ],
         "matches": [
@@ -18,7 +19,7 @@ const RyansBackendMainHoleConfig = {
 export const RyansBackendMainHole = {
     ws: null,
     init: function () {
-        var url = 'wss://spirodon.games/gamesocket/websocket';
+        let url = 'wss://spirodon.games/gamesocket/websocket';
 
         if (this.ws === null) {
             this.ws = new WebSocket(url);
@@ -26,6 +27,8 @@ export const RyansBackendMainHole = {
             this.ws.onclose = (e) => { this.onclose(e); };
             this.ws.onopen = (e) => { this.onopen(e); };
             this.ws.onmessage = (e) => { this.onmessage(e); };
+        } else {
+            console.log('Already connected');
         }
     },
     onerror: function (e) {
@@ -52,7 +55,7 @@ export const RyansBackendMainHole = {
     onmessage: function (message) {
         console.log('Ryans backend main hole is trying to talk to you', message);
         if (message.data) {
-            var data = JSON.parse(message.data);
+            let data = JSON.parse(message.data);
             console.log('Ryans backend main hole is trying to whisper sweet nothings to you', data);
             if (data.errors && data.errors.length > 0) {
                 console.error('Ryans backend main hole basically shat the bed', data.errors);
@@ -61,12 +64,12 @@ export const RyansBackendMainHole = {
             } else if (data.data.leaderboard) {
                 globals.EVENTBUS.triggerEvent('leaderboard-update', {data: data.data.leaderboard});
             } else if (data.data.commands) {
-                for (var i = 0; i < data.data.commands.length; ++i) {
+                for (let i = 0; i < data.data.commands.length; ++i) {
                     console.log('RYANCOMMAND', data.data.commands[i]);
-                    var user = data.data.commands[i].user.toLowerCase();
+                    let user = data.data.commands[i].user.toLowerCase();
                     if (user.length === 0) { continue; }
-                    var cmd = data.data.commands[i].cmd;
-                    var roles = data.data.commands[i].roles;
+                    let cmd = data.data.commands[i].cmd;
+                    let roles = data.data.commands[i].roles;
 
                     if (cmd.length > 0) {
                         if (cmd === 'spawn') {
@@ -135,9 +138,9 @@ export const RyansBackendMainHole = {
                             cmd = cmd.split('');
                             console.log('cmd expanded', cmd);
                             if (cmd.length > 0) {
-                                var last_entry = null;
+                                let last_entry = null;
                                 // We assume this means a multi-command
-                                for (var j = 0; j < cmd.length; ++j) {
+                                for (let j = 0; j < cmd.length; ++j) {
                                     // if (COMMANDS[cmd[j]] === 0 && COMMANDS_TO_FUNCTIONS[cmd[j]]) {
                                     //     last_entry = cmd[j];
                                     //     COMMANDS_TO_FUNCTIONS[cmd[j]](user);

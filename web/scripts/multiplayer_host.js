@@ -246,6 +246,7 @@ export class MultiplayerHost extends HTMLElement {
         });
         let default_dialog_timeout = 5000;
         globals.EVENTBUS.addEventListener('follow-twitch', (e) => {
+            console.log('follow-twitch', e);
             let name = e.user;
             let dialog = document.createElement('dialog');
             dialog.innerHTML = name + ' followed THANK YOU!';
