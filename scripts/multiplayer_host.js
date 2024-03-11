@@ -142,7 +142,6 @@ export class MultiplayerHost extends HTMLElement {
             LocalStreamerbot.init();
             RyansBackendMainHole.init();
             this.togglePlayerList();
-            this.toggleLeaderboardDisplay();
         }
         globals.INPUTS = globals.INPUTS.concat(this.inputs);
         globals.EVENTBUS.addEventListener('viewport-size', (e) => {
@@ -155,6 +154,10 @@ export class MultiplayerHost extends HTMLElement {
                 this.disableKraken();
             } else if (this.kraken_enabled === true) {
                 this.enableKraken();
+            }
+            if (params.host === 'true') {
+                this.shadowRoot.getElementById('host-controls').style.display = 'block';
+                this.shadowRoot.getElementById('leaderboard').style.display = 'block';
             }
             this.broadcastGameState();
             this.updatePlayerList();
