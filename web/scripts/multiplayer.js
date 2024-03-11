@@ -242,6 +242,14 @@ export class Multiplayer extends HTMLElement {
                         wasm.game_entitySetPositionY(entity_id, e.data.game_state.positions[i][1]);
                     }
                 }
+                if (this.inGame()) {
+                    this.shadowRoot.querySelector('#despawn').classList.remove('hidden');
+                    this.shadowRoot.querySelector('#attack').classList.remove('hidden');
+                    this.shadowRoot.querySelector('#up').classList.remove('hidden');
+                    this.shadowRoot.querySelector('#down').classList.remove('hidden');
+                    this.shadowRoot.querySelector('#left').classList.remove('hidden');
+                    this.shadowRoot.querySelector('#right').classList.remove('hidden');
+                }
                 if (e.data.game_state.kraken_enabled !== this.kraken_enabled) {
                     this.kraken_enabled = e.data.game_state.kraken_enabled;
                     if (e.data.game_state.kraken_enabled) {
