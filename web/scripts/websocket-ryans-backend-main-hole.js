@@ -19,11 +19,6 @@ export const RyansBackendMainHole = {
     ws: null,
     init: function () {
         var url = 'wss://spirodon.games/gamesocket/websocket';
-        // url += '?';
-        // url += 'channel=spirodonfl&';
-        // url += 'id=lemnean_sucks_deez_nutz&';
-        // url += 'login=spirodonfl&';
-        // url += 'name=spirodonf';
 
         if (this.ws === null) {
             this.ws = new WebSocket(url);
