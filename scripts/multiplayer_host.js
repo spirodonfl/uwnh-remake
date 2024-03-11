@@ -158,6 +158,9 @@ export class MultiplayerHost extends HTMLElement {
             if (params.host === 'true') {
                 this.shadowRoot.getElementById('host-controls').style.display = 'block';
                 this.shadowRoot.getElementById('leaderboard').classList.remove('hidden');
+                // TODO: Add a function in the component (draggable) to force hidden
+                document.querySelector('game-component').shadowRoot.getElementById('main_menu').removeAttribute('visible');
+                RyansBackendMainHole.getLeaderboard();
             }
             this.broadcastGameState();
             this.updatePlayerList();
