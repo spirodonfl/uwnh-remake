@@ -3,7 +3,7 @@ import { globals, possibleKrakenImages } from './globals.js';
 import { globalStyles } from "./global-styles.js";
 import { wasm } from './injector_wasm.js';
 import { FRAMES } from './frames.js';
-import { getRandomKey } from './helpers.js';
+import { getRandomKey, reloadPageAfter30Minutes } from './helpers.js';
 import { LocalStreamerbot } from './local-streamerbot.js';
 
 export class MultiplayerHost extends HTMLElement {
@@ -122,6 +122,16 @@ export class MultiplayerHost extends HTMLElement {
 
     connectedCallback() {
         this.render();
+        reloadPageAfter30Minutes(() => {
+            RyansBackendMainHole.ws.send(JSON.stringify({
+                "broadcast": {
+                    "payload": {
+                        "reset": true,
+                    }
+                }
+            }));
+            window.location.reload();
+        });
         // TODO: when twich notifications are setup on elixir server
         // if (window.USER && window.USER.roles.indexOf('broadcaster') !== -1) {
         const params = new Proxy(new URLSearchParams(window.location.search), {

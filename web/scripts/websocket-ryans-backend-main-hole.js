@@ -113,6 +113,7 @@ export const RyansBackendMainHole = {
                                 || roles.indexOf('broadcaster') > -1
                             )
                         ){
+                            // TODO: This is duplicated in the multiplayer-host side. DRY
                             this.ws.send(JSON.stringify({
                                 "broadcast": {
                                     "payload": {

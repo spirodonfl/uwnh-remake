@@ -80,15 +80,34 @@ export function convertToLowercaseWithUnderscores(str) {
     return str.toLowerCase().replace(/ /g, "_");
 }
 
-export function listenForKeys(parent) {
-    document.addEventListener('keydown', (e) => {
-        for (let i = 0; i < globals.INPUTS.length; ++i) {
-            let input = globals.INPUTS[i];
-            if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
-                if (input.context === globals.MODES.indexOf('ALL') || input.context === globals.MODE) {
-                    input.callback(parent);
-                }
-            }
-        }
+export function listenToAllErrors() {
+    window.addEventListener("error", (ErrorEvent) => {
+         let output = document.getElementById("result");
+         
+         // Print the error message
+         output.innerHTML += "Message : " + ErrorEvent.message + "<br>";
+         
+         // Print the url of the file that contains the error
+         output.innerHTML += "Url : " + ErrorEvent.filename + "<br>";
+         
+         // Print the line number from which the error generated
+         output.innerHTML += "Line number : " + ErrorEvent.lineno + "<br>";
+         
+         // Print the column number of the error line
+         output.innerHTML += "Column number : " + ErrorEvent.colno + "<br>";
+         
+         // Print he error object
+         output.innerHTML += "Error Object : " + ErrorEvent.error;
     });
 }
+
+export function reloadPageAfter30Minutes(callback) {
+    // Set the delay to 30 minutes (30 * 60 * 1000 milliseconds)
+    const delay = 30 * 60 * 1000;
+
+    // Schedule the page reload
+    setTimeout(function() {
+        callback();
+    }, delay);
+}
+
