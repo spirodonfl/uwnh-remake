@@ -333,10 +333,13 @@ pub const EmbeddedDataStruct = struct {
 const ComponentHealth = @import("components/health.zig").ComponentHealth;
 const ComponentMovement = @import("components/movement.zig").ComponentMovement;
 const ComponentAttack = @import("components/attack.zig").ComponentAttack;
+// const FsmMixin = @import("components/fsm_mixin.zig").FsmMixin;
 // TODO: Should probably rename these structs, they've become more than just structs
 pub const EntityDataStruct = struct {
+    // usingnamespace FsmMixin(TrafficLightState, TrafficLightEvent);
     messages: std.ArrayListUnmanaged(GameMessage) = .{},
     embedded: EmbeddedDataStruct = undefined,
+    // TODO: Make sure components are released from memory when entity is release from memory
     health: ComponentHealth = undefined,
     movement: ComponentMovement = undefined,
     attack: ComponentAttack = undefined,
@@ -516,9 +519,17 @@ pub fn getEntityById(entity_id: u16) usize {
     return 0;
 }
 
+// TODO: Registry system with UniqueID array, central array of data or
+// references to data (raw stuff), right hand side reference counter 
+// (how many things are referencing this thing). Refer to images if lost
+
 // --- GAME FUNCTIONS ---
 // @wasm
 pub fn processTick() !void {
+    // std.log.info("processTick", .{});
+    // TODO: Update the messaging system so that you have priority levels
+    // highest priority must be done first before the renderer can process the next tick
+    // also bring in the pause function from the javascript side into zig
     for (0..entities_list.len) |i| {
         var entity = entities_list.at(i);
         try entity.processMessages();

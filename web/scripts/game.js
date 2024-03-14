@@ -323,7 +323,10 @@ export class Game extends HTMLElement {
             }
             // TODO: functionize this better than what current changeMode is
             globals.MODE = globals.MODES.indexOf('MULTIPLAYER');
-            globals.EVENTBUS.triggerEvent('mode-change', [{mode: globals.MODES[globals.MODE]}]);
+            globals.EVENTBUS.triggerEvent({
+                event_id: 'mode_change',
+                mode: globals.MODES[globals.MODE]
+            });
         }
         const params = new Proxy(new URLSearchParams(window.location.search), {
             get: (searchParams, prop) => searchParams.get(prop),
@@ -336,7 +339,10 @@ export class Game extends HTMLElement {
             }
             // TODO: functionize this better than what current changeMode is
             globals.MODE = globals.MODES.indexOf('MULTIPLAYER_HOST');
-            globals.EVENTBUS.triggerEvent('mode-change', [{mode: globals.MODES[globals.MODE]}]);
+            globals.EVENTBUS.triggerEvent({
+                event_id: 'mode_change',
+                mode: globals.MODES[globals.MODE]
+            });
         }
 
         var atlas = new Image();
@@ -498,7 +504,7 @@ export class Game extends HTMLElement {
                 }
             }
         }
-        globals.EVENTBUS.triggerEvent('game-rendered', []);
+        globals.EVENTBUS.triggerEvent({event_id: 'game_rendered'});
     }
 
     watchResize() {
@@ -517,7 +523,7 @@ export class Game extends HTMLElement {
             // NOTE: If you move this into "sizeView" function,
             // it borks the rendering order and causes a panic/out
             // of bounds error in WASM/ZIG
-            globals.EVENTBUS.triggerEvent('viewport-size',{
+            globals.EVENTBUS.triggerNamedEvent('viewport-size', {
                 width: this.width,
                 height: this.height,
                 x_padding: this.x_padding,
@@ -552,7 +558,10 @@ export class Game extends HTMLElement {
         }
         this.shadowRoot.getElementById('mode').innerText = globals.MODES[globals.MODE];
 
-        globals.EVENTBUS.triggerEvent('mode-change', [{mode: globals.MODES[globals.MODE]}]);
+        globals.EVENTBUS.triggerEvent({
+            event_id: 'mode_change',
+            mode: globals.MODES[globals.MODE]
+        });
     }
 
     moveCameraUp() {

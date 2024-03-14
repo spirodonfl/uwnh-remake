@@ -183,27 +183,29 @@ export class Multiplayer extends HTMLElement {
 
     connectedCallback() {
         this.render();
-        globals.EVENTBUS.addEventListener('viewport-size', (e) => {
-            this.updatePlayerList();
-        });
-        globals.EVENTBUS.addEventListener('game-rendered', (e) => {
-            this.updatePlayerList();
-            if (this.kraken_enabled === false) {
-                this.disableKraken();
-            } else if (this.kraken_enabled === true) {
-                this.enableKraken();
-            }
-            if (this.inGame() && this.last_move_direction !== null && this.findOwnEntityElement()) {
-                if (this.last_move_direction === 'left') {
-                    this.findOwnEntityElement().showRangeLeft();
-                } else if (this.last_move_direction === 'right') {
-                    this.findOwnEntityElement().showRangeRight();
-                } else if (this.last_move_direction === 'up') {
-                    this.findOwnEntityElement().showRangeUp();
-                } else if (this.last_move_direction === 'down') {
-                    this.findOwnEntityElement().showRangeDown();
+        globals.EVENTBUS.addEventListener('event', (e) => {
+            if (e.input.event_id === 'game_rendered') {
+                this.updatePlayerList();
+                if (this.kraken_enabled === false) {
+                    this.disableKraken();
+                } else if (this.kraken_enabled === true) {
+                    this.enableKraken();
+                }
+                if (this.inGame() && this.last_move_direction !== null && this.findOwnEntityElement()) {
+                    if (this.last_move_direction === 'left') {
+                        this.findOwnEntityElement().showRangeLeft();
+                    } else if (this.last_move_direction === 'right') {
+                        this.findOwnEntityElement().showRangeRight();
+                    } else if (this.last_move_direction === 'up') {
+                        this.findOwnEntityElement().showRangeUp();
+                    } else if (this.last_move_direction === 'down') {
+                        this.findOwnEntityElement().showRangeDown();
+                    }
                 }
             }
+        });
+        globals.EVENTBUS.addEventListener('viewport-size', (e) => {
+            this.updatePlayerList();
         });
         globals.EVENTBUS.addEventListener('opened-ryans-backend-secondary-hole', (e) => {
             console.log('a', e);

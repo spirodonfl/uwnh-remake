@@ -40,6 +40,7 @@ pub const ComponentAttack = struct {
                         }
                     } else if (self.parent.direction == 2) {
                         var left = self.parent.position[0];
+                        // TODO: Found an error where you reach this line and it becomes unreachable somehow
                         while (left > 0 and left > self.parent.position[0] - self.current_range) {
                             left -= 1;
                             if (target_entity.position[0] == left and target_entity.position[1] == self.parent.position[1]) {

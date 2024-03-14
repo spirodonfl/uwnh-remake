@@ -2,10 +2,17 @@ import { globals } from './globals.js';
 import { Inputs } from './inputs.js';
 
 const inputMatch = function (input, event) {
-    let handled = event.code === input.code && event.shiftKey === input.shiftKey && event.ctrlKey === input.ctrlKey;
+    let handled = event.code === input.code
+        && event.shiftKey === input.shiftKey
+        && event.ctrlKey === input.ctrlKey;
     if (handled) {
-        let payload = {input, event, composed_path: event.composedPath()};
-        globals.EVENTBUS.triggerEvent('input', payload);
+        let payload = {
+            input, event,
+            composed_path: event.composedPath(),
+            type: 'keyboard'
+        };
+        globals.EVENTBUS.triggerNamedEvent('input', payload);
+        globals.EVENTBUS.triggerEvent(payload);
     }
     return handled;
 }

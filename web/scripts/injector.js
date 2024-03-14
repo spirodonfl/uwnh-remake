@@ -17,6 +17,26 @@
 // Update UI/UX for multiplayers so its nicer
 // Bar across the top on non-production mode as an app menu sorta
 // !!BUG!!: pressing spaces makes you go down (multiplyer)
+//
+// Add more kraken icons
+// - next.js
+// - react
+// - ruby
+// - vim
+// - jetbrains
+// - brainf*ck as an epic
+// - c
+// - c++
+// - rust
+// - crablang
+// - elixir
+// - haskell
+// - cobol
+// - assembly/wasm
+// - cobol-on-wheelchair
+// - fortran
+// - matlab
+// GLEAM AS A TREASURE ITEM
 
 import { Test } from './test.js';
 import { ComponentCheatSheet } from './webcomponents/cheatsheet.js';

@@ -45,7 +45,9 @@ export const LocalStreamerbot = {
 
         if (wsdata.event && wsdata.event.source === 'Twitch') {
             if (wsdata.data.message && wsdata.data.message.displayName) {
-                wsdata.data.message.displayName = wsdata.data.message.displayName.toLowerCase();
+                wsdata.data.displayName = wsdata.data.message.displayName.toLowerCase();
+            } else {
+                wsdata.data.displayName = wsdata.data.user_login.toLowerCase();
             }
             if (wsdata.event.type === 'RewardRedemption') {
                 if (wsdata.data.reward.title === 'Kraken') {
@@ -73,6 +75,7 @@ export const LocalStreamerbot = {
                     globals.EVENTBUS.triggerEvent('giftbomb-twitch-anonymous', {gifts: wsdata.data.gifts});
                 }
             } else if (wsdata.event.type === 'Follow') {
+                console.log('FOLLOW', wsdata.data);
                 globals.EVENTBUS.triggerEvent('follow-twitch', {user: wsdata.data.displayName});
             } else if (wsdata.event.type === 'Cheer') {
                 globals.EVENTBUS.triggerEvent('cheer-twitch', {user: wsdata.data.displayName, bits: wsdata.data.bits});
