@@ -132,6 +132,18 @@ export class MultiplayerHost extends HTMLElement {
             }));
             window.location.reload();
         });
+        globals.EVENTBUS.addEventListener('event', (e) => {
+            if (e.input.event_id === 'game_rendered') {
+                this.updatePlayerList();
+                if (this.kraken_enabled === false) {
+                    this.disableKraken();
+                } else if (this.kraken_enabled === true) {
+                    this.enableKraken();
+                } 
+                this.broadcastGameState();
+                this.updatePlayerList();
+            }
+        });
         // TODO: when twich notifications are setup on elixir server
         // if (window.USER && window.USER.roles.indexOf('broadcaster') !== -1) {
         const params = new Proxy(new URLSearchParams(window.location.search), {
@@ -158,16 +170,6 @@ export class MultiplayerHost extends HTMLElement {
                 RyansBackendMainHole.getLeaderboard();
                 this.enableKraken();
             }
-        });
-        globals.EVENTBUS.addEventListener('game-rendered', (e) => {
-            this.updatePlayerList();
-            if (this.kraken_enabled === false) {
-                this.disableKraken();
-            } else if (this.kraken_enabled === true) {
-                this.enableKraken();
-            } 
-            this.broadcastGameState();
-            this.updatePlayerList();
         });
         globals.EVENTBUS.addEventListener('plus5health-twitch-redeemed', (e) => {
             console.log('PLUS 5 HEALTH REDEEMED', e);

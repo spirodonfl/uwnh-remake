@@ -33,52 +33,86 @@ export class ComponentEditor extends HTMLElement {
 
     connectedCallback() {
         this.render();
-        globals.EVENTBUS.addEventListener('input', (e) => {
-            console.log('editor: input', e);
+        globals.EVENTBUS.addEventListener('event', (e) => {
+            console.log('editor: event', e);
 
-            if (e.input.input_id === 'toggle_editor') {
+            if (e.input.event_id === 'toggle_editor') {
                 this.shadowRoot.getElementById('editor').toggleVisibility();
             }
-            if (e.input.input_id === 'toggle_atlas') {
+            if (e.input.event_id === 'toggle_atlas') {
                 this.shadowRoot.getElementById('atlas').toggleVisibility();
             }
-            if (e.input.input_id === 'toggle_entity_editor') {
+            if (e.input.event_id === 'toggle_entity_editor') {
                 this.shadowRoot.getElementById('entity-editor').toggleVisibility();
             }
-            if (e.input.input_id === 'change_layer') {
+            if (e.input.event_id === 'change_layer') {
                 this.incrementLayer();
             }
-            if (e.input.input_id === 'add_collision') {
+            if (e.input.event_id === 'add_collision') {
                 this.addCollisionToCurrentWorld();
             }
-            if (e.input.input_id === 'delete_collision') {
+            if (e.input.event_id === 'delete_collision') {
                 this.removeCollisionFromCurrentWorld();
             }
-            if (e.input.input_id === 'apply_data_value_to_layer_coordinate') {
+            if (e.input.event_id === 'apply_data_value_to_layer_coordinate') {
                 this.applyDataValueToLayerCoordinate();
             }
-            if (e.input.input_id === 'apply_data_zero_to_layer_coordinate') {
+            if (e.input.event_id === 'apply_data_zero_to_layer_coordinate') {
                 this.applyDataZeroToLayerCoordinate();
             }
-            if (e.input.input_id === 'extract_data_from_selected_coord') {
+            if (e.input.event_id === 'extract_data_from_selected_coord') {
                 this.extractDataFromSelectedCoord();
             }
-            if (e.input.input_id === 'extract_image_from_data') {
+            if (e.input.event_id === 'extract_image_from_data') {
                 this.extractImageFromData();
             }
-        });
-        globals.EVENTBUS.addEventListener('click', (e) => {
-            console.log('editor: click', e);
-            if (e.input.input_id === 'create_new_entity') {
+            if (e.input.event_id === 'create_new_entity') {
                 this.createNewEntity();
             }
-        });
-        globals.EVENTBUS.addEventListener('mode-change', (e) => {
-            if (globals.MODES.indexOf('EDITOR') === globals.MODE) {
-                this.showLayerValues();
-            } else {
-                this.hideLayerValues();
+            if (e.input.event_id === 'add_row_to_world') {
+                this.addRowToWorld();
             }
+            if (e.input.event_id === 'remove_row_from_world') {
+                this.removeRowFromWorld();
+            }
+            if (e.input.event_id === 'add_column_to_world') {
+                this.addColumnToWorld();
+            }
+            if (e.input.event_id === 'remove_column_from_world') {
+                this.removeColumnFromWorld();
+            }
+            if (e.input.event_id === 'extract_current_world_data') {
+                this.extractCurrentWorldData();
+            }
+            if (e.input.event_id === 'extract_current_world_layer_data') {
+                this.extractCurrentWorldLayerData();
+            }
+            if (e.input.event_id === 'apply_data_value_to_layer_coordinate') {
+                // TODO: The name of this input is a bit ambiguous. Make it clearer if possible
+                this.applyDataValueToLayerCoordinate();
+            }
+            if (e.input.event_id === 'extract_image_data') {
+                // TODO: The name of this input is a bit ambiguous. Which image data? From where?
+                this.extractImageData();
+            }
+            if (e.input.event_id === 'add_frame') {
+                // TODO: Again, add frame to WHAT?
+                this.addFrame();
+            }
+            if (e.input.event_id === 'mode_change') {
+                // Note: e.mode is also available
+                if (globals.MODES.indexOf('EDITOR') === globals.MODE) {
+                    this.showLayerValues();
+                } else {
+                    this.hideLayerValues();
+                }
+            }
+            if (e.input.event_id === 'viewport_size') {}
+            if (e.input.event_id === 'extract_current_entity') {}
+            if (e.input.event_id === 'editing_entity_id') {}
+            if (e.input.event_id === 'editor_game_click') {}
+            if (e.input.event_id === 'apply_image_data_from_atlas_to_id') {}
+            if (e.input.event_id === 'atlas_image_click') {}
         });
         globals.EVENTBUS.addEventListener('viewport-size', (e) => {
             this.onViewportSize(e);
@@ -119,6 +153,7 @@ export class ComponentEditor extends HTMLElement {
             }
         });
         this.shadowRoot.getElementById('entity_id').addEventListener('change', (e) => {
+            // TODO: This event is editing_entity_id
             // console.log('entity_id chosen', e);
             // console.log('chosen value', e.target.value);
             let start = wasm.editor_getEntityMemoryLocation(e.target.value);
@@ -133,6 +168,7 @@ export class ComponentEditor extends HTMLElement {
             this.shadowRoot.getElementById('wasm_entity_attack_component_on_off').value = memory[6];
         });
         this.shadowRoot.getElementById('clickable_view').addEventListener('click', (e) => {
+            // TODO: This event will become editor_game_click
             console.log('clickable_view_click', e);
             let game_component = document.querySelector('game-component');
             let x = e.clientX - game_component.x_padding;
@@ -186,34 +222,6 @@ export class ComponentEditor extends HTMLElement {
             // TODO: Send an event instead
             let game_component = document.querySelector('game-component');
             game_component.renderGame();
-        });
-        this.shadowRoot.getElementById('apply_data_value_to_layer_coordinate_input').addEventListener('click', (e) => {
-            this.applyDataValueToLayerCoordinate();
-        });
-
-        this.shadowRoot.getElementById('add_row_input').addEventListener('click', (e) => {
-            this.addRowToWorld();
-        });
-        this.shadowRoot.getElementById('remove_row_input').addEventListener('click', (e) => {
-            this.removeRowFromWorld();
-        });
-        this.shadowRoot.getElementById('add_column_input').addEventListener('click', (e) => {
-            this.addColumnToWorld();
-        });
-        this.shadowRoot.getElementById('remove_column_input').addEventListener('click', (e) => {
-            this.removeColumnFromWorld();
-        });
-        this.shadowRoot.getElementById('extract_current_world_data_input').addEventListener('click', (e) => {
-            this.extractCurrentWorldData();
-        });
-        this.shadowRoot.getElementById('extract_current_world_layer_data_input').addEventListener('click', (e) => {
-            this.extractCurrentWorldLayerData();
-        });
-        this.shadowRoot.getElementById('extract_image_data').addEventListener('click', (e) => {
-            this.extractImageData();
-        });
-        this.shadowRoot.getElementById('add_frame').addEventListener('click', (e) => {
-            this.addFrame();
         });
     }
 
@@ -794,8 +802,8 @@ export class ComponentEditor extends HTMLElement {
                     <div>Entity Health Component Default Value:<input type="text" id="wasm_entity_health_component_default_value" /></div>
                     <div>Entity Movement Component: <input type="text" id="wasm_entity_movement_component_on_off" /></div>
                     <div>Entity Attack Component: <input type="text" id="wasm_entity_attack_component_on_off" /></div>
-                    <div><input type="button" input-id="extract_current_entity" id="extract_current_entity" value="Extract Current Entity" /></div>
-                    <div><input type="button" input-id="create_new_entity" id="create_new_entity" value="Create New Entity" /></div>
+                    <div><input type="button" event-id="extract_current_entity" id="extract_current_entity" value="Extract Current Entity" /></div>
+                    <div><input type="button" event-id="create_new_entity" id="create_new_entity" value="Create New Entity" /></div>
                 </div>
             </x-draggable>
             <x-draggable name="editor" id="editor" visible="false">
@@ -809,7 +817,7 @@ export class ComponentEditor extends HTMLElement {
                         <div class="input_title">Current Data Value</div><input type="text" id="current_data_id" value="0" />
                     </div>
                     <div id="apply_data_value_to_layer_coordinate">
-                        <input type="button" id="apply_data_value_to_layer_coordinate_input" value="Apply Data Value to Selected World & Layer Coordinate" />
+                        <input type="button" event-id="apply_data_value_to_layer_coordinate" id="apply_data_value_to_layer_coordinate_input" value="Apply Data Value to Selected World & Layer Coordinate" />
                     </div>
                     <div id="current_selected_atlas"><div id="current_selected_atlas_img" src=""></div></div>
                     <div id="apply_image_data_wrapper">
@@ -818,25 +826,25 @@ export class ComponentEditor extends HTMLElement {
                         <div id="frames_list_wrapper">
                             <div>Frames List</div>
                             <div id="frames_list"></div>
-                            <input type="button" id="add_frame" value="Add Frame" />
+                            <input type="button" event-id="add_frame" id="add_frame" value="Add Frame" />
                         </div>
-                        <input type="button" id="extract_image_data" value="Extract Image to Data" />
+                        <input type="button" event-id="extract_image_data" id="extract_image_data" value="Extract Image to Data" />
                     </div>
                     <div id="add_remove_row">
-                        <input type="button" id="add_row_input" value="Add Row to World" />
-                        <input type="button" id="remove_row_input" value="Remove Row from World" />
+                        <input type="button" event-id="add_row_to_world" id="add_row_input" value="Add Row to World" />
+                        <input type="button" event-id="remove_row_from_world" id="remove_row_input" value="Remove Row from World" />
                     </div>
                     <div id="add_remove_column">
-                        <input type="button" id="add_column_input" value="Add Column to World" />
-                        <input type="button" id="remove_column_input" value="Remove Column from World" />
+                        <input type="button" event-id="add_column_to_world" id="add_column_input" value="Add Column to World" />
+                        <input type="button" event-id="remove_column_from_world" id="remove_column_input" value="Remove Column from World" />
                     </div>
                     <div id="extract_current_world_data">
                         <div id="current_world_extract_filename">world_0_data.bin</div>
-                        <input type="button" id="extract_current_world_data_input" value="Extract Current World Data" />
+                        <input type="button" event-id="extract_current_world_data" id="extract_current_world_data_input" value="Extract Current World Data" />
                     </div>
                     <div id="extract_current_world_layer_data">
                         <div id="current_world_layer_extract_filename">world_0_layer_0.bin</div>
-                        <input type="button" id="extract_current_world_layer_data_input" value="Extract Current World Layer Data" />
+                        <input type="button" event-id="extract_current_world_layer_data" id="extract_current_world_layer_data_input" value="Extract Current World Layer Data" />
                     </div>
                     <div id="world_layers_list_wrapper">
                         <div>World Layers</div>

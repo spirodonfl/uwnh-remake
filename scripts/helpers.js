@@ -111,3 +111,7 @@ export function reloadPageAfter30Minutes(callback) {
     }, delay);
 }
 
+
+export const isObject = obj => {
+    return Object.prototype.toString.call(obj) === '[object Object]';
+}
