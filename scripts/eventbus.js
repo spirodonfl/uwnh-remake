@@ -31,6 +31,8 @@ EVENTBUS.prototype.triggerEvent = function (...args) {
         if (!args[0].input.composed_path) {
             args[0].input.composed_path = null;
         }
+    } else {
+        args[0] = {input: {event_id: args[0]}};
     }
     this.registered[name]?.forEach(fnc => fnc.apply(this, args));
 }
