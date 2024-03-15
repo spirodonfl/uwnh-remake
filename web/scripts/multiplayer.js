@@ -184,7 +184,7 @@ export class Multiplayer extends HTMLElement {
     connectedCallback() {
         this.render();
         globals.EVENTBUS.addEventListener('event', (e) => {
-            if (e.event_id === 'game_rendered') {
+            if (e.input.event_id === 'game_rendered') {
                 this.updatePlayerList();
                 if (this.kraken_enabled === false) {
                     this.disableKraken();
