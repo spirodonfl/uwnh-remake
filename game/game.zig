@@ -35,9 +35,12 @@ pub const std_options = struct {
 };
 
 fn log(comptime format: []const u8, args: anytype) void {
-    const writer = std.io.Writer(void, error{}, console_log_write_zig){ .context = {} };
-    writer.print(format, args) catch @panic("console_log_write failed");
-    console_log_flush();
+    _ = format;
+    _ = args;
+    // std.debug.print(std_options.log_level, .default, format, args);
+    // const writer = std.io.Writer(void, error{}, console_log_write_zig){ .context = {} };
+    // writer.print(format, args) catch @panic("console_log_write failed");
+    // console_log_flush();
 }
 
 pub fn panic(
@@ -74,11 +77,11 @@ pub fn uncaughtError(err: anytype) noreturn {
 
 fn console_log_write_zig(context: void, bytes: []const u8) !usize {
     _ = context;
-    console_log_write(bytes.ptr, bytes.len);
+    // console_log_write(bytes.ptr, bytes.len);
     return bytes.len;
 }
-extern fn console_log_write(ptr: [*]const u8, len: usize) void;
-extern fn console_log_flush() void;
+// extern fn console_log_write(ptr: [*]const u8, len: usize) void;
+// extern fn console_log_flush() void;
 
 // -----------------------------------------------------------------------------------------
 pub const GameMessage = struct {
@@ -848,3 +851,9 @@ pub fn translateViewportYToWorldY(y: u16) u16 {
     }
     @panic("Invalid viewport y coordinate");
 }
+
+// @wasm
+pub fn sum(a: u16, b: u16) u16 {
+    return a + b;
+}
+// extern fn sum(a: u16, b: u16) u16;
