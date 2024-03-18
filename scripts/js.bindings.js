@@ -57,6 +57,7 @@ const _WASM_IMPORTS = {
     game_getWorldDataAtViewportCoordinate(layer_index, x, y) {},
     game_translateViewportXToWorldX(x) {},
     game_translateViewportYToWorldY(y) {},
+    game_sum(a, b) {},
     viewport_setSize(width, height) {},
     viewport_setCamera(x, y) {},
     viewport_getCameraX() {},

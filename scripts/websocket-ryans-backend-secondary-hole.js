@@ -62,7 +62,7 @@ export const RyansBackendSecondaryHole = {
                 if (data.reset) {
                     window.location.reload();
                 }
-                globals.EVENTBUS.triggerEvent(
+                globals.EVENTBUS.triggerNamedEvent(
                     'message-from-ryans-backend-secondary-hole',
                     {data:data}
                 );
