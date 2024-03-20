@@ -311,6 +311,11 @@ export class Game extends HTMLElement {
 
     connectedCallback() {
         this.render();
+
+        globals.EVENTBUS.addEventListener('event', () => {
+            console.log('GAME EVENT', event);
+        });
+
         globals.INPUTS = globals.INPUTS.concat(this.inputs);
         this.shadowRoot.getElementById('mode').innerText = globals.MODES[globals.MODE];
 
