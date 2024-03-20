@@ -5,6 +5,7 @@ const inputMatch = function (input, event) {
     let handled = event.code === input.code
         && event.shiftKey === input.shiftKey
         && event.ctrlKey === input.ctrlKey;
+    console.log('keyboard inputMatch', input, event, handled);
     if (handled) {
         let payload = {
             input, event,
