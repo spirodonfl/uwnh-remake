@@ -11,7 +11,7 @@ const inputMatch = function (input, event) {
             input,
             event,
             composed_path: event.composedPath(),
-            type: 'keyboard'
+            type: 'keyboard',
             event_id: 'keyboard',
         };
         globals.EVENTBUS.triggerNamedEvent('input', payload);
