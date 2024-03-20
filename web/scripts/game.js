@@ -317,7 +317,7 @@ export class Game extends HTMLElement {
             console.log('GAME EVENT', e);
             for (var i = 0; i < Inputs.ALL.length; ++i) {
                 let input = Inputs.ALL[i];
-                if (e.input.input.event_id === input.event_id) {
+                if (e.input && e.input.input && e.input.input.event_id === input.event_id) {
                     input.callback();
                 }
             }
