@@ -8,9 +8,11 @@ const inputMatch = function (input, event) {
     console.log('keyboard inputMatch', input, event, handled);
     if (handled) {
         let payload = {
-            input, event,
+            input,
+            event,
             composed_path: event.composedPath(),
             type: 'keyboard'
+            event_id: 'keyboard',
         };
         globals.EVENTBUS.triggerNamedEvent('input', payload);
         globals.EVENTBUS.triggerEvent(payload);
