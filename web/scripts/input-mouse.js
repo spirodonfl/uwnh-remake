@@ -27,7 +27,13 @@ document.addEventListener('click', function (event) {
             let event_id = target.getAttribute('event-id');
             let input = inputMatch(event_id);
             if (input) {
-                let payload = {input, event, composed_path, type: 'mouse'};
+                let payload = {
+                    input,
+                    event,
+                    composed_path,
+                    type: 'mouse',
+                    event_id: input.event_id,
+                };
                 globals.EVENTBUS.triggerNamedEvent('input', payload);
                 globals.EVENTBUS.triggerEvent(payload);
                 handled = true;
@@ -44,8 +50,15 @@ document.addEventListener('click', function (event) {
             }
         }
         let input = {event_id};
-        globals.EVENTBUS.triggerNamedEvent('click', {input, event, composed_path, type: 'mouse'});
-        globals.EVENTBUS.triggerEvent({input, event, composed_path, type: 'mouse'});
+        let payload = {
+            input,
+            event,
+            composed_path,
+            type: 'mouse',
+            event_id: input.event_id
+        }
+        globals.EVENTBUS.triggerNamedEvent('click', payload);
+        globals.EVENTBUS.triggerEvent(payload);
     }
 });
 
