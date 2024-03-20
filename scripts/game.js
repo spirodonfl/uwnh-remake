@@ -312,8 +312,8 @@ export class Game extends HTMLElement {
     connectedCallback() {
         this.render();
 
-        globals.EVENTBUS.addEventListener('event', () => {
-            console.log('GAME EVENT', event);
+        globals.EVENTBUS.addEventListener('event', (e) => {
+            console.log('GAME EVENT', e);
         });
 
         globals.INPUTS = globals.INPUTS.concat(this.inputs);
