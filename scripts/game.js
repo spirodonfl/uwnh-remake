@@ -362,6 +362,7 @@ export class Game extends HTMLElement {
 
         // TODO: A better way to not repeat our input functionality here
         document.addEventListener('keydown', (e) => {
+            console.log('GAME JS KEYDOWN', e);
             for (var i = 0; i < this.inputs.length; ++i) {
                 let input = this.inputs[i];
                 if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
