@@ -12,6 +12,7 @@ export class ComponentCheatSheet extends HTMLElement {
         this.render();
         this.style.display = 'none';
         globals.EVENTBUS.addEventListener('input', (e) => {
+            console.log('cheatsheet input', e);
             if (e.input.id === 'toggle-cheatsheet') {
                 this.toggleDisplay();
             }
