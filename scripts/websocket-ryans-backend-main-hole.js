@@ -60,9 +60,9 @@ export const RyansBackendMainHole = {
             if (data.errors && data.errors.length > 0) {
                 console.error('Ryans backend main hole basically shat the bed', data.errors);
             } else if (data.data.filters) {
-                globals.EVENTBUS.triggerEvent('filters-approved', []);
+                globals.EVENTBUS.triggerNamedEvent('filters-approved', []);
             } else if (data.data.leaderboard) {
-                globals.EVENTBUS.triggerEvent('leaderboard-update', {data: data.data.leaderboard});
+                globals.EVENTBUS.triggerNamedEvent('leaderboard-update', {data: data.data.leaderboard});
             } else if (data.type) {
                 console.log('KRAKEN REDEEMED FROM RYANS GAPING BACKEND MAIN HOLE', data);
                 if (data.type === 'kraken_redeemed') {
