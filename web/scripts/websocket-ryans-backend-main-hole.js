@@ -79,19 +79,19 @@ export const RyansBackendMainHole = {
 
                     if (cmd.length > 0) {
                         if (cmd === 'spawn') {
-                            globals.EVENTBUS.triggerEvent('user-spawns', {user, roles});
+                            globals.EVENTBUS.triggerNamedEvent('user-spawns', {user, roles});
                         } else if (cmd === 'despawn') {
-                            globals.EVENTBUS.triggerEvent('user-despawns', {user, roles});
+                            globals.EVENTBUS.triggerNamedEvent('user-despawns', {user, roles});
                         } else if (cmd === 'left') {
-                            globals.EVENTBUS.triggerEvent('user-moves-left', {user, roles});
+                            globals.EVENTBUS.triggerNamedEvent('user-moves-left', {user, roles});
                         } else if (cmd === 'right') {
-                            globals.EVENTBUS.triggerEvent('user-moves-right', {user, roles});
+                            globals.EVENTBUS.triggerNamedEvent('user-moves-right', {user, roles});
                         } else if (cmd === 'up') {
-                            globals.EVENTBUS.triggerEvent('user-moves-up', {user, roles});
+                            globals.EVENTBUS.triggerNamedEvent('user-moves-up', {user, roles});
                         } else if (cmd === 'down') {
-                            globals.EVENTBUS.triggerEvent('user-moves-down', {user, roles});
+                            globals.EVENTBUS.triggerNamedEvent('user-moves-down', {user, roles});
                         } else if (cmd === 'attack') {
-                            globals.EVENTBUS.triggerEvent('user-attacks', {user, roles});
+                            globals.EVENTBUS.triggerNamedEvent('user-attacks', {user, roles});
                         } else if (
                             cmd === 'enable_kraken'
                             && (
@@ -100,7 +100,7 @@ export const RyansBackendMainHole = {
                                 || roles.indexOf('broadcaster') > -1
                             )
                         ){
-                            globals.EVENTBUS.triggerEvent('enable-kraken', {user, roles});
+                            globals.EVENTBUS.triggerNamedEvent('enable-kraken', {user, roles});
                         } else if (
                             cmd === 'disable_kraken'
                             && (
@@ -109,7 +109,7 @@ export const RyansBackendMainHole = {
                                 || roles.indexOf('broadcaster') > -1
                             )
                         ){
-                            globals.EVENTBUS.triggerEvent('disable-kraken', {user, roles});
+                            globals.EVENTBUS.triggerNamedEvent('disable-kraken', {user, roles});
                         } else if (
                             cmd === 'reset'
                             && (
