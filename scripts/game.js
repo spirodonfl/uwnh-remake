@@ -315,12 +315,6 @@ export class Game extends HTMLElement {
 
         globals.EVENTBUS.addEventListener('event', (e) => {
             console.log('GAME EVENT', e);
-            for (var i = 0; i < Inputs.ALL.length; ++i) {
-                let input = Inputs.ALL[i];
-                if (e.input && e.input.input && e.input.input.event_id === input.event_id) {
-                    input.callback();
-                }
-            }
         });
 
         globals.INPUTS = globals.INPUTS.concat(this.inputs);
