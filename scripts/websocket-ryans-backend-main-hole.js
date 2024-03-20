@@ -63,6 +63,12 @@ export const RyansBackendMainHole = {
                 globals.EVENTBUS.triggerEvent('filters-approved', []);
             } else if (data.data.leaderboard) {
                 globals.EVENTBUS.triggerEvent('leaderboard-update', {data: data.data.leaderboard});
+            } else if (data.type) {
+                console.log('KRAKEN REDEEMED FROM RYANS GAPING BACKEND MAIN HOLE', data);
+                if (data.type === 'kraken_redeemed') {
+                    // data.event -> event.reward.title
+                    // broadcast eventbus enable kraken OR enable kraken with a special health value
+                }
             } else if (data.data.commands) {
                 for (let i = 0; i < data.data.commands.length; ++i) {
                     console.log('RYANCOMMAND', data.data.commands[i]);
