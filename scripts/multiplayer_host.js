@@ -142,6 +142,55 @@ export class MultiplayerHost extends HTMLElement {
                 } 
                 this.broadcastGameState();
                 this.updatePlayerList();
+            } else if (e.input.event_id === 'user-spawns') {
+            console.log('USER IS SPAWNING', e);
+            let user_spawned = false;
+            let user_exists = false;
+            for (let i = 0; i < this.ships_to_players.length; ++i) {
+                if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.user) {
+                    user_exists = true;
+                    break;
+                }
+            }
+            if (!user_exists) {
+                let s_to_p_id = 0;
+                // TODO: SPIRO CLEAN THIS UP YOU HOSER
+                // ALSO SEND CHAT MAPLE SYRUP TO APOLOGIZE, EH?
+                let entities = wasm.game_getEntitiesLength();
+                for (let i = 0; i < entities; ++i) {
+                    let entity_id = wasm.game_getEntityIdByIndex(i);
+                    let entity_type = wasm.game_getEntityTypeByIndex(i);
+                    if (entity_type === 1 || entity_type === 3) {
+                        let taken = false;
+                        for (let s_to_p = 0; s_to_p < this.ships_to_players.length; ++s_to_p) {
+                            if (this.ships_to_players[s_to_p] !== null) {
+                                if (this.ships_to_players[s_to_p].wasm_entity_id === entity_id) {
+                                    taken = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!taken) {
+                            for (let s_to_p = 0; s_to_p < this.ships_to_players.length; ++s_to_p) {
+                                if (this.ships_to_players[s_to_p] === null) {
+                                    user_spawned = true;
+                                    s_to_p_id = s_to_p;
+                                    this.ships_to_players[s_to_p] = {username: e.user, role: e.role, wasm_entity_id: entity_id};
+                                    // TODO: Pull from default value within WASM instead of magic number-ing
+                                    wasm.game_entitySetHealth(entity_id, 10);
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                this.updatePlayerList();
+                console.log(this.ships_to_players);
+            }
+            this.broadcastGameState();
+
             }
         });
         // TODO: when twich notifications are setup on elixir server
