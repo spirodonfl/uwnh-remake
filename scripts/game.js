@@ -365,6 +365,7 @@ export class Game extends HTMLElement {
             console.log('GAME JS KEYDOWN', e);
             for (var i = 0; i < this.inputs.length; ++i) {
                 let input = this.inputs[i];
+                console.log(input, globals);
                 if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
                     if (input.context === globals.MODES.indexOf('ALL') || input.context === globals.MODE) {
                         input.callback();
