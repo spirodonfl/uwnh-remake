@@ -9,6 +9,7 @@ import { MultiplayerHost } from './multiplayer_host.js';
 import { globalStyles } from "./global-styles.js";
 import { FRAMES } from './frames.js';
 import { getRandomKey } from './helpers.js';
+import { Inputs } from './inputs.js';
 
 let current_time_stamp = new Date().getTime();
 let previous_time_stamp = 0;
@@ -314,6 +315,12 @@ export class Game extends HTMLElement {
 
         globals.EVENTBUS.addEventListener('event', (e) => {
             console.log('GAME EVENT', e);
+            for (var i = 0; i < Inputs.ALL.length; ++i) {
+                let input = Inputs.ALL[i];
+                if (e.event_id === input.event_id) {
+                    input.callback();
+                }
+            }
         });
 
         globals.INPUTS = globals.INPUTS.concat(this.inputs);
