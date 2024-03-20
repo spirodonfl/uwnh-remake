@@ -133,7 +133,6 @@ export class MultiplayerHost extends HTMLElement {
             window.location.reload();
         });
         globals.EVENTBUS.addEventListener('event', (e) => {
-            console.log('EVENTBUS', e);
             if (e.input.event_id === 'game_rendered') {
                 this.updatePlayerList();
                 if (this.kraken_enabled === false) {
@@ -144,53 +143,7 @@ export class MultiplayerHost extends HTMLElement {
                 this.broadcastGameState();
                 this.updatePlayerList();
             } else if (e.input.event_id === 'user-spawns') {
-                console.log('USER IS SPAWNING', e);
-                let user_spawned = false;
-                let user_exists = false;
-                for (let i = 0; i < this.ships_to_players.length; ++i) {
-                    if (this.ships_to_players[i] !== null && this.ships_to_players[i].username === e.user) {
-                        user_exists = true;
-                        break;
-                    }
-                }
-                if (!user_exists) {
-                    let s_to_p_id = 0;
-                    // TODO: SPIRO CLEAN THIS UP YOU HOSER
-                    // ALSO SEND CHAT MAPLE SYRUP TO APOLOGIZE, EH?
-                    let entities = wasm.game_getEntitiesLength();
-                    for (let i = 0; i < entities; ++i) {
-                        let entity_id = wasm.game_getEntityIdByIndex(i);
-                        let entity_type = wasm.game_getEntityTypeByIndex(i);
-                        if (entity_type === 1 || entity_type === 3) {
-                            let taken = false;
-                            for (let s_to_p = 0; s_to_p < this.ships_to_players.length; ++s_to_p) {
-                                if (this.ships_to_players[s_to_p] !== null) {
-                                    if (this.ships_to_players[s_to_p].wasm_entity_id === entity_id) {
-                                        taken = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (!taken) {
-                                for (let s_to_p = 0; s_to_p < this.ships_to_players.length; ++s_to_p) {
-                                    if (this.ships_to_players[s_to_p] === null) {
-                                        user_spawned = true;
-                                        s_to_p_id = s_to_p;
-                                        this.ships_to_players[s_to_p] = {username: e.user, role: e.role, wasm_entity_id: entity_id};
-                                        // TODO: Pull from default value within WASM instead of magic number-ing
-                                        wasm.game_entitySetHealth(entity_id, 10);
-                                        break;
-                                    }
-                                }
-                                break;
-                            }
-                        }
-                    }
-
-                    this.updatePlayerList();
-                    console.log(this.ships_to_players);
-                }
-                this.broadcastGameState();
+                console.log('TODO: this');
             }
         });
         // TODO: when twich notifications are setup on elixir server
@@ -365,31 +318,31 @@ export class MultiplayerHost extends HTMLElement {
             let role = e.role;
             let message = e.message;
             if (message === 'spawn') {
-                globals.EVENTBUS.triggerEvent('user-spawns', {user: user, role: role});
+                globals.EVENTBUS.triggerNamedEvent('user-spawns', {user: user, role: role});
             }
             if (message === 'despawn') {
-                globals.EVENTBUS.triggerEvent('user-despawns', {user: user});
+                globals.EVENTBUS.triggerNamedEvent('user-despawns', {user: user});
             }
             if (message === 'left') {
-                globals.EVENTBUS.triggerEvent('user-moves-left', {user: user});
+                globals.EVENTBUS.triggerNamedEvent('user-moves-left', {user: user});
             }
             if (message === 'right') {
-                globals.EVENTBUS.triggerEvent('user-moves-right', {user: user});
+                globals.EVENTBUS.triggerNamedEvent('user-moves-right', {user: user});
             }
             if (message === 'up') {
-                globals.EVENTBUS.triggerEvent('user-moves-up', {user: user});
+                globals.EVENTBUS.triggerNamedEvent('user-moves-up', {user: user});
             }
             if (message === 'down') {
-                globals.EVENTBUS.triggerEvent('user-moves-down', {user: user});
+                globals.EVENTBUS.triggerNamedEvent('user-moves-down', {user: user});
             }
             if (message === 'attack') {
-                globals.EVENTBUS.triggerEvent('user-attacks', {user: user});
+                globals.EVENTBUS.triggerNamedEvent('user-attacks', {user: user});
             }
             if (
                 message === 'kraken'
                 && role > 1
             ) {
-                globals.EVENTBUS.triggerEvent('kraken-twitch-redeemed', {user: user});
+                globals.EVENTBUS.triggerNamedEvent('kraken-twitch-redeemed', {user: user});
             }
         });
         globals.EVENTBUS.addEventListener('user-spawns', (e) => {

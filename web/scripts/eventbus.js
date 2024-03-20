@@ -13,6 +13,10 @@ EVENTBUS.prototype.addEventListener = function (name, callback) {
 // different than input.event_id name, so you can delineate if needed
 EVENTBUS.prototype.triggerNamedEvent = function (name, ...args) {
     // console.log('eventbus args:', args);
+    if (!this.registered[name]) {
+        console.error('No registered event for:', name);
+        return;
+    }
     this.registered[name]?.forEach(fnc => fnc.apply(this, args));
 }
 EVENTBUS.prototype.triggerEvent = function (...args) {
