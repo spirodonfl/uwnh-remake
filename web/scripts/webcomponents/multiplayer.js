@@ -11,13 +11,7 @@ export class ComponentMultiplayer extends HTMLElement {
         super();
         this.attachShadow({mode: 'open'});
 
-        // TODO: Share in a common module/webcomponent
-        this.ships_to_players = [null, null, null, null, null];
-        this.ships_to_players_colors = ['#e28383', '#9e9ef9', '#79df79', 'yellow', '#df70df'];
-        this.kraken_enabled = false;
-        this.kraken_image = null;
-        this.user = null;
-        this.last_move_direction = null;
+        Multiplayer.init();
     }
 
     connectedCallback() {
@@ -27,14 +21,14 @@ export class ComponentMultiplayer extends HTMLElement {
             switch(e.input.event_id) {
                 case 'game_rendered':
                     this.updatePlayerList();
-                    if (this.kraken_enabled === false) {
+                    if (Multiplayer.kraken_enabled === false) {
                         this.disableKraken();
-                    } else if (this.kraken_enabled === true) {
+                    } else if (Multiplayer.kraken_enabled === true) {
                         this.enableKraken();
                     }
-                    if (this.inGame() && this.last_move_direction !== null && this.findOwnEntityElement()) {
+                    if (Multiplayer.inGame() && Multiplayer.last_move_direction !== null && this.findOwnEntityElement()) {
                         let entity_element = this.findOwnEntityElement();
-                        switch (this.last_move_direction) {
+                        switch (Multiplayer.last_move_direction) {
                             case 'left':
                                 entity_element.showRangeLeft();
                                 break;
@@ -63,13 +57,13 @@ export class ComponentMultiplayer extends HTMLElement {
                     this.sendRight();
                     break;
                 case 'attack':
-                    this.sendAttack();
+                    Multiplayer.sendAttack();
                     break;
                 case 'spawn':
-                    this.sendSpawn();
+                    Multiplayer.sendSpawn();
                     break;
                 case 'despawn':
-                    this.sendDespawn();
+                    Multiplayer.sendDespawn();
                     break;
                 case 'toggle_leaderboard':
                     this.toggleLeaderboardDisplay();
@@ -128,27 +122,27 @@ export class ComponentMultiplayer extends HTMLElement {
                 console.log('GAME STATE:', e.data.game_state);
                 // TODO: This is terribly hacky
                 for (let g = 0; g < e.data.game_state.ships_to_players.length; ++g) {
-                    if (e.data.game_state.ships_to_players[g] === null && this.ships_to_players[g] !== null) {
-                        let entity_id = this.ships_to_players[g].wasm_entity_id;
+                    if (e.data.game_state.ships_to_players[g] === null && mutiplayer.ships_to_players[g] !== null) {
+                        let entity_id = Multiplayer.ships_to_players[g].wasm_entity_id;
                         wasm.game_entitySetHealth(entity_id, 0);
                         // TODO: Update position maybe?
-                    } else if (e.data.game_state.ships_to_players[g] !== null && this.ships_to_players[g] === null) {
+                    } else if (e.data.game_state.ships_to_players[g] !== null && Multiplayer.ships_to_players[g] === null) {
                         let entity_id = e.data.game_state.ships_to_players[g].wasm_entity_id;
                         wasm.game_entitySetHealth(entity_id, e.data.game_state.health[g]);
                         wasm.game_entitySetPositionX(entity_id, e.data.game_state.positions[g][0]);
                         wasm.game_entitySetPositionY(entity_id, e.data.game_state.positions[g][1]);
                     }
                 }
-                this.ships_to_players = e.data.game_state.ships_to_players;
-                for (let i = 0; i < this.ships_to_players.length; ++i) {
-                    if (this.ships_to_players[i] !== null) {
-                        let entity_id = this.ships_to_players[i].wasm_entity_id;
+                Multiplayer.ships_to_players = e.data.game_state.ships_to_players;
+                for (let i = 0; i < Multiplayer.ships_to_players.length; ++i) {
+                    if (Multiplayer.ships_to_players[i] !== null) {
+                        let entity_id = Multiplayer.ships_to_players[i].wasm_entity_id;
                         wasm.game_entitySetHealth(entity_id, e.data.game_state.health[i]);
                         wasm.game_entitySetPositionX(entity_id, e.data.game_state.positions[i][0]);
                         wasm.game_entitySetPositionY(entity_id, e.data.game_state.positions[i][1]);
                     }
                 }
-                if (this.inGame()) {
+                if (Multiplayer.inGame()) {
                     this.shadowRoot.querySelector('#despawn').classList.remove('hidden');
                     this.shadowRoot.querySelector('#attack').classList.remove('hidden');
                     this.shadowRoot.querySelector('#up').classList.remove('hidden');
@@ -156,14 +150,14 @@ export class ComponentMultiplayer extends HTMLElement {
                     this.shadowRoot.querySelector('#left').classList.remove('hidden');
                     this.shadowRoot.querySelector('#right').classList.remove('hidden');
                 }
-                if (e.data.game_state.kraken_enabled !== this.kraken_enabled) {
-                    this.kraken_enabled = e.data.game_state.kraken_enabled;
+                if (e.data.game_state.kraken_enabled !== Multiplayer.kraken_enabled) {
+                    Multiplayer.kraken_enabled = e.data.game_state.kraken_enabled;
                     if (e.data.game_state.kraken_enabled) {
                         this.enableKraken();
                     } else {
                         this.disableKraken();
                     }
-                    console.log('kraken_enabled', [this.kraken_enabled, e.data.game_state.kraken_enabled]);
+                    console.log('kraken_enabled', [Multiplayer.kraken_enabled, e.data.game_state.kraken_enabled]);
                 }
                 // TODO: STOP USING MAGIC NUMBERS DAMMIT
                 let kraken_entity_id = 7;
@@ -177,22 +171,22 @@ export class ComponentMultiplayer extends HTMLElement {
                     image_data[0][1] = possibleKrakenImages[e.data.game_state.kraken_image].y * 64;
                 }
             }
-            console.log('ships to players', this.ships_to_players);
+            console.log('ships to players', Multiplayer.ships_to_players);
         });
         // TODO: Potentially add client side twitch auth here
         if (window.USER) {
-            this.user = window.USER;
-            this.user.display_name = this.user.display_name.toLowerCase();
+            Multiplayer.user = window.USER;
+            Multiplayer.user.display_name = Multiplayer.user.display_name.toLowerCase();
             // TODO: Fix this. Keeping this for backwards compatibility everywhere else
-            this.user.username = this.user.display_name;
-            RyansBackendSecondaryHole.init(this.user.display_name, this.user.display_name, window.USER.id);
+            Multiplayer.user.username = Multiplayer.user.display_name;
+            RyansBackendSecondaryHole.init(Multiplayer.user.display_name, Multiplayer.user.display_name, window.USER.id);
             globals.MODE = globals.MODES.indexOf('MULTIPLAYER');
             document.querySelector('game-component').shadowRoot.getElementById('mode').innerText = globals.MODES[globals.MODE];
             this.toggleOnScreenControls();
             // mod, vip, sub, broadcaster
             let role = null;
-            if (this.user.channel_roles.length > 0) {
-                let roles = this.user.channel_roles;
+            if (Multiplayer.user.channel_roles.length > 0) {
+                let roles = Multiplayer.user.channel_roles;
                 for (let r = 0; r < roles.length; ++r) {
                     if (roles[r].role === 'broadcaster') {
                         role = 'broadcaster';
@@ -222,14 +216,14 @@ export class ComponentMultiplayer extends HTMLElement {
                 get: (searchParams, prop) => searchParams.get(prop),
             });
             // ?login=spirodonfl&username=spirodonfl&role=broadcaster&id=62338636
-            this.user = {
+            Multiplayer.user = {
                 username: params.username.toLowerCase(),
                 login: params.login,
                 role: params.role,
                 id: params.id,
             };
             RyansBackendSecondaryHole.init(params.login, params.username, params.id);
-            if (this.user.role !== null) {
+            if (Multiplayer.user.role !== null) {
                 this.shadowRoot.querySelector('#enable_kraken').classList.remove('hidden');
                 this.shadowRoot.querySelector('#disable_kraken').classList.remove('hidden');
                 this.shadowRoot.querySelector('#reset').classList.remove('hidden');
@@ -241,86 +235,46 @@ export class ComponentMultiplayer extends HTMLElement {
     adoptedCallback() {}
     attributeChangedCallback() {}
 
-    inGame() {
-        if (this.user !== null) {
-            for (let p = 0; p < this.ships_to_players.length; ++p) {
-                if (this.ships_to_players[p] !== null && this.ships_to_players[p].username === this.user.username) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-    getOwnEntityId() {
-        if (this.user !== null) {
-            for (let p = 0; p < this.ships_to_players.length; ++p) {
-                if (this.ships_to_players[p] !== null && this.ships_to_players[p].username === this.user.username) {
-                    return this.ships_to_players[p].wasm_entity_id;
-                }
-            }
-        }
-        return false;
-    }
     findOwnEntityElement() {
         let entity_layer_index = wasm.game_getCurrentWorldEntityLayer();
-        let entity_element = document.querySelector('game-component').shadowRoot.querySelector('[entity_id="' + this.getOwnEntityId() + '"][layer="' + entity_layer_index + '"]');
+        // TODO: Maybe we put this in a variable in the component
+        let entity_element = document
+            .querySelector('game-component')
+            .shadowRoot
+            .querySelector('[entity_id="' + Multiplayer.getOwnEntityId() + '"][layer="' + entity_layer_index + '"]');
         if (entity_element) {
             return entity_element;
         }
         return false;
     }
-    sendSpawn() {
-        RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'spawn'}));
-    }
-    sendDespawn() {
-        // TODO: Remove range highlighter
-        RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'despawn'}));
-    }
-    sendAttack() {
-        if (this.inGame()) {
-            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'attack'}));
-        }
-    }
     sendLeft() {
-        if (this.inGame()) {
-            this.last_move_direction = 'left';
-            if (this.findOwnEntityElement()) {
-                this.findOwnEntityElement().showRangeLeft();
-            }
-            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'left'}));
+        Multiplayer.sendLeft();
+        if (Multiplayer.inGame() && this.findOwnEntityElement()) {
+            this.findOwnEntityElement().showRangeLeft();
         }
     }
     sendRight() {
-        if (this.inGame()) {
-            this.last_move_direction = 'right';
-            if (this.findOwnEntityElement()) {
-                this.findOwnEntityElement().showRangeRight();
-            }
-            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'right'}));
+        Multiplayer.sendRight();
+        if (Multiplayer.inGame() && this.findOwnEntityElement()) {
+            this.findOwnEntityElement().showRangeRight();
         }
     }
     sendUp() {
-        if (this.inGame()) {
-            this.last_move_direction = 'up';
-            if (this.findOwnEntityElement()) {
-                this.findOwnEntityElement().showRangeUp();
-            }
-            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'up'}));
+        Multiplayer.sendUp();
+        if (Multiplayer.inGame() && this.findOwnEntityElement()) {
+            this.findOwnEntityElement().showRangeUp();
         }
     }
     sendDown() {
-        if (this.inGame()) {
-            this.last_move_direction = 'down';
-            if (this.findOwnEntityElement()) {
-                this.findOwnEntityElement().showRangeDown();
-            }
-            RyansBackendSecondaryHole.ws.send(JSON.stringify({cmd: 'down'}));
+        Multiplayer.sendDown();
+        if (Multiplayer.inGame() && this.findOwnEntityElement()) {
+            this.findOwnEntityElement().showRangeDown();
         }
     }
 
     // TODO: Damn it we need a common place for this multiplayer stuff
     enableKraken() {
-        this.kraken_enabled = true;
+        Multiplayer.kraken_enabled = true;
         // TODO: Don't rely on magic numbers here!
         let entity_id = 7;
         let entity_layer = wasm.game_getCurrentWorldEntityLayer();
@@ -332,7 +286,7 @@ export class ComponentMultiplayer extends HTMLElement {
         }
     }
     disableKraken() {
-        this.kraken_enabled = false;
+        Multiplayer.kraken_enabled = false;
         let entity_id = 7;
         let entity_layer = wasm.game_getCurrentWorldEntityLayer();
         wasm.game_entityDisableCollision(entity_id);
@@ -354,16 +308,16 @@ export class ComponentMultiplayer extends HTMLElement {
                 entity_components[e].clearBorder();
             }
         }
-        for (let i = 0; i < this.ships_to_players.length; ++i) {
-            if (this.ships_to_players[i] !== null) {
-                let color = this.ships_to_players_colors[i];
-                let entity_id = this.ships_to_players[i].wasm_entity_id;
+        for (let i = 0; i < Multiplayer.ships_to_players.length; ++i) {
+            if (Multiplayer.ships_to_players[i] !== null) {
+                let color = Multiplayer.ships_to_players_colors[i];
+                let entity_id = Multiplayer.ships_to_players[i].wasm_entity_id;
                 let entity_layer = wasm.game_getCurrentWorldEntityLayer();
                 let player_element = game_component.shadowRoot.querySelector('[entity_id="' + entity_id + '"][layer="' + entity_layer + '"]');
                 if (player_element) {
                     player_element.setBorder(color);
                 }
-                players_element.innerHTML += '<span style="color:' + color + ';">' + this.ships_to_players[i].username + '</span><br />';
+                players_element.innerHTML += '<span style="color:' + color + ';">' + Multiplayer.ships_to_players[i].username + '</span><br />';
             }
         }
     }
