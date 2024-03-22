@@ -4,8 +4,6 @@ import './collision-entity.js';
 import './viewport-entity.js';
 import { globals, possibleKrakenImages } from './globals.js';
 import '../components/draggable.js';
-import { Multiplayer } from './multiplayer.js';
-import { MultiplayerHost } from './multiplayer_host.js';
 import { globalStyles } from "./global-styles.js";
 import { FRAMES } from './frames.js';
 import { getRandomKey } from './helpers.js';
@@ -530,11 +528,21 @@ export class Game extends HTMLElement {
             // NOTE: If you move this into "sizeView" function,
             // it borks the rendering order and causes a panic/out
             // of bounds error in WASM/ZIG
+            // TODO: Eventually replace this with triggerEvent
             globals.EVENTBUS.triggerNamedEvent('viewport-size', {
                 width: this.width,
                 height: this.height,
                 x_padding: this.x_padding,
                 y_padding: this.y_padding
+            });
+            globals.EVENTBUS.triggerEvent({
+                event_id: 'viewport-size',
+                event: {
+                    width: this.width,
+                    height: this.height,
+                    x_padding: this.x_padding,
+                    y_padding: this.y_padding
+                }
             });
             this.renderGame();
         // });

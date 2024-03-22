@@ -2,7 +2,6 @@ import { wasm } from './injector_wasm.js';
 
 class ClassEditor {
     constructor() {
-        // TODO: Use singleton pattern everywhere else too
         if (ClassEditor.instance) {
             return Editor.instance;
         }
