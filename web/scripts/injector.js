@@ -97,6 +97,9 @@ document.body.style.overflow = 'hidden';
 var cheatsheet_element = document.createElement('cheatsheet-component');
 document.body.appendChild(cheatsheet_element);
 
+// TODO: Replace this with a class based Game.init()
+// function call which injects the component into the DOM
+// only once assets have been loaded (like atlas)
 var game_element = document.createElement('game-component');
 document.body.appendChild(game_element);
 

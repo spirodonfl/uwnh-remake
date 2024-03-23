@@ -10,196 +10,10 @@ import { getRandomKey } from './helpers.js';
 import { Inputs } from './inputs.js';
 import { Editor } from './editor.js';
 
-// TODO: Move this to ComponentGame in webcomponents folder
 export class Game extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({mode: 'open'});
-
-        this.width = 0;
-        this.height = 0;
-        this.x_padding = 0;
-        this.y_padding = 0;
-        this.atlas = null;
-        
-        // TODO: Put this in a loader sub object/component
-        this.atlas_loaded = false;
-        this.layer_id_to_image_loaded = false;
-
-        this.static_layers = [
-            [
-                [
-                    1, // Should be staticized (bool)
-                    0, // already rendered
-                    import.meta.resolve('../images/world_0_layer_0_frame_0.png'),
-                ],
-                [
-                    1, // Should be staticized (bool)
-                    0, // already rendered
-                    import.meta.resolve('../images/world_0_layer_1_frame_0.png'),
-                ],
-                [
-                    1, // Should be staticized (bool)
-                    0, // already rendered
-                    import.meta.resolve('../images/world_0_layer_2_frame_0.png'),
-                ],
-                null
-            ]
-        ];
-
-        this.inputs = [
-            {
-                description: 'Toggle the main menu',
-                context: globals.MODES.indexOf('ALL'),
-                code: 'KeyX',
-                friendlyCode: 'X',
-                shiftKey: false,
-                ctrlKey: false,
-                callback: () => {
-                    this.shadowRoot.getElementById('main_menu').toggleVisibility();
-                }
-            },
-            {
-                description: 'Move camera up',
-                context: globals.MODES.indexOf('GAME'),
-                code: 'ArrowUp',
-                friendlyCode: '↑',
-                shiftKey: false,
-                ctrlKey: false,
-                callback: () => {
-                    this.moveCameraUp();
-                }
-            },
-            {
-                description: 'Move camera down',
-                context: globals.MODES.indexOf('GAME'),
-                code: 'ArrowDown',
-                friendlyCode: '↓',
-                shiftKey: false,
-                ctrlKey: false,
-                callback: () => {
-                    this.moveCameraDown();
-                }
-            },
-            {
-                description: 'Move camera left',
-                context: globals.MODES.indexOf('GAME'),
-                code: 'ArrowLeft',
-                friendlyCode: '←',
-                shiftKey: false,
-                ctrlKey: false,
-                callback: () => {
-                    this.moveCameraLeft();
-                }
-            },
-            {
-                description: 'Move camera right',
-                context: globals.MODES.indexOf('GAME'),
-                code: 'ArrowRight',
-                friendlyCode: '→',
-                shiftKey: false,
-                ctrlKey: false,
-                callback: () => {
-                    this.moveCameraRight();
-                }
-            },
-            {
-                description: 'Change Modes',
-                context: globals.MODES.indexOf('ALL'),
-                code: 'KeyM',
-                friendlyCode: 'SHIFT+M',
-                shiftKey: true,
-                ctrlKey: false,
-                callback: () => {
-                    this.changeMode();
-                }
-            },
-            {
-                description: 'Move Up',
-                context: globals.MODES.indexOf('GAME'),
-                code: 'KeyI',
-                friendlyCode: 'I',
-                shiftKey: false,
-                ctrlKey: false,
-                callback: () => {
-                    this.moveMainPlayerUp();
-                }
-            },
-            {
-                description: 'Move Down',
-                context: globals.MODES.indexOf('GAME'),
-                code: 'KeyK',
-                friendlyCode: 'K',
-                shiftKey: false,
-                ctrlKey: false,
-                callback: () => {
-                    this.moveMainPlayerDown();
-                }
-            },
-            {
-                description: 'Move Left',
-                context: globals.MODES.indexOf('GAME'),
-                code: 'KeyJ',
-                friendlyCode: 'J',
-                shiftKey: false,
-                ctrlKey: false,
-                callback: () => {
-                    this.moveMainPlayerLeft();
-                }
-            },
-            {
-                description: 'Move Right',
-                context: globals.MODES.indexOf('GAME'),
-                code: 'KeyL',
-                friendlyCode: 'L',
-                shiftKey: false,
-                ctrlKey: false,
-                callback: () => {
-                    this.moveMainPlayerRight();
-                }
-            },
-            {
-                description: 'Attack',
-                context: globals.MODES.indexOf('GAME'),
-                code: 'Space',
-                friendlyCode: 'Space',
-                shiftKey: false,
-                ctrlKey: false,
-                callback: () => {
-                    this.mainPlayerAttack();
-                }
-            },
-            {
-                description: 'Connect to multiplayer',
-                context: globals.MODES.indexOf('ALL'),
-                code: 'Digit7',
-                friendlyCode: 'Shift+7',
-                shiftKey: true,
-                ctrlKey: false,
-                callback: () => {
-                    var multiplayer_element = document.querySelector('multiplayer-component');
-                    if (!multiplayer_element) {
-                        multiplayer_element = document.createElement('multiplayer-component');
-                        document.body.appendChild(multiplayer_element);
-                    }
-                }
-            },
-            {
-                description: 'Connect to multiplayer (as host)',
-                context: globals.MODES.indexOf('ALL'),
-                code: 'Digit8',
-                friendlyCode: 'Shift+8',
-                shiftKey: true,
-                ctrlKey: false,
-                callback: () => {
-                    var multiplayer_host_element = document.querySelector('multiplayer-host-component');
-                    if (!multiplayer_host_element) {
-                        multiplayer_host_element = document.createElement('multiplayer-host-component');
-                        document.body.appendChild(multiplayer_host_element);
-                    }
-                }
-            }
-        ];
     }
 
     connectedCallback() {
@@ -210,8 +24,6 @@ export class Game extends HTMLElement {
         globals.EVENTBUS.addEventListener('event', (e) => {
             console.log('GAME EVENT', e);
         });
-
-        globals.INPUTS = globals.INPUTS.concat(this.inputs);
 
         this.shadowRoot.getElementById('mode').innerText = globals.MODES[globals.MODE];
 
@@ -246,34 +58,6 @@ export class Game extends HTMLElement {
             });
         }
 
-        var atlas = new Image();
-        atlas.onload = () => {
-            this.atlas_loaded = true;
-            this.atlas = atlas;
-            this.loaded();
-        }
-        atlas.src = globals.ATLAS_PNG_FILENAME;
-        this.loadJsonFile(globals.IMAGE_DATA, (data) => {
-            if (data) {
-                globals.IMAGE_DATA = data;
-                this.layer_id_to_image_loaded = true;
-                this.loaded();
-            }
-        });
-
-        // TODO: A better way to not repeat our input functionality here
-        document.addEventListener('keydown', (e) => {
-            console.log('GAME JS KEYDOWN', e);
-            for (var i = 0; i < this.inputs.length; ++i) {
-                let input = this.inputs[i];
-                if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
-                    if (input.context === globals.MODES.indexOf('ALL') || input.context === globals.MODE) {
-                        input.callback();
-                    }
-                }
-            }
-        });
-
         FRAMES.addRunOnFrames(10, false, () => {
             let entity_components = this.shadowRoot.querySelectorAll('entity-component');
             for (let e = 0; e < entity_components.length; ++e) {
@@ -282,62 +66,6 @@ export class Game extends HTMLElement {
                 }
             }
         });
-    }
-
-    loadJsonFile(file_path, callback) {
-        var xhr = new XMLHttpRequest();
-        xhr.overrideMimeType('application/json');
-        xhr.open('GET', file_path, true);
-
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4) {
-                if (xhr.status === 200) {
-                    var json_data;
-                try {
-                    json_data = JSON.parse(xhr.responseText);
-                } catch (error) {
-                    console.error('Error parsing JSON:', error.message);
-                }
-                callback(json_data);
-            } else {
-                console.error('Failed to fetch JSON file (' + xhr.status + ' ' + xhr.statusText + ')');
-                callback(null);
-            }
-        }
-        };
-
-        xhr.send();
-    }
-
-    // TODO: Move this to editor
-    createStaticLayer(layer_id, image_path) {
-        let camera_x = wasm.viewport_getCameraX();
-        let camera_y = wasm.viewport_getCameraY();
-        let static_layer = document.createElement('div');
-        static_layer.id = 'static-layer-' + layer_id;
-        static_layer.style.position = 'absolute';
-        static_layer.style.width = (wasm.viewport_getSizeWidth() * 64) + 'px';
-        static_layer.style.height = (wasm.viewport_getSizeHeight() * 64) + 'px';
-        static_layer.style.backgroundImage = 'url(' + image_path + ')';
-        // static_layer.style.backgroundSize = '100% 100%';
-        // static_layer.style.backgroundRepeat = 'no-repeat';
-        static_layer.style.backgroundPosition = '-' + (camera_x * 64) + 'px -' + (camera_y * 64) + 'px';
-        static_layer.style.left = '0';
-        static_layer.style.top = '0';
-        return static_layer;
-    }
-
-    // TODO: Move this to zig
-    randomizeKraken() {
-        let kraken_entity_id = 7;
-        let entity_layer = wasm.game_getCurrentWorldEntityLayer();
-        let random_kraken_image = getRandomKey(possibleKrakenImages);
-        this.current_kraken_image = random_kraken_image;
-        let image_data = globals.IMAGE_DATA[0][entity_layer][kraken_entity_id];
-        if (image_data) {
-            image_data[0][0] = possibleKrakenImages[random_kraken_image].x * 64;
-            image_data[0][1] = possibleKrakenImages[random_kraken_image].y * 64;
-        }
     }
 
     renderGame() {
@@ -448,85 +176,14 @@ export class Game extends HTMLElement {
         // resizeObserver.observe(document.body);
     }
 
-    loaded(e) {
-        // TODO: Maybe put a loader component here and let that load first so
-        // you can separate out the logic, then the component can dispatch an
-        // event when it's done
-        if (this.atlas_loaded && this.layer_id_to_image_loaded) {
-            console.log('Loaded');
-            // this.sizeView();
-            if (wasm.game_initializeGame()) {
-                this.watchResize();
-            }
-        }
-    }
-
     disconnectedCallback() {}
     adoptedCallback() {}
     attributeChangedCallback() {}
 
-    // TODO: This should only the function to change the mode and trigger the event
-    changeMode() {
-        ++globals.MODE;
-        if (globals.MODE >= globals.MODES.length) {
-            globals.MODE = 0;
-        }
+    updateMode() {
+        // TODO: Should run this on mode_change event
         this.shadowRoot.getElementById('mode').innerText = globals.MODES[globals.MODE];
-
-        globals.EVENTBUS.triggerEvent({
-            event_id: 'mode_change',
-            mode: globals.MODES[globals.MODE]
-        });
     }
-
-    // TODO: These should probably in a game class
-    moveCameraUp() {
-        wasm.viewport_moveCameraUp();
-        // TODO: Use the GLOBAL eventbus instead of directly calling these
-        document.querySelector('editor-component').renderViewportData();
-    }
-    moveCameraDown() {
-        wasm.viewport_moveCameraDown();
-        // TODO: Use the GLOBAL eventbus instead of directly calling these
-        document.querySelector('editor-component').renderViewportData();
-    }
-    moveCameraLeft() {
-        wasm.viewport_moveCameraLeft();
-        // TODO: Use the GLOBAL eventbus instead of directly calling these
-        document.querySelector('editor-component').renderViewportData();
-    }
-    moveCameraRight() {
-        wasm.viewport_moveCameraRight();
-        // TODO: Use the GLOBAL eventbus instead of directly calling these
-        document.querySelector('editor-component').renderViewportData();
-    }
-
-    moveMainPlayerUp() {
-        wasm.messages_moveUp(1, 0);
-        // TODO: Use the GLOBAL eventbus instead of directly calling these
-        document.querySelector('editor-component').renderViewportData();
-    }
-    moveMainPlayerDown() {
-        wasm.messages_moveDown(1, 0);
-        // TODO: Use the GLOBAL eventbus instead of directly calling these
-        document.querySelector('editor-component').renderViewportData();
-    }
-    moveMainPlayerLeft() {
-        wasm.messages_moveLeft(1, 0);
-        // TODO: Use the GLOBAL eventbus instead of directly calling these
-        document.querySelector('editor-component').renderViewportData();
-    }
-    moveMainPlayerRight() {
-        wasm.messages_moveRight(1, 0);
-        // TODO: Use the GLOBAL eventbus instead of directly calling these
-        document.querySelector('editor-component').renderViewportData();
-    }
-    mainPlayerAttack() {
-        wasm.messages_attack(1, 0);
-        // TODO: Use the GLOBAL eventbus instead of directly calling these
-        document.querySelector('editor-component').renderViewportData();
-    }
-
 
     updateFPS(value) {
         this.shadowRoot.getElementById('fps_value').innerText = value;
@@ -539,6 +196,7 @@ export class Game extends HTMLElement {
     }
 
     toggleMainMenuDisplay() {
+        // TODO: Use the draggable visible toggle thing
         this.shadowRoot.getElementById('main_menu').classList.toggle('hidden');
     }
 
@@ -578,6 +236,7 @@ export class Game extends HTMLElement {
         {
             --y;
         }
+        // TODO: Clean this up, lots of repetitious code
         let x_padding = (full_width - (x * (globals.SIZE * globals.SCALE))) / 2;
         let y_padding = (full_height - (y * (globals.SIZE * globals.SCALE))) / 2;
         this.shadowRoot.getElementById('view').style.margin = y_padding + 'px ' + x_padding + 'px';
@@ -585,6 +244,7 @@ export class Game extends HTMLElement {
         this.shadowRoot.getElementById('view').style.height = (y * (globals.SIZE * globals.SCALE)) + 'px';
         this.shadowRoot.getElementById('clickable_view').style.width = (x * (globals.SIZE * globals.SCALE)) + 'px';
         this.shadowRoot.getElementById('clickable_view').style.height = (y * (globals.SIZE * globals.SCALE)) + 'px';
+        // TODO: Update the main game class, no this component
         this.width = x;
         this.height = y;
         this.x_padding = x_padding;
@@ -648,4 +308,4 @@ export class Game extends HTMLElement {
         `;
     }
 }
-customElements.define('game-component', Game);
+customElements.define('game-component', Game)
