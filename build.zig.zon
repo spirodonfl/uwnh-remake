@@ -1,0 +1,11 @@
+.{
+    .name = "uwnh-remake",
+    .version = "0.0.1",
+
+    .dependencies = .{
+        .http_server = .{
+            .url = "https://github.com/marler8997/zig-http-server/archive/44583d32efae08ab37d2f66ee40949ed9baadbf7.tar.gz",
+            .hash = "1220b62ee33b947dd1904602554d582377f63a97c75a8c8607fa1821ed179f9dce5d",
+        },
+    },
+}

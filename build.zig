@@ -42,4 +42,13 @@ pub fn build(b: *Builder) !void {
 
     const copy_output_to_root = b.addInstallBinFile(game.getEmittedBin(), "../../web/wasm/game.wasm");
     b.getInstallStep().dependOn(&copy_output_to_root.step);
+
+
+    {
+        const http_server_build = b.dependency("http_server", .{});
+        const file_server = http_server_build.artifact("fileserver");
+        const run_file_server = b.addRunArtifact(file_server);
+        run_file_server.cwd = b.pathFromRoot("web");
+        b.step("serve", "Serve the game files").dependOn(&run_file_server.step);
+    }
 }
