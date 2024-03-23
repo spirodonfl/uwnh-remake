@@ -51,13 +51,13 @@ function handleGamepadInput(buttonIndex, isPressed) {
 }
 
 function updateGamepad() {
-    var gamepads = navigator.getGamepads();
-    for (var i = 0; i < gamepads.length; i++) {
-        var gamepad = gamepads[i];
+    let gamepads = navigator.getGamepads();
+    for (let i = 0; i < gamepads.length; i++) {
+        let gamepad = gamepads[i];
         if (gamepad) {
             // Access gamepad properties like buttons and axes
-            var buttons = gamepad.buttons;
-            var axes = gamepad.axes;
+            let buttons = gamepad.buttons;
+            let axes = gamepad.axes;
 
             // you can use buttons[i].pressed and buttons[i].touched
             // axes is just an array of floating point values from -1 to 1, length of 4
@@ -66,7 +66,7 @@ function updateGamepad() {
             // console.log("Button 0: " + buttons[0].value);
             // console.log("Axis 0: " + axes[0]);
 
-            for (var i = 0; i < buttons.length; i++) {
+            for (let i = 0; i < buttons.length; i++) {
                 if (buttons[i].pressed) {
                     console.log('button', [i, buttons[i]]);
                 }

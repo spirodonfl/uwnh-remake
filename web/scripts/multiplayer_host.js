@@ -1,4 +1,4 @@
-import { RyansBackendMainHole } from './ryans_backend_main_hole.js';
+import { RyansBackendMainHole } from './websockets/ryans_backend_main_hole.js';
 import { Multiplayer } from './multiplayer.js';
 
 class ClassMultiplayerHost extends Multiplayer {

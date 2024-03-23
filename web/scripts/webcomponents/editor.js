@@ -1,5 +1,5 @@
 import { wasm } from '../injector_wasm.js';
-import '../../components/draggable.js';
+import '../draggable.js';
 import { globals } from '../globals.js';
 import { globalStyles } from '../global-styles.js';
 import { addEventListenerWithRemoval, removeAndReorder, swapElements } from '../helpers.js';

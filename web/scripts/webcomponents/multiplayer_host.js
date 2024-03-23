@@ -1,4 +1,4 @@
-import { RyansBackendMainHole } from '../websocket-ryans-backend-main-hole.js';
+import { RyansBackendMainHole } from '../websockets/ryans-backend-main-hole.js';
 import { globals, possibleKrakenImages } from '../globals.js';
 import { globalStyles } from "../global-styles.js";
 import { wasm } from '../injector_wasm.js';

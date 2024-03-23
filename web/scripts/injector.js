@@ -30,9 +30,6 @@
 // 
 // !!BUG!!: pressing spaces makes you go down (multiplyer)
 //
-// Move entity.js && viewport-entity.js into webcomponent subfolder
-// - then create main classes if appropriate
-//
 // Add more kraken icons
 // - next.js
 // - react
@@ -54,18 +51,16 @@
 // GLEAM AS A TREASURE ITEM
 
 import { Test } from './test.js';
-import { ComponentCheatSheet } from './webcomponents/cheatsheet.js';
+import './webcomponents/cheatsheet.js';
 // TODO: convert this webcomponent and re-import properly (ComponentGame)
 import './game.js';
-import './editor.js';
-import { EVENTBUS } from './eventbus.js';
-import { ComponentEditor } from './webcomponents/editor.js';
+import './webcomponents/editor.js';
 import { globals } from './globals.js';
-import { RyansBackendMainHole } from './websocket-ryans-backend-main-hole.js';
-import { RyansBackendSecondaryHole } from './websocket-ryans-backend-secondary-hole.js';
+import { RyansBackendMainHole } from './websockets/ryans-backend-main-hole.js';
+import { RyansBackendSecondaryHole } from './websockets/ryans-backend-secondary-hole.js';
 
 import './inputs.js';
-import './game-pad.js';
+import './input-gamepad.js';
 
 // REQUEST ANIMATION FRAME SHIM
 if (!window.requestAnimationFrame)  {

@@ -1,5 +1,5 @@
 // TODO: Ideally, we remove all references to this websocket thing
-import { RyansBackendSecondaryHole } from '../websocket-ryans-backend-secondary-hole.js';
+import { RyansBackendSecondaryHole } from '../websockets/websocket-ryans-backend-secondary-hole.js';
 import { globals, possibleKrakenImages } from '../globals.js';
 import { globalStyles } from "../global-styles.js";
 import { wasm } from '../injector_wasm.js';
@@ -17,6 +17,7 @@ export class ComponentMultiplayer extends HTMLElement {
 
     connectedCallback() {
         this.render();
+
         globals.EVENTBUS.addEventListener('event', (e) => {
             console.log('multiplayer event', e);
             switch(e.input.event_id) {

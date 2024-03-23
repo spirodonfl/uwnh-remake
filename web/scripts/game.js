@@ -1,7 +1,7 @@
 import { wasm } from './injector_wasm.js';
-import './entity.js';
-import './collision-entity.js';
-import './viewport-entity.js';
+import './webcomponents/entity.js';
+import './webcomponents/collision-entity.js';
+import './webcomponents/viewport-entity.js';
 import { globals, possibleKrakenImages } from './globals.js';
 import '../components/draggable.js';
 import { globalStyles } from "./global-styles.js";
