@@ -1,22 +1,37 @@
 // TOP LEVEL MODULE
 // TODO: GLOBAL
+// 
 // Move some functionality inside of multiplayer into the zig file itself
+// 
 // Move some functions/methods in the individual web components to common module
-// Cleanup todos
+// 
 // Re-implement pause (so we can re-implement animations)
+// 
 // Animate staticized layers
+// 
 // Switch between staticzed vs non-staticzed layers (raw data w/ element) layers
+// 
 // Can you get enums out of zig into JS objects or something?
+// 
 // Stop removing game render elements and re-adding them (thrashes UI)
 // -- Probably, at least for entities, just move their position instead
 // -- Requires updating diff in zig to track this
+// 
 // Fix issues with layer management (front and back)
+// 
 // Make sure entity management is fully working
 // -- Once you have that, make multiplayer entities dynamic
+// 
 // Re-enable / fix resize
+// 
 // Update UI/UX for multiplayers so its nicer
+// 
 // Bar across the top on non-production mode as an app menu sorta
+// 
 // !!BUG!!: pressing spaces makes you go down (multiplyer)
+//
+// Move entity.js && viewport-entity.js into webcomponent subfolder
+// - then create main classes if appropriate
 //
 // Add more kraken icons
 // - next.js

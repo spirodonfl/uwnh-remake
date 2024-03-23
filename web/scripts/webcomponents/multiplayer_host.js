@@ -1,12 +1,13 @@
-import { RyansBackendMainHole } from './websocket-ryans-backend-main-hole.js';
-import { globals, possibleKrakenImages } from './globals.js';
-import { globalStyles } from "./global-styles.js";
-import { wasm } from './injector_wasm.js';
-import { FRAMES } from './frames.js';
-import { getRandomKey, reloadPageAfter30Minutes } from './helpers.js';
-import { LocalStreamerbot } from './local-streamerbot.js';
+import { RyansBackendMainHole } from '../websocket-ryans-backend-main-hole.js';
+import { globals, possibleKrakenImages } from '../globals.js';
+import { globalStyles } from "../global-styles.js";
+import { wasm } from '../injector_wasm.js';
+import { FRAMES } from '../frames.js';
+import { getRandomKey, reloadPageAfter30Minutes } from '../helpers.js';
+import { LocalStreamerbot } from '../local-streamerbot.js';
+import { MultiplayerHost } from './multiplayer_host.js';
 
-export class MultiplayerHost extends HTMLElement {
+export class ComponentMultiplayerHost extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({mode: 'open'});
@@ -16,112 +17,11 @@ export class MultiplayerHost extends HTMLElement {
         this.ships_to_players_colors = ['#e28383', '#9e9ef9', '#79df79', 'yellow', '#df70df'];
         this.kraken_enabled = false;
         this.current_kraken_image = 'squid';
-
-        // TODO: Fun fact! Unless you inject the element onto the page
-        // (which you don't want to do, in this case, until you need it)
-        // the inputs don't get registered globally so the cheatsheet
-        // doesn't update until the element exists
-        this.inputs = [
-            {
-                description: 'Toggle Leaderboard',
-                context: globals.MODES.indexOf('MULTIPLAYER_HOST'),
-                code: 'Digit1',
-                friendlyCode: 'Shift+1',
-                shiftKey: true,
-                ctrlKey: false,
-                callback: () => {
-                    this.toggleLeaderboardDisplay();
-                }
-            },
-            {
-                description: 'Toggle Host Controls',
-                context: globals.MODES.indexOf('MULTIPLAYER_HOST'),
-                code: 'Digit2',
-                friendlyCode: 'Shift+2',
-                shiftKey: true,
-                ctrlKey: false,
-                callback: () => {
-                    this.shadowRoot.getElementById('host-controls').toggleVisibility();
-                }
-            },
-            {
-                description: 'Toggle Player List',
-                context: globals.MODES.indexOf('MULTIPLAYER_HOST'),
-                code: 'Digit3',
-                friendlyCode: 'Shift+3',
-                shiftKey: true,
-                ctrlKey: false,
-                callback: () => {
-                    this.togglePlayerList();
-                }
-            },
-            {
-                description: 'Move camera up',
-                context: globals.MODES.indexOf('MULTIPLAYER_HOST'),
-                code: 'ArrowUp',
-                friendlyCode: '↑',
-                shiftKey: false,
-                ctrlKey: false,
-                callback: () => {
-                    document.querySelector('game-component').moveCameraUp();
-                }
-            },
-            {
-                description: 'Move camera down',
-                context: globals.MODES.indexOf('MULTIPLAYER_HOST'),
-                code: 'ArrowDown',
-                friendlyCode: '↓',
-                shiftKey: false,
-                ctrlKey: false,
-                callback: () => {
-                    document.querySelector('game-component').moveCameraDown();
-                }
-            },
-            {
-                description: 'Move camera left',
-                context: globals.MODES.indexOf('MULTIPLAYER_HOST'),
-                code: 'ArrowLeft',
-                friendlyCode: '←',
-                shiftKey: false,
-                ctrlKey: false,
-                callback: () => {
-                    document.querySelector('game-component').moveCameraLeft();
-                }
-            },
-            {
-                description: 'Move camera right',
-                context: globals.MODES.indexOf('MULTIPLAYER_HOST'),
-                code: 'ArrowRight',
-                friendlyCode: '→',
-                shiftKey: false,
-                ctrlKey: false,
-                callback: () => {
-                    document.querySelector('game-component').moveCameraRight();
-                }
-            },
-        ];
-    }
-
-    setRole(email, channel, roles) {
-        if (email === undefined || channel === undefined || roles === undefined) {
-            console.log('email, channel, and roles are required');
-            return;
-        }
-        if (!Array.isArray(roles)) {
-            console.log('roles must be an array');
-            return;
-        }
-        RyansBackendMainHole.ws.send(JSON.stringify({
-            set_roles: {
-                email: email,
-                channel: channel,
-                roles: roles
-            }
-        }));
     }
 
     connectedCallback() {
         this.render();
+
         reloadPageAfter30Minutes(() => {
             RyansBackendMainHole.ws.send(JSON.stringify({
                 "broadcast": {
@@ -132,20 +32,47 @@ export class MultiplayerHost extends HTMLElement {
             }));
             window.location.reload();
         });
+
         globals.EVENTBUS.addEventListener('event', (e) => {
-            if (e.input.event_id === 'game_rendered') {
-                this.updatePlayerList();
-                if (this.kraken_enabled === false) {
-                    this.disableKraken();
-                } else if (this.kraken_enabled === true) {
-                    this.enableKraken();
-                } 
-                this.broadcastGameState();
-                this.updatePlayerList();
-            } else if (e.input.event_id === 'user-spawns') {
-                console.log('TODO: this');
+            console.log('multiplayer host event', e);
+            switch (e.input.event_id) {
+                case 'toggle_leaderboard':
+                    this.toggleLeaderboardDisplay();
+                    break;
+                case 'toggle_host_controls':
+                    this.shadowRoot.getElementById('host-controls').toggleVisibility();
+                    break;
+                case 'toggle_player_list':
+                    this.togglePlayerList();
+                    break;
+                case 'move_camera_up':
+                    document.querySelector('game-component').moveCameraUp();
+                    break;
+                case 'move_camera_down':
+                    document.querySelector('game-component').moveCameraDown();
+                    break;
+                case 'move_camera_left':
+                    document.querySelector('game-component').moveCameraLeft();
+                    break;
+                case 'move_camera_right':
+                    document.querySelector('game-component').moveCameraRight();
+                    break;
+                case 'game-rendered':
+                    this.updatePlayerList();
+                    if (this.kraken_enabled === false) {
+                        this.disableKraken();
+                    } else if (this.kraken_enabled === true) {
+                        this.enableKraken();
+                    } 
+                    this.broadcastGameState();
+                    this.updatePlayerList();
+                    break;
+                case 'viewport-size':
+                    this.updatePlayerList();
+                    break;
             }
         });
+
         // TODO: when twich notifications are setup on elixir server
         // if (window.USER && window.USER.roles.indexOf('broadcaster') !== -1) {
         const params = new Proxy(new URLSearchParams(window.location.search), {
@@ -157,11 +84,6 @@ export class MultiplayerHost extends HTMLElement {
             RyansBackendMainHole.init();
             this.togglePlayerList();
         }
-        globals.INPUTS = globals.INPUTS.concat(this.inputs);
-        globals.EVENTBUS.addEventListener('viewport-size', (e) => {
-            // TODO: Need to go around and remove the extraneous "updatePlayerList" calls we make
-            this.updatePlayerList();
-        });
         globals.EVENTBUS.addEventListener('opened-ryans-backend-main-hole', (e) => {
             if (params.host === 'true') {
                 this.shadowRoot.getElementById('host-controls').style.display = 'block';
@@ -173,6 +95,9 @@ export class MultiplayerHost extends HTMLElement {
                 this.enableKraken();
             }
         });
+        
+        // TODO: Flip the naming (twitch-*) and generalize the twitch events
+        // TODO: This can just go into multiplayer_host.js
         globals.EVENTBUS.addEventListener('plus5health-twitch-redeemed', (e) => {
             console.log('PLUS 5 HEALTH REDEEMED', e);
             let user = e.user;
@@ -190,6 +115,9 @@ export class MultiplayerHost extends HTMLElement {
             }
             this.broadcastGameState(user);
         });
+        
+        // TODO: Flip the naming (twitch-*) and generalize the twitch events
+        // TODO: This can just go into multiplayer_host.js
         globals.EVENTBUS.addEventListener('plus10health-twitch-redeemed', (e) => {
             console.log('PLUS 10 HEALTH REDEEMED', e);
             let user = e.user;
@@ -207,21 +135,27 @@ export class MultiplayerHost extends HTMLElement {
             }
             this.broadcastGameState(user);
         });
+        
+        // TODO: Flip the naming (twitch-*) and generalize the twitch events
         globals.EVENTBUS.addEventListener('kraken-twitch-redeemed', (e) => {
             console.log('KRAKEN REDEEMED', e);
             this.enableKraken();
             this.broadcastGameState();
         });
+        
         globals.EVENTBUS.addEventListener('enable-kraken', (e) => {
             console.log('ENABLE KRAKEN', e);
             this.enableKraken();
             this.broadcastGameState();
         });
+        
         globals.EVENTBUS.addEventListener('disable-kraken', (e) => {
             console.log('DISABLE KRAKEN', e);
             this.disableKraken();
             this.broadcastGameState();
         });
+        
+        // TODO: Flip the naming (twitch-*) and generalize the twitch events
         globals.EVENTBUS.addEventListener('raid-twitch', (e) => {
             console.log('RAID', e);
             let name = e.raider;
@@ -233,12 +167,15 @@ export class MultiplayerHost extends HTMLElement {
             wasm.game_entitySetHealth(kraken_entity_id, viewers);
             this.broadcastGameState();
         });
+        
         globals.EVENTBUS.addEventListener('opened-ryans-backend-main-hole', (e) => {
             // console.log('opened')
         });
+        
         globals.EVENTBUS.addEventListener('message-from-ryans-backend-main-hole', function (a) {
             // console.log('b', a);
         });
+        
         globals.EVENTBUS.addEventListener('leaderboard-update', (e) => {
             const leaderboard = this.shadowRoot.getElementById('leaderboard');
             leaderboard.innerHTML = '';
@@ -248,7 +185,10 @@ export class MultiplayerHost extends HTMLElement {
             }
             leaderboard.classList.remove('hidden');
         });
+        
         let default_dialog_timeout = 5000;
+        
+        // TODO: Flip the naming (twitch-*) and generalize the twitch events
         globals.EVENTBUS.addEventListener('follow-twitch', (e) => {
             console.log('follow-twitch', e);
             let name = e.user;
@@ -260,6 +200,8 @@ export class MultiplayerHost extends HTMLElement {
                 dialog.close();
             }, default_dialog_timeout);
         });
+
+        // TODO: Flip the naming (twitch-*) and generalize the twitch events
         globals.EVENTBUS.addEventListener('sub-twitch', (e) => {
             let name = e.user;
             let dialog = document.createElement('dialog');
@@ -270,6 +212,8 @@ export class MultiplayerHost extends HTMLElement {
                 dialog.close();
             }, default_dialog_timeout);
         });
+        
+        // TODO: Flip the naming (twitch-*) and generalize the twitch events
         globals.EVENTBUS.addEventListener('giftsub-twitch', (e) => {
             let name = e.recipient;
             let dialog = document.createElement('dialog');
@@ -280,6 +224,8 @@ export class MultiplayerHost extends HTMLElement {
                 dialog.close();
             }, default_dialog_timeout);
         });
+        
+        // TODO: Flip the naming (twitch-*) and generalize the twitch events
         globals.EVENTBUS.addEventListener('giftbomb-twitch', (e) => {
             let name = e.user;
             let gifts = e.gifts;
@@ -291,6 +237,8 @@ export class MultiplayerHost extends HTMLElement {
                 dialog.close();
             }, default_dialog_timeout);
         });
+        
+        // TODO: Flip the naming (twitch-*) and generalize the twitch events
         globals.EVENTBUS.addEventListener('giftbomb-twitch-anonymous', (e) => {
             let gifts = e.gifts;
             let dialog = document.createElement('dialog');
@@ -301,6 +249,8 @@ export class MultiplayerHost extends HTMLElement {
                 dialog.close();
             }, default_dialog_timeout);
         });
+        
+        // TODO: Flip the naming (twitch-*) and generalize the twitch events
         globals.EVENTBUS.addEventListener('cheer-twitch', (e) => {
             let name = e.user;
             let bits = e.bits;
@@ -312,6 +262,8 @@ export class MultiplayerHost extends HTMLElement {
                 dialog.close();
             }, default_dialog_timeout);
         });
+        
+        // TODO: Flip the naming (twitch-*) and generalize the twitch events
         globals.EVENTBUS.addEventListener('chat-message-twitch', (e) => {
             console.log('chat-message-twitch', e);
             let user = e.user;
@@ -345,6 +297,7 @@ export class MultiplayerHost extends HTMLElement {
                 globals.EVENTBUS.triggerNamedEvent('kraken-twitch-redeemed', {user: user});
             }
         });
+        
         globals.EVENTBUS.addEventListener('user-spawns', (e) => {
             console.log('USER IS SPAWNING', e);
             let user_spawned = false;
@@ -394,6 +347,7 @@ export class MultiplayerHost extends HTMLElement {
             }
             this.broadcastGameState();
         });
+        
         globals.EVENTBUS.addEventListener('user-despawns', (e) => {
             console.log('User wants to despawn', e);
             let user_despawned = false;
@@ -412,6 +366,7 @@ export class MultiplayerHost extends HTMLElement {
             this.broadcastGameState();
             this.updatePlayerList();
         });
+        
         globals.EVENTBUS.addEventListener('user-moves-left', (e) => {
             console.log('User wants to move left', e);
             for (let i = 0; i < this.ships_to_players.length; ++i) {
@@ -422,6 +377,7 @@ export class MultiplayerHost extends HTMLElement {
                 }
             }
         });
+        
         globals.EVENTBUS.addEventListener('user-moves-right', (e) => {
             console.log('User wants to move right', e);
             for (let i = 0; i < this.ships_to_players.length; ++i) {
@@ -434,6 +390,7 @@ export class MultiplayerHost extends HTMLElement {
             this.broadcastGameState();
             this.updatePlayerList();
         });
+        
         globals.EVENTBUS.addEventListener('user-moves-up', (e) => {
             console.log('User wants to move up', e);
             for (let i = 0; i < this.ships_to_players.length; ++i) {
@@ -444,6 +401,7 @@ export class MultiplayerHost extends HTMLElement {
                 }
             }
         });
+        
         globals.EVENTBUS.addEventListener('user-moves-down', (e) => {
             console.log('User wants to move down', e);
             for (let i = 0; i < this.ships_to_players.length; ++i) {
@@ -454,6 +412,7 @@ export class MultiplayerHost extends HTMLElement {
                 }
             }
         });
+        
         globals.EVENTBUS.addEventListener('user-attacks', (e) => {
             console.log('User wants to attack', e);
             for (let i = 0; i < this.ships_to_players.length; ++i) {
@@ -466,18 +425,6 @@ export class MultiplayerHost extends HTMLElement {
         });
 
         RyansBackendMainHole.init();
-
-        // TODO: A better way to not repeat our input functionality here
-        document.addEventListener('keydown', (e) => {
-            for (let i = 0; i < this.inputs.length; ++i) {
-                let input = this.inputs[i];
-                if (e.code === input.code && e.shiftKey === input.shiftKey && e.ctrlKey === input.ctrlKey) {
-                    if (input.context === globals.MODES.indexOf('ALL') || input.context === globals.MODE) {
-                        input.callback();
-                    }
-                }
-            }
-        });
 
         this.shadowRoot.getElementById('toggle_leaderboard').addEventListener('click', () => {
             this.toggleLeaderboardDisplay();
@@ -781,4 +728,4 @@ export class MultiplayerHost extends HTMLElement {
         `;
     }
 };
-customElements.define('multiplayer-host-component', MultiplayerHost);
+customElements.define('multiplayer-host-component', ComponentMultiplayerHost);

@@ -1,3 +1,4 @@
+// TODO: Ideally, we remove all references to this websocket thing
 import { RyansBackendSecondaryHole } from '../websocket-ryans-backend-secondary-hole.js';
 import { globals, possibleKrakenImages } from '../globals.js';
 import { globalStyles } from "../global-styles.js";

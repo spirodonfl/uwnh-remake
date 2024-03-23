@@ -1,7 +1,10 @@
 import { globals } from './globals.js';
 import './input-keyboard.js';
 import './input-mouse.js';
+// TODO: Import this after you finish it
 // import './input-gamepad.js';
+
+// TODO: There are a lot of duplicates. Maybe we can consolidate if we're smart
 
 const Inputs = {
     'ALL': [],
@@ -215,6 +218,72 @@ Inputs.MULTIPLAYER = [
         code: 'Space',
         friendlyCode: 'Space',
         shiftKey: false,
+        ctrlKey: false,
+        gamepadButton: null,
+    },
+    {
+        description: 'Move camera up',
+        event_id: 'move_camera_up',
+        code: 'ArrowUp',
+        friendlyCode: '↑',
+        shiftKey: false,
+        ctrlKey: false,
+        gamepadButton: null,
+    },
+    {
+        description: 'Move camera down',
+        event_id: 'move_camera_down',
+        code: 'ArrowDown',
+        friendlyCode: '↓',
+        shiftKey: false,
+        ctrlKey: false,
+        gamepadButton: null,
+    },
+    {
+        description: 'Move camera left',
+        event_id: 'move_camera_left',
+        code: 'ArrowLeft',
+        friendlyCode: '←',
+        shiftKey: false,
+        ctrlKey: false,
+        gamepadButton: null,
+    },
+    {
+        description: 'Move camera right',
+        event_id: 'move_camera_right',
+        code: 'ArrowRight',
+        friendlyCode: '→',
+        shiftKey: false,
+        ctrlKey: false,
+        gamepadButton: null,
+    },
+];
+
+Inputs.MULTIPLAYERHOST = [
+    {
+        description: 'Toggle Leaderboard',
+        event_id: 'toggle_leaderboard',
+        code: 'Digit1',
+        friendlyCode: 'Shift+1',
+        shiftKey: true,
+        ctrlKey: false,
+        gamepadButton: null,
+    },
+    {
+        description: 'Toggle Host Controls',
+        event_id: 'toggle_host_controls',
+        code: 'Digit2',
+        friendlyCode: 'Shift+2',
+        shiftKey: true,
+        ctrlKey: false,
+        gamepadButton: null,
+    },
+    {
+        description: 'Toggle Player List',
+        event_id: 'toggle_player_list',
+        code: 'Digit3',
+        friendlyCode: 'Shift+3',
+        shiftKey: true,
         ctrlKey: false,
         gamepadButton: null,
     },

@@ -1,4 +1,4 @@
-import { RyansBackendSecondaryHole } from '../websocket-ryans-backend-secondary-hole.js';
+import { RyansBackendSecondaryHole } from './websocket-ryans-backend-secondary-hole.js';
 
 class ClassMultiplayer {
     constructor() {
