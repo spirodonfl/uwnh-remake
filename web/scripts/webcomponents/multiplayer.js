@@ -122,33 +122,25 @@ export class ComponentMultiplayer extends HTMLElement {
                 console.log('GAME STATE:', e.data.game_state);
                 // TODO: This is terribly hacky
                 for (let g = 0; g < e.data.game_state.ships_to_players.length; ++g) {
-                    if (e.data.game_state.ships_to_players[g] === null && mutiplayer.ships_to_players[g] !== null) {
+                    if (e.data.game_state.ships_to_players[g] === null && Mutiplayer.ships_to_players[g] !== null) {
                         let entity_id = Multiplayer.ships_to_players[g].wasm_entity_id;
                         wasm.game_entitySetHealth(entity_id, 0);
-                        // TODO: Update position maybe?
                     } else if (e.data.game_state.ships_to_players[g] !== null && Multiplayer.ships_to_players[g] === null) {
+                        Multiplayer.ships_to_players[g] = e.data.game_state.ships_to_players[g];
                         let entity_id = e.data.game_state.ships_to_players[g].wasm_entity_id;
+                        wasm.game_entitySetHealth(entity_id, e.data.game_state.health[g]);
+                        wasm.game_entitySetPositionX(entity_id, e.data.game_state.positions[g][0]);
+                        wasm.game_entitySetPositionY(entity_id, e.data.game_state.positions[g][1]);
+                    } else {
+                        Multiplayer.ships_to_players[g] = e.data.game_state.ships_to_players[g];
+                        let entity_id = Multiplayer.ships_to_players[g].wasm_entity_id;
                         wasm.game_entitySetHealth(entity_id, e.data.game_state.health[g]);
                         wasm.game_entitySetPositionX(entity_id, e.data.game_state.positions[g][0]);
                         wasm.game_entitySetPositionY(entity_id, e.data.game_state.positions[g][1]);
                     }
                 }
-                Multiplayer.ships_to_players = e.data.game_state.ships_to_players;
-                for (let i = 0; i < Multiplayer.ships_to_players.length; ++i) {
-                    if (Multiplayer.ships_to_players[i] !== null) {
-                        let entity_id = Multiplayer.ships_to_players[i].wasm_entity_id;
-                        wasm.game_entitySetHealth(entity_id, e.data.game_state.health[i]);
-                        wasm.game_entitySetPositionX(entity_id, e.data.game_state.positions[i][0]);
-                        wasm.game_entitySetPositionY(entity_id, e.data.game_state.positions[i][1]);
-                    }
-                }
                 if (Multiplayer.inGame()) {
-                    this.shadowRoot.querySelector('#despawn').classList.remove('hidden');
-                    this.shadowRoot.querySelector('#attack').classList.remove('hidden');
-                    this.shadowRoot.querySelector('#up').classList.remove('hidden');
-                    this.shadowRoot.querySelector('#down').classList.remove('hidden');
-                    this.shadowRoot.querySelector('#left').classList.remove('hidden');
-                    this.shadowRoot.querySelector('#right').classList.remove('hidden');
+                    this.showButtons();
                 }
                 if (e.data.game_state.kraken_enabled !== Multiplayer.kraken_enabled) {
                     Multiplayer.kraken_enabled = e.data.game_state.kraken_enabled;
@@ -173,7 +165,6 @@ export class ComponentMultiplayer extends HTMLElement {
             }
             console.log('ships to players', Multiplayer.ships_to_players);
         });
-        // TODO: Potentially add client side twitch auth here
         if (window.USER) {
             Multiplayer.user = window.USER;
             Multiplayer.user.display_name = Multiplayer.user.display_name.toLowerCase();
@@ -200,17 +191,8 @@ export class ComponentMultiplayer extends HTMLElement {
                     }
                 }
             }
-            this.shadowRoot.querySelector('#despawn').classList.add('hidden');
-            this.shadowRoot.querySelector('#attack').classList.add('hidden');
-            this.shadowRoot.querySelector('#up').classList.add('hidden');
-            this.shadowRoot.querySelector('#down').classList.add('hidden');
-            this.shadowRoot.querySelector('#left').classList.add('hidden');
-            this.shadowRoot.querySelector('#right').classList.add('hidden');
-            if (role !== null) {
-                this.shadowRoot.querySelector('#enable_kraken').classList.remove('hidden');
-                this.shadowRoot.querySelector('#disable_kraken').classList.remove('hidden');
-                this.shadowRoot.querySelector('#reset').classList.remove('hidden');
-            }
+            Multiplayer.user.role = role;
+            this.hideInitialButtons();
         } else {
             const params = new Proxy(new URLSearchParams(window.location.search), {
                 get: (searchParams, prop) => searchParams.get(prop),
@@ -223,11 +205,7 @@ export class ComponentMultiplayer extends HTMLElement {
                 id: params.id,
             };
             RyansBackendSecondaryHole.init(params.login, params.username, params.id);
-            if (Multiplayer.user.role !== null) {
-                this.shadowRoot.querySelector('#enable_kraken').classList.remove('hidden');
-                this.shadowRoot.querySelector('#disable_kraken').classList.remove('hidden');
-                this.shadowRoot.querySelector('#reset').classList.remove('hidden');
-            }
+            this.hideInitialButtons();
         }
     }
 
@@ -235,6 +213,32 @@ export class ComponentMultiplayer extends HTMLElement {
     adoptedCallback() {}
     attributeChangedCallback() {}
 
+    showButtons() {
+        this.shadowRoot.querySelector('#despawn').classList.remove('hidden');
+        this.shadowRoot.querySelector('#attack').classList.remove('hidden');
+        this.shadowRoot.querySelector('#up').classList.remove('hidden');
+        this.shadowRoot.querySelector('#down').classList.remove('hidden');
+        this.shadowRoot.querySelector('#left').classList.remove('hidden');
+        this.shadowRoot.querySelector('#right').classList.remove('hidden');
+    }
+    hideInitialButtons() {
+        this.shadowRoot.querySelector('#despawn').classList.add('hidden');
+        this.shadowRoot.querySelector('#attack').classList.add('hidden');
+        this.shadowRoot.querySelector('#up').classList.add('hidden');
+        this.shadowRoot.querySelector('#down').classList.add('hidden');
+        this.shadowRoot.querySelector('#left').classList.add('hidden');
+        this.shadowRoot.querySelector('#right').classList.add('hidden');
+        if (Mutiplayer.user.role !== null) {
+            this.shadowRoot.querySelector('#enable_kraken').classList.remove('hidden');
+            this.shadowRoot.querySelector('#disable_kraken').classList.remove('hidden');
+            this.shadowRoot.querySelector('#reset').classList.remove('hidden');
+        }
+    }
+
+    // TODO: Consider that this might actually be better suited in the multiplayer.js file
+    // even though we're doing DOM querying here
+    // If we do that then we should move all the move/direction functions as well as
+    // the enable/disable kraken functions
     findOwnEntityElement() {
         let entity_layer_index = wasm.game_getCurrentWorldEntityLayer();
         // TODO: Maybe we put this in a variable in the component
@@ -297,7 +301,8 @@ export class ComponentMultiplayer extends HTMLElement {
         }
     }
 
-    // TODO: This is shared with the multiplayer_host too. Maybe create a common component or something
+    // Note: This is specific to this webcomponent so keep this function here
+    // There is no guarantee the multiplayer host component will look the same anyways
     updatePlayerList() {
         let players_element = this.shadowRoot.getElementById('players');
         players_element.innerHTML = '';
