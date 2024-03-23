@@ -8,6 +8,7 @@ import { globalStyles } from "./global-styles.js";
 import { FRAMES } from './frames.js';
 import { getRandomKey } from './helpers.js';
 import { Inputs } from './inputs.js';
+import { Editor } from './editor.js';
 
 let current_time_stamp = new Date().getTime();
 let previous_time_stamp = 0;
@@ -83,40 +84,7 @@ function tick() {
     requestAnimationFrame(tick);
 }
 
-// TODO: THIS IS ALL FOR TESTING, REMOVE THIS SOON
-window._GAME = wasm;
-window.extractMemory = function (memory_start, memory_length) {
-    let data_view = new DataView(wasm.memory.buffer, 0, wasm.memory.byteLength);
-    let data = [];
-    for (let i = 0; i < memory_length; ++i) {
-        let current_position = memory_start + (i * 2);
-        data.push(data_view.getUint16(current_position, true));
-    }
-    return data;
-}
-window.memoryToBin = function (memory_start, memory_length, file_name) {
-    let blob = generateBlob(extractMemory(memory_start, memory_length));
-    editorDownload(blob, file_name);
-};
-window.generateBlob = function (data) {
-    return new Blob([new Uint16Array(data)], {type: 'application/octet-stream'});
-};
-window.generateBlobFromJsonString = function (data) {
-    return new Blob([data], {type: 'application/json'});
-};
-window.editorDownload = function (data, file_name) {
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(data);
-
-    link.href = url;
-    link.download = file_name;
-    document.body.appendChild(link);
-    link.click();
-
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-};
-
+// TODO: Move this to ComponentGame in webcomponents folder
 export class Game extends HTMLElement {
     constructor() {
         super();

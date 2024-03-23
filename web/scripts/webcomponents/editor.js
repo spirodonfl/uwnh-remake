@@ -136,7 +136,7 @@ export class ComponentEditor extends HTMLElement {
             // TODO: START OF NEW FUNCTION PORTION
             let start = wasm.editor_getEntityMemoryLocation(entity_id);
             let length = wasm.editor_getEntityMemoryLength(entity_id);
-            let memory = extractMemory(start, length);
+            let memory = Editor.extractMemory(start, length);
             // TODO: END OF NEW FUNCTION PORTION
             memory[0] = parseInt(this.shadowRoot.getElementById('wasm_entity_id').value);
             memory[1] = parseInt(this.shadowRoot.getElementById('wasm_entity_type').value);
@@ -146,8 +146,8 @@ export class ComponentEditor extends HTMLElement {
             memory[5] = parseInt(this.shadowRoot.getElementById('wasm_entity_movement_component_on_off').value);
             memory[6] = parseInt(this.shadowRoot.getElementById('wasm_entity_attack_component_on_off').value);
             if (memory.length > 0) {
-                let entity_blob = generateBlob(memory);
-                editorDownload(entity_blob, 'entity_' + entity_id + '.bin');
+                let entity_blob = Editor.generateBlob(memory);
+                Editor.editorDownload(entity_blob, 'entity_' + entity_id + '.bin');
             } else {
                 console.error('Memory length of 0 when extracting entity!');
             }
@@ -158,7 +158,7 @@ export class ComponentEditor extends HTMLElement {
             // console.log('chosen value', e.target.value);
             let start = wasm.editor_getEntityMemoryLocation(e.target.value);
             let length = wasm.editor_getEntityMemoryLength(e.target.value);
-            let memory = extractMemory(start, length);
+            let memory = Editor.extractMemory(start, length);
             this.shadowRoot.getElementById('wasm_entity_id').value = memory[0];
             this.shadowRoot.getElementById('wasm_entity_type').value = memory[1];
             this.shadowRoot.getElementById('wasm_entity_is_collision').value = memory[2];
@@ -719,24 +719,24 @@ export class ComponentEditor extends HTMLElement {
         let current_world_index = wasm.game_getCurrentWorldIndex();
         let start = wasm.editor_getWorldMemoryLocation(current_world_index);
         let length = wasm.editor_getWorldMemoryLength(current_world_index);
-        return extractMemory(start, length);
+        return Editor.extractMemory(start, length);
     }
     extractCurrentWorldData() {
         let current_world_index = wasm.game_getCurrentWorldIndex();
         let start = wasm.editor_getWorldMemoryLocation(current_world_index);
         let length = wasm.editor_getWorldMemoryLength(current_world_index);
-        let world_data = extractMemory(start, length);
-        let world_data_as_blob = generateBlob(world_data);
-        editorDownload(world_data_as_blob, 'world_' + current_world_index + '_data.bin');
+        let world_data = Editor.extractMemory(start, length);
+        let world_data_as_blob = Editor.generateBlob(world_data);
+        Editor.editorDownload(world_data_as_blob, 'world_' + current_world_index + '_data.bin');
     }
     extractCurrentWorldLayerData() {
         let layer_id = this.current_layer;
         let current_world_index = wasm.game_getCurrentWorldIndex();
         let start = wasm.editor_getWorldLayerMemoryLocation(current_world_index, layer_id);
         let length = wasm.editor_getWorldLayerMemoryLength(current_world_index, layer_id);
-        let layer_data = extractMemory(start, length);
-        let layer_data_as_blob = generateBlob(layer_data);
-        editorDownload(layer_data_as_blob, 'world_' + current_world_index + '_layer_' + layer_id + '.bin');
+        let layer_data = Editor.extractMemory(start, length);
+        let layer_data_as_blob = Editor.generateBlob(layer_data);
+        Editor.editorDownload(layer_data_as_blob, 'world_' + current_world_index + '_layer_' + layer_id + '.bin');
     }
     extractImageData() {
         // TODO: Later on, implement image data per world so it's not a crazy big JSON file
@@ -744,7 +744,7 @@ export class ComponentEditor extends HTMLElement {
         // let image_data = JSON.stringify(GLOBALS.IMAGE_DATA[current_world_index]);
         let image_data = JSON.stringify(globals.IMAGE_DATA);
         let image_data_as_blob = new Blob([image_data], {type: 'application/json'});
-        editorDownload(image_data_as_blob, 'image_data.json');
+        Editor.editorDownload(image_data_as_blob, 'image_data.json');
     }
 
     addCollisionToCurrentWorld() {

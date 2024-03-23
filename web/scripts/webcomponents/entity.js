@@ -100,7 +100,7 @@ export class Entity extends HTMLElement {
         if (frame === null || frame === undefined) {
             frame = 0;
         }
-        var current_world_index = _GAME.game_getCurrentWorldIndex();
+        var current_world_index = wasm.game_getCurrentWorldIndex();
         if (!globals.IMAGE_DATA[current_world_index]) {
             return null;
         }
@@ -114,7 +114,7 @@ export class Entity extends HTMLElement {
         // TODO: Real entities (npcs and characters and other "moving" things should have a default image)
     }
     getImageCoordsFrames(layer, id) {
-        var current_world_index = _GAME.game_getCurrentWorldIndex();
+        var current_world_index wasm.game_getCurrentWorldIndex();
         if (!globals.IMAGE_DATA[current_world_index]) {
             return null;
         }
