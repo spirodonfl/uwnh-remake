@@ -10,6 +10,10 @@ import { getRandomKey } from './helpers.js';
 import { Inputs } from './inputs.js';
 import { Editor } from './editor.js';
 
+class ClassGame {}
+const Game = new ClassGame();
+// export { Game };
+
 // TODO: Move this to ComponentGame in webcomponents folder
 export class Game extends HTMLElement {
     constructor() {

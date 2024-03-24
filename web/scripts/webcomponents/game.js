@@ -25,7 +25,7 @@ export class Game extends HTMLElement {
             console.log('GAME EVENT', e);
         });
 
-        this.shadowRoot.getElementById('mode').innerText = globals.MODES[globals.MODE];
+        this.updateMode();
 
         // TODO: This is kinda weird to put here, it's not the multiplayer file, but we need it here otherwise nothing initializes
         if (window.USER) {
