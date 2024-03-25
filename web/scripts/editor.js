@@ -7,12 +7,6 @@ class ClassEditor {
         }
         ClassEditor.instance = this;
     }
-    change() {
-        this.mutableProperty = 22;
-    }
-    test() {
-        console.log('Editor.test');
-    }
     createNewEntity(entity_type, entity_id) {
         if (entity_type === undefined) {
             console.error('entity_type is undefined');

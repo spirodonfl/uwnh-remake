@@ -1,7 +1,7 @@
-import { Entity } from '../entity.js';
+import { ComponentEntity } from './entity.js';
 import { globalStyles } from '../global-styles.js';
 
-export class ViewportEntity extends Entity {
+export class ComponentViewportEntity extends ComponentEntity {
     hideValue() {
         this.shadowRoot.getElementById('data').classList.add('hidden');
     }
@@ -39,4 +39,4 @@ export class ViewportEntity extends Entity {
         `;
     }
 }
-customElements.define('viewport-entity-component', ViewportEntity);
+customElements.define('viewport-entity-component', ComponentViewportEntity);

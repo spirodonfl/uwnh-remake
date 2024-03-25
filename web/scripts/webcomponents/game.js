@@ -1,16 +1,19 @@
-import { wasm } from './injector_wasm.js';
-import './webcomponents/entity.js';
-import './webcomponents/collision-entity.js';
-import './webcomponents/viewport-entity.js';
-import { globals, possibleKrakenImages } from './globals.js';
-import '../components/draggable.js';
-import { globalStyles } from "./global-styles.js";
-import { FRAMES } from './frames.js';
-import { getRandomKey } from './helpers.js';
-import { Inputs } from './inputs.js';
-import { Editor } from './editor.js';
+import { wasm } from '../injector_wasm.js';
+import './entity.js';
+import './collision-entity.js';
+import './viewport-entity.js';
+import { globals, possibleKrakenImages } from '../globals.js';
+import './draggable.js';
+import { globalStyles } from "../global-styles.js";
+import { FRAMES } from '../frames.js';
+import { getRandomKey } from '../helpers.js';
+import { Inputs } from '../inputs.js';
+import { Editor } from '../editor.js';
+import { Game } from '../game.js';
+import { EVENTBUS } from '../eventbus.js';
+import { Debug } from '../debug.js';
 
-export class Game extends HTMLElement {
+export class ComponentGame extends HTMLElement {
     constructor() {
         super();
         this.attachShadow({mode: 'open'});
@@ -18,25 +21,90 @@ export class Game extends HTMLElement {
 
     connectedCallback() {
         this.render();
+        this.watchResize();
 
         FRAMES.requestAnimationFrame();
 
         globals.EVENTBUS.addEventListener('event', (e) => {
-            console.log('GAME EVENT', e);
+            Debug.log({message: 'game-component event', event: e});
+            switch (e.input.event_id) {
+                case 'assets_loaded':
+                    wasm.game_initializeGame();
+                    this.watchResize();
+                    break;
+                case 'toggle_main_menu':
+                    this.toggleMainMenuDisplay();
+                    break;
+                case 'move_up':
+                    Game.mainPlayerMoveUp();
+                    break;
+                case 'move_down':
+                    Game.mainPlayerMoveDown();
+                    break;
+                case 'move_left':
+                    Game.mainPlayerMoveLeft();
+                    break;
+                case 'move_right':
+                    Game.mainPlayerMoveRight();
+                    break;
+                case 'move_camera_up':
+                    Game.moveCameraUp();
+                    break;
+                case 'move_camera_down':
+                    Game.moveCameraDown();
+                    break;
+                case 'move_camera_left':
+                    Game.moveCameraLeft();
+                    break;
+                case 'move_camera_right':
+                    Game.moveCameraRight();
+                    break;
+                case 'mode_change':
+                    this.updateMode();
+                    break;
+                case 'attack':
+                    Game.mainPlayerAttack();
+                    break;
+                case 'connect_to_multiplayer':
+                    var multiplayer_element = document.querySelector('multiplayer-component');
+                    if (!multiplayer_element) {
+                        multiplayer_element = document.createElement('multiplayer-component');
+                        document.body.appendChild(multiplayer_element);
+                    }
+                    break;
+                case 'connect_to_multiplayer_as_host':
+                    var multiplayer_host_element = document.querySelector('multiplayer-host-component');
+                    if (!multiplayer_host_element) {
+                        multiplayer_host_element = document.createElement('multiplayer-host-component');
+                        document.body.appendChild(multiplayer_host_element);
+                    }
+                    break;
+            }
         });
+        
+        this.checkMultiplayer();
 
         this.updateMode();
 
-        // TODO: This is kinda weird to put here, it's not the multiplayer file, but we need it here otherwise nothing initializes
+        FRAMES.addRunOnFrames(10, false, () => {
+            let entity_components = this.shadowRoot.querySelectorAll('entity-component');
+            for (let e = 0; e < entity_components.length; ++e) {
+                if (entity_components[e].auto_animate) {
+                    entity_components[e].updateAnimationFrame();
+                }
+            }
+        });
+    }
+
+    checkMultiplayer() {
         if (window.USER) {
             var multiplayer_element = document.querySelector('multiplayer-component');
             if (!multiplayer_element) {
                 multiplayer_element = document.createElement('multiplayer-component');
                 document.body.appendChild(multiplayer_element);
             }
-            // TODO: functionize this better than what current changeMode is
             globals.MODE = globals.MODES.indexOf('MULTIPLAYER');
-            globals.EVENTBUS.triggerEvent({
+            EVENTBUS.triggerEvent({
                 event_id: 'mode_change',
                 mode: globals.MODES[globals.MODE]
             });
@@ -50,33 +118,25 @@ export class Game extends HTMLElement {
                 multiplayer_host_element = document.createElement('multiplayer-host-component');
                 document.body.appendChild(multiplayer_host_element);
             }
-            // TODO: functionize this better than what current changeMode is
             globals.MODE = globals.MODES.indexOf('MULTIPLAYER_HOST');
-            globals.EVENTBUS.triggerEvent({
+            EVENTBUS.triggerEvent({
                 event_id: 'mode_change',
                 mode: globals.MODES[globals.MODE]
             });
         }
-
-        FRAMES.addRunOnFrames(10, false, () => {
-            let entity_components = this.shadowRoot.querySelectorAll('entity-component');
-            for (let e = 0; e < entity_components.length; ++e) {
-                if (entity_components[e].auto_animate) {
-                    entity_components[e].updateAnimationFrame();
-                }
-            }
-        });
     }
 
     renderGame() {
         // TODO: Be smart. Only remove components you need and update existing ones
-        var entity_components = this.shadowRoot.getElementById('view').querySelectorAll('entity-component');
+        let entity_components = this.shadowRoot.getElementById('view').querySelectorAll('entity-component');
         for (var i = 0; i < entity_components.length; ++i) {
             entity_components[i].remove();
         }
 
-        for (let i = 0; i < this.static_layers[0].length; ++i) {
-            if (this.static_layers[0][i] !== null && this.static_layers[0][i][0] === 1) {
+        let world_index = wasm.game_getCurrentWorldIndex();
+        let world_layers = Game.static_layers[world_index];
+        for (let i = 0; i < world_layers.length; ++i) {
+            if (world_layers[i] !== null && world_layers[i].should_render === true) {
                 let static_layer = this.shadowRoot.getElementById('static-layer-' + i);
                 if (static_layer) {
                     let camera_x = wasm.viewport_getCameraX();
@@ -85,8 +145,8 @@ export class Game extends HTMLElement {
                     static_layer.style.width = (wasm.viewport_getSizeWidth() * 64) + 'px';
                     static_layer.style.height = (wasm.viewport_getSizeHeight() * 64) + 'px';
                 } else {
-                    this.static_layers[0][i][1] = 1;
-                    static_layer = this.createStaticLayer(i, this.static_layers[0][i][2]);
+                    world_layers[i].rendered = true;
+                    static_layer = Game.createStaticLayer(i, world_layers[i].image_path);
                     static_layer.style.width = (wasm.viewport_getSizeWidth() * 64) + 'px';
                     static_layer.style.height = (wasm.viewport_getSizeHeight() * 64) + 'px';
                     this.shadowRoot.getElementById('view').appendChild(static_layer);
@@ -98,15 +158,15 @@ export class Game extends HTMLElement {
         var x = 0;
         // var cwi = wasm.game_getCurrentWorldIndex();
         // if (DOM.width * DOM.height) !== wasm.viewport_getLength() // panic
-        for (var i = 0; i < (this.width * this.height); ++i) {
-            var viewport_y = Math.floor(i / this.width);
-            var viewport_x = i % this.width;
+        for (var i = 0; i < (Game.width * Game.height); ++i) {
+            var viewport_y = Math.floor(i / Game.width);
+            var viewport_x = i % Game.width;
             if (wasm.viewport_getData(viewport_x, viewport_y)) {
                 var total_layers = wasm.game_getCurrentWorldTotalLayers();
                 for (var layer = 0; layer < total_layers; ++layer) {
                     if (layer === wasm.game_getCurrentWorldCollisionLayer()) { continue; } 
 
-                    if (this.static_layers[0][layer] && this.static_layers[0][layer][1] === 1) { continue; }
+                    if (world_layers[layer] && world_layers[layer].rendered === 1) { continue; }
 
                     if (layer === wasm.game_getCurrentWorldEntityLayer()) {
                         // TODO: Deal with entities properly here
@@ -148,7 +208,7 @@ export class Game extends HTMLElement {
             // const entry = entries[0];
             // console.log(entry.contentRect);
             this.sizeView();
-            wasm.viewport_setSize(this.width, this.height);
+            wasm.viewport_setSize(Game.width, Game.height)
             wasm.game_loadWorld(wasm.game_getCurrentWorldIndex());
             // Dispatch an event to let the editor know the
             // size of the viewport
@@ -157,18 +217,18 @@ export class Game extends HTMLElement {
             // of bounds error in WASM/ZIG
             // TODO: Eventually replace this with triggerEvent
             globals.EVENTBUS.triggerNamedEvent('viewport-size', {
-                width: this.width,
-                height: this.height,
-                x_padding: this.x_padding,
-                y_padding: this.y_padding
+                width: Game.width,
+                height: Game.height,
+                x_padding: Game.x_padding,
+                y_padding: Game.y_padding
             });
             globals.EVENTBUS.triggerEvent({
                 event_id: 'viewport-size',
                 event: {
-                    width: this.width,
-                    height: this.height,
-                    x_padding: this.x_padding,
-                    y_padding: this.y_padding
+                    width: Game.width,
+                    height: Game.height,
+                    x_padding: Game.x_padding,
+                    y_padding: Game.y_padding
                 }
             });
             this.renderGame();
@@ -181,7 +241,6 @@ export class Game extends HTMLElement {
     attributeChangedCallback() {}
 
     updateMode() {
-        // TODO: Should run this on mode_change event
         this.shadowRoot.getElementById('mode').innerText = globals.MODES[globals.MODE];
     }
 
@@ -224,9 +283,11 @@ export class Game extends HTMLElement {
         root.style.setProperty('--scale', globals.SCALE);
 
         // console.trace({full_width, full_height});
+        
+        let scaled_size = globals.SIZE * globals.SCALE;
 
-        let x = Math.floor(full_width / (globals.SIZE * globals.SCALE));
-        let y = Math.floor(full_height / (globals.SIZE * globals.SCALE));
+        let x = Math.floor(full_width / scaled_size);
+        let y = Math.floor(full_height / scaled_size);
         // TODO: What is this magic number 6?
         if (x > 6)
         {
@@ -236,19 +297,19 @@ export class Game extends HTMLElement {
         {
             --y;
         }
-        // TODO: Clean this up, lots of repetitious code
-        let x_padding = (full_width - (x * (globals.SIZE * globals.SCALE))) / 2;
-        let y_padding = (full_height - (y * (globals.SIZE * globals.SCALE))) / 2;
+        let x_scaled_size = x * scaled_size;
+        let y_scaled_size = y * scaled_size;
+        let x_padding = (full_width - x_scaled_size) / 2;
+        let y_padding = (full_height - y_scaled_size) / 2;
         this.shadowRoot.getElementById('view').style.margin = y_padding + 'px ' + x_padding + 'px';
-        this.shadowRoot.getElementById('view').style.width = (x * (globals.SIZE * globals.SCALE)) + 'px';
-        this.shadowRoot.getElementById('view').style.height = (y * (globals.SIZE * globals.SCALE)) + 'px';
-        this.shadowRoot.getElementById('clickable_view').style.width = (x * (globals.SIZE * globals.SCALE)) + 'px';
-        this.shadowRoot.getElementById('clickable_view').style.height = (y * (globals.SIZE * globals.SCALE)) + 'px';
-        // TODO: Update the main game class, no this component
-        this.width = x;
-        this.height = y;
-        this.x_padding = x_padding;
-        this.y_padding = y_padding;
+        this.shadowRoot.getElementById('view').style.width = x_scaled_size + 'px';
+        this.shadowRoot.getElementById('view').style.height = y_scaled_size + 'px';
+        this.shadowRoot.getElementById('clickable_view').style.width = x_scaled_size + 'px';
+        this.shadowRoot.getElementById('clickable_view').style.height = y_scaled_size + 'px';
+        Game.width = x;
+        Game.height = y;
+        Game.x_padding = x_padding;
+        Game.y_padding = y_padding;
     }
 
     render() {
@@ -308,4 +369,4 @@ export class Game extends HTMLElement {
         `;
     }
 }
-customElements.define('game-component', Game)
+customElements.define('game-component', ComponentGame)

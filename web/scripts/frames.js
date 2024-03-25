@@ -1,4 +1,4 @@
-import { wasm } from './wasm.js';
+import { wasm } from './injector_wasm.js';
 
 let current_time_stamp = new Date().getTime();
 let previous_time_stamp = 0;

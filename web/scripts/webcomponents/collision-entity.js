@@ -1,6 +1,6 @@
-import { Entity } from './entity.js';
+import { ComponentEntity } from './entity.js';
 
-export class CollisionEntity extends Entity {
+export class ComponentCollisionEntity extends ComponentEntity {
     render() {
         this.shadowRoot.innerHTML = `
             <style>
@@ -18,4 +18,4 @@ export class CollisionEntity extends Entity {
         `;
     }
 }
-customElements.define('collision-entity-component', CollisionEntity);
+customElements.define('collision-entity-component', ComponentCollisionEntity);

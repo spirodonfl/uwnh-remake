@@ -1,9 +1,10 @@
 import { wasm } from '../injector_wasm.js';
-import '../draggable.js';
+import '../webcomponents/draggable.js';
 import { globals } from '../globals.js';
 import { globalStyles } from '../global-styles.js';
 import { addEventListenerWithRemoval, removeAndReorder, swapElements } from '../helpers.js';
 import { Editor } from '../editor.js';
+import { Game } from '../game.js';
 
 export class ComponentEditor extends HTMLElement {
     constructor() {
@@ -119,14 +120,15 @@ export class ComponentEditor extends HTMLElement {
 
             this.updateEntitiesList();
 
+            let image_data = Game.getAssetData('image_data');
             // Make sure IMAGE_DATA has an entry for each layer in the world
-            if (!globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()]) {
-                globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()] = [];
+            if (!image_data[wasm.game_getCurrentWorldIndex()]) {
+                image_data[wasm.game_getCurrentWorldIndex()] = [];
             }
             let total_layers = wasm.game_getCurrentWorldTotalLayers();
             for (let i = 0; i < total_layers; ++i) {
-                if (!globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()][i]) {
-                    globals.IMAGE_DATA[wasm.game_getCurrentWorldIndex()][i] = [];
+                if (!image_data[wasm.game_getCurrentWorldIndex()][i]) {
+                    image_data[wasm.game_getCurrentWorldIndex()][i] = [];
                 }
             }
         });
@@ -200,6 +202,7 @@ export class ComponentEditor extends HTMLElement {
             let selected_atlas_image = this.shadowRoot.getElementById('current_selected_atlas_img');
             selected_atlas_image.style.width = '64px';
             selected_atlas_image.style.height = '64px';
+            // TODO: Replace ATLAS_PNG_FILENAME with Game.getAssetPath('atlas')
             selected_atlas_image.style.backgroundImage = `url("${globals.ATLAS_PNG_FILENAME}")`;
             selected_atlas_image.style.backgroundPosition = '-' + (x * 64) + 'px -' + (y * 64) + 'px';
         });

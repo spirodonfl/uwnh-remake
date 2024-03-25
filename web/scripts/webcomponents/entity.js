@@ -1,8 +1,10 @@
 import { wasm } from '../injector_wasm.js';
-import { globalStyles } from "../global-styles.js";
-import { globals } from "../globals.js";
+import { globalStyles } from '../global-styles.js';
+import { globals } from '../globals.js';
+import { Game } from '../game.js';
+import { Debug } from '../debug.js';
 
-export class Entity extends HTMLElement {
+export class ComponentEntity extends HTMLElement {
     constructor() {
         super();
         this.entity_id = null;
@@ -100,31 +102,33 @@ export class Entity extends HTMLElement {
         if (frame === null || frame === undefined) {
             frame = 0;
         }
-        var current_world_index = wasm.game_getCurrentWorldIndex();
-        if (!globals.IMAGE_DATA[current_world_index]) {
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        let image_data = Game.getAssetData('image_data');
+        if (!image_data[current_world_index]) {
             return null;
         }
-        if (!globals.IMAGE_DATA[current_world_index][layer]) {
+        if (!image_data[current_world_index][layer]) {
             return null;
         }
-        if (!globals.IMAGE_DATA[current_world_index][layer][id]) {
+        if (!image_data[current_world_index][layer][id]) {
             return null;
         }
-        return globals.IMAGE_DATA[current_world_index][layer][id][frame];
+        return image_data[current_world_index][layer][id][frame];
         // TODO: Real entities (npcs and characters and other "moving" things should have a default image)
     }
     getImageCoordsFrames(layer, id) {
-        var current_world_index wasm.game_getCurrentWorldIndex();
-        if (!globals.IMAGE_DATA[current_world_index]) {
+        let current_world_index = wasm.game_getCurrentWorldIndex();
+        let image_data = Game.getAssetData('image_data');
+        if (!image_data[current_world_index]) {
             return null;
         }
-        if (!globals.IMAGE_DATA[current_world_index][layer]) {
+        if (!image_data[current_world_index][layer]) {
             return null;
         }
-        if (!globals.IMAGE_DATA[current_world_index][layer][id]) {
+        if (!image_data[current_world_index][layer][id]) {
             return null;
         }
-        return Object.keys(globals.IMAGE_DATA[current_world_index][layer][id]).length;
+        return Object.keys(image_data[current_world_index][layer][id]).length;
         // TODO: Real entities (npcs and characters and other "moving" things should have a default image)
     }
 
@@ -157,7 +161,7 @@ export class Entity extends HTMLElement {
     render() {
         var image_frame_coords = this.getImageCoords(this.layer, this.entity_id, 0);
         if (image_frame_coords !== null && image_frame_coords !== undefined) {
-            this.style.backgroundImage = `url("${globals.ATLAS_PNG_FILENAME}")`;
+            this.style.backgroundImage = `url("${Game.getAssetPath('atlas')}")`;
             this.style.backgroundPosition = '-' + image_frame_coords[0] + 'px -' + image_frame_coords[1] + 'px';
         }
         this.shadowRoot.innerHTML = `
@@ -199,4 +203,4 @@ export class Entity extends HTMLElement {
         `;
     }
 }
-customElements.define('entity-component', Entity);
+customElements.define('entity-component', ComponentEntity);

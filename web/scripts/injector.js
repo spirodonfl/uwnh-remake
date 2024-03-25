@@ -50,15 +50,14 @@
 // - matlab
 // GLEAM AS A TREASURE ITEM
 
-import { Test } from './test.js';
 import './webcomponents/cheatsheet.js';
-// TODO: convert this webcomponent and re-import properly (ComponentGame)
-import './game.js';
 import './webcomponents/editor.js';
+import './webcomponents/game.js';
+import { Game } from './game.js';
 import { globals } from './globals.js';
 import { RyansBackendMainHole } from './websockets/ryans-backend-main-hole.js';
 import { RyansBackendSecondaryHole } from './websockets/ryans-backend-secondary-hole.js';
-
+import { Debug } from './debug.js';
 import './inputs.js';
 import './input-gamepad.js';
 
@@ -97,11 +96,14 @@ document.body.style.overflow = 'hidden';
 var cheatsheet_element = document.createElement('cheatsheet-component');
 document.body.appendChild(cheatsheet_element);
 
-// TODO: Replace this with a class based Game.init()
-// function call which injects the component into the DOM
-// only once assets have been loaded (like atlas)
-var game_element = document.createElement('game-component');
-document.body.appendChild(game_element);
+Debug.init();
+globals.EVENTBUS.addEventListener('event', function(e) {
+    if (e.input.event_id === 'assets_loaded') {
+        var game_element = document.createElement('game-component');
+        document.body.appendChild(game_element);
+    }
+});
+Game.init();
 
 var editor_element = document.createElement('editor-component');
 document.body.appendChild(editor_element);

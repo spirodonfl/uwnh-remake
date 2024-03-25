@@ -4,7 +4,6 @@ import { globals, possibleKrakenImages } from '../globals.js';
 import { globalStyles } from "../global-styles.js";
 import { wasm } from '../injector_wasm.js';
 import { FRAMES } from '../frames.js';
-// TODO: Actually use this class and start porting stuff over
 import { Multiplayer } from '../multiplayer.js';
 
 export class ComponentMultiplayer extends HTMLElement {
