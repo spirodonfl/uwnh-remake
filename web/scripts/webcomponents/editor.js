@@ -29,8 +29,6 @@ export class ComponentEditor extends HTMLElement {
         // Note: this is great and all but what if you're NOT in the editor-component
         // but you ARE in editor mode? You'd still want to listen to these events
         // not even document.querySelector('editor-component').focus() fixes this
-
-        console.log('editor: handleInput');
     }
 
     connectedCallback() {
@@ -38,8 +36,6 @@ export class ComponentEditor extends HTMLElement {
         this.renderViewportData();
 
         globals.EVENTBUS.addEventListener('event', (e) => {
-            console.log('editor: event', e);
-
             switch (e.input.event_id) {
                 case 'toggle_editor':
                     this.shadowRoot.getElementById('editor').toggleVisibility();
@@ -175,13 +171,11 @@ export class ComponentEditor extends HTMLElement {
                 let entity_blob = Editor.generateBlob(memory);
                 Editor.editorDownload(entity_blob, 'entity_' + entity_id + '.bin');
             } else {
-                console.error('Memory length of 0 when extracting entity!');
+                Debug.log('Memory length of 0 when extracting entity!', 'error');
             }
         });
         this.shadowRoot.getElementById('entity_id').addEventListener('change', (e) => {
             // TODO: This event is editing_entity_id
-            // console.log('entity_id chosen', e);
-            // console.log('chosen value', e.target.value);
             let start = wasm.editor_getEntityMemoryLocation(e.target.value);
             let length = wasm.editor_getEntityMemoryLength(e.target.value);
             let memory = Editor.extractMemory(start, length);
@@ -198,7 +192,6 @@ export class ComponentEditor extends HTMLElement {
             let original_y = e.offsetY;
             let x = Math.floor(original_x / 64);
             let y = Math.floor(original_y / 64);
-            // console.log({offsetX: e.offsetX, offsetY: e.offsetY, x, y});
             this.last_atlas_click.x = x;
             this.last_atlas_click.y = y;
             let selected_atlas_image = this.shadowRoot.getElementById('current_selected_atlas_img');
@@ -231,8 +224,8 @@ export class ComponentEditor extends HTMLElement {
     }
 
     renderViewportData() {
+        let game_component = document.querySelector('game-component');
         if (globals.MODES.indexOf('EDITOR') === globals.MODE) {
-            let game_component = document.querySelector('game-component');
             let viewport_entity_components = game_component.shadowRoot.getElementById('view').querySelectorAll('viewport-entity-component');
             for (let i = 0; i < viewport_entity_components.length; ++i) {
                 viewport_entity_components[i].remove();
@@ -268,6 +261,15 @@ export class ComponentEditor extends HTMLElement {
                     game_component.shadowRoot.getElementById('view').appendChild(viewport_entity);
                 }
             }
+        } else {
+            let viewport_entity_components = game_component.shadowRoot.getElementById('view').querySelectorAll('viewport-entity-component');
+            for (let i = 0; i < viewport_entity_components.length; ++i) {
+                viewport_entity_components[i].remove();
+            }
+            let collision_entity_components = game_component.shadowRoot.getElementById('view').querySelectorAll('collision-entity-component');
+            for (let i = 0; i < collision_entity_components.length; ++i) {
+                collision_entity_components[i].remove();
+            }
         }
     }
 
@@ -278,7 +280,6 @@ export class ComponentEditor extends HTMLElement {
     }
 
     onViewportSize(e) {
-        console.log('onViewportSize', e);
         let viewport_size = e;
         // TODO: clickable_view should be a separate component
         this.shadowRoot.getElementById('clickable_view').style.width = (viewport_size.width * (globals.SIZE * globals.SCALE)) + 'px';
@@ -296,7 +297,6 @@ export class ComponentEditor extends HTMLElement {
 
     updateEntitiesList() {
         let entities = wasm.game_getEntitiesLength();
-        console.log('updateEntitiesList->count', entities);
         for (let i = 0; i < entities; ++i) {
             let entity_id = wasm.game_getEntityIdByIndex(i);
             if (!this.shadowRoot.getElementById("entity_id_" + entity_id)) {
@@ -438,9 +438,7 @@ export class ComponentEditor extends HTMLElement {
     addFrame() {
         if (this.last_image_data !== null) {
             let frames = Object.keys(this.last_image_data).length;
-            console.log('last_image_data->frames', [this.last_image_data, frames]);
             this.last_image_data[frames] = [this.last_image_data[0][0], this.last_image_data[0][1]];
-            console.log('last_image_data->frames', [this.last_image_data, frames]);
 
             let f = frames;
             // TODO: DRY
@@ -523,7 +521,6 @@ export class ComponentEditor extends HTMLElement {
     }
 
     showLayerValues() {
-        console.log('showLayerValues');
         let components = document.querySelector('game-component').shadowRoot.querySelectorAll('viewport-entity-component');
         for (let e = 0; e < components.length; ++e) {
             components[e].showValue();
@@ -534,7 +531,6 @@ export class ComponentEditor extends HTMLElement {
         }
     }
     hideLayerValues() {
-        console.log('hideLayerValues');
         let components = document.querySelector('game-component').shadowRoot.querySelectorAll('viewport-entity-component');
         for (let e = 0; e < components.length; ++e) {
             components[e].hideValue();
@@ -546,7 +542,6 @@ export class ComponentEditor extends HTMLElement {
     }
 
     listWorldLayers() {
-        console.log('listWorldLayers');
         let total_layers = wasm.game_getCurrentWorldTotalLayers();
         let world_layers_list = this.shadowRoot.getElementById('world_layers_list');
         // TODO: Implement this listener method everywhere else
@@ -568,7 +563,6 @@ export class ComponentEditor extends HTMLElement {
             let layer_type = 'G';
             let is_entity_layer = false;
             let is_collision_layer = false;
-            console.log('Current entity layer', wasm.game_getCurrentWorldEntityLayer());
             if (i === wasm.game_getCurrentWorldEntityLayer()) {
                 is_entity_layer = true;
                 layer_type = 'E';
@@ -608,7 +602,6 @@ export class ComponentEditor extends HTMLElement {
                 } else if (buttons[b] === 'layer_list_move_up') {
                     listener = addEventListenerWithRemoval(button, 'click', (e) => {
                         let current_layer = parseInt(e.target.getAttribute('layer-id'));
-                        console.log('layer_list_move_up, current_layer', current_layer);
                         if (current_layer > 0) {
                             wasm.editor_moveLayer(0, current_layer, (current_layer - 1));
                             // TODO: Add current_world_index here
@@ -621,7 +614,6 @@ export class ComponentEditor extends HTMLElement {
                 } else if (buttons[b] === 'layer_list_move_down') {
                     listener = addEventListenerWithRemoval(button, 'click', (e) => {
                         let current_layer = parseInt(e.target.getAttribute('layer-id'));
-                        console.log('layer_list_move_down, current_layer', current_layer);
                         // TODO: Ideally we keep total_layers contained within this function
                         if (current_layer < (total_layers - 1)) {
                             wasm.editor_moveLayer(0, current_layer, (current_layer + 1));
@@ -635,7 +627,6 @@ export class ComponentEditor extends HTMLElement {
                 } else if (buttons[b] === 'layer_list_set_as_collision_layer') {
                     listener = addEventListenerWithRemoval(button, 'click', (e) => {
                         let current_layer = parseInt(e.target.getAttribute('layer-id'));
-                        console.log('layer_list_set_as_collision_layer, current_layer', current_layer);
                         wasm.game_setCurrentWorldCollisionLayer(current_layer);
                         this.listWorldLayers();
                         this.renderViewportData();
@@ -643,7 +634,6 @@ export class ComponentEditor extends HTMLElement {
                 } else if (buttons[b] === 'layer_list_set_as_entity_layer') {
                     listener = addEventListenerWithRemoval(button, 'click', (e) => {
                         let current_layer = parseInt(e.target.getAttribute('layer-id'));
-                        console.log('layer_list_set_as_entity_layer, current_layer', current_layer);
                         wasm.game_setCurrentWorldEntityLayer(current_layer);
                         this.listWorldLayers();
                         this.renderViewportData();
@@ -747,9 +737,7 @@ export class ComponentEditor extends HTMLElement {
     }
     extractImageData() {
         // TODO: Later on, implement image data per world so it's not a crazy big JSON file
-        // let current_world_index = wasm.game_getCurrentWorldIndex();
-        // let image_data = JSON.stringify(GLOBALS.IMAGE_DATA[current_world_index]);
-        let image_data = JSON.stringify(globals.IMAGE_DATA);
+        let image_data = Game.getAssetData('image_data');
         let image_data_as_blob = new Blob([image_data], {type: 'application/json'});
         Editor.editorDownload(image_data_as_blob, 'image_data.json');
     }

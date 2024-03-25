@@ -32,11 +32,7 @@ class ClassDebug {
             this.messages[type].shift();
         }
         if (this.debug) {
-            if (type === 'trace') {
-                console.trace(message);
-            } else {
-                console.log(message);
-            }
+            console.trace(message);
         }
     }
     breakpoint(message) {

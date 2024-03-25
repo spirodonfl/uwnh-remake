@@ -32,6 +32,15 @@ Inputs.ALL = [
         ctrlKey: false,
         gamepadButton: 8,
     },
+    {
+        description: 'Change Modes',
+        event_id: 'mode_change',
+        code: 'KeyM',
+        friendlyCode: 'SHIFT+M',
+        shiftKey: true,
+        ctrlKey: false,
+        gamepadButton: null,
+    },
 ];
 
 Inputs.EDITOR = [
@@ -373,15 +382,6 @@ Inputs.GAME = [
         code: 'ArrowRight',
         friendlyCode: '→',
         shiftKey: false,
-        ctrlKey: false,
-        gamepadButton: null,
-    },
-    {
-        description: 'Change Modes',
-        event_id: 'change_modes',
-        code: 'KeyM',
-        friendlyCode: 'SHIFT+M',
-        shiftKey: true,
         ctrlKey: false,
         gamepadButton: null,
     },

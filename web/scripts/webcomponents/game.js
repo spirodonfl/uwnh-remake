@@ -60,6 +60,10 @@ export class ComponentGame extends HTMLElement {
                     Game.moveCameraRight();
                     break;
                 case 'mode_change':
+                    ++globals.MODE;
+                    if (globals.MODE >= globals.MODES.length) {
+                        globals.MODE = 0;
+                    }
                     this.updateMode();
                     break;
                 case 'attack':
@@ -166,7 +170,7 @@ export class ComponentGame extends HTMLElement {
                 for (var layer = 0; layer < total_layers; ++layer) {
                     if (layer === wasm.game_getCurrentWorldCollisionLayer()) { continue; } 
 
-                    if (world_layers[layer] && world_layers[layer].rendered === 1) { continue; }
+                    if (world_layers[layer] && world_layers[layer].rendered === true) { continue; }
 
                     if (layer === wasm.game_getCurrentWorldEntityLayer()) {
                         // TODO: Deal with entities properly here

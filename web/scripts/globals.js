@@ -3,7 +3,7 @@ import { EVENTBUS } from './eventbus.js';
 export const globals = {
     SCALE: 2,
     SIZE: 32,
-    MODE: 2,
+    MODE: 1,
     MODES: ['ALL', 'GAME', 'EDITOR', 'MULTIPLAYER', 'MULTIPLAYER_HOST'],
     EVENTBUS: new EVENTBUS(),
 };
