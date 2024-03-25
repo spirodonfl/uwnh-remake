@@ -151,6 +151,7 @@ class ClassGame {
         wasm.messages_moveDown(1, 0);
     }
     mainPlayerMoveLeft() {
+        Debug.log({message: 'mainPlayerMoveLeft'}, 'trace');
         wasm.messages_moveLeft(1, 0);
     }
     mainPlayerMoveRight() {

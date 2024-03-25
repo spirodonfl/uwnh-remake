@@ -34,6 +34,7 @@ export class ComponentEditor extends HTMLElement {
 
     connectedCallback() {
         this.render();
+        this.renderViewportData();
         globals.EVENTBUS.addEventListener('event', (e) => {
             console.log('editor: event', e);
 
@@ -108,29 +109,28 @@ export class ComponentEditor extends HTMLElement {
                     this.hideLayerValues();
                 }
             }
-            if (e.input.event_id === 'viewport_size') {}
+            if (e.input.event_id === 'viewport_size') {
+                this.onViewportSize(e);
+
+                this.updateEntitiesList();
+
+                let image_data = Game.getAssetData('image_data');
+                // Make sure IMAGE_DATA has an entry for each layer in the world
+                if (!image_data[wasm.game_getCurrentWorldIndex()]) {
+                    image_data[wasm.game_getCurrentWorldIndex()] = [];
+                }
+                let total_layers = wasm.game_getCurrentWorldTotalLayers();
+                for (let i = 0; i < total_layers; ++i) {
+                    if (!image_data[wasm.game_getCurrentWorldIndex()][i]) {
+                        image_data[wasm.game_getCurrentWorldIndex()][i] = [];
+                    }
+                }
+            }
             if (e.input.event_id === 'extract_current_entity') {}
             if (e.input.event_id === 'editing_entity_id') {}
             if (e.input.event_id === 'editor_game_click') {}
             if (e.input.event_id === 'apply_image_data_from_atlas_to_id') {}
             if (e.input.event_id === 'atlas_image_click') {}
-        });
-        globals.EVENTBUS.addEventListener('viewport-size', (e) => {
-            this.onViewportSize(e);
-
-            this.updateEntitiesList();
-
-            let image_data = Game.getAssetData('image_data');
-            // Make sure IMAGE_DATA has an entry for each layer in the world
-            if (!image_data[wasm.game_getCurrentWorldIndex()]) {
-                image_data[wasm.game_getCurrentWorldIndex()] = [];
-            }
-            let total_layers = wasm.game_getCurrentWorldTotalLayers();
-            for (let i = 0; i < total_layers; ++i) {
-                if (!image_data[wasm.game_getCurrentWorldIndex()][i]) {
-                    image_data[wasm.game_getCurrentWorldIndex()][i] = [];
-                }
-            }
         });
         // TODO: How do we convert this to an event + individual functions?
         this.shadowRoot.getElementById('extract_current_entity').addEventListener('click', (e) => {
@@ -241,9 +241,9 @@ export class ComponentEditor extends HTMLElement {
             }
             let y = 0;
             let x = 0;
-            for (let i = 0; i < (game_component.width * game_component.height); ++i) {
-                let viewport_y = Math.floor(i / game_component.width);
-                let viewport_x = i % game_component.width;
+            for (let i = 0; i < (Game.width * Game.height); ++i) {
+                let viewport_y = Math.floor(i / Game.width);
+                let viewport_x = i % Game.width;
 
                 if (wasm.viewport_getData(viewport_x, viewport_y)) {
                     // TODO: this.renderCollisionData();
@@ -274,7 +274,6 @@ export class ComponentEditor extends HTMLElement {
         let entity_type = parseInt(this.shadowRoot.getElementById('wasm_entity_type').value);
         Editor.createNewEntity(entity_type, entity_id);
     }
-
 
     onViewportSize(e) {
         console.log('onViewportSize', e);
@@ -357,15 +356,16 @@ export class ComponentEditor extends HTMLElement {
         let layer_id = parseInt(this.shadowRoot.getElementById('current_layer_id').value);
         let data_id = parseInt(this.shadowRoot.getElementById('current_data_id').value);
         let current_world_index = wasm.game_getCurrentWorldIndex();
-        if (globals.IMAGE_DATA[current_world_index]) {
-            if (globals.IMAGE_DATA[current_world_index][layer_id]) {
-                if (globals.IMAGE_DATA[current_world_index][layer_id][data_id]) {
-                    this.last_image_data = globals.IMAGE_DATA[current_world_index][layer_id][data_id];
+        let image_data = Game.getAssetData('image_data');
+        if (image_data[current_world_index]) {
+            if (image_data[current_world_index][layer_id]) {
+                if (image_data[current_world_index][layer_id][data_id]) {
+                    this.last_image_data = image_data[current_world_index][layer_id][data_id];
                     let frames = Object.keys(this.last_image_data).length;
                     let selected_atlas_image = this.shadowRoot.getElementById('current_selected_atlas_img');
                     selected_atlas_image.style.width = '64px';
                     selected_atlas_image.style.height = '64px';
-                    selected_atlas_image.style.backgroundImage = `url("${globals.ATLAS_PNG_FILENAME}")`;
+                    selected_atlas_image.style.backgroundImage = `url("${Game.getAssetPath('atlas')}")`;
                     selected_atlas_image.style.backgroundPosition = '-' + this.last_image_data[0][0] + 'px -' + this.last_image_data[0][1] + 'px';
                     this.shadowRoot.getElementById('total_frames').innerHTML = 'Total Frames: ' + frames;
                     if (frames > 0) {
@@ -391,7 +391,7 @@ export class ComponentEditor extends HTMLElement {
                             frame_atlas_image.setAttribute('frame-id', f);
                             frame_atlas_image.style.width = '64px';
                             frame_atlas_image.style.height = '64px';
-                            frame_atlas_image.style.backgroundImage = `url("${globals.ATLAS_PNG_FILENAME}")`;
+                            frame_atlas_image.style.backgroundImage = `url("${Game.getAssetPath('atlas')}")`;
                             frame_atlas_image.style.backgroundPosition = '-' + this.last_image_data[f][0] + 'px -' + this.last_image_data[f][1] + 'px';
 
                             let frame_name = document.createElement('div');
@@ -492,7 +492,7 @@ export class ComponentEditor extends HTMLElement {
         }
     }
     getImageData() {
-        return globals.IMAGE_DATA;
+        return Game.getAssetData('image_data');
     }
 
     applyDataValueToLayerCoordinate() {
@@ -609,7 +609,8 @@ export class ComponentEditor extends HTMLElement {
                         console.log('layer_list_move_up, current_layer', current_layer);
                         if (current_layer > 0) {
                             wasm.editor_moveLayer(0, current_layer, (current_layer - 1));
-                            swapElements(globals.IMAGE_DATA[0], current_layer, current_layer - 1);
+                            // TODO: Add current_world_index here
+                            swapElements(Game.getAssetData('image_data')[0], current_layer, current_layer - 1);
                             wasm.diff_addData(0);
                             this.listWorldLayers();
                             this.renderViewportData();
@@ -622,7 +623,8 @@ export class ComponentEditor extends HTMLElement {
                         // TODO: Ideally we keep total_layers contained within this function
                         if (current_layer < (total_layers - 1)) {
                             wasm.editor_moveLayer(0, current_layer, (current_layer + 1));
-                            swapElements(globals.IMAGE_DATA[0], current_layer, current_layer + 1);
+                            // TODO: add current_world_index here
+                            swapElements(Game.getAssetData('image_data')[0], current_layer, current_layer + 1);
                             wasm.diff_addData(0);
                             this.listWorldLayers();
                             this.renderViewportData();
@@ -857,7 +859,7 @@ export class ComponentEditor extends HTMLElement {
             </x-draggable>
             <x-draggable visible="false" name="atlas" id="atlas">
                 <div id="atlas-container">
-                    <img id="atlas_img" src="${globals.ATLAS_PNG_FILENAME}" />
+                    <img id="atlas_img" src="${Game.getAssetPath('atlas')}" />
                 </div>
             </x-draggable>
         `;

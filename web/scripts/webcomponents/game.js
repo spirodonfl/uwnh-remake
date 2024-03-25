@@ -215,15 +215,8 @@ export class ComponentGame extends HTMLElement {
             // NOTE: If you move this into "sizeView" function,
             // it borks the rendering order and causes a panic/out
             // of bounds error in WASM/ZIG
-            // TODO: Eventually replace this with triggerEvent
-            globals.EVENTBUS.triggerNamedEvent('viewport-size', {
-                width: Game.width,
-                height: Game.height,
-                x_padding: Game.x_padding,
-                y_padding: Game.y_padding
-            });
             globals.EVENTBUS.triggerEvent({
-                event_id: 'viewport-size',
+                event_id: 'viewport_size',
                 event: {
                     width: Game.width,
                     height: Game.height,

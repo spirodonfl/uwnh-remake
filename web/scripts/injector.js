@@ -101,9 +101,9 @@ globals.EVENTBUS.addEventListener('event', function(e) {
     if (e.input.event_id === 'assets_loaded') {
         var game_element = document.createElement('game-component');
         document.body.appendChild(game_element);
+
+        var editor_element = document.createElement('editor-component');
+        document.body.appendChild(editor_element);
     }
 });
 Game.init();
-
-var editor_element = document.createElement('editor-component');
-document.body.appendChild(editor_element);

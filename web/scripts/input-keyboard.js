@@ -27,22 +27,22 @@ document.addEventListener('keydown', function (event) {
     for (const input of Inputs.ALL) {
         handled = inputMatch(input, event);
     }
-    if (!handled) {
+    if (!handled && globals.MODE === globals.MODES.indexOf('EDITOR')) {
         for (const input of Inputs.EDITOR) {
             handled = inputMatch(input, event);
         }
     }
-    if (!handled) {
+    if (!handled && globals.MODE === globals.MODES.indexOf('MULTIPLAYER')) {
         for (const input of Inputs.MULTIPLAYER) {
             handled = inputMatch(input, event);
         }
     }
-    if (!handled) {
+    if (!handled && globals.MODE === globals.MODES.indexOf('MULTIPLAYER_HOST')) {
         for (const input of Inputs.MULTIPLAYERHOST) {
             handled = inputMatch(input, event);
         }
     }
-    if (!handled) {
+    if (!handled && globals.MODE === globals.MODES.indexOf('GAME')) {
         for (const input of Inputs.GAME) {
             handled = inputMatch(input, event);
         }
