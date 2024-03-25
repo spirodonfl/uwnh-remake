@@ -36,6 +36,11 @@ Inputs.ALL = [
 
 Inputs.EDITOR = [
     {
+        description: 'Clickable View Selected',
+        event_id: 'clickable_view_selected',
+        // TODO: keyboard combo here so you can change the clicked editor portion you want to deal with
+    },
+    {
         description: 'Toggle Editor',
         event_id: 'toggle_editor',
         code: 'KeyP',

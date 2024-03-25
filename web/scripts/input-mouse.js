@@ -1,24 +1,25 @@
 import { globals } from './globals.js';
 import { Inputs } from './inputs.js';
+import { Debug } from './debug.js';
 
 const inputMatch = function (event_id) {
     let input = Inputs.ALL.find(input => input.event_id === event_id);
-    if (!input) {
+    if (!input && globals.MODE === globals.MODES.indexOf('EDITOR')) {
         input = Inputs.EDITOR.find(input => input.event_id === event_id);
     }
-    if (!input) {
+    if (!input && globals.MODE === globals.MODES.indexOf('MULTIPLAYER')) {
         input = Inputs.MULTIPLAYER.find(input => input.event_id === event_id);
     }
-    if (!input) {
+    if (!input && globals.MODE === globals.MODES.indexOf('MULTIPLAYER_HOST')) {
         input = Inputs.MULTIPLAYERHOST.find(input => input.event_id === event_id);
     }
-    if (!input) {
+    if (!input && globals.MODE === globals.MODES.indexOf('GAME')) {
         input = Inputs.GAME.find(input => input.event_id === event_id);
     }
     return input;
 }
 
-document.addEventListener('click', function (event) {
+document.addEventListener('click', function (event) { 
     let handled = false;
     let composed_path = event.composedPath();
     if (composed_path.length > 0) {
@@ -34,7 +35,6 @@ document.addEventListener('click', function (event) {
                     type: 'mouse',
                     event_id: input.event_id,
                 };
-                globals.EVENTBUS.triggerNamedEvent('input', payload);
                 globals.EVENTBUS.triggerEvent(payload);
                 handled = true;
             }
@@ -57,7 +57,6 @@ document.addEventListener('click', function (event) {
             type: 'mouse',
             event_id: input.event_id
         }
-        globals.EVENTBUS.triggerNamedEvent('click', payload);
         globals.EVENTBUS.triggerEvent(payload);
     }
 });

@@ -357,7 +357,7 @@ export class ComponentGame extends HTMLElement {
                     </div>
                 </div>
             </x-draggable>
-            <div id="clickable_view"></div>
+            <div id="clickable_view" event-id="clickable_view_clicked"></div>
             <div id="view"></div>
         `;
     }
