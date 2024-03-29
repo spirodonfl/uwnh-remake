@@ -1,9 +1,7 @@
 // TOP LEVEL MODULE
 // TODO: GLOBAL
-// 
-// Move some functionality inside of multiplayer into the zig file itself
-// 
-// Move some functions/methods in the individual web components to common module
+//
+// "clickable_view" is not properly offset left-right (maybe?)
 // 
 // Re-implement pause (so we can re-implement animations)
 // 
@@ -60,6 +58,9 @@ import { RyansBackendSecondaryHole } from './websockets/ryans-backend-secondary-
 import { Debug } from './debug.js';
 import './inputs.js';
 import './input-gamepad.js';
+
+import { wasm } from './injector_wasm.js';
+window.WASM = wasm;
 
 // REQUEST ANIMATION FRAME SHIM
 if (!window.requestAnimationFrame)  {

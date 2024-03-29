@@ -111,3 +111,101 @@ pub fn main() void {
     std.debug.print("Door state: {}\n", .{door.state});
 }
 
+
+
+
+const Event = struct {
+    transitions: ?[]const i16,
+};
+
+const StateMachine = struct {
+    currentState: i16,
+    events: []Event,
+    states: []i16,
+    events_transitions: []?[]const i16,
+
+    // Initialize with empty arrays
+    pub fn init() StateMachine {
+        return .{
+            .currentState = 0, // Assuming 0 is the initial state
+            .events = &[_]Event{},
+            .states = &[_]i16{},
+            .events_transitions = &[_]?[]const i16{},
+        };
+    }
+
+    // Method to handle an event and determine the next state
+    pub fn handleEvent(self: *StateMachine, eventIndex: usize) !void {
+        const transitions = self.events_transitions[eventIndex] orelse return error.NoTransitionsForEvent;
+        for (transitions) |transition| {
+            if (transition[0] == self.currentState) {
+                self.currentState = transition[1];
+                return;
+            }
+        }
+        return error.InvalidTransition;
+    }
+
+    // Add an event with null transitions
+    pub fn addEvent(self: *StateMachine) void {
+        self.events.append(.{ .transitions = null }) catch unreachable;
+        self.events_transitions.append(null) catch unreachable;
+    }
+
+    // Add a state
+    pub fn addState(self: *StateMachine, state: i16) void {
+        self.states.append(state) catch unreachable;
+    }
+
+    // Add a transition to an event
+    pub fn addTransition(self: *StateMachine, eventIndex: usize, fromState: i16, toState: i16) void {
+        if (self.events_transitions[eventIndex] == null) {
+            self.events_transitions[eventIndex] = &[_]i16{};
+        }
+        self.events_transitions[eventIndex].?.append(fromState) catch unreachable;
+        self.events_transitions[eventIndex].?.append(toState) catch unreachable;
+    }
+
+    // Serialize to binary and write the memory location and length to provided pointers
+    pub fn serializeToBinary(self: *StateMachine, pointer: *u32, length: *u32) !void {
+        var buffer = std.ArrayList(u8).init(std.heap.page_allocator);
+        defer buffer.deinit();
+
+        // Serialize the state machine
+        try buffer.appendSlice(&std.mem.toBytes(u16, @intCast(u16, self.events.len)));
+        try buffer.appendSlice(&std.mem.toBytes(u16, @intCast(u16, self.states.len)));
+
+        // Serialize each event and its transitions
+        for (self.events) |event| {
+            if (event.transitions) |transitions| {
+                try buffer.appendSlice(&std.mem.toBytes(u16, @intCast(u16, transitions.len)));
+                for (transitions) |transition| {
+                    try buffer.appendSlice(&std.mem.toBytes(i16, transition));
+                }
+            } else {
+                try buffer.appendSlice(&std.mem.toBytes(u16, 0));
+            }
+        }
+
+        // Serialize each state
+        for (self.states) |state| {
+            try buffer.appendSlice(&std.mem.toBytes(i16, state));
+        }
+
+        // Allocate memory for the serialized data
+        const slice = std.heap.page_allocator.alloc(u8, buffer.items.len) catch @panic("failed to allocate memory");
+        std.mem.copy(u8, slice, buffer.items);
+
+        // Write the memory location and length to the provided pointers
+        pointer.* = @ptrToInt(slice.ptr);
+        length.* = @intCast(u32, buffer.items.len);
+    }
+};
+
+// Example usage
+pub fn main() !void {
+    var stateMachine = StateMachine.init();
+    // Deserialize binary data into the stateMachine
+    // Call handleEvent with the index of the event you want to process
+    try stateMachine.handleEvent(0); // Example: handle the first event
+}

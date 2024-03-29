@@ -852,6 +852,52 @@ export class ComponentEditor extends HTMLElement {
                     <img id="atlas_img" src="${Game.getAssetPath('atlas')}" />
                 </div>
             </x-draggable>
+            <x-draggable visible="true" name="entities_list" id="entities_list">
+                <div id="editor-container">
+                    <div class="title">Entities List</div>
+                    <div id="entities_list">
+                        <div style="padding: 2px; cursor: pointer;">Entity 1</div>
+                        <div style="padding: 2px; cursor: pointer; color: red;">Entity 2</div>
+                        <div style="padding: 2px; cursor: pointer; border: 1px solid white;">Entity 3 *</div>
+                        <button>Create Entity</div>
+                    </div>
+                </div>
+            </x-draggable>
+            <x-draggable visible="true" name="entity_manager" id="entity_manager">
+                <div id="editor-container">
+                    <div class="title">Entity Manager [Create/Edit]</div>
+                    <div id="entities_list">
+                        <div><input type="text" name="name" value="Name" /></div>
+                        <div><input type="text" name="type" value="Type ID" /></div>
+                        <div><input type="text" name="type_as_string" value="Type String" /></div>
+                        <div><button>New Type</button></div>
+                        <div>Has health component: <select>
+                            <option value="yes">yes</option>
+                            <option value="no">no</option>
+                        </select></div>
+                        <div><input type="text" name="default_health_value" value="33" /></div>
+                        <div>Has movement component: <select>
+                            <option value="yes">yes</option>
+                            <option value="no">no</option>
+                        </select></div>
+                        <div>Has attack component: <select>
+                            <option value="yes">yes</option>
+                            <option value="no">no</option>
+                        </select></div>
+                        <div>States</div>
+                        <div><input type="text" name="default_damage_value" value="3" /></div>
+                        <div><input type="text" name="default_range_value" value="2" /></div>
+                        <div><input type="text" name="event" value="Event ID" /></div>
+                        <div><input type="text" name="event_as_string" value="Event String" /></div>
+                        <div><input type="text" name="state" value="State ID" /></div>
+                        <div><input type="text" name="state_as_string" value="State String" /></div>
+                        <div>Event [NAME] Transitions</div>
+                        <div><input type="text" name="from_state" value="from_state" /></div>
+                        <div><input type="text" name="to_state" value="to_state" /></div>
+                        <div><button>New Transition</button></div>
+                    </div>
+                </div>
+            </x-draggable>
         `;
     }
 }

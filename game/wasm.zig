@@ -4,6 +4,7 @@ pub const editor = @import("editor.zig");
 pub const viewport = @import("viewport.zig");
 pub const messages = @import("messages.zig");
 pub const events = @import("events.zig");
+pub const enumgetters = @import("enumgetters.zig");
 
 comptime {
     _ = @import("wasmexports");

@@ -294,9 +294,15 @@ export class ComponentGame extends HTMLElement {
         {
             --y;
         }
+        // TODO: Eventually replace this with a dynamic limit for docked panels (left or right)
+        if (x > 12) {
+            x = 12;
+        }
         let x_scaled_size = x * scaled_size;
         let y_scaled_size = y * scaled_size;
         let x_padding = (full_width - x_scaled_size) / 2;
+        // TODO: Eventually replace this with a dynamic limit for docked panels (left or right)
+        x_padding = 0;
         let y_padding = (full_height - y_scaled_size) / 2;
         this.shadowRoot.getElementById('view').style.margin = y_padding + 'px ' + x_padding + 'px';
         this.shadowRoot.getElementById('view').style.width = x_scaled_size + 'px';

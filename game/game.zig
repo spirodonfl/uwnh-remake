@@ -18,6 +18,24 @@ const diff = @import("diff.zig");
 const editor = @import("editor.zig");
 const viewport = @import("viewport.zig");
 const events = @import("events.zig");
+const Service = @import("services.zig").Service;
+const ServiceHandle = @import("services.zig").ServiceHandle;
+const ComponentHealth = @import("components/health.zig").ComponentHealth;
+const ComponentMovement = @import("components/movement.zig").ComponentMovement;
+const ComponentAttack = @import("components/attack.zig").ComponentAttack;
+
+const ServiceEntityData = Service(EntityDataStruct);
+const ServiceWorldData = Service(WorldDataStruct);
+const ServiceEmbeddedData = Service(EmbeddedDataStruct);
+const ServiceComponentHealth = Service(ComponentHealth);
+const ServiceComponentMovement = Service(ComponentMovement);
+const ServiceComponentAttack = Service(ComponentAttack);
+pub var sComponentHealth: ServiceComponentHealth = undefined;
+pub var sComponentMovement: ServiceComponentMovement = undefined;
+pub var sComponentAttack: ServiceComponentAttack = undefined;
+pub var sEntityData: ServiceEntityData = undefined;
+pub var sWorldData: ServiceWorldData = undefined;
+pub var sEmbeddedData: ServiceEmbeddedData = undefined;
 
 // -----------------------------------------------------------------------------------------
 // @wasm
@@ -35,12 +53,13 @@ pub const std_options = struct {
 };
 
 fn log(comptime format: []const u8, args: anytype) void {
-    _ = format;
-    _ = args;
+    // TODO: For anything but javascript/wasm
+    // _ = format;
+    // _ = args;
     // std.debug.print(std_options.log_level, .default, format, args);
-    // const writer = std.io.Writer(void, error{}, console_log_write_zig){ .context = {} };
-    // writer.print(format, args) catch @panic("console_log_write failed");
-    // console_log_flush();
+    const writer = std.io.Writer(void, error{}, console_log_write_zig){ .context = {} };
+    writer.print(format, args) catch @panic("console_log_write failed");
+    console_log_flush();
 }
 
 pub fn panic(
@@ -77,11 +96,12 @@ pub fn uncaughtError(err: anytype) noreturn {
 
 fn console_log_write_zig(context: void, bytes: []const u8) !usize {
     _ = context;
-    // console_log_write(bytes.ptr, bytes.len);
+    console_log_write(bytes.ptr, bytes.len);
     return bytes.len;
 }
-// extern fn console_log_write(ptr: [*]const u8, len: usize) void;
-// extern fn console_log_flush() void;
+// TODO: For anything but javascript/wasm (comment these out)
+extern fn console_log_write(ptr: [*]const u8, len: usize) void;
+extern fn console_log_flush() void;
 
 // -----------------------------------------------------------------------------------------
 pub const GameMessage = struct {
@@ -100,6 +120,7 @@ pub const WorldDataStruct = struct {
     embedded_layers: std.ArrayListUnmanaged(EmbeddedDataStruct) = .{},
     entities_list: std.ArrayListUnmanaged(u16) = .{},
     entities_initialized: bool = false,
+    service_entities_list: ServiceEntityData = undefined,
     pub fn getTotalLayers(self: *WorldDataStruct) usize {
         return self.embedded_layers.items.len;
     }
@@ -207,6 +228,7 @@ pub const WorldDataStruct = struct {
     }
     pub fn initializeEntities(self: *WorldDataStruct) !void {
         if (self.entities_initialized == false) {
+            self.service_entities_list = try ServiceEntityData.init(&allocator, 32, false);
             var entity_layer = self.readData(enums.WorldDataEnum.EntityLayer.int());
             var w = self.getWidth();
             var h = self.getHeight();
@@ -221,6 +243,9 @@ pub const WorldDataStruct = struct {
                         if (entities_list.at(j).getId() == value) {
                             entities_list.at(j).position[0] = x;
                             entities_list.at(j).position[1] = y;
+                            var raw_entity = entities_list.at(j).*;
+                            var eh = try self.service_entities_list.addData(@as(EntityDataStruct, raw_entity));
+                            _ = eh;
                         }
                     }
                     // var entity = entities_list.at(self.entities_list.items.len - 1);
@@ -333,21 +358,18 @@ pub const EmbeddedDataStruct = struct {
     }
 };
 
-const ComponentHealth = @import("components/health.zig").ComponentHealth;
-const ComponentMovement = @import("components/movement.zig").ComponentMovement;
-const ComponentAttack = @import("components/attack.zig").ComponentAttack;
 // const FsmMixin = @import("components/fsm_mixin.zig").FsmMixin;
 // TODO: Should probably rename these structs, they've become more than just structs
 pub const EntityDataStruct = struct {
     // usingnamespace FsmMixin(TrafficLightState, TrafficLightEvent);
     messages: std.ArrayListUnmanaged(GameMessage) = .{},
     embedded: EmbeddedDataStruct = undefined,
-    // TODO: Make sure components are released from memory when entity is release from memory
-    health: ComponentHealth = undefined,
-    movement: ComponentMovement = undefined,
-    attack: ComponentAttack = undefined,
+    health: ServiceHandle = undefined,
+    movement: ServiceHandle = undefined,
+    attack: ServiceHandle = undefined,
+    components: std.ArrayListUnmanaged(ServiceHandle) = .{},
     is_collision: bool = false,
-    direction: u16 = 0, // 0 = up, 1 = down, 2 = left, 3 = right (USE AN ENUM TODO:)
+    direction: u16 = enums.DirectionsEnum.Left.int(),
     // TODO: Move this to movement component?
     position: [2]u16 = .{ 0, 0 },
     pub fn init(self: *EntityDataStruct) !void {
@@ -394,36 +416,42 @@ pub const EntityDataStruct = struct {
         }
         if (self.embedded.readData(enums.EntityDataEnum.ComponentHealth.int(), .Little) == 1) {
             // std.log.info("health component found", .{});
-
-            // IN CASE YOU NEED THIS -> note you also need health: *ComponentHealth = undefined, (star)
-            // var health_component = try ComponentHealth.createNew(20);
-            // self.health = health_component;
-            // ------------------------------------------------------------------------------------------
-            self.health = ComponentHealth{
+            self.health = try sComponentHealth.addData(ComponentHealth{
                 .parent = self,
                 // TODO: Do we even need this anymore?
                 .default_value = 10,
                 .current_value = self.embedded.readData(enums.EntityDataEnum.ComponentHealthDefaultValue.int(), .Little),
-            };
-            // std.log.info("(a)health now {d} {d}", .{self.getId(), self.health.current_value});
+            });
+            sComponentHealth.incrementReference(&self.health);
+            try self.components.append(allocator, self.health);
         }
         if (self.embedded.readData(enums.EntityDataEnum.ComponentMovement.int(), .Little) == 1) {
             // std.log.info("movement component found", .{});
-            self.movement = ComponentMovement{
+            self.movement = try sComponentMovement.addData(ComponentMovement{
                 .parent = self,
                 .entity_id = self.getId()
-            };
+            });
+            sComponentMovement.incrementReference(&self.movement);
+            try self.components.append(allocator, self.movement);
         }
         if (self.embedded.readData(enums.EntityDataEnum.ComponentAttack.int(), .Little) == 1) {
             // std.log.info("attack component found (entity id: {d})", .{self.getId()});
-            self.attack = ComponentAttack{
-                .parent = self,
-                .entity_id = self.getId()
-            };
             // TODO: This is special code. Remove it and make it better / dynamic as part of entity binary data
-            if (self.getType() == 99) {
-                self.attack.default_damage = 3;
+            if (self.getType() == enums.EntityTypesEnum.Kraken.int()) {
+                self.attack = try sComponentAttack.addData(ComponentAttack{
+                    .parent = self,
+                    .entity_id = self.getId(),
+                    .default_damage = 3,
+                });
+            } else {
+                self.attack = try sComponentAttack.addData(ComponentAttack{
+                    .parent = self,
+                    .entity_id = self.getId(),
+                    .default_damage = 1,
+                });
             }
+            sComponentAttack.incrementReference(&self.attack);
+            try self.components.append(allocator, self.attack);
         }
     }
     pub fn processMessages(self: *EntityDataStruct) !void {
@@ -434,13 +462,14 @@ pub const EntityDataStruct = struct {
                     // TODO: check if entity has the move component
                     var current_world = worlds_list.at(current_world_index);
                     var intended_x = self.position[0];
-                    var intended_y = self.movement.intendedMoveUp();
+                    var mh = try sComponentMovement.getData(&self.movement);
+                    var intended_y = mh.intendedMoveUp();
                     if (intended_y < current_world.getHeight())
                     {
                         if (current_world.checkEntityCollision(intended_x, intended_y) == false)
                         {
-                            self.direction = 0;
-                            self.movement.moveUp();
+                            self.direction = enums.DirectionsEnum.Up.int();
+                            mh.moveUp();
                             try diff.addData(0);
                         }
                     }
@@ -449,13 +478,14 @@ pub const EntityDataStruct = struct {
                     // TODO: check if entity has the move component
                     var current_world = worlds_list.at(current_world_index);
                     var intended_x = self.position[0];
-                    var intended_y = self.movement.intendedMoveDown();
+                    var mh = try sComponentMovement.getData(&self.movement);
+                    var intended_y = mh.intendedMoveDown();
                     if (intended_y < current_world.getHeight())
                     {
                         if (current_world.checkEntityCollision(intended_x, intended_y) == false)
                         {
-                            self.direction = 1;
-                            self.movement.moveDown();
+                            self.direction = enums.DirectionsEnum.Down.int();
+                            mh.moveDown();
                             try diff.addData(0);
                         }
                     }
@@ -463,14 +493,15 @@ pub const EntityDataStruct = struct {
                 enums.GameMessagesEventsEnum.MoveLeft.int() => {
                     // TODO: check if entity has the move component
                     var current_world = worlds_list.at(current_world_index);
-                    var intended_x = self.movement.intendedMoveLeft();
+                    var mh = try sComponentMovement.getData(&self.movement);
+                    var intended_x = mh.intendedMoveLeft();
                     var intended_y = self.position[1];
                     if (intended_x < current_world.getWidth())
                     {
                         if (current_world.checkEntityCollision(intended_x, intended_y) == false)
                         {
-                            self.direction = 2;
-                            self.movement.moveLeft();
+                            self.direction = enums.DirectionsEnum.Left.int();
+                            mh.moveLeft();
                             try diff.addData(0);
                         }
                     }
@@ -478,14 +509,15 @@ pub const EntityDataStruct = struct {
                 enums.GameMessagesEventsEnum.MoveRight.int() => {
                     // TODO: check if entity has the move component
                     var current_world = worlds_list.at(current_world_index);
-                    var intended_x = self.movement.intendedMoveRight();
+                    var mh = try sComponentMovement.getData(&self.movement);
+                    var intended_x = mh.intendedMoveRight();
                     var intended_y = self.position[1];
                     if (intended_x < current_world.getWidth())
                     {
                         if (current_world.checkEntityCollision(intended_x, intended_y) == false)
                         {
-                            self.direction = 3;
-                            self.movement.moveRight();
+                            self.direction = enums.DirectionsEnum.Right.int();
+                            mh.moveRight();
                             try diff.addData(0);
                         }
                     }
@@ -497,11 +529,12 @@ pub const EntityDataStruct = struct {
                     // } else {
                     //     std.log.info("Attack message missing target", .{});
                     // }
+                    var ah = try sComponentAttack.getData(&self.attack);
                     if (self.getType() <= 3) {
-                        try self.attack.directionalAttack();
+                        try ah.directionalAttack();
                     } else {
                         // TODO: This is for the kraken. Hacky. FIX
-                        try self.attack.attack();
+                        try ah.attack();
                     }
                 },
                 else => {
@@ -522,10 +555,6 @@ pub fn getEntityById(entity_id: u16) usize {
     return 0;
 }
 
-// TODO: Registry system with UniqueID array, central array of data or
-// references to data (raw stuff), right hand side reference counter 
-// (how many things are referencing this thing). Refer to images if lost
-
 // --- GAME FUNCTIONS ---
 // @wasm
 pub fn processTick() !void {
@@ -545,14 +574,22 @@ pub fn processTick() !void {
     }
 }
 // @wasm
-pub fn entityIncrementHealth(entity: u16) u16 {
-    return entities_list.at(entity).health.current_value;
+pub fn entityIncrementHealth(entity_index: u16) u16 {
+    var entity = entities_list.at(entity_index - 1);
+    // return entity.health.current_value;
+    var sHealth = try sComponentHealth.getData(&entity.health);
+    return sHealth.current_value;
+    // return entities_list.at(entity).health.current_value;
 }
 // @wasm
-pub fn entityDecrementHealth(entity: u16) u16 {
+pub fn entityDecrementHealth(entity_index: u16) u16 {
     // TODO: Add a check to make sure this entity has health component loaded
-    entities_list.at(entity).health.decrementHealth();
-    return entities_list.at(entity).health.current_value;
+    // entities_list.at(entity_index).health.decrementHealth();
+    var entity = entities_list.at(entity_index);
+    // return entities_list.at(entity).health.current_value;
+    var sHealth = try sComponentHealth.getData(&entity.health);
+    sHealth.decrementHealth();
+    return sHealth.current_value;
 }
 // @wasm
 pub fn entityGetHealth(entity_id: u16) u16 {
@@ -561,7 +598,9 @@ pub fn entityGetHealth(entity_id: u16) u16 {
         @panic("Entity not found");
     }
     var entity = entities_list.at(entity_index - 1);
-    return entity.health.current_value;
+    // return entity.health.current_value;
+    var sHealth = try sComponentHealth.getData(&entity.health);
+    return sHealth.current_value;
 }
 // @wasm
 pub fn entityGetType(entity_id: u16) u16 {
@@ -611,7 +650,9 @@ pub fn entitySetHealth(entity_id: u16, value: u16) !void {
         @panic("Entity not found");
     }
     var entity = entities_list.at(entity_index - 1);
-    entity.health.setHealth(value);
+    var sHealth = try sComponentHealth.getData(&entity.health);
+    sHealth.setHealth(value);
+    // entity.health.setHealth(value);
     try diff.addData(0);
 }
 // @wasm
@@ -661,6 +702,14 @@ pub fn initializeGame() !bool {
     if (GAME_INITIALIZED) {
         return true;
     }
+    sComponentHealth = try ServiceComponentHealth.init(&allocator, 10, false);
+    sComponentMovement = try ServiceComponentMovement.init(&allocator, 10, false);
+    sComponentAttack = try ServiceComponentAttack.init(&allocator, 10, false);
+    sEntityData = try ServiceEntityData.init(&allocator, 10, false);
+    sWorldData = try ServiceWorldData.init(&allocator, 10, false);
+    sEmbeddedData = try ServiceEmbeddedData.init(&allocator, 10, false);
+    // TODO: We are actually prematurely loading worlds & entities here.
+    // Move this stuff to the loadWorld function and handle it there
     for (0..embeds.total_worlds) |i| {
         var embedded_data_struct = EmbeddedDataStruct{};
         var world = try embedded_data_struct.findIndexByFileName(.world, @intCast(i), 0);
@@ -689,12 +738,13 @@ pub fn initializeGame() !bool {
         var embedded_data_struct = EmbeddedDataStruct{};
         var entity = try embedded_data_struct.findIndexByFileName(.entity, cursor, 0);
         if (entity == true) {
-            // std.log.info("TrUe", .{});
             try entities_list.append(allocator, .{
                 .embedded = embedded_data_struct,
             });
             var i: usize = entities_list.len - 1;
             try entities_list.at(i).init();
+            // TODO: this returns a handle, we need to store this handle in a list
+            _ = try sEntityData.addData(EntityDataStruct{ .embedded = embedded_data_struct });
             entities_loaded += 1;
         } else {
             // std.log.info("FaLsE {d}", .{entities_loaded});
@@ -705,6 +755,9 @@ pub fn initializeGame() !bool {
     GAME_INITIALIZED = true;
     return true;
 }
+// TODO: There is a difference between loadWorld INTO THE GAME
+// and loadWorld as in getWorldData even if it's not loaded
+// (for example, in the editor)
 // @wasm
 pub fn loadWorld(index: u16) !void {
     current_world_index = index;
@@ -857,3 +910,78 @@ pub fn sum(a: u16, b: u16) u16 {
     return a + b;
 }
 // extern fn sum(a: u16, b: u16) u16;
+
+// --------------------- STRING TESTS -----------------------
+var str = "Hello, World!";
+const strings: []const u8 = @embedFile("binaries/strings.bin");
+// @wasm
+pub fn TEST_getString() [*c]const u8 {
+    //const index = 0;
+    // const pulled_value = std.mem.readInt(u16, filebytes[index * 2 ..][0..2], std.builtin.Little);
+    const num_strings = std.mem.readInt(u16, strings[0..2], .Little);
+    var e_strings = std.ArrayList([]const u8).init(allocator);
+    defer e_strings.deinit();
+    var offset: usize = 0; // Start after the number of strings
+    var i: u16 = 0;
+    while (i < num_strings) {
+        // Find the null terminator to determine the string length
+        const null_index = std.mem.indexOfScalar(u8, strings[offset..], 0) orelse break;
+        const string_length = null_index;
+
+        // Extract the string
+        const string_data = strings[offset .. offset + string_length];
+        e_strings.append(string_data) catch break;
+
+        // Move to the next string
+        offset += string_length + 1; // +1 to skip the null terminator
+        i += 1;
+    }
+
+    return e_strings.items[1].ptr;
+    //return str;
+}
+// HOW TO USE IN JS
+// // Assuming getString is the exported function from Zig
+// const stringPtr = WASM.game_TEST_getString();
+
+// // Read the string from memory
+// let str = "";
+// let ptr = stringPtr;
+// let memoryView = new DataView(WASM.memory.buffer);
+// while (memoryView.getUint8(ptr) !== 0) {
+//     str += String.fromCharCode(memoryView.getUint8(ptr));
+//     ptr++;
+// }
+
+// console.log(str); // Outputs: Hello, World!
+// HOW TO SAVE STRINGS IN JS
+// // Step 1: Flatten the array
+// const nestedArray = [
+//     ["Hello World!"],
+//     ["String 2"],
+//     // Add more strings as needed
+// ];
+// const flattenedArray = nestedArray.flat();
+
+// // Step 2: Convert strings to Uint8Arrays
+// const uint8Arrays = flattenedArray.map(str => {
+//     const encoder = new TextEncoder();
+//     return new Uint8Array([...encoder.encode(str), 0]); // Ensure null-termination
+// });
+
+// // Step 3: Combine Uint8Arrays
+// const combinedLength = uint8Arrays.reduce((acc, arr) => acc + arr.length, 0);
+// const combinedArray = new Uint8Array(combinedLength);
+// let offset = 0;
+// uint8Arrays.forEach(arr => {
+//     combinedArray.set(arr, offset);
+//     offset += arr.length;
+// });
+
+// // Step 4: Save to binary file
+// const blob = new Blob([combinedArray.buffer], { type: 'application/octet-stream' });
+// const url = URL.createObjectURL(blob);
+// const link = document.createElement('a');
+// link.href = url;
+// link.download = 'strings.bin';
+// link.click();

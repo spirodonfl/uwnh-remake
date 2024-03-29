@@ -2,6 +2,7 @@ const std = @import("std");
 const messages = @import("../messages.zig");
 const game = @import("../game.zig");
 const diff = @import("../diff.zig");
+const enums = @import("../enums.zig");
 
 pub const ComponentAttack = struct {
     // TODO: Do we still need this?
@@ -20,7 +21,7 @@ pub const ComponentAttack = struct {
                     var target_entity = game.entities_list.at(target_entity_index - 1);
                     var in_position: bool = false;
                     // Need to take into account self.parent.direction and also self.current_range and match the two against the entity then exit this function on the first hit
-                    if (self.parent.direction == 0) {
+                    if (self.parent.direction == enums.DirectionsEnum.Up.int()) {
                         var above = self.parent.position[1];
                         while (above > 0 and above > self.parent.position[1] - self.current_range) {
                             above -= 1;
@@ -29,7 +30,7 @@ pub const ComponentAttack = struct {
                                 break;
                             }
                         }
-                    } else if (self.parent.direction == 1) {
+                    } else if (self.parent.direction == enums.DirectionsEnum.Down.int()) {
                         var below = self.parent.position[1];
                         while (below < self.parent.position[1] + self.current_range) {
                             below += 1;
@@ -38,7 +39,7 @@ pub const ComponentAttack = struct {
                                 break;
                             }
                         }
-                    } else if (self.parent.direction == 2) {
+                    } else if (self.parent.direction == enums.DirectionsEnum.Left.int()) {
                         var left = self.parent.position[0];
                         // TODO: Found an error where you reach this line and it becomes unreachable somehow
                         while (left > 0 and left > self.parent.position[0] - self.current_range) {
@@ -48,7 +49,7 @@ pub const ComponentAttack = struct {
                                 break;
                             }
                         }
-                    } else if (self.parent.direction == 3) {
+                    } else if (self.parent.direction == enums.DirectionsEnum.Right.int()) {
                         var right = self.parent.position[0];
                         while (right < self.parent.position[0] + self.current_range) {
                             right += 1;
@@ -59,13 +60,17 @@ pub const ComponentAttack = struct {
                         }
                     }
                     if (in_position) {
+                        var dh = try game.sComponentHealth.getData(&target_entity.health);
                         for (0..self.default_damage) |a| {
                             _ = a;
-                            target_entity.health.decrementHealth();
+                            // TODO: Should use a message for this
+                            // target_entity.health.decrementHealth();
+                            dh.decrementHealth();
                         }
                         try diff.addData(0);
 
-                        if (target_entity.health.current_value == 0) {
+                        // if (target_entity.health.current_value == 0) {
+                        if (dh.current_value == 0) {
                             // TODO: Don't use magic numbers
                             try diff.addData(69);
                             try diff.addData(self.entity_id);
@@ -112,13 +117,15 @@ pub const ComponentAttack = struct {
                     }
 
                     if (in_position) {
+                        var dh = try game.sComponentHealth.getData(&target_entity.health);
                         for (0..self.default_damage) |a| {
                             _ = a;
-                            target_entity.health.decrementHealth();
+                            // target_entity.health.decrementHealth();
+                            dh.decrementHealth();
                         }
                         try diff.addData(0);
 
-                        if (target_entity.health.current_value == 0) {
+                        if (dh.current_value == 0) {
                             // TODO: Don't use magic numbers
                             try diff.addData(69);
                             try diff.addData(self.entity_id);
