@@ -1,5 +1,8 @@
 import { wasm } from './injector_wasm.js';
 
+// TODO: Create UI for state management system (FSM)
+// TODO: Finish UI for entities
+
 class ClassEditor {
     constructor() {
         if (ClassEditor.instance) {

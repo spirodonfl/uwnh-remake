@@ -360,6 +360,7 @@ pub const EmbeddedDataStruct = struct {
 
 // const FsmMixin = @import("components/fsm_mixin.zig").FsmMixin;
 // TODO: Should probably rename these structs, they've become more than just structs
+// TODO: Add an entity FSM
 pub const EntityDataStruct = struct {
     // usingnamespace FsmMixin(TrafficLightState, TrafficLightEvent);
     messages: std.ArrayListUnmanaged(GameMessage) = .{},
@@ -416,6 +417,7 @@ pub const EntityDataStruct = struct {
         }
         if (self.embedded.readData(enums.EntityDataEnum.ComponentHealth.int(), .Little) == 1) {
             // std.log.info("health component found", .{});
+            // TODO: Remove these hard component injections
             self.health = try sComponentHealth.addData(ComponentHealth{
                 .parent = self,
                 // TODO: Do we even need this anymore?

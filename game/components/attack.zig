@@ -4,6 +4,7 @@ const game = @import("../game.zig");
 const diff = @import("../diff.zig");
 const enums = @import("../enums.zig");
 
+// TODO: Add an FSM
 pub const ComponentAttack = struct {
     // TODO: Do we still need this?
     entity_id: u16,
@@ -21,6 +22,7 @@ pub const ComponentAttack = struct {
                     var target_entity = game.entities_list.at(target_entity_index - 1);
                     var in_position: bool = false;
                     // Need to take into account self.parent.direction and also self.current_range and match the two against the entity then exit this function on the first hit
+                    // TODO: Put these directional/positional things into a "canAttack" function of some kind?
                     if (self.parent.direction == enums.DirectionsEnum.Up.int()) {
                         var above = self.parent.position[1];
                         while (above > 0 and above > self.parent.position[1] - self.current_range) {

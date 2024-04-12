@@ -1,5 +1,6 @@
 const game = @import("../game.zig");
 
+// TODO: Add an FSM
 pub const ComponentHealth = struct {
     default_value: u16,
     current_value: u16,
