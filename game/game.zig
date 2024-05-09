@@ -115,6 +115,10 @@ pub const GameEvent = struct {
     force: bool,
 };
 
+// Move this to world.zig
+// Import it
+// const WorldDataStruct = @import("world.zig").WorldDataStruct;
+// in my world.zig file, I would also pull game.zig, prefix references with game.*
 pub const WorldDataStruct = struct {
     embedded_data: EmbeddedDataStruct = undefined,
     embedded_layers: std.ArrayListUnmanaged(EmbeddedDataStruct) = .{},
