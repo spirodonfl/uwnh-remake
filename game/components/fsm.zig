@@ -1,19 +1,34 @@
 const std = @import("std");
 
-// Idle
-// Moving
-// Moved / OR move back to idle and track last non idle state
-// Attacking
-// Attacked
-// Hurting
-// Hurt
-
-// fn FsmCustom ()
-// input-> events, states and paths
-// handle-> input event, check parent current state, see if paths are allowed, follow path
-
 // Define a generic FSM mixin function
-pub fn FsmMixin(comptime StateType: type, comptime EventType: type) type {
+pub fn FsmMixin(comptime StateType: type) type {
+    return struct {
+        state: StateType,
+
+        pub fn init(self: *@This(), initial_state: StateType) void {
+            self.state = initial_state;
+        }
+
+        // TODO: rvice brought up a good point, sometimes you want to have current_state = to && previous_status = from
+        // but also sometimes flipped (previous_state = to && current_state = from)
+        pub fn transition(self: *@This(), new_state: StateType) void {
+            self.state = new_state;
+        }
+
+        // pub fn handle(self: *@This(), event: EventType) void {
+        //     _ = self;
+        //     _ = event;
+        //     // Implementation of state transition logic
+        //     // This will need to be customized for each struct
+        // }
+    };
+}
+
+// NOTE: This version of fsm mixin is borked because (a) having a handle
+// function here creates an ambiguous reference to any override functions
+// and (b) the EventType: type (second parameter) of the main function
+// is not used which Zig freaks out about
+pub fn FsmMixin_BORKED(comptime StateType: type, comptime EventType: type) type {
     return struct {
         state: StateType,
 
@@ -116,9 +131,6 @@ pub fn FsmMixin(comptime StateType: type, comptime EventType: type) type {
 //     door.handle(.CloseRequest);
 //     std.debug.print("Door state: {}\n", .{door.state});
 // }
-
-
-
 
 // const Event = struct {
 //     transitions: ?[]const i16,

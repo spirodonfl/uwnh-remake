@@ -10,17 +10,62 @@ pub const ComponentMovement = struct {
     // TODO: Do we still need this?
     entity_id: u16,
     parent: *EntityDataStruct,
-    usingnamespace fsm.FsmMixin(enums.ComponentMovementState, enums.ComponentMovementEvent);
-    pub fn handle(self: *@This(), event: enums.ComponentMovementEvent) void {
+    state: u16 = 0,
+    // NOTE: Without the anyerror!void here, we get an error from zig
+    // "unable to resolve inferred error set" -> try self.directionalAttack()
+    // weird... need to understand how and why
+    pub fn handle(self: *@This(), event: enums.ComponentMovementEvent) anyerror!void {
         switch (event) {
-            enums.ComponentMovementEvent.Move => {
+            enums.ComponentMovementEvent.MoveLeft => {
                 switch (self.state) {
-                    enums.ComponentMovementState.Idle => self.transition(.Moving),
+                    enums.ComponentMovementState.Idle.int() => {
+                        self.state = enums.ComponentMovementState.Moving.int();
+                        // TODO: Check that the move is legal?
+                        self.moveLeft();
+                        self.handle(enums.ComponentMovementEvent.Moved);
+                    },
+                    else => self.state = enums.ComponentMovementState.Idle.int(),
+                }
+            },
+            enums.ComponentMovementEvent.MoveRight => {
+                switch (self.state) {
+                    enums.ComponentMovementState.Idle.int() => {
+                        self.state = enums.ComponentMovementState.Moving.int();
+                        // TODO: Check that the move is legal?
+                        self.moveRight();
+                        self.handle(enums.ComponentMovementEvent.Moved);
+                    },
+                    else => self.state = enums.ComponentMovementState.Idle.int(),
+                }
+            },
+            enums.ComponentMovementEvent.MoveUp => {
+                switch (self.state) {
+                    enums.ComponentMovementState.Idle.int() => {
+                        self.state = enums.ComponentMovementState.Moving.int();
+                        // TODO: Check that the move is legal?
+                        self.moveUp();
+                        self.handle(enums.ComponentMovementEvent.Moved);
+                    },
+                    else => self.state = enums.ComponentMovementState.Idle.int(),
+                }
+            },
+            enums.ComponentMovementEvent.MoveDown => {
+                switch (self.state) {
+                    enums.ComponentMovementState.Idle.int() => {
+                        self.state = enums.ComponentMovementState.Moving.int();
+                        // TODO: Check that the move is legal?
+                        self.moveDown();
+                        self.handle(enums.ComponentMovementEvent.Moved);
+                    },
+                    else => self.state = enums.ComponentMovementState.Idle.int(),
                 }
             },
             enums.ComponentMovementEvent.Moved => {
                 switch (self.state) {
-                    enums.ComponentMovementState.Moving => self.transition(.Idle),
+                    enums.ComponentMovementState.Moving.int() => {
+                        self.state = enums.ComponentMovementState.Idle.int();
+                    },
+                    else => self.state = enums.ComponentMovementState.Idle.int(),
                 }
             },
         }

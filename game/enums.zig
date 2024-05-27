@@ -16,10 +16,38 @@ pub const ComponentMovementState = enum(u16) {
     Moving,
     pub usingnamespace EnumHelpers(@This());
 };
-
 pub const ComponentMovementEvent = enum(u16) {
-    Move,
+    MoveLeft,
+    MoveRight,
+    MoveUp,
+    MoveDown,
     Moved,
+    pub usingnamespace EnumHelpers(@This());
+};
+
+pub const ComponentAttackState = enum(u16) {
+    Idle,
+    Attacking,
+    BeingAttacked,
+    pub usingnamespace EnumHelpers(@This());
+};
+pub const ComponentAttackEvent = enum(u16) {
+    ExecuteAttack,
+    TakeAttack,
+    CompleteAttack,
+    FailAttack,
+    pub usingnamespace EnumHelpers(@This());
+};
+
+pub const GameState = enum(u16) {
+    Idle,
+    WaitingForEntityAction,
+    ExecutingEntityAction,
+    pub usingnamespace EnumHelpers(@This());
+};
+pub const GameStateEvent = enum(u16) {
+    EntityTakingAction,
+    EntityTookAction,
     pub usingnamespace EnumHelpers(@This());
 };
 

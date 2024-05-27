@@ -3,10 +3,10 @@ const messages = @import("../messages.zig");
 const game = @import("../game.zig");
 const diff = @import("../diff.zig");
 const enums = @import("../enums.zig");
+const fsm = @import("fsm.zig");
 const entity = @import("../entity.zig");
 const EntityDataStruct = entity.EntityDataStruct;
 
-// TODO: Add an FSM
 pub const ComponentAttack = struct {
     // TODO: Do we still need this?
     entity_id: u16,
@@ -15,6 +15,43 @@ pub const ComponentAttack = struct {
     default_range: u16 = 2,
     current_range: u16 = 2,
     parent: *EntityDataStruct,
+    state: u16 = 0,
+    // NOTE: Without the anyerror!void here, we get an error from zig
+    // "unable to resolve inferred error set" -> try self.directionalAttack()
+    // weird... need to understand how and why
+    pub fn handle(self: *@This(), event: enums.ComponentAttackEvent) anyerror!void {
+        switch (event) {
+            enums.ComponentAttackEvent.ExecuteAttack => {
+                switch (self.state) {
+                    enums.ComponentAttackState.Idle.int() => {
+                        self.state = enums.ComponentAttackState.Attacking.int();
+                        // TODO: Extract the legality of the move?
+                        try self.directionalAttack();
+                    },
+                    else => self.state = enums.ComponentAttackState.Idle.int(),
+                }
+            },
+            enums.ComponentAttackEvent.TakeAttack => {
+                switch (self.state) {
+                    enums.ComponentAttackState.Idle.int() => self.state = enums.ComponentAttackState.BeingAttacked.int(),
+                    else => self.state = enums.ComponentAttackState.Idle.int(),
+                }
+            },
+            enums.ComponentAttackEvent.CompleteAttack => {
+                switch (self.state) {
+                    enums.ComponentAttackState.Attacking.int() => self.state = enums.ComponentAttackState.Idle.int(),
+                    else => self.state = enums.ComponentAttackState.Idle.int(),
+                }
+            },
+            enums.ComponentAttackEvent.FailAttack => {
+                switch (self.state) {
+                    enums.ComponentAttackState.Attacking.int() => self.state = enums.ComponentAttackState.Idle.int(),
+                    else => self.state = enums.ComponentAttackState.Idle.int(),
+                }
+            },
+        }
+    }
+    // TODO: Does it matter if you use @This() vs ComponentAttack as the self parameter in these functions?
     pub fn directionalAttack(self: *ComponentAttack) !void {
         var current_world = game.worlds_list.at(game.current_world_index);
         for (0..current_world.entities_list.items.len) |i| {
@@ -79,11 +116,14 @@ pub const ComponentAttack = struct {
                             try diff.addData(69);
                             try diff.addData(self.entity_id);
                             try diff.addData(target_entity.getId());
+
+                            try self.handle(enums.ComponentAttackEvent.CompleteAttack);
                         }
                     }
                 }
             }
         }
+        try self.handle(enums.ComponentAttackEvent.FailAttack);
     }
     // Note: This is an AOE attack method, anything in range gets hit
     pub fn attack(self: *ComponentAttack) !void {
@@ -100,10 +140,7 @@ pub const ComponentAttack = struct {
                             above -= 1;
                         }
                         var below = self.parent.position[1] + 1;
-                        if (
-                            target_entity.position[1] == below
-                            or target_entity.position[1] == above
-                        ) {
+                        if (target_entity.position[1] == below or target_entity.position[1] == above) {
                             in_position = true;
                         }
                     } else if (target_entity.position[1] == self.parent.position[1]) {
@@ -112,10 +149,7 @@ pub const ComponentAttack = struct {
                             left -= 1;
                         }
                         var right = self.parent.position[0] + 1;
-                        if (
-                            target_entity.position[0] == right
-                            or target_entity.position[0] == left
-                        ) {
+                        if (target_entity.position[0] == right or target_entity.position[0] == left) {
                             in_position = true;
                         }
                     }
@@ -134,10 +168,13 @@ pub const ComponentAttack = struct {
                             try diff.addData(69);
                             try diff.addData(self.entity_id);
                             try diff.addData(target_entity.getId());
+
+                            try self.handle(enums.ComponentAttackEvent.CompleteAttack);
                         }
                     }
                 }
             }
         }
+        try self.handle(enums.ComponentAttackEvent.FailAttack);
     }
 };

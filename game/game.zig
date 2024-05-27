@@ -139,16 +139,8 @@ pub fn processTick() !void {
     // TODO: Update the messaging system so that you have priority levels
     // highest priority must be done first before the renderer can process the next tick
     // also bring in the pause function from the javascript side into zig
-    for (0..entities_list.len) |i| {
-        var entity = entities_list.at(i);
-        try entity.processMessages();
-    }
-    while (events_list.items.len > 0) {
-        var event = events_list.pop();
-        if (event.type == enums.GameMessagesEventsEnum.Attack.int()) {
-            events.processAttack(event);
-        }
-    }
+    events.processEvents();
+    try events.processEntityMessages();
 }
 // @wasm
 pub fn entityIncrementHealth(entity_index: u16) u16 {
@@ -291,9 +283,7 @@ pub fn initializeGame() !bool {
         var embedded_data_struct = EmbeddedDataStruct{};
         var world = try embedded_data_struct.findIndexByFileName(.world, @intCast(i), 0);
         if (world == true) {
-            try worlds_list.append(allocator, .{
-                .embedded_data = embedded_data_struct
-            });
+            try worlds_list.append(allocator, .{ .embedded_data = embedded_data_struct });
             var last_world = worlds_list.at(worlds_list.len - 1);
             var total_layers = last_world.readData(enums.WorldDataEnum.TotalLayers.int());
             for (0..total_layers) |l| {
@@ -306,7 +296,7 @@ pub fn initializeGame() !bool {
                 }
             }
         } else {
-            std.log.info("World not found - {d}", .{ @as(u16, @intCast(i)) });
+            std.log.info("World not found - {d}", .{@as(u16, @intCast(i))});
         }
     }
     var entities_loaded: u16 = 0;
@@ -456,7 +446,7 @@ pub fn getWorldDataAtViewportCoordinate(layer_index: u16, x: u16, y: u16) u16 {
         // std.log.info("world {d}", .{worlds_list.len});
         return getWorldData(current_world_index, layer_index, world_x, world_y);
     }
-    std.log.info("Invalid coordinates: {d} {d}", .{x, y});
+    std.log.info("Invalid coordinates: {d} {d}", .{ x, y });
     @panic("Invalid viewport coordinate");
 }
 // @wasm
