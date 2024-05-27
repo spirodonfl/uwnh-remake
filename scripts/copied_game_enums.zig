@@ -11,6 +11,18 @@ fn EnumHelpers(comptime T: type) type {
     };
 }
 
+pub const ComponentMovementState = enum(u16) {
+    Idle,
+    Moving,
+    pub usingnamespace EnumHelpers(@This());
+};
+
+pub const ComponentMovementEvent = enum(u16) {
+    Move,
+    Moved,
+    pub usingnamespace EnumHelpers(@This());
+};
+
 pub const StringsEnum = enum(u16) {
     Hello,
     World,

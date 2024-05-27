@@ -4,11 +4,14 @@ const ArrayList = std.ArrayList;
 const enums = @import("enums.zig");
 const game = @import("game.zig");
 const embeds = @import("embeds.zig");
+const EmbeddedDataStruct =  @import("embedded.zig").EmbeddedDataStruct;
 const diff = @import("diff.zig");
+// TODO: Rename this stupid variable
+const worldddd = @import("world.zig");
 
 // --- MEMORY SETUP ---
 var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-pub var layers = ArrayList(game.EmbeddedDataStruct).init(arena.allocator());
+pub var layers = ArrayList(EmbeddedDataStruct).init(arena.allocator());
 
 // --- EDITOR FUNCTIONS ---
 pub fn getTotalLayers() u16 {
@@ -163,14 +166,14 @@ pub fn moveLayer(world_index: u16, layer_index: u16, new_index: u16) !void {
 // --- CREATION ---
 // @wasm
 pub fn createLayer(width: u16, height: u16) !u16 {
-    var new_layer = game.EmbeddedDataStruct{};
+    var new_layer = EmbeddedDataStruct{};
     try new_layer.raw_data.appendNTimes(arena.allocator(), 0, (width * height));
     try layers.append(new_layer);
     return @as(u16, @intCast(layers.items.len - 1));
 }
 // @wasm
 pub fn createWorld(width: u16, height: u16) !void {
-    var new_world_data = game.EmbeddedDataStruct{};
+    var new_world_data = EmbeddedDataStruct{};
     var i: usize = 0;
     while (i < enums.WorldDataEnum.length()) {
         if (i == enums.WorldDataEnum.ID.int()) {
@@ -190,7 +193,7 @@ pub fn createWorld(width: u16, height: u16) !void {
         i += 1;
     }
 
-    var new_world = game.WorldDataStruct{};
+    var new_world = worldddd.WorldDataStruct{};
     new_world.setEmbeddedData(new_world_data);
 
     try game.worlds_list.append(arena.allocator(), .{});
@@ -199,7 +202,7 @@ pub fn createWorld(width: u16, height: u16) !void {
 }
 // @wasm
 pub fn createEntity(entity_type: u16, entity_id: u16) !usize {
-    var new_entity_data = game.EmbeddedDataStruct{};
+    var new_entity_data = EmbeddedDataStruct{};
     var i: usize = 0;
     std.log.info("EntityDataEnum->length() {d}", .{enums.EntityDataEnum.length()});
     // TODO: Allow updating some of these values

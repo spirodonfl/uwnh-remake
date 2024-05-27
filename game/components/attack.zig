@@ -3,6 +3,8 @@ const messages = @import("../messages.zig");
 const game = @import("../game.zig");
 const diff = @import("../diff.zig");
 const enums = @import("../enums.zig");
+const entity = @import("../entity.zig");
+const EntityDataStruct = entity.EntityDataStruct;
 
 // TODO: Add an FSM
 pub const ComponentAttack = struct {
@@ -12,7 +14,7 @@ pub const ComponentAttack = struct {
     current_damage: u16 = 1,
     default_range: u16 = 2,
     current_range: u16 = 2,
-    parent: *game.EntityDataStruct,
+    parent: *EntityDataStruct,
     pub fn directionalAttack(self: *ComponentAttack) !void {
         var current_world = game.worlds_list.at(game.current_world_index);
         for (0..current_world.entities_list.items.len) |i| {

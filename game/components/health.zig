@@ -1,10 +1,11 @@
 const game = @import("../game.zig");
+const entity = @import("../entity.zig");
 
 // TODO: Add an FSM
 pub const ComponentHealth = struct {
     default_value: u16,
     current_value: u16,
-    parent: *game.EntityDataStruct,
+    parent: *entity.EntityDataStruct,
     pub fn incrementHealth(self: *ComponentHealth) void {
         if (self.current_value < self.default_value) {
             self.current_value += 1;
