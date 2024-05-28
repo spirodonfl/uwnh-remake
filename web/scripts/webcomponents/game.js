@@ -85,7 +85,7 @@ export class ComponentGame extends HTMLElement {
                     break;
                 case 'pause':
                     FRAMES.pause();
-                    Game.updatePaused();
+                    this.updatePaused();
                     break;
             }
         });
