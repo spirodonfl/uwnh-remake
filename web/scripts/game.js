@@ -145,6 +145,7 @@ class ClassGame {
         return null;
     }
     mainPlayerMoveUp() {
+        Debug.log({message: 'mainPlayerMoveUp'}, 'trace');
         wasm.messages_moveUp(1, 0);
     }
     mainPlayerMoveDown() {
