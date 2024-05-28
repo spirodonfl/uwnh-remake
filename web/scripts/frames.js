@@ -93,6 +93,9 @@ export const FRAMES = {
         PAUSED = !PAUSED;
         console.log('Current pause status', PAUSED);
     },
+    getPaused: function () {
+        return PAUSED;
+    },
     addRunOnFrames: function (frames, clearOnRun, callback) {
         for (var i = 0; i < this.frameCallbacks.length; ++i) {
             if (this.frameCallbacks[i] === false) {

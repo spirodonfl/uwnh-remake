@@ -38,7 +38,7 @@ document.addEventListener('keydown', function (event) {
         }
     }
     if (!handled && globals.MODE === globals.MODES.indexOf('MULTIPLAYER_HOST')) {
-        for (const input of Inputs.MULTIPLAYERHOST) {
+        for (const input of Inputs.MULTIPLAYER_HOST) {
             handled = inputMatch(input, event);
         }
     }

@@ -46,6 +46,12 @@ export class ComponentEditor extends HTMLElement {
                 case 'toggle_entity_editor':
                     this.shadowRoot.getElementById('entity-editor').toggleVisibility();
                     break;
+                case 'toggle_entity_manager':
+                    this.shadowRoot.getElementById('entity_manager').toggleVisibility();
+                    break;
+                case 'toggle_entity_list':
+                    this.shadowRoot.getElementById('entities_list').toggleVisibility();
+                    break;
                 case 'change_layer':
                     this.incrementLayer();
                     break;
@@ -852,7 +858,7 @@ export class ComponentEditor extends HTMLElement {
                     <img id="atlas_img" src="${Game.getAssetPath('atlas')}" />
                 </div>
             </x-draggable>
-            <x-draggable visible="true" name="entities_list" id="entities_list">
+            <x-draggable visible="false" name="entities_list" id="entities_list">
                 <div id="editor-container">
                     <div class="title">Entities List</div>
                     <div id="entities_list">
@@ -863,7 +869,7 @@ export class ComponentEditor extends HTMLElement {
                     </div>
                 </div>
             </x-draggable>
-            <x-draggable visible="true" name="entity_manager" id="entity_manager">
+            <x-draggable visible="false" name="entity_manager" id="entity_manager">
                 <div id="editor-container">
                     <div class="title">Entity Manager [Create/Edit]</div>
                     <div id="entities_list">

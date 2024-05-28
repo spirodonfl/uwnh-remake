@@ -11,7 +11,7 @@ const inputMatch = function (event_id) {
         input = Inputs.MULTIPLAYER.find(input => input.event_id === event_id);
     }
     if (!input && globals.MODE === globals.MODES.indexOf('MULTIPLAYER_HOST')) {
-        input = Inputs.MULTIPLAYERHOST.find(input => input.event_id === event_id);
+        input = Inputs.MULTIPLAYER_HOST.find(input => input.event_id === event_id);
     }
     if (!input && globals.MODE === globals.MODES.indexOf('GAME')) {
         input = Inputs.GAME.find(input => input.event_id === event_id);

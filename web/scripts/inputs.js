@@ -10,7 +10,7 @@ const Inputs = {
     'ALL': [],
     'EDITOR': [],
     'MULTIPLAYER': [],
-    'MULTIPLAYERHOST': [],
+    'MULTIPLAYER_HOST': [],
     'GAME': [],
 };
 Inputs.ALL = [
@@ -72,6 +72,24 @@ Inputs.EDITOR = [
         event_id: 'toggle_entity_editor',
         code: 'KeyE',
         friendlyCode: 'E',
+        shiftKey: false,
+        ctrlKey: false,
+        gamepadButton: null,
+    },
+    {
+        description: 'Toggle Entity List',
+        event_id: 'toggle_entity_list',
+        code: 'KeyZ',
+        friendlyCode: 'Z',
+        shiftKey: false,
+        ctrlKey: false,
+        gamepadButton: null,
+    },
+    {
+        description: 'Toggle Entity Manager',
+        event_id: 'toggle_entity_manager',
+        code: 'KeyD',
+        friendlyCode: 'D',
         shiftKey: false,
         ctrlKey: false,
         gamepadButton: null,
@@ -273,7 +291,7 @@ Inputs.MULTIPLAYER = [
     },
 ];
 
-Inputs.MULTIPLAYERHOST = [
+Inputs.MULTIPLAYER_HOST = [
     {
         description: 'Toggle Leaderboard',
         event_id: 'toggle_leaderboard',

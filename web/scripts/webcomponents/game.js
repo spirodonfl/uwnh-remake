@@ -85,6 +85,7 @@ export class ComponentGame extends HTMLElement {
                     break;
                 case 'pause':
                     FRAMES.pause();
+                    Game.updatePaused();
                     break;
             }
         });
@@ -92,6 +93,10 @@ export class ComponentGame extends HTMLElement {
         this.checkMultiplayer();
 
         this.updateMode();
+
+        this.updatePaused();
+
+        this.updateCurrentEntityTurn();
 
         FRAMES.addRunOnFrames(10, false, () => {
             let entity_components = this.shadowRoot.querySelectorAll('entity-component');
@@ -254,6 +259,14 @@ export class ComponentGame extends HTMLElement {
         this.shadowRoot.getElementById('els_value').innerText = value;
     }
 
+    updatePaused() {
+        this.shadowRoot.getElementById('paused').innerText = FRAMES.getPaused();
+    }
+
+    updateCurrentEntityTurn() {
+        this.shadowRoot.getElementById('current_entity_turn').innerText = wasm.game_getEntityTurn();
+    }
+
     toggleMainMenuDisplay() {
         // TODO: Use the draggable visible toggle thing
         this.shadowRoot.getElementById('main_menu').classList.toggle('hidden');
@@ -367,6 +380,12 @@ export class ComponentGame extends HTMLElement {
                     </div>
                     <div>
                         Press 'X' to hide/show this
+                    </div>
+                    <div class="two-column-grid">
+                        <div>Paused</div><div id="paused">XXX</div>
+                    </div>
+                    <div class="two-column-grid">
+                        <div>Current Entity Turn</div><div id="current_entity_turn">XXX</div>
                     </div>
                 </div>
             </x-draggable>

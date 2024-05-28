@@ -18,10 +18,9 @@
 # TODO (Turn Based)
 
 * If you have moved or attacked, you cannot move or attack again if it's the same turn
-* Upon end turn message or when move & attack are both done, update game turn state to next entity
 * I guess Kraken needs its own auto-movement unless player is attached? Maybe?
-* Game must track current entities turn
 * Turn tracker (record actions taken on each turn) at the game level
 * Eventual "auto management" of entities who do not have players controlling them. This is for Twitch
 * Allow local host to control all players so you could manually move the gameplay along
 * messages.zig and events.zig seems redundant but it's *meant* to be a way for the game to receive general events, pass individual messages to entities that need it, then process the entity messages. Confirm this is actually reasonable.
+* Most likely you don't want all entities to be able to take actions in the turn. At least not visibly. Need to think about this. You probably just want entities defined as "player_driven" or not and, if player driven, wait for input, otherwise just automate them... most likely. That way you could attach "player_driven" to any entity on the fly and let the player (or players) take control as necessary

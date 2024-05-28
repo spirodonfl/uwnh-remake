@@ -34,8 +34,8 @@ export class ComponentCheatSheet extends HTMLElement {
             this.shadowRoot
                 .getElementById('cheatsheet')
                 .appendChild(mode_header_template);
-            for (let i = 0; i < globals.INPUTS.length; ++i) {
-                let input = globals.INPUTS[i];
+            for (let i = 0; i < Inputs[mode].length; ++i) {
+                let input = Inputs[mode][i];
                 if (input.context === m) {
                     let mode_input_row_template = this.shadowRoot
                         .getElementById('mode-input-row')
