@@ -4,7 +4,7 @@ const ArrayList = std.ArrayList;
 const enums = @import("enums.zig");
 const game = @import("game.zig");
 const embeds = @import("embeds.zig");
-const EmbeddedDataStruct =  @import("embedded.zig").EmbeddedDataStruct;
+const EmbeddedDataStruct = @import("embedded.zig").EmbeddedDataStruct;
 const diff = @import("diff.zig");
 // TODO: Rename this stupid variable
 const worldddd = @import("world.zig");
@@ -122,9 +122,9 @@ pub fn removeColumnFromWorld(world_index: u16) !void {
 pub fn moveLayer(world_index: u16, layer_index: u16, new_index: u16) !void {
     var world = game.worlds_list.at(world_index);
 
-    std.log.info("Moving layer from {d} to {d}", .{layer_index, new_index});
+    std.log.info("Moving layer from {d} to {d}", .{ layer_index, new_index });
     std.log.info("Layer count: {d}", .{world.embedded_layers.items.len});
-    std.log.info("Current entity & collision layers {d} {d}", .{world.getEntityLayer(), world.getCollisionLayer()});
+    std.log.info("Current entity & collision layers {d} {d}", .{ world.getEntityLayer(), world.getCollisionLayer() });
     // Check if the indices are valid
     if (layer_index >= world.embedded_layers.items.len or new_index >= world.embedded_layers.items.len) {
         // TODO: THIS WORKS you should use this more often when you're not pumping out WASM functions...
@@ -358,4 +358,17 @@ pub fn getLayerMemoryLocation(layer_index: u16) !*u16 {
 // @wasm
 pub fn getLayerMemoryLength(layer_index: u16) !usize {
     return layers.items[layer_index].getLength();
+}
+
+// @wasm
+pub fn setCurrentMode(mode: u16) void {
+    game.GAME_MODE = mode;
+}
+// @wasm
+pub fn setGameState(state: u16) void {
+    game.game_state = state;
+}
+// @wasm
+pub fn setEntityTurn(entity_id: u16) void {
+    game.entity_turn = entity_id;
 }

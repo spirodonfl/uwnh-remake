@@ -113,63 +113,28 @@ pub const EntityDataStruct = struct {
             var message = self.messages.pop();
             switch (message.command) {
                 enums.GameMessagesEventsEnum.MoveUp.int() => {
-                    // TODO: check if entity has the move component
+                    // TODO: check if entity has the move component (not undefined ?)
                     var mh = try game.sComponentMovement.getData(&self.movement);
 
                     try mh.handle(enums.ComponentMovementEvent.MoveUp);
-
-                    // var current_world = game.worlds_list.at(game.current_world_index);
-                    // var intended_x = self.position[0];
-                    // var intended_y = mh.intendedMoveUp();
-                    // if (intended_y < current_world.getHeight()) {
-                    //     if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
-                    //         self.direction = enums.DirectionsEnum.Up.int();
-                    //         mh.moveUp();
-                    //         try diff.addData(0);
-                    //     }
-                    // }
                 },
                 enums.GameMessagesEventsEnum.MoveDown.int() => {
-                    // TODO: check if entity has the move component
-                    var current_world = game.worlds_list.at(game.current_world_index);
-                    var intended_x = self.position[0];
+                    // TODO: check if entity has the move component (not undefined ?)
                     var mh = try game.sComponentMovement.getData(&self.movement);
-                    var intended_y = mh.intendedMoveDown();
-                    if (intended_y < current_world.getHeight()) {
-                        if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
-                            self.direction = enums.DirectionsEnum.Down.int();
-                            mh.moveDown();
-                            try diff.addData(0);
-                        }
-                    }
+
+                    try mh.handle(enums.ComponentMovementEvent.MoveDown);
                 },
                 enums.GameMessagesEventsEnum.MoveLeft.int() => {
-                    // TODO: check if entity has the move component
-                    var current_world = game.worlds_list.at(game.current_world_index);
+                    // TODO: check if entity has the move component (not undefined ?)
                     var mh = try game.sComponentMovement.getData(&self.movement);
-                    var intended_x = mh.intendedMoveLeft();
-                    var intended_y = self.position[1];
-                    if (intended_x < current_world.getWidth()) {
-                        if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
-                            self.direction = enums.DirectionsEnum.Left.int();
-                            mh.moveLeft();
-                            try diff.addData(0);
-                        }
-                    }
+
+                    try mh.handle(enums.ComponentMovementEvent.MoveLeft);
                 },
                 enums.GameMessagesEventsEnum.MoveRight.int() => {
-                    // TODO: check if entity has the move component
-                    var current_world = game.worlds_list.at(game.current_world_index);
+                    // TODO: check if entity has the move component (not undefined ?)
                     var mh = try game.sComponentMovement.getData(&self.movement);
-                    var intended_x = mh.intendedMoveRight();
-                    var intended_y = self.position[1];
-                    if (intended_x < current_world.getWidth()) {
-                        if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
-                            self.direction = enums.DirectionsEnum.Right.int();
-                            mh.moveRight();
-                            try diff.addData(0);
-                        }
-                    }
+
+                    try mh.handle(enums.ComponentMovementEvent.MoveRight);
                 },
                 enums.GameMessagesEventsEnum.Attack.int() => {
                     // TODO: Check if entity has the attack component

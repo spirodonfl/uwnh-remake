@@ -350,6 +350,15 @@ Inputs.GAME = [
         gamepadButton: null,
     },
     {
+        description: 'Pause',
+        event_id: 'pause',
+        code: 'KeyP',
+        friendlyCode: 'Shift+P',
+        shiftKey: true,
+        ctrlKey: false,
+        gamepadButton: null,
+    },
+    {
         description: 'Move camera up',
         event_id: 'move_camera_up',
         code: 'ArrowUp',
@@ -447,7 +456,7 @@ Inputs.GAME = [
         shiftKey: true,
         ctrlKey: false,
         gamepadButton: null,
-    }
+    },
 ];
 
 export { Inputs };

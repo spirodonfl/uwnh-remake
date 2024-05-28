@@ -43,6 +43,25 @@ const WorldDataStruct = @import("world.zig").WorldDataStruct;
 const EntityDataStruct = @import("entity.zig").EntityDataStruct;
 const EmbeddedDataStruct = @import("embedded.zig").EmbeddedDataStruct;
 
+pub var GAME_MODE: u16 = enums.GameModesEnum.TurnBased.int();
+// @wasm
+pub fn getCurrentMode() u16 {
+    return GAME_MODE;
+}
+pub var game_state: u16 = enums.GameState.Idle.int();
+// @wasm
+pub fn getGameState() u16 {
+    return game_state;
+}
+pub var entity_turn: u16 = 0;
+// @wasm
+pub fn getEntityTurn() u16 {
+    return entity_turn;
+}
+// TODO: Are you sure you want these here?
+pub var entity_has_moved: bool = false;
+pub var entity_has_attacked: bool = false;
+
 // -----------------------------------------------------------------------------------------
 // @wasm
 pub const std_options = struct {
@@ -139,10 +158,28 @@ pub fn processTick() !void {
     // TODO: Update the messaging system so that you have priority levels
     // highest priority must be done first before the renderer can process the next tick
     // also bring in the pause function from the javascript side into zig
-    // NOTE: FIRST process the entire global states / messages / etc...
-    try events.processEvents();
-    // NOTE: THEN process individual entity messages because global will send messages to entities
-    try events.processEntityMessages();
+    // std.log.info("PROCESS TICK", .{});
+    // TODO: Is it truly Idle that you want here? What about waiting for entity to take action state? Deal with this later.
+    if (game_state == enums.GameState.Idle.int()) {
+        if (GAME_MODE == enums.GameModesEnum.TurnBased.int()) {
+            // NOTE: We are flushing any messages from all entities if it's not their turn.
+            for (0..entities_list.len) |i| {
+                if (i != entity_turn) {
+                    var entity = entities_list.at(i);
+                    // TODO: Is there a better way to flush these immediately?
+                    while (entity.messages.items.len > 0) {
+                        _ = entity.messages.pop();
+                    }
+                }
+            }
+        }
+
+        // TODO: Consider whether or not these have to be put into the TurnBased mode function above or not
+        // NOTE: FIRST process the entire global states / messages / etc...
+        try events.processEvents();
+        // NOTE: THEN process individual entity messages because global will send messages to entities
+        try events.processEntityMessages();
+    }
 }
 // @wasm
 pub fn entityIncrementHealth(entity_index: u16) u16 {

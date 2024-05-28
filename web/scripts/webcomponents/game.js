@@ -83,6 +83,9 @@ export class ComponentGame extends HTMLElement {
                         document.body.appendChild(multiplayer_host_element);
                     }
                     break;
+                case 'pause':
+                    FRAMES.pause();
+                    break;
             }
         });
         

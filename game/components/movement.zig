@@ -21,8 +21,14 @@ pub const ComponentMovement = struct {
                 switch (self.state) {
                     enums.ComponentMovementState.Idle.int() => {
                         self.state = enums.ComponentMovementState.Moving.int();
-                        // TODO: Check that the move is legal?
-                        self.moveLeft();
+                        var current_world = game.worlds_list.at(game.current_world_index);
+                        var intended_x = self.intendedMoveLeft();
+                        var intended_y = self.parent.position[1];
+                        if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
+                            // NOTE: The moveLeft function already has a built in check for less than 0
+                            self.moveLeft();
+                            try diff.addData(0);
+                        }
                         try self.handle(enums.ComponentMovementEvent.Moved);
                     },
                     else => self.state = enums.ComponentMovementState.Idle.int(),
@@ -32,8 +38,15 @@ pub const ComponentMovement = struct {
                 switch (self.state) {
                     enums.ComponentMovementState.Idle.int() => {
                         self.state = enums.ComponentMovementState.Moving.int();
-                        // TODO: Check that the move is legal?
-                        self.moveRight();
+                        var current_world = game.worlds_list.at(game.current_world_index);
+                        var intended_x = self.intendedMoveLeft();
+                        var intended_y = self.parent.position[1];
+                        if (intended_x < current_world.getWidth()) {
+                            if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
+                                self.moveRight();
+                                try diff.addData(0);
+                            }
+                        }
                         try self.handle(enums.ComponentMovementEvent.Moved);
                     },
                     else => self.state = enums.ComponentMovementState.Idle.int(),
@@ -61,8 +74,14 @@ pub const ComponentMovement = struct {
                 switch (self.state) {
                     enums.ComponentMovementState.Idle.int() => {
                         self.state = enums.ComponentMovementState.Moving.int();
-                        // TODO: Check that the move is legal?
-                        self.moveDown();
+                        var current_world = game.worlds_list.at(game.current_world_index);
+                        var intended_x = self.parent.position[0];
+                        var intended_y = self.intendedMoveDown();
+                        if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
+                            // NOTE: The moveDown function already has a built in check for less than 0
+                            self.moveDown();
+                            try diff.addData(0);
+                        }
                         try self.handle(enums.ComponentMovementEvent.Moved);
                     },
                     else => self.state = enums.ComponentMovementState.Idle.int(),
@@ -101,6 +120,7 @@ pub const ComponentMovement = struct {
         if (self.parent.position[1] < game.worlds_list.at(game.current_world_index).getHeight() - 1) {
             self.parent.position[1] += 1;
         }
+        self.parent.direction = enums.DirectionsEnum.Down.int();
     }
     pub fn intendedMoveLeft(self: *ComponentMovement) u16 {
         if (self.parent.position[0] > 0) {

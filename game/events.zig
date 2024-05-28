@@ -17,6 +17,15 @@ pub fn processEvents() !void {
             try processMove(event);
         } else if (event.type == enums.GameMessagesEventsEnum.MoveRight.int()) {
             try processMove(event);
+        } else if (event.type == enums.GameMessagesEventsEnum.EndTurn.int()) {
+            // NOTE: Make sure that the entity that initiated the end turn message
+            // is actually the CURRENT turn entity we're expecting to see
+            if (event.data.items[0] == game.entity_turn) {
+                game.entity_turn += 1;
+                if (game.entity_turn > game.entities_list.len) {
+                    game.entity_turn = 0;
+                }
+            }
         }
     }
 }
@@ -26,6 +35,17 @@ pub fn processEntityMessages() !void {
         var entity = game.entities_list.at(i);
         try entity.processMessages();
     }
+}
+
+// @wasm
+pub fn endTurn(entity_id: u16, force: bool) !void {
+    // TODO: How do we make the force parameter default to false?
+    var event = game.GameEvent{
+        .type = enums.GameMessagesEventsEnum.EndTurn.int(),
+        .force = force,
+    };
+    try event.data.append(game.allocator, entity_id);
+    try game.events_list.append(game.allocator, event);
 }
 
 // @wasm

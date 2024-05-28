@@ -142,5 +142,12 @@ pub const GameMessagesEventsEnum = enum(u16) {
     Attack,
     Spawn,
     DeSpawn,
+    EndTurn,
+    pub usingnamespace EnumHelpers(@This());
+};
+
+pub const GameModesEnum = enum(u16) {
+    TurnBased,
+    RealTime,
     pub usingnamespace EnumHelpers(@This());
 };
