@@ -3,7 +3,7 @@ const std = @import("std");
 const game = @import("game.zig");
 const enums = @import("enums.zig");
 
-const EmbeddedDataStruct =  @import("embedded.zig").EmbeddedDataStruct;
+const EmbeddedDataStruct = @import("embedded.zig").EmbeddedDataStruct;
 const ServiceEntityData = game.ServiceEntityData;
 const GameMessage = game.GameMessage;
 const ServiceHandle = @import("services.zig").ServiceHandle;
@@ -84,10 +84,7 @@ pub const EntityDataStruct = struct {
         }
         if (self.embedded.readData(enums.EntityDataEnum.ComponentMovement.int(), .Little) == 1) {
             // std.log.info("movement component found", .{});
-            self.movement = try game.sComponentMovement.addData(ComponentMovement{
-                .parent = self,
-                .entity_id = self.getId()
-            });
+            self.movement = try game.sComponentMovement.addData(ComponentMovement{ .parent = self, .entity_id = self.getId() });
             game.sComponentMovement.incrementReference(&self.movement);
             try self.components.append(game.allocator, self.movement);
         }
@@ -116,20 +113,19 @@ pub const EntityDataStruct = struct {
             var message = self.messages.pop();
             switch (message.command) {
                 enums.GameMessagesEventsEnum.MoveUp.int() => {
-                    // TODO: check if entity has the move component
-                    var current_world = game.worlds_list.at(game.current_world_index);
-                    var intended_x = self.position[0];
                     var mh = try game.sComponentMovement.getData(&self.movement);
-                    var intended_y = mh.intendedMoveUp();
-                    if (intended_y < current_world.getHeight())
-                    {
-                        if (current_world.checkEntityCollision(intended_x, intended_y) == false)
-                        {
-                            self.direction = enums.DirectionsEnum.Up.int();
-                            mh.moveUp();
-                            try diff.addData(0);
-                        }
-                    }
+                    try mh.handle(enums.ComponentMovementEvent.MoveUp);
+                    // // TODO: check if entity has the move component
+                    // var current_world = game.worlds_list.at(game.current_world_index);
+                    // var intended_x = self.position[0];
+                    // var intended_y = mh.intendedMoveUp();
+                    // if (intended_y < current_world.getHeight()) {
+                    //     if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
+                    //         self.direction = enums.DirectionsEnum.Up.int();
+                    //         mh.moveUp();
+                    //         try diff.addData(0);
+                    //     }
+                    // }
                 },
                 enums.GameMessagesEventsEnum.MoveDown.int() => {
                     // TODO: check if entity has the move component
@@ -137,10 +133,8 @@ pub const EntityDataStruct = struct {
                     var intended_x = self.position[0];
                     var mh = try game.sComponentMovement.getData(&self.movement);
                     var intended_y = mh.intendedMoveDown();
-                    if (intended_y < current_world.getHeight())
-                    {
-                        if (current_world.checkEntityCollision(intended_x, intended_y) == false)
-                        {
+                    if (intended_y < current_world.getHeight()) {
+                        if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
                             self.direction = enums.DirectionsEnum.Down.int();
                             mh.moveDown();
                             try diff.addData(0);
@@ -153,10 +147,8 @@ pub const EntityDataStruct = struct {
                     var mh = try game.sComponentMovement.getData(&self.movement);
                     var intended_x = mh.intendedMoveLeft();
                     var intended_y = self.position[1];
-                    if (intended_x < current_world.getWidth())
-                    {
-                        if (current_world.checkEntityCollision(intended_x, intended_y) == false)
-                        {
+                    if (intended_x < current_world.getWidth()) {
+                        if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
                             self.direction = enums.DirectionsEnum.Left.int();
                             mh.moveLeft();
                             try diff.addData(0);
@@ -169,10 +161,8 @@ pub const EntityDataStruct = struct {
                     var mh = try game.sComponentMovement.getData(&self.movement);
                     var intended_x = mh.intendedMoveRight();
                     var intended_y = self.position[1];
-                    if (intended_x < current_world.getWidth())
-                    {
-                        if (current_world.checkEntityCollision(intended_x, intended_y) == false)
-                        {
+                    if (intended_x < current_world.getWidth()) {
+                        if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
                             self.direction = enums.DirectionsEnum.Right.int();
                             mh.moveRight();
                             try diff.addData(0);

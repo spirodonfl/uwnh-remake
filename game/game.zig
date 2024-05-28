@@ -139,7 +139,9 @@ pub fn processTick() !void {
     // TODO: Update the messaging system so that you have priority levels
     // highest priority must be done first before the renderer can process the next tick
     // also bring in the pause function from the javascript side into zig
-    events.processEvents();
+    // NOTE: FIRST process the entire global states / messages / etc...
+    try events.processEvents();
+    // NOTE: THEN process individual entity messages because global will send messages to entities
     try events.processEntityMessages();
 }
 // @wasm

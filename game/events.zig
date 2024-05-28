@@ -2,12 +2,21 @@ const std = @import("std");
 
 const game = @import("game.zig");
 const enums = @import("enums.zig");
+const messages = @import("messages.zig");
 
-pub fn processEvents() void {
+pub fn processEvents() !void {
     while (game.events_list.items.len > 0) {
         var event = game.events_list.pop();
         if (event.type == enums.GameMessagesEventsEnum.Attack.int()) {
             processAttack(event);
+        } else if (event.type == enums.GameMessagesEventsEnum.MoveUp.int()) {
+            try processMove(event);
+        } else if (event.type == enums.GameMessagesEventsEnum.MoveDown.int()) {
+            try processMove(event);
+        } else if (event.type == enums.GameMessagesEventsEnum.MoveLeft.int()) {
+            try processMove(event);
+        } else if (event.type == enums.GameMessagesEventsEnum.MoveRight.int()) {
+            try processMove(event);
         }
     }
 }
@@ -35,7 +44,7 @@ pub fn processAttack(event: game.GameEvent) void {
     _ = event;
     std.log.info("Processing attack", .{});
     // event.force
-    // event.data[0] && event.data[1]
+    // event.data.items[0] && event.data.items[1]
 }
 
 // @wasm
@@ -82,15 +91,13 @@ pub fn moveRight(entity_id: u16, force: bool) !void {
     try game.events_list.append(game.allocator, event);
 }
 
-pub fn processMove(event: game.GameEvent) void {
+pub fn processMove(event: game.GameEvent) !void {
     std.log.info("Processing move", .{});
-    // TODO: if event.force
-    var entity = game.entities_list.at(event.data[0]);
     switch (event.type) {
-        enums.GameMessagesEventsEnum.MoveUp.int() => entity.handle(enums.ComponentMovementEvent.MoveUp),
-        enums.GameMessagesEventsEnum.MoveDown.int() => entity.handle(enums.ComponentMovementEvent.MoveDown),
-        enums.GameMessagesEventsEnum.MoveLeft.int() => entity.handle(enums.ComponentMovementEvent.MoveLeft),
-        enums.GameMessagesEventsEnum.MoveRight.int() => entity.handle(enums.ComponentMovementEvent.MoveRight),
-        else => return false,
+        enums.GameMessagesEventsEnum.MoveUp.int() => try messages.moveDown(event.data.items[0], event.force),
+        enums.GameMessagesEventsEnum.MoveDown.int() => try messages.moveDown(event.data.items[0], event.force),
+        enums.GameMessagesEventsEnum.MoveLeft.int() => try messages.moveLeft(event.data.items[0], event.force),
+        enums.GameMessagesEventsEnum.MoveRight.int() => try messages.moveRight(event.data.items[0], event.force),
+        else => unreachable,
     }
 }

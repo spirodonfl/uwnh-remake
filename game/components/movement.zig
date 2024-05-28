@@ -22,7 +22,7 @@ pub const ComponentMovement = struct {
                         self.state = enums.ComponentMovementState.Moving.int();
                         // TODO: Check that the move is legal?
                         self.moveLeft();
-                        self.handle(enums.ComponentMovementEvent.Moved);
+                        try self.handle(enums.ComponentMovementEvent.Moved);
                     },
                     else => self.state = enums.ComponentMovementState.Idle.int(),
                 }
@@ -33,7 +33,7 @@ pub const ComponentMovement = struct {
                         self.state = enums.ComponentMovementState.Moving.int();
                         // TODO: Check that the move is legal?
                         self.moveRight();
-                        self.handle(enums.ComponentMovementEvent.Moved);
+                        try self.handle(enums.ComponentMovementEvent.Moved);
                     },
                     else => self.state = enums.ComponentMovementState.Idle.int(),
                 }
@@ -44,7 +44,7 @@ pub const ComponentMovement = struct {
                         self.state = enums.ComponentMovementState.Moving.int();
                         // TODO: Check that the move is legal?
                         self.moveUp();
-                        self.handle(enums.ComponentMovementEvent.Moved);
+                        try self.handle(enums.ComponentMovementEvent.Moved);
                     },
                     else => self.state = enums.ComponentMovementState.Idle.int(),
                 }
@@ -55,7 +55,7 @@ pub const ComponentMovement = struct {
                         self.state = enums.ComponentMovementState.Moving.int();
                         // TODO: Check that the move is legal?
                         self.moveDown();
-                        self.handle(enums.ComponentMovementEvent.Moved);
+                        try self.handle(enums.ComponentMovementEvent.Moved);
                     },
                     else => self.state = enums.ComponentMovementState.Idle.int(),
                 }
