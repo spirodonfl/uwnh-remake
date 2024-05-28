@@ -39,13 +39,11 @@ pub const ComponentMovement = struct {
                     enums.ComponentMovementState.Idle.int() => {
                         self.state = enums.ComponentMovementState.Moving.int();
                         var current_world = game.worlds_list.at(game.current_world_index);
-                        var intended_x = self.intendedMoveLeft();
+                        var intended_x = self.intendedMoveRight();
                         var intended_y = self.parent.position[1];
-                        if (intended_x < current_world.getWidth()) {
-                            if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
-                                self.moveRight();
-                                try diff.addData(0);
-                            }
+                        if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
+                            self.moveRight();
+                            try diff.addData(0);
                         }
                         try self.handle(enums.ComponentMovementEvent.Moved);
                     },
@@ -59,11 +57,9 @@ pub const ComponentMovement = struct {
                         var current_world = game.worlds_list.at(game.current_world_index);
                         var intended_x = self.parent.position[0];
                         var intended_y = self.intendedMoveUp();
-                        if (intended_y < current_world.getHeight()) {
-                            if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
-                                self.moveUp();
-                                try diff.addData(0);
-                            }
+                        if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
+                            self.moveUp();
+                            try diff.addData(0);
                         }
                         try self.handle(enums.ComponentMovementEvent.Moved);
                     },
@@ -132,6 +128,7 @@ pub const ComponentMovement = struct {
         if (self.parent.position[0] > 0) {
             self.parent.position[0] -= 1;
         }
+        self.parent.direction = enums.DirectionsEnum.Left.int();
     }
     pub fn intendedMoveRight(self: *ComponentMovement) u16 {
         if (self.parent.position[0] < game.worlds_list.at(game.current_world_index).getWidth() - 1) {
@@ -143,5 +140,6 @@ pub const ComponentMovement = struct {
         if (self.parent.position[0] < game.worlds_list.at(game.current_world_index).getWidth() - 1) {
             self.parent.position[0] += 1;
         }
+        self.parent.direction = enums.DirectionsEnum.Right.int();
     }
 };
