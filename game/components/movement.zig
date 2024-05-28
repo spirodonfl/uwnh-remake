@@ -5,6 +5,7 @@ const entity = @import("../entity.zig");
 const EntityDataStruct = entity.EntityDataStruct;
 const enums = @import("../enums.zig");
 const fsm = @import("fsm.zig");
+const diff = @import("../diff.zig");
 
 pub const ComponentMovement = struct {
     // TODO: Do we still need this?
@@ -42,8 +43,15 @@ pub const ComponentMovement = struct {
                 switch (self.state) {
                     enums.ComponentMovementState.Idle.int() => {
                         self.state = enums.ComponentMovementState.Moving.int();
-                        // TODO: Check that the move is legal?
-                        self.moveUp();
+                        var current_world = game.worlds_list.at(game.current_world_index);
+                        var intended_x = self.parent.position[0];
+                        var intended_y = self.intendedMoveUp();
+                        if (intended_y < current_world.getHeight()) {
+                            if (current_world.checkEntityCollision(intended_x, intended_y) == false) {
+                                self.moveUp();
+                                try diff.addData(0);
+                            }
+                        }
                         try self.handle(enums.ComponentMovementEvent.Moved);
                     },
                     else => self.state = enums.ComponentMovementState.Idle.int(),
@@ -63,6 +71,7 @@ pub const ComponentMovement = struct {
             enums.ComponentMovementEvent.Moved => {
                 switch (self.state) {
                     enums.ComponentMovementState.Moving.int() => {
+                        std.log.info("Move completed", .{});
                         self.state = enums.ComponentMovementState.Idle.int();
                     },
                     else => self.state = enums.ComponentMovementState.Idle.int(),
@@ -80,6 +89,7 @@ pub const ComponentMovement = struct {
         if (self.parent.position[1] > 0) {
             self.parent.position[1] -= 1;
         }
+        self.parent.direction = enums.DirectionsEnum.Up.int();
     }
     pub fn intendedMoveDown(self: *ComponentMovement) u16 {
         if (self.parent.position[1] < game.worlds_list.at(game.current_world_index).getHeight() - 1) {

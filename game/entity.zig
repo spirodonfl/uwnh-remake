@@ -113,9 +113,11 @@ pub const EntityDataStruct = struct {
             var message = self.messages.pop();
             switch (message.command) {
                 enums.GameMessagesEventsEnum.MoveUp.int() => {
+                    // TODO: check if entity has the move component
                     var mh = try game.sComponentMovement.getData(&self.movement);
+
                     try mh.handle(enums.ComponentMovementEvent.MoveUp);
-                    // // TODO: check if entity has the move component
+
                     // var current_world = game.worlds_list.at(game.current_world_index);
                     // var intended_x = self.position[0];
                     // var intended_y = mh.intendedMoveUp();

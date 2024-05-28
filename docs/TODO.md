@@ -9,3 +9,8 @@
 ** entity.zig is the crux of this
 ** The Vroman Compartmentalized Entropy Integration Service
 * THEN integrate FSM, export functions, enough to allow for UI based FSM editing
+
+# TODO (maybes uwu?)
+
+* When you look at the move component, you're suddenly realizing something... do you actually need to have multiples of these components? Could you not just overwrite the `parent` and `entity_id` parameters, call the move functions, then release for the next?
+** Is it possible for two entities to compete over one component? In a turn based game, no. In a real time game, possibly. Need to think on this more.
