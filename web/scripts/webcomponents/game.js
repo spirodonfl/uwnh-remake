@@ -87,6 +87,13 @@ export class ComponentGame extends HTMLElement {
                     FRAMES.pause();
                     this.updatePaused();
                     break;
+                case 'end_turn':
+                    // TODO: Instead of reaching into WASM to get the current entity
+                    // you should get current entity by some kind of local store
+                    // since, in multiplayer mode, each player is going to have their own
+                    // entity ID to pass along here
+                    wasm.events_endTurn(wasm.game_getEntityTurn());
+                    break;
             }
         });
         
@@ -105,6 +112,9 @@ export class ComponentGame extends HTMLElement {
                     entity_components[e].updateAnimationFrame();
                 }
             }
+        });
+        FRAMES.addRunOnFrames(1, false, () => {
+            this.updateCurrentEntityTurn();
         });
     }
 

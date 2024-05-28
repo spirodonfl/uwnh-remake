@@ -23,8 +23,10 @@ pub fn processEvents() !void {
             if (event.data.items[0] == game.entity_turn) {
                 game.entity_turn += 1;
                 if (game.entity_turn > game.entities_list.len) {
-                    game.entity_turn = 0;
+                    game.entity_turn = game.entities_list.at(0).getId();
                 }
+                game.entity_has_moved = false;
+                game.entity_has_attacked = false;
             }
         }
     }
@@ -112,12 +114,33 @@ pub fn moveRight(entity_id: u16, force: bool) !void {
 }
 
 pub fn processMove(event: game.GameEvent) !void {
-    std.log.info("Processing move", .{});
-    switch (event.type) {
-        enums.GameMessagesEventsEnum.MoveUp.int() => try messages.moveDown(event.data.items[0], event.force),
-        enums.GameMessagesEventsEnum.MoveDown.int() => try messages.moveDown(event.data.items[0], event.force),
-        enums.GameMessagesEventsEnum.MoveLeft.int() => try messages.moveLeft(event.data.items[0], event.force),
-        enums.GameMessagesEventsEnum.MoveRight.int() => try messages.moveRight(event.data.items[0], event.force),
-        else => unreachable,
+    std.log.info("Processing move. Data item 0 = {d}", .{event.data.items[0]});
+    var can_process: bool = false;
+    if (game.GAME_MODE == enums.GameModesEnum.TurnBased.int()) {
+        for (0..game.entities_list.len) |i| {
+            std.log.info("Checking entity ID: {d}", .{game.entities_list.at(i).getId()});
+            if (game.entities_list.at(i).getId() == event.data.items[0] and game.entity_turn == event.data.items[0]) {
+                if (!game.entity_has_moved) {
+                    can_process = true;
+                }
+                break;
+            }
+        }
+        // TODO: What if the entity ID did not match?
+    } else {
+        can_process = true;
+    }
+
+    if (can_process) {
+        std.log.info("Can process...", .{});
+        switch (event.type) {
+            enums.GameMessagesEventsEnum.MoveUp.int() => try messages.moveUp(event.data.items[0], event.force),
+            enums.GameMessagesEventsEnum.MoveDown.int() => try messages.moveDown(event.data.items[0], event.force),
+            enums.GameMessagesEventsEnum.MoveLeft.int() => try messages.moveLeft(event.data.items[0], event.force),
+            enums.GameMessagesEventsEnum.MoveRight.int() => try messages.moveRight(event.data.items[0], event.force),
+            else => unreachable,
+        }
+    } else {
+        std.log.info("Can NOT process...", .{});
     }
 }

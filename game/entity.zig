@@ -117,24 +117,40 @@ pub const EntityDataStruct = struct {
                     var mh = try game.sComponentMovement.getData(&self.movement);
 
                     try mh.handle(enums.ComponentMovementEvent.MoveUp);
+
+                    if (game.GAME_MODE == enums.GameModesEnum.TurnBased.int()) {
+                        game.entity_has_moved = true;
+                    }
                 },
                 enums.GameMessagesEventsEnum.MoveDown.int() => {
                     // TODO: check if entity has the move component (not undefined ?)
                     var mh = try game.sComponentMovement.getData(&self.movement);
 
                     try mh.handle(enums.ComponentMovementEvent.MoveDown);
+
+                    if (game.GAME_MODE == enums.GameModesEnum.TurnBased.int()) {
+                        game.entity_has_moved = true;
+                    }
                 },
                 enums.GameMessagesEventsEnum.MoveLeft.int() => {
                     // TODO: check if entity has the move component (not undefined ?)
                     var mh = try game.sComponentMovement.getData(&self.movement);
 
                     try mh.handle(enums.ComponentMovementEvent.MoveLeft);
+
+                    if (game.GAME_MODE == enums.GameModesEnum.TurnBased.int()) {
+                        game.entity_has_moved = true;
+                    }
                 },
                 enums.GameMessagesEventsEnum.MoveRight.int() => {
                     // TODO: check if entity has the move component (not undefined ?)
                     var mh = try game.sComponentMovement.getData(&self.movement);
 
                     try mh.handle(enums.ComponentMovementEvent.MoveRight);
+
+                    if (game.GAME_MODE == enums.GameModesEnum.TurnBased.int()) {
+                        game.entity_has_moved = true;
+                    }
                 },
                 enums.GameMessagesEventsEnum.Attack.int() => {
                     // TODO: Check if entity has the attack component

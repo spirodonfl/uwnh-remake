@@ -377,6 +377,15 @@ Inputs.GAME = [
         gamepadButton: null,
     },
     {
+        description: 'End Turn',
+        event_id: 'end_turn',
+        code: 'Enter',
+        friendlyCode: 'Shift+Enter',
+        shiftKey: true,
+        ctrlKey: false,
+        gamepadButton: null,
+    },
+    {
         description: 'Move camera up',
         event_id: 'move_camera_up',
         code: 'ArrowUp',

@@ -146,17 +146,17 @@ class ClassGame {
     }
     mainPlayerMoveUp() {
         Debug.log({message: 'mainPlayerMoveUp'}, 'trace');
-        wasm.messages_moveUp(1, 0);
+        wasm.events_moveUp(1, 0);
     }
     mainPlayerMoveDown() {
-        wasm.messages_moveDown(1, 0);
+        wasm.events_moveDown(1, 0);
     }
     mainPlayerMoveLeft() {
         Debug.log({message: 'mainPlayerMoveLeft'}, 'trace');
-        wasm.messages_moveLeft(1, 0);
+        wasm.events_moveLeft(1, 0);
     }
     mainPlayerMoveRight() {
-        wasm.messages_moveRight(1, 0);
+        wasm.events_moveRight(1, 0);
     }
     moveCameraUp() {
         wasm.viewport_moveCameraUp();

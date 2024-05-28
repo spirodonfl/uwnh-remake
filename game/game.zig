@@ -43,21 +43,10 @@ const WorldDataStruct = @import("world.zig").WorldDataStruct;
 const EntityDataStruct = @import("entity.zig").EntityDataStruct;
 const EmbeddedDataStruct = @import("embedded.zig").EmbeddedDataStruct;
 
+pub var GAME_PAUSED: bool = false;
 pub var GAME_MODE: u16 = enums.GameModesEnum.TurnBased.int();
-// @wasm
-pub fn getCurrentMode() u16 {
-    return GAME_MODE;
-}
 pub var game_state: u16 = enums.GameState.Idle.int();
-// @wasm
-pub fn getGameState() u16 {
-    return game_state;
-}
 pub var entity_turn: u16 = 0;
-// @wasm
-pub fn getEntityTurn() u16 {
-    return entity_turn;
-}
 // TODO: Are you sure you want these here?
 pub var entity_has_moved: bool = false;
 pub var entity_has_attacked: bool = false;
@@ -164,8 +153,8 @@ pub fn processTick() !void {
         if (GAME_MODE == enums.GameModesEnum.TurnBased.int()) {
             // NOTE: We are flushing any messages from all entities if it's not their turn.
             for (0..entities_list.len) |i| {
-                if (i != entity_turn) {
-                    var entity = entities_list.at(i);
+                var entity = entities_list.at(i);
+                if (entity.getId() != i) {
                     // TODO: Is there a better way to flush these immediately?
                     while (entity.messages.items.len > 0) {
                         _ = entity.messages.pop();
@@ -179,6 +168,7 @@ pub fn processTick() !void {
         try events.processEvents();
         // NOTE: THEN process individual entity messages because global will send messages to entities
         try events.processEntityMessages();
+        // TODO: What if an entity attacks another entity and the other entity has to decrease health as an event?
     }
 }
 // @wasm
@@ -359,6 +349,7 @@ pub fn initializeGame() !bool {
         // std.log.info("entities_loaded->cursor {d}", .{cursor});
     }
     GAME_INITIALIZED = true;
+    entity_turn = entities_list.at(0).getId();
     return true;
 }
 // TODO: There is a difference between loadWorld INTO THE GAME
@@ -591,3 +582,24 @@ pub fn TEST_getString() [*c]const u8 {
 // link.href = url;
 // link.download = 'strings.bin';
 // link.click();
+
+// @wasm
+pub fn getEntityTurn() u16 {
+    return entity_turn;
+}
+// @wasm
+pub fn getCurrentMode() u16 {
+    return GAME_MODE;
+}
+// @wasm
+pub fn getGameState() u16 {
+    return game_state;
+}
+// @wasm
+pub fn getGamePaused() bool {
+    return GAME_PAUSED;
+}
+// @wasm
+pub fn toggleGamePaused() void {
+    GAME_PAUSED = !GAME_PAUSED;
+}
