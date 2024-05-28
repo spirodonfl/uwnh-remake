@@ -21,10 +21,22 @@ pub fn processEvents() !void {
             // NOTE: Make sure that the entity that initiated the end turn message
             // is actually the CURRENT turn entity we're expecting to see
             if (event.data.items[0] == game.entity_turn) {
-                game.entity_turn += 1;
-                if (game.entity_turn > game.entities_list.len) {
-                    game.entity_turn = game.entities_list.at(0).getId();
+                var last_iterator: u16 = 0;
+                for (0..game.entities_list.len) |i| {
+                    var entity = game.entities_list.at(i);
+                    if (entity.getId() == game.entity_turn) {
+                        break;
+                    }
+                    last_iterator += 1;
                 }
+
+                last_iterator = last_iterator + 1;
+                if (last_iterator > (game.entities_list.len - 1)) {
+                    last_iterator = 0;
+                }
+
+                std.log.info("New game entity turn {d} {d} {d}", .{ game.entity_turn, last_iterator, game.entities_list.len });
+                game.entity_turn = game.entities_list.at(last_iterator).getId();
                 game.entity_has_moved = false;
                 game.entity_has_attacked = false;
             }

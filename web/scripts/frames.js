@@ -89,9 +89,7 @@ function tick() {
 export const FRAMES = {
     frameCallbacks: [],
     pause: function () {
-        console.log('Previous pause status', PAUSED);
         PAUSED = !PAUSED;
-        console.log('Current pause status', PAUSED);
     },
     getPaused: function () {
         return PAUSED;

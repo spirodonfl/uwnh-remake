@@ -51,6 +51,14 @@ pub var entity_turn: u16 = 0;
 pub var entity_has_moved: bool = false;
 pub var entity_has_attacked: bool = false;
 
+pub var global_seed: u64 = 12345;
+fn getRandomNumber(min: u16, max: u16) u16 {
+    var rng = std.rand.DefaultPrng.init(global_seed);
+    const range = @as(u16, @intCast(max - min + 1));
+    const random_number = @as(u16, @intCast(rng.next() % @as(u64, @intCast(range))));
+    return random_number + min;
+}
+
 // -----------------------------------------------------------------------------------------
 // @wasm
 pub const std_options = struct {
@@ -169,6 +177,33 @@ pub fn processTick() !void {
         // NOTE: THEN process individual entity messages because global will send messages to entities
         try events.processEntityMessages();
         // TODO: What if an entity attacks another entity and the other entity has to decrease health as an event?
+
+        // Deal with the automation of next players if they are not player driven
+
+        for (0..entities_list.len) |i| {
+            var entity = entities_list.at(i);
+            if (entity.getId() == entity_turn and !entity.player_driven and entity.should_automate) {
+                // TODO: has_attacked
+                if (!entity_has_moved) {
+                    // TODO: Automate the movement. Maybe randomize it? Up/down/left/right and then attack directional?
+                    var direction = getRandomNumber(1, 4);
+                    std.log.info("Direction {d}", .{direction});
+                    if (direction == 1) {
+                        try events.moveUp(entity.getId(), false);
+                    } else if (direction == 2) {
+                        try events.moveDown(entity.getId(), false);
+                    } else if (direction == 3) {
+                        try events.moveLeft(entity.getId(), false);
+                    } else if (direction == 4) {
+                        try events.moveRight(entity.getId(), false);
+                    } else {
+                        try events.moveUp(entity.getId(), false);
+                    }
+                } else {
+                    try events.endTurn(entity.getId(), false);
+                }
+            }
+        }
     }
 }
 // @wasm
@@ -602,4 +637,17 @@ pub fn getGamePaused() bool {
 // @wasm
 pub fn toggleGamePaused() void {
     GAME_PAUSED = !GAME_PAUSED;
+}
+// @wasm
+pub fn setEntityPlayerDriven(entity_id: u16, player_driven: bool) void {
+    for (0..entities_list.len) |i| {
+        var entity = entities_list.at(i);
+        if (entity.getId() == entity_id) {
+            entity.player_driven = player_driven;
+        }
+    }
+}
+// @wasm
+pub fn setGlobalSeed(seed: u64) void {
+    global_seed = seed;
 }

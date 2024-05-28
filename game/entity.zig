@@ -13,9 +13,7 @@ const ComponentAttack = @import("components/attack.zig").ComponentAttack;
 
 const diff = @import("diff.zig");
 
-// const FsmMixin = @import("components/fsm_mixin.zig").FsmMixin;
 // TODO: Should probably rename these structs, they've become more than just structs
-// TODO: Add an entity FSM
 pub const EntityDataStruct = struct {
     // usingnamespace FsmMixin(TrafficLightState, TrafficLightEvent);
     messages: std.ArrayListUnmanaged(GameMessage) = .{},
@@ -28,6 +26,8 @@ pub const EntityDataStruct = struct {
     direction: u16 = enums.DirectionsEnum.Left.int(),
     // TODO: Move this to movement component?
     position: [2]u16 = .{ 0, 0 },
+    player_driven: bool = false,
+    should_automate: bool = true,
     pub fn init(self: *EntityDataStruct) !void {
         //std.log.info("EntityDataStruct loadComponents", .{});
         try self.loadComponents();

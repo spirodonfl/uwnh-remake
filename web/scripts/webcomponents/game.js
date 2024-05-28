@@ -26,7 +26,7 @@ export class ComponentGame extends HTMLElement {
         FRAMES.requestAnimationFrame();
 
         globals.EVENTBUS.addEventListener('event', (e) => {
-            Debug.log({message: 'game-component event', event: e});
+            // Debug.log({message: 'game-component event', event: e});
             switch (e.input.event_id) {
                 case 'assets_loaded':
                     wasm.game_initializeGame();
@@ -115,7 +115,10 @@ export class ComponentGame extends HTMLElement {
         });
         FRAMES.addRunOnFrames(1, false, () => {
             this.updateCurrentEntityTurn();
+            wasm.game_setGlobalSeed(BigInt(Date.now()));
         });
+
+        wasm.game_setEntityPlayerDriven(1, true);
     }
 
     checkMultiplayer() {
