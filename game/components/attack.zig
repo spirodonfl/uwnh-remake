@@ -12,8 +12,8 @@ pub const ComponentAttack = struct {
     entity_id: u16,
     default_damage: u16 = 1,
     current_damage: u16 = 1,
-    default_range: u16 = 5,
-    current_range: u16 = 5,
+    default_range: u16 = 2,
+    current_range: u16 = 2,
     parent: *EntityDataStruct,
     state: u16 = 0,
     // NOTE: Without the anyerror!void here, we get an error from zig
