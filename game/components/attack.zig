@@ -100,7 +100,6 @@ pub const ComponentAttack = struct {
                             dh.decrementHealth();
                         }
                         try diff.addData(0);
-                        std.log.info("IN RANGE {d} {d}", .{ target_entity.getId(), dh.current_value });
 
                         // if (target_entity.health.current_value == 0) {
                         if (dh.current_value == 0) {
