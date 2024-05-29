@@ -111,6 +111,11 @@ export class ComponentGame extends HTMLElement {
                 if (entity_components[e].auto_animate) {
                     entity_components[e].updateAnimationFrame();
                 }
+                if (entity_components[e].entity_id == wasm.game_getEntityTurn()) {
+                    entity_components[e].showRange();
+                } else {
+                    entity_components[e].hideRanges();
+                }
             }
         });
         FRAMES.addRunOnFrames(1, false, () => {

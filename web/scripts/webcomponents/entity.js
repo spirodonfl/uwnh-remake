@@ -137,25 +137,24 @@ export class ComponentEntity extends HTMLElement {
             range.classList.add('hidden');
         });
     }
-    showRangeLeft() {
-        this.hideRanges();
-        this.shadowRoot.getElementById('range_left').classList.remove('hidden');
-        this.shadowRoot.getElementById('range_left_2').classList.remove('hidden');
-    }
-    showRangeRight() {
-        this.hideRanges();
-        this.shadowRoot.getElementById('range_right').classList.remove('hidden');
-        this.shadowRoot.getElementById('range_right_2').classList.remove('hidden');
-    }
-    showRangeUp() {
-        this.hideRanges();
-        this.shadowRoot.getElementById('range_up').classList.remove('hidden');
-        this.shadowRoot.getElementById('range_up_2').classList.remove('hidden');
-    }
-    showRangeDown() {
-        this.hideRanges();
-        this.shadowRoot.getElementById('range_down').classList.remove('hidden');
-        this.shadowRoot.getElementById('range_down_2').classList.remove('hidden');
+
+    showRange() {
+        let range = wasm.game_getEntityRange(this.entity_id);
+        this.shadowRoot.getElementById('range').innerHTML = '';
+        let current_x = 0 - (64 * range);
+        let current_y = 0 - (64 * range);
+        for (var y = 0; y < ((range * range) + 1); ++y) {
+            for (var x = 0; x < ((range * range) + 1); ++x) {
+                let range_element = document.createElement('div');
+                range_element.classList.add('range');
+                range_element.style.left = current_x;
+                range_element.style.top = current_y;
+                this.shadowRoot.getElementById('range').appendChild(range_element);
+                current_x += 64;
+            }
+            current_x = 0 - (64 * range);
+            current_y += 64;
+        }
     }
 
     render() {
@@ -188,18 +187,7 @@ export class ComponentEntity extends HTMLElement {
             }
             </style>
             <div id="health_value" class="text-shadow"></div>
-
-            <div id="range_left" class="range hidden" style="left: -64px;"></div>
-            <div id="range_left_2" class="range hidden" style="left: -128px;"></div>
-
-            <div id="range_right" class="range hidden" style="right: -64px;"></div>
-            <div id="range_right_2" class="range hidden" style="right: -128px;"></div>
-
-            <div id="range_up" class="range hidden" style="top: -64px;"></div>
-            <div id="range_up_2" class="range hidden" style="top: -128px;"></div>
-
-            <div id="range_down" class="range hidden" style="bottom: -64px;"></div>
-            <div id="range_down_2" class="range hidden" style="bottom: -128px;"></div>
+            <div id="range"></div>
         `;
     }
 }

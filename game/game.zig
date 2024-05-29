@@ -651,3 +651,14 @@ pub fn setEntityPlayerDriven(entity_id: u16, player_driven: bool) void {
 pub fn setGlobalSeed(seed: u64) void {
     global_seed = seed;
 }
+// @wasm
+pub fn getEntityRange(entity_id: u16) u16 {
+    for (0..entities_list.len) |i| {
+        var entity = entities_list.at(i);
+        if (entity.getId() == entity_id) {
+            var sAttack = try sComponentAttack.getData(&entity.attack);
+            return sAttack.current_range;
+        }
+    }
+    return 0;
+}
