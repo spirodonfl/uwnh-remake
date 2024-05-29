@@ -45,7 +45,6 @@ function tick() {
             if (READY_TO_PROCESS_TICK) {
                 wasm.game_processTick();
 
-
                 if (wasm.diff_getLength() > 0) {
                     var length = wasm.diff_getLength();
                     for (var l = 0; l < length; ++l) {

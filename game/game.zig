@@ -186,7 +186,7 @@ pub fn processTick() !void {
                 // TODO: has_attacked
                 if (!entity_has_moved) {
                     // TODO: Automate the movement. Maybe randomize it? Up/down/left/right and then attack directional?
-                    var direction = getRandomNumber(1, 4);
+                    var direction = getRandomNumber(1, 8);
                     std.log.info("Direction {d}", .{direction});
                     if (direction == 1) {
                         try events.moveUp(entity.getId(), false);
@@ -196,8 +196,8 @@ pub fn processTick() !void {
                         try events.moveLeft(entity.getId(), false);
                     } else if (direction == 4) {
                         try events.moveRight(entity.getId(), false);
-                    } else {
-                        try events.moveUp(entity.getId(), false);
+                    } else if (direction > 4) {
+                        try events.attack(entity.getId(), 0, false);
                     }
                 } else {
                     try events.endTurn(entity.getId(), false);

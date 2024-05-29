@@ -21,7 +21,6 @@ pub fn generateUniqueId() usize {
     return current_uid;
 }
 
-
 pub fn Service(comptime T: type) type {
     return struct {
         allocator: *std.mem.Allocator,
@@ -94,9 +93,11 @@ pub fn Service(comptime T: type) type {
             }
         }
 
-        pub fn getData(self: *@This(), handle: *ServiceHandle) !T {
+        // Note: Without returning the pointer to the data, when we tried to adjust the data
+        // like decrementing health, it wouldn't take/stick
+        pub fn getData(self: *@This(), handle: *ServiceHandle) !*T {
             if (self.ids[handle.index] == handle.uuid) {
-                return self.data[handle.index];
+                return &self.data[handle.index];
             }
             return undefined;
         }

@@ -161,7 +161,8 @@ pub const EntityDataStruct = struct {
                     // }
                     var ah = try game.sComponentAttack.getData(&self.attack);
                     if (self.getType() <= 3) {
-                        try ah.directionalAttack();
+                        // try ah.directionalAttack();
+                        try ah.omniAttack();
                     } else {
                         // TODO: This is for the kraken. Hacky. FIX
                         try ah.attack();

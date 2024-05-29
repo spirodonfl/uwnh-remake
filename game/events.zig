@@ -8,7 +8,7 @@ pub fn processEvents() !void {
     while (game.events_list.items.len > 0) {
         var event = game.events_list.pop();
         if (event.type == enums.GameMessagesEventsEnum.Attack.int()) {
-            processAttack(event);
+            try processAttack(event);
         } else if (event.type == enums.GameMessagesEventsEnum.MoveUp.int()) {
             try processMove(event);
         } else if (event.type == enums.GameMessagesEventsEnum.MoveDown.int()) {
@@ -74,11 +74,11 @@ pub fn attack(entity_id: u16, target_entity_id: u16, force: bool) !void {
     try game.events_list.append(game.allocator, event);
 }
 
-pub fn processAttack(event: game.GameEvent) void {
-    _ = event;
+pub fn processAttack(event: game.GameEvent) !void {
     std.log.info("Processing attack", .{});
     // event.force
     // event.data.items[0] && event.data.items[1]
+    try messages.attack(event.data.items[0], event.force);
 }
 
 // @wasm
