@@ -331,6 +331,17 @@ pub fn entitySetPositionY(entity_id: u16, value: u16) !void {
     try diff.addData(0);
 }
 // @wasm
+pub fn entityIsCoordInRage(entity_id: u16, x: u16, y: u16) !bool {
+    for (0..entities_list.len) |i| {
+        var entity = entities_list.at(i);
+        if (entity.getId() == entity_id) {
+            var sAttack = try sComponentAttack.getData(&entity.attack);
+            return sAttack.isCoordInAttackRange(x, y);
+        }
+    }
+    return false;
+}
+// @wasm
 pub fn initializeGame() !bool {
     if (GAME_INITIALIZED) {
         return true;
@@ -407,6 +418,7 @@ pub fn loadWorld(index: u16) !void {
         }
     }
     if (h < viewport.getSizeHeight()) {
+        // TODO: FIX - If your viewport is greater than world, you get weird y (and maybe x) offset issues with padding
         var leftover = viewport.getSizeHeight() - h;
         if (leftover % 2 > 0) {
             viewport.setPaddingTop(leftover / 2);
@@ -441,6 +453,12 @@ pub fn loadWorld(index: u16) !void {
     }
 
     try worlds_list.at(current_world_index).initializeEntities();
+
+    // var i: usize = 0;
+    // while (i < entities_list.len) {
+    //     std.log.info("entity loaded position: {d} {d} {d} {d}", .{ entities_list.at(i).getId(), entities_list.at(i).getType(), entities_list.at(i).getPositionX(), entities_list.at(i).getPositionY() });
+    //     i += 1;
+    // }
 }
 // @wasm
 pub fn getCurrentWorldIndex() u16 {
@@ -508,7 +526,6 @@ pub fn getWorldDataAtViewportCoordinate(layer_index: u16, x: u16, y: u16) u16 {
         var world_y = y - viewport.getPaddingTop();
         world_x += viewport.getCameraX();
         world_y += viewport.getCameraY();
-        // std.log.info("world {d}", .{worlds_list.len});
         return getWorldData(current_world_index, layer_index, world_x, world_y);
     }
     std.log.info("Invalid coordinates: {d} {d}", .{ x, y });

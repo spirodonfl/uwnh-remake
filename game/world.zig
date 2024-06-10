@@ -4,7 +4,7 @@ const game = @import("game.zig");
 const enums = @import("enums.zig");
 const entity = @import("entity.zig");
 
-const EmbeddedDataStruct =  @import("embedded.zig").EmbeddedDataStruct;
+const EmbeddedDataStruct = @import("embedded.zig").EmbeddedDataStruct;
 const EntityDataStruct = entity.EntityDataStruct;
 const ServiceEntityData = game.ServiceEntityData;
 
@@ -78,6 +78,7 @@ pub const WorldDataStruct = struct {
                 const data = self.readLayer(layer, index);
                 return data;
             } else {
+                // std.log.info("B", .{});
                 for (0..self.entities_list.items.len) |i| {
                     var entity_id = self.entities_list.items[i];
                     for (0..game.entities_list.len) |j| {

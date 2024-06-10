@@ -140,20 +140,36 @@ export class ComponentEntity extends HTMLElement {
 
     showRange() {
         let range = wasm.game_getEntityRange(this.entity_id);
+        let world_position_x = wasm.game_entityGetPositionX(this.entity_id);
+        let world_position_y = wasm.game_entityGetPositionY(this.entity_id);
+        world_position_y += range;
+
+        let min = {
+            x: world_position_x - range,
+            y: world_position_y - range,
+        };
+        let max = {
+            x: world_position_x + range + 1,
+            y: world_position_y + range + 1,
+        };
+        // console.log({entity_id: this.entity_id, min, max, range, world_position_x, world_position_y});
+
+        let current_x = 0 - range;
+        let current_y = 0 - range;
         this.shadowRoot.getElementById('range').innerHTML = '';
-        let current_x = 0 - (64 * range);
-        let current_y = 0 - (64 * range);
-        for (var y = 0; y < ((range * range) + 1); ++y) {
-            for (var x = 0; x < ((range * range) + 1); ++x) {
-                let range_element = document.createElement('div');
-                range_element.classList.add('range');
-                range_element.style.left = current_x;
-                range_element.style.top = current_y;
-                this.shadowRoot.getElementById('range').appendChild(range_element);
-                current_x += 64;
+        for (let y = min.y; y < max.y; ++y) {
+            for (let x = min.x; x < max.x; ++x) {
+                if (wasm.game_entityIsCoordInRage(this.entity_id, x, y)) {
+                    let range_element = document.createElement('div');
+                    range_element.classList.add('range');
+                    range_element.style.left = current_x * 64;
+                    range_element.style.top = current_y * 64;
+                    this.shadowRoot.getElementById('range').appendChild(range_element);
+                }
+                ++current_x;
             }
-            current_x = 0 - (64 * range);
-            current_y += 64;
+            current_x = 0 - range;
+            ++current_y;
         }
     }
 

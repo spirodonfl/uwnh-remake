@@ -16,6 +16,120 @@ pub const ComponentAttack = struct {
     current_range: u16 = 2,
     parent: *EntityDataStruct,
     state: u16 = 0,
+    pub fn isCoordInAttackRange(self: *@This(), x: u16, y: u16) !bool {
+        var range_coords: std.ArrayListUnmanaged(u16) = .{};
+        // TODO: Apparently some instances of this function cause an unreachable panic error
+        // JUST LIKE YOUR MOM LAST NIGHT
+        var start_x = self.parent.position[0] - self.current_range;
+        var end_x = self.parent.position[0] + self.current_range;
+        while (start_x <= end_x) {
+            var start_y = self.parent.position[1];
+            var end_y = self.parent.position[1] - self.current_range;
+            while (start_y >= end_y) {
+                try range_coords.append(game.allocator, start_x);
+                try range_coords.append(game.allocator, start_y);
+                start_y -= 1;
+                start_x += 1;
+            }
+            end_y = self.parent.position[1];
+            while (start_y <= end_y) {
+                try range_coords.append(game.allocator, start_x);
+                try range_coords.append(game.allocator, start_y);
+                start_y += 1;
+                start_x += 1;
+            }
+        }
+        start_x = self.parent.position[0] - self.current_range;
+        while (start_x <= end_x) {
+            var start_y = self.parent.position[1];
+            var end_y = self.parent.position[1] + self.current_range;
+            while (start_y <= end_y) {
+                try range_coords.append(game.allocator, start_x);
+                try range_coords.append(game.allocator, start_y);
+                start_y += 1;
+                start_x += 1;
+            }
+            end_y = self.parent.position[1];
+            while (start_y >= end_y) {
+                try range_coords.append(game.allocator, start_x);
+                try range_coords.append(game.allocator, start_y);
+                start_y -= 1;
+                start_x += 1;
+            }
+        }
+
+        var i: usize = 0;
+        var x_or_y: bool = false;
+        var in_range: bool = false;
+        var in_range_x: bool = false;
+        var in_range_y: bool = false;
+        while (i < range_coords.items.len) {
+            if (x_or_y == false) {
+                // std.log.info("Range coord X {d}", .{range_coords.items[i]});
+                if (range_coords.items[i] == x) {
+                    in_range_x = true;
+                } else {
+                    in_range_x = false;
+                }
+            } else {
+                // std.log.info("Range coord Y {d}", .{range_coords.items[i]});
+                if (range_coords.items[i] == y) {
+                    in_range_y = true;
+                } else {
+                    in_range_y = false;
+                }
+            }
+            if (in_range_x == true and in_range_y == true) {
+                in_range = true;
+                break;
+            }
+            x_or_y = !x_or_y;
+            i += 1;
+        }
+
+        return in_range;
+    }
+    // pub fn getRangeCoordinates(self: *@This()) {
+    //     // TODO: Get range, max out cardinal directions, n+1 or n-1 in non-cardinal directions
+    //     // var min_x: u16 = 0;
+    //     // if (self.parent.position[0] > self.current_range) {
+    //     //     min_x = self.parent.position[0] - self.current_range;
+    //     // } else {
+    //     //     min_x = 0;
+    //     // }
+    //     // var min_y: u16 = 0;
+    //     // if (self.parent.position[1] > self.current_range) {
+    //     //     min_y = self.parent.position[1] - self.current_range;
+    //     // } else {
+    //     //     min_y = 0;
+    //     // }
+    //     // var max_x: u16 = 0;
+    //     // if (self.parent.position[0] + self.current_range > current_world.getWidth()) {
+    //     //     max_x = current_world.getWidth();
+    //     // } else {
+    //     //     max_x = self.parent.position[0] + self.current_range;
+    //     // }
+    //     // var max_y: u16 = 0;
+    //     // if (self.parent.position[1] + self.current_range > current_world.getHeight()) {
+    //     //     max_y = current_world.getHeight();
+    //     // } else {
+    //     //     max_y = self.parent.position[1] + self.current_range;
+    //     // }
+
+    //     // while (min_y < max_x) {
+    //     //     while (min_x < max_x) {
+    //     //         if (current_x + current_y <= self.current_range) {
+    //     //             return true;
+    //     //         }
+    //     //         max_x += 1;
+    //     //     }
+    //     //     min_y += 1;
+    //     // }
+    //     //  for (i in range(x-r, x+r+1)) for (j in range(y-r, y+r+1)) if (abs(i)+abs(j) <= r) set.add(i,j)
+    //     // TODO: Offer rangeBoundsMinX/MaxX/MinY/MaxY
+    //     // TODO: Function to check if coords are in attackable range
+    // }
+
     // NOTE: Without the anyerror!void here, we get an error from zig
     // "unable to resolve inferred error set" -> try self.directionalAttack()
     // weird... need to understand how and why
@@ -51,6 +165,7 @@ pub const ComponentAttack = struct {
         }
     }
     pub fn omniAttack(self: *ComponentAttack) !void {
+        _ = try self.isCoordInAttackRange(0, 0);
         var current_world = game.worlds_list.at(game.current_world_index);
         var min_x: u16 = 0;
         if (self.parent.position[0] > self.current_range) {
