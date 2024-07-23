@@ -142,7 +142,6 @@ export class ComponentEntity extends HTMLElement {
         let range = wasm.game_getEntityRange(this.entity_id);
         let world_position_x = wasm.game_entityGetPositionX(this.entity_id);
         let world_position_y = wasm.game_entityGetPositionY(this.entity_id);
-        world_position_y += range;
 
         let min = {
             x: world_position_x - range,
@@ -159,7 +158,9 @@ export class ComponentEntity extends HTMLElement {
         this.shadowRoot.getElementById('range').innerHTML = '';
         for (let y = min.y; y < max.y; ++y) {
             for (let x = min.x; x < max.x; ++x) {
-                if (wasm.game_entityIsCoordInRage(this.entity_id, x, y)) {
+                let altered_x = (x < 0) ? 0 : x;
+                let altered_y = (y < 0) ? 0 : y;
+                if (wasm.game_entityIsCoordInRange(this.entity_id, altered_x, altered_y)) {
                     let range_element = document.createElement('div');
                     range_element.classList.add('range');
                     range_element.style.left = current_x * 64;

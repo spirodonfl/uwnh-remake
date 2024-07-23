@@ -8,6 +8,9 @@ fn EnumHelpers(comptime T: type) type {
         pub fn length() usize {
             return std.enums.directEnumArrayLen(T, 0);
         }
+        pub fn lengthInt() u16 {
+            return std.enums.directEnumArrayLen(T, 0);
+        }
     };
 }
 
@@ -61,8 +64,8 @@ pub const EntityTypesEnum = enum(u16) {
     Player,
     Enemy,
     NPC,
-    Kraken,
     MultiPlayer,
+    Kraken,
     pub usingnamespace EnumHelpers(@This());
 };
 
@@ -143,6 +146,7 @@ pub const GameMessagesEventsEnum = enum(u16) {
     Spawn,
     DeSpawn,
     EndTurn,
+    Target,
     pub usingnamespace EnumHelpers(@This());
 };
 

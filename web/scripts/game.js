@@ -86,7 +86,6 @@ class ClassGame {
                 Debug.log({message: 'Error initializing game'}, 'error');
             }
         });
-
     }
     loadImage(asset) {
         return new Promise((resolve, reject) => {
@@ -171,7 +170,28 @@ class ClassGame {
         wasm.viewport_moveCameraRight();
     }
     mainPlayerAttack() {
-        wasm.messages_attack(1, 0);
+        // TODO: Add animation?????
+        // ONly do animation if omniattack works I guess?
+        let cannonball_entity = document.createElement('div');
+        cannonball_entity.style.backgroundImage = 'url("images/cannonball.png")';
+        cannonball_entity.style.backgroundSize = 'contain';
+        cannonball_entity.style.zIndex = 99;
+        cannonball_entity.style.width = '60px';
+        cannonball_entity.style.height = '60px';
+        cannonball_entity.style.position = 'absolute';
+        cannonball_entity.style.left = '60px';
+        cannonball_entity.style.top = '60px';
+        cannonball_entity.top = 60;
+        document.body.appendChild(cannonball_entity);
+        FRAMES.addRunOnFrames(1, false, () => {
+            cannonball_entity.style.top = cannonball_entity.top + 'px';
+            cannonball_entity.top += 8;
+            if (cannonball_entity.top > 120) {
+                wasm.messages_attack(1, 0);
+                return true;
+            }
+            return false;
+        });
     }
     // Note: This belongs here even though it's a touch odd because creating
     // a static layer is essentially ensuring that there is a DOM element

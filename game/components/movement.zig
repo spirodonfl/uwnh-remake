@@ -17,7 +17,9 @@ pub const ComponentMovement = struct {
     // weird... need to understand how and why
     pub fn handle(self: *@This(), event: enums.ComponentMovementEvent) anyerror!void {
         switch (event) {
-            enums.ComponentMovementEvent.MoveLeft => {
+            // NOTE: Zig can infer where this enum comes from
+            // TODO: Update ALL enum references to do this
+            .MoveLeft => {
                 switch (self.state) {
                     enums.ComponentMovementState.Idle.int() => {
                         self.state = enums.ComponentMovementState.Moving.int();

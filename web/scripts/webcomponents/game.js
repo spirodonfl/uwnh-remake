@@ -124,6 +124,25 @@ export class ComponentGame extends HTMLElement {
         });
 
         wasm.game_setEntityPlayerDriven(1, true);
+
+        this.shadowRoot.querySelector('#main_player_end_turn').addEventListener('click', function () {
+            globals.EVENTBUS.triggerEvent({event_id: 'end_turn'});
+        });
+        this.shadowRoot.querySelector('#main_player_attack').addEventListener('click', function () {
+            globals.EVENTBUS.triggerEvent({event_id: 'attack'});
+        });
+        this.shadowRoot.querySelector('#main_player_move_up').addEventListener('click', function () {
+            globals.EVENTBUS.triggerEvent({event_id: 'move_up'});
+        });
+        this.shadowRoot.querySelector('#main_player_move_down').addEventListener('click', function () {
+            globals.EVENTBUS.triggerEvent({event_id: 'move_down'});
+        });
+        this.shadowRoot.querySelector('#main_player_move_left').addEventListener('click', function () {
+            globals.EVENTBUS.triggerEvent({event_id: 'move_left'});
+        });
+        this.shadowRoot.querySelector('#main_player_move_right').addEventListener('click', function () {
+            globals.EVENTBUS.triggerEvent({event_id: 'move_right'});
+        });
     }
 
     checkMultiplayer() {
@@ -406,6 +425,17 @@ export class ComponentGame extends HTMLElement {
                         <div>Current Entity Turn</div><div id="current_entity_turn">XXX</div>
                     </div>
                 </div>
+            </x-draggable>
+            <!-- TODO: Finish this -->
+            <x-draggable>
+                GAME MENU
+                <button id="main_player_attack">Attack</button>
+                <button id="main_player_end_turn">End Turn</button>
+                <button id="main_player_move">Move</button>
+                <button id="main_player_move_up">Move Up</button>
+                <button id="main_player_move_down">Move Down</button>
+                <button id="main_player_move_left">Move Left</button>
+                <button id="main_player_move_right">Move Right</button>
             </x-draggable>
             <div id="clickable_view" event-id="clickable_view_clicked"></div>
             <div id="view"></div>

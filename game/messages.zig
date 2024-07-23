@@ -70,3 +70,17 @@ pub fn attack(entity_id: u16, force: bool) !void {
         }
     }
 }
+// @wasm
+pub fn target(entity_id: u16, target_entity_id: u16) !void {
+    var message = game.GameMessage{
+        .command = enums.GameMessagesEventsEnum.Target.int(),
+        .force = false,
+    };
+    try message.data.append(game.allocator, target_entity_id);
+    for (0..game.entities_list.len) |i| {
+        var entity = game.entities_list.at(i);
+        if (entity.getId() == entity_id) {
+            try entity.addMessage(message);
+        }
+    }
+}

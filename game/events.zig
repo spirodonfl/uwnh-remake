@@ -43,6 +43,47 @@ pub fn processEvents() !void {
         }
     }
 }
+pub fn processEvent() !bool {
+    if (game.events_list.items.len > 0) {
+        var event = game.events_list.pop();
+        if (event.type == enums.GameMessagesEventsEnum.Attack.int()) {
+            try processAttack(event);
+        } else if (event.type == enums.GameMessagesEventsEnum.MoveUp.int()) {
+            try processMove(event);
+        } else if (event.type == enums.GameMessagesEventsEnum.MoveDown.int()) {
+            try processMove(event);
+        } else if (event.type == enums.GameMessagesEventsEnum.MoveLeft.int()) {
+            try processMove(event);
+        } else if (event.type == enums.GameMessagesEventsEnum.MoveRight.int()) {
+            try processMove(event);
+        } else if (event.type == enums.GameMessagesEventsEnum.EndTurn.int()) {
+            // NOTE: Make sure that the entity that initiated the end turn message
+            // is actually the CURRENT turn entity we're expecting to see
+            if (event.data.items[0] == game.entity_turn) {
+                var last_iterator: u16 = 0;
+                for (0..game.entities_list.len) |i| {
+                    var entity = game.entities_list.at(i);
+                    if (entity.getId() == game.entity_turn) {
+                        break;
+                    }
+                    last_iterator += 1;
+                }
+
+                last_iterator = last_iterator + 1;
+                if (last_iterator > (game.entities_list.len - 1)) {
+                    last_iterator = 0;
+                }
+
+                std.log.info("New game entity turn {d} {d} {d}", .{ game.entity_turn, last_iterator, game.entities_list.len });
+                game.entity_turn = game.entities_list.at(last_iterator).getId();
+                game.entity_has_moved = false;
+                game.entity_has_attacked = false;
+            }
+        }
+        return true;
+    }
+    return false;
+}
 
 pub fn processEntityMessages() !void {
     for (0..game.entities_list.len) |i| {

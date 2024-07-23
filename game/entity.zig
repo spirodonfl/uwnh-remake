@@ -167,6 +167,9 @@ pub const EntityDataStruct = struct {
                         // TODO: This is for the kraken. Hacky. FIX
                         try ah.attack();
                     }
+                    if (game.GAME_MODE == enums.GameModesEnum.TurnBased.int()) {
+                        game.entity_has_attacked = true;
+                    }
                 },
                 else => {
                     std.log.info("Unknown message command: {d}", .{message.command});

@@ -53,24 +53,24 @@ pub fn main() !void {
                 const decl_start = "pub const ";
                 if (std.mem.startsWith(u8, line, decl_start)) {
                     const line_at_id = line[decl_start.len..];
-                    const id = line_at_id[0 .. std.mem.indexOf(u8, line_at_id, " ").?];
-                    try PP_file.writer().print("pub const {s} = {s}.{0s};\n", .{id, file_name});
+                    const id = line_at_id[0..std.mem.indexOf(u8, line_at_id, " ").?];
+                    try PP_file.writer().print("pub const {s} = {s}.{0s};\n", .{ id, file_name });
                     continue;
                 }
 
                 // std.debug.print("Line: {s}\n", .{line});
                 // std.debug.print("Test {any}\n", .{std.mem.indexOf(u8, line, ": u16")});
-                const export_line = try std.fmt.allocPrint(allocator, "{s}{s}{s}", .{"export fn ", file_name, "_"});
+                const export_line = try std.fmt.allocPrint(allocator, "{s}{s}{s}", .{ "export fn ", file_name, "_" });
                 try PP_file.writeAll(export_line);
                 const start = std.mem.indexOf(u8, line, "(").?;
                 const fn_name = line[7..start];
                 // std.debug.print("FN NAME: {s}\n", .{fn_name});
-                try js_writer.print("    {s}_{s}(", .{file_name, fn_name});
+                try js_writer.print("    {s}_{s}(", .{ file_name, fn_name });
                 try PP_file.writeAll(fn_name);
                 try PP_file.writeAll("(");
                 const end = std.mem.indexOf(u8, line, ")").?;
                 const squirelly = std.mem.indexOf(u8, line, "{").?;
-                const return_type: struct { without_error: []const u8, has_error: bool} = blk: {
+                const return_type: struct { without_error: []const u8, has_error: bool } = blk: {
                     const return_type_part = std.mem.trimLeft(u8, line[end..squirelly], ")");
                     const return_type_full = std.mem.trimLeft(u8, return_type_part, " ");
                     if (std.mem.startsWith(u8, return_type_full, "!"))
@@ -107,7 +107,7 @@ pub fn main() !void {
                 try PP_file.writeAll(")");
                 try PP_file.writeAll(return_type.without_error);
                 try PP_file.writeAll("{\n");
-                const return_line = try std.fmt.allocPrint(allocator, "{s}{s}{s}", .{"    return ", file_name, "."});
+                const return_line = try std.fmt.allocPrint(allocator, "{s}{s}{s}", .{ "    return ", file_name, "." });
                 try PP_file.writeAll(return_line);
                 try PP_file.writeAll(fn_name);
                 try PP_file.writeAll("(");
@@ -121,7 +121,7 @@ pub fn main() !void {
                 }
                 for (param_list.items, 0..) |name, i| {
                     const sep: []const u8 = if (i == 0) "" else ", ";
-                    try js_writer.print("{s}{s}", .{sep, name});
+                    try js_writer.print("{s}{s}", .{ sep, name });
                 }
                 try js_writer.writeAll(") {},\n");
                 const catch_clause: []const u8 = if (return_type.has_error)

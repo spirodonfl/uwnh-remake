@@ -162,45 +162,57 @@ pub fn processTick() !void {
             // NOTE: We are flushing any messages from all entities if it's not their turn.
             for (0..entities_list.len) |i| {
                 var entity = entities_list.at(i);
-                if (entity.getId() != i) {
+                if (entity.getId() != i and entity.getId() != entity_turn) {
                     // TODO: Is there a better way to flush these immediately?
                     while (entity.messages.items.len > 0) {
                         _ = entity.messages.pop();
                     }
                 }
             }
-        }
+            // TODO: What if an entity attacks another entity and the other entity has to decrease health as an event?
 
-        // TODO: Consider whether or not these have to be put into the TurnBased mode function above or not
-        // NOTE: FIRST process the entire global states / messages / etc...
-        try events.processEvents();
-        // NOTE: THEN process individual entity messages because global will send messages to entities
-        try events.processEntityMessages();
-        // TODO: What if an entity attacks another entity and the other entity has to decrease health as an event?
-
-        // Deal with the automation of next players if they are not player driven
-
-        for (0..entities_list.len) |i| {
-            var entity = entities_list.at(i);
-            if (entity.getId() == entity_turn and !entity.player_driven and entity.should_automate) {
-                // TODO: has_attacked
-                if (!entity_has_moved) {
-                    // TODO: Automate the movement. Maybe randomize it? Up/down/left/right and then attack directional?
-                    var direction = getRandomNumber(1, 8);
-                    std.log.info("Direction {d}", .{direction});
-                    if (direction == 1) {
-                        try events.moveUp(entity.getId(), false);
-                    } else if (direction == 2) {
-                        try events.moveDown(entity.getId(), false);
-                    } else if (direction == 3) {
-                        try events.moveLeft(entity.getId(), false);
-                    } else if (direction == 4) {
-                        try events.moveRight(entity.getId(), false);
-                    } else if (direction > 4) {
-                        try events.attack(entity.getId(), 0, false);
+            var global_events_left: bool = try events.processEvent();
+            if (global_events_left == false) {
+                try events.processEntityMessages();
+                // TODO: var entity_messages_left: bool = try events.processEntityMessages();
+                // if (entity_messages_left == false) {
+                    // TODO: if THIS entity has not ended turn and it has not moved and has not attacked, continue
+                    // but only if it CAN attack
+                    // TODO: Get the next entity, automate it's move and attack if necessary, end its turn
+                // }
+            }
+        } else {
+            try events.processEvents();
+            try events.processEntityMessages();
+            // Deal with the automation of next players if they are not player driven
+            for (0..entities_list.len) |i| {
+                var entity = entities_list.at(i);
+                if (entity.getId() == entity_turn and !entity.player_driven and entity.should_automate) {
+                    // TODO: This is bad logic. You will get a move and
+                    // an attack but not both and you should be allowed
+                    // to do both (so should NPCs)
+                    if (!entity_has_moved) {
+                        // TODO: Automate the movement. Maybe randomize it? Up/down/left/right and then attack directional?
+                        var direction = getRandomNumber(1, 8);
+                        std.log.info("Direction {d}", .{direction});
+                        if (direction == 1) {
+                            try events.moveUp(entity.getId(), false);
+                        } else if (direction == 2) {
+                            try events.moveDown(entity.getId(), false);
+                        } else if (direction == 3) {
+                            try events.moveLeft(entity.getId(), false);
+                        } else if (direction == 4) {
+                            try events.moveRight(entity.getId(), false);
+                        } else if (direction > 4) {
+                            if (!entity_has_attacked) {
+                                try events.attack(entity.getId(), 0, false);
+                            } else {
+                                try events.endTurn(entity.getId(), false);
+                            }
+                        }
+                    } else {
+                        try events.endTurn(entity.getId(), false);
                     }
-                } else {
-                    try events.endTurn(entity.getId(), false);
                 }
             }
         }
@@ -331,7 +343,7 @@ pub fn entitySetPositionY(entity_id: u16, value: u16) !void {
     try diff.addData(0);
 }
 // @wasm
-pub fn entityIsCoordInRage(entity_id: u16, x: u16, y: u16) !bool {
+pub fn entityIsCoordInRange(entity_id: u16, x: u16, y: u16) !bool {
     for (0..entities_list.len) |i| {
         var entity = entities_list.at(i);
         if (entity.getId() == entity_id) {

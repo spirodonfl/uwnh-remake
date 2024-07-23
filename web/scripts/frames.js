@@ -119,7 +119,11 @@ export const FRAMES = {
                     this.frameCallbacks[i] = false;
                 }
                 // this.frameCallbacks[i][2]();
-                cb();
+                let cb_return = cb();
+                // Note: This way, if a function returns true, you can end the animation
+                if (cb_return === true) {
+                    this.frameCallbacks[i] = false;
+                }
                 // if (this.frameCallbacks[i][3] === true) {
                 //     this.frameCallbacks[i] = false;
                 // }
