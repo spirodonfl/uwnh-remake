@@ -1,0 +1,638 @@
+<html>
+    <head>
+        <title>Get that head yo</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            #wrapper {
+                margin: 0 auto;
+                position: relative;
+            }
+            #grid_wrapper {
+                display: grid;
+                grid-template-columns: repeat(8, 1fr);
+                grid-template-rows: repeat(8, 1fr);
+                gap: 0px;
+                width: fit-content;
+
+                border: 1px solid white;
+                position: relative;
+            }
+            #click_wrapper {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 100;
+            }
+            #menu_wrapper {
+                display: none;
+                position: absolute;
+                top: 0;
+                left: 0;
+                /*background-color: rgba(100, 100, 200, 0.7);*/
+                color: black;
+                z-index: 101;
+
+                width: calc(var(--viewport-width) * var(--size));
+                height: calc(var(--viewport-height) * var(--size));
+
+                padding: 10px;
+                font-family: monospace;
+                font-size: 16px;
+            }
+
+            @keyframes waterAnimation {
+                0% { object-position: 0px 0px; }
+                14.28% { object-position: -64px 0px; }
+                28.57% { object-position: -128px 0px; }
+                42.85% { object-position: -192px 0px; }
+                57.14% { object-position: -256px 0px; }
+                71.42% { object-position: -320px 0px; }
+                85.71% { object-position: -384px 0px; }
+                100% { object-position: -448px 0px; }
+            }
+
+            .water-animation {
+                animation: waterAnimation 2s steps(1) infinite;
+            }
+
+            .in_ocean_menu {
+                background-color: rgba(247, 206, 140);
+                padding: 10px;
+                width: 100%;
+                height: 100%; 
+            }
+            .in_ocean_menu.choices {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                align-items: center;
+            }
+            .in_ocean_menu.choices .current {
+                background-color: rgba(0, 0, 0, 0.1);
+            }
+        </style>
+        <script>
+            /*
+            Visuals
+
+            From the original game
+
+            - When it's your turn to control your ship(s), you get a menu
+            - Move, Attack, Info, Order (other ships), Item, Flee
+            - You get to see the turn order in this phase
+            - If you choose move, the available move spots are highlighted
+            - If you move, you get the option to attack available targets or end your turn
+            - If you choose attack, any ships next to you have a sword icon (man to man), ships in cannon distance have a "target"
+            - Man to man pops up (slide up above target, slide down below attacker) the man numbers
+            - Cannon attacks show the remote ships man count and hull/hp
+            - Ship about to take its turn (not current player, enemies, mostly), get highlighted first, THEN take their turn
+            - During the battle, the ships are colored green & red so you can differentiate between yours and them
+
+            */
+
+            var raf_fps = 60;
+            var raf_interval = 1000 / raf_fps;
+            var raf_lastTime = 0;
+            var raf_isPaused = false;
+            var raf_lastLogTime = 0
+            var raf_logInterval = 5000;
+            var raf_frameCount = 0;
+            var raf_fpsValue = 0;
+            var raf_lastFPSTime = 0;
+            function raf_animate(currentTime) {
+                requestAnimationFrame(raf_animate);
+
+                if (!raf_isPaused) {
+                    // Calculate time elapsed since last frame
+                    const deltaTime = currentTime - raf_lastTime;
+
+                    // Only update if enough time has passed
+                    if (deltaTime >= raf_interval) {
+                        // Update last time, accounting for any extra time
+                        raf_lastTime = currentTime - (deltaTime % raf_interval);
+
+                        // Your animation code goes here
+                        raf_update(deltaTime, currentTime);
+                        raf_render();
+
+                        ++raf_frameCount;
+                    }
+                }
+
+                // Calculate FPS every second
+                if (currentTime - raf_lastFPSTime >= 1000) {
+                    raf_fpsValue = Math.round((raf_frameCount * 1000) / (currentTime - raf_lastFPSTime));
+                    raf_frameCount = 0;
+                    raf_lastFPSTime = currentTime;
+                }
+            }
+            function raf_update(deltaTime, currentTime) {
+                // Update game logic here
+                if (currentTime - raf_lastLogTime >= raf_logInterval) {
+                    console.log(`Updating game state. Delta time: ${deltaTime}ms, FPS: ${raf_fpsValue}`);
+                    raf_lastLogTime = currentTime
+                }
+            }
+            function raf_render() {
+                // Render graphics here
+                // console.log('Rendering frame');
+
+                if (wasm) {
+                    if (wasm.exports.renderer_should_redraw()) {
+                        renderMap();
+                    }
+                    wasm.exports.tick();
+                }
+            }
+            function raf_togglePause() {
+                raf_isPaused = !raf_isPaused;
+                console.log(raf_isPaused ? 'Animation paused' : 'Animation resumed');
+            }
+            // Start the animation loop
+            requestAnimationFrame(raf_animate);
+            // Pause/resume on spacebar press
+            var IN_GAME_OCEAN_MENU = false;
+            function setupInOceanMenu() {
+                var menu_wrapper = document.getElementById("menu_wrapper");
+                menu_wrapper.style.setProperty("--size", "64px");
+                menu_wrapper.style.setProperty("--viewport-width", 3);
+                menu_wrapper.style.setProperty("--viewport-height", 2);
+            }
+            function setupDialogMenu() {
+                var menu_wrapper = document.getElementById("menu_wrapper");
+                menu_wrapper.style.setProperty("--size", "64px");
+                menu_wrapper.style.setProperty("--viewport-width", 8);
+                menu_wrapper.style.setProperty("--viewport-height", 2);
+                menu_wrapper.innerHTML = '<div class="in_ocean_menu dialogue">Lorem ipsum decorum.</div>';
+            }
+            var currently_selected_in_ocean_menu = 0;
+            function resetInGameOceanMenuChoices () {
+                var items = document.querySelectorAll('.in_ocean_menu .current');
+                for (var i = 0; i < items.length; ++i) {
+                    if (items[i] instanceof HTMLElement) {
+                        items[i].classList.remove('current');
+                    }
+                }
+            }
+            function nextInGameOceanMenuChoice () {
+                ++currently_selected_in_ocean_menu;
+                var items = document.querySelectorAll('.in_ocean_menu div');
+                if (currently_selected_in_ocean_menu >= items.length) {
+                    currently_selected_in_ocean_menu = 0;
+                }
+                resetInGameOceanMenuChoices();
+                setInGameOceanMenuCurrent();
+            }
+            function previousInGameOceanMenuChoice () {
+                --currently_selected_in_ocean_menu;
+                var items = document.querySelectorAll('.in_ocean_menu div');
+                if (currently_selected_in_ocean_menu < 0) {
+                    currently_selected_in_ocean_menu = items.length - 1;
+                }
+                resetInGameOceanMenuChoices();
+                setInGameOceanMenuCurrent();
+            }
+            function setInGameOceanMenuCurrent() {
+                var items = document.querySelectorAll('.in_ocean_menu div');
+                for (var i = 0; i < items.length; ++i) {
+                    if (items[i] instanceof HTMLElement && i === currently_selected_in_ocean_menu) {
+                        items[i].classList.add('current');
+                    }
+                }
+            }
+            // TODO: Move flags for menus & dialogues into WASM
+            document.addEventListener('keydown', (event) => {
+                if (event.code === 'Space') {
+                    raf_togglePause();
+                } else if (event.code === 'KeyI') {
+                    if (IN_GAME_OCEAN_MENU === false) {
+                        IN_GAME_OCEAN_MENU = true;
+                        setupInOceanMenu();
+                        currently_selected_in_ocean_menu = 0;
+                        resetInGameOceanMenuChoices();
+                        setInGameOceanMenuCurrent();
+                        document.getElementById("menu_wrapper").style.display = 'block';
+                        wasm.exports.set_current_game_mode_to_in_game_menu();
+                    } else {
+                        IN_GAME_OCEAN_MENU = false;
+                        document.getElementById("menu_wrapper").style.display = 'none';
+                        wasm.exports.set_current_game_mode_to_in_game_ocean();
+                    }
+                } else if (wasm.exports.is_current_game_mode_in_ocean() && event.code === 'KeyT') {
+                    wasm.exports.toggle_player_is_anchored();
+                } else if (event.code === 'KeyA') {
+                    if (IN_GAME_OCEAN_MENU) {
+                        previousInGameOceanMenuChoice();
+                    } else if (wasm.exports.is_current_game_mode_in_ocean()) {
+                        wasm.exports.move_ship_left(1);
+                    } else if (wasm.exports.is_current_game_mode_in_port()) {
+                        wasm.exports.move_npc_left(1);
+                    }
+                } else if (event.code === 'KeyS') {
+                    if (wasm.exports.is_current_game_mode_in_ocean()) {
+                        wasm.exports.move_ship_down(1);
+                    } else if (wasm.exports.is_current_game_mode_in_port()) {
+                        wasm.exports.move_npc_down(1);
+                    }
+                } else if (event.code === 'KeyD') {
+                    if (IN_GAME_OCEAN_MENU) {
+                        nextInGameOceanMenuChoice();
+                    } else if (wasm.exports.is_current_game_mode_in_ocean()) {
+                        wasm.exports.move_ship_right(1);
+                    } else if (wasm.exports.is_current_game_mode_in_port()) {
+                        wasm.exports.move_npc_right(1);
+                    }
+                } else if (event.code === 'KeyW') {
+                    if (wasm.exports.is_current_game_mode_in_ocean()) {
+                        wasm.exports.move_ship_up(1);
+                    } else if (wasm.exports.is_current_game_mode_in_port()) {
+                        wasm.exports.move_npc_up(1);
+                    }
+                }
+            });
+
+            // Example usage of togglePause
+            // You can call this function whenever you want to pause/resume the animation
+            // For example, you might bind it to a button click or a keyboard event
+            // togglePause();
+
+            var wasm = undefined;
+            var wasm2 = undefined;
+            var DEFAULT_SIZE = 32;
+            var RENDER_ZOOM = 2;
+            var RENDER_SIZE = DEFAULT_SIZE * RENDER_ZOOM;
+
+            function readLogMessage() {
+                var message_buffer = new Uint8Array(
+                    wasm.exports.memory.buffer,
+                    wasm.exports.get_test_message_rawptr(),
+                    wasm.exports.get_test_message_length()
+                );
+                const decoder = new TextDecoder('utf-8');
+                const string = decoder.decode(message_buffer);
+                console.log(string);
+                return string;
+            }
+
+            function readStringFromWasm(start, length) {
+                var string_buffer = new Uint8Array(
+                    wasm.exports.memory.buffer,
+                    start,
+                    length,
+                );
+                const decoder = new TextDecoder('utf-8');
+                const string = decoder.decode(string_buffer);
+                console.log(string);
+                return string;
+            }
+
+            function stringToUint8ClampedArray(str) {
+                const encoder = new TextEncoder();
+                const uint8Array = encoder.encode(str);
+                return new Uint8ClampedArray(uint8Array);
+            }
+            function retrieveDataFromWASMMemory(start, length) {
+                return new Int32Array(wasm.exports.memory.buffer, start, length);
+            }
+            function findValuesInWASMMemory(value) {
+                // Create a view of the memory as 32-bit integers
+                const memoryView = new Int32Array(wasm.exports.memory.buffer);
+
+                // Iterate through the memory
+                for (let i = 0; i < memoryView.length - 1; i++) {
+                    if (memoryView[i] === value) {
+                        console.log(`Found at position ${i}`);
+                    }
+                }
+
+                return -1;
+            }
+
+            const importObject = {
+                env: {
+                    js_console_log: function(ptr, len) {
+                        var bytes = new Uint8Array(wasm.exports.memory.buffer, ptr, len);
+                        var message = new TextDecoder('utf-8').decode(bytes);
+                        console.log(message);
+                        var bytes = new Uint8Array(wasm2.exports.memory.buffer, ptr, len);
+                        var message = new TextDecoder('utf-8').decode(bytes);
+                        console.log(message);
+                    }
+                }
+            };
+
+            function animateCannonball(startX, startY, endX, endY) {
+                const grid_wrapper = document.getElementById("grid_wrapper");
+                const cannonball = document.createElement("img");
+                cannonball.src = "images/atlas.png";
+                cannonball.width = 32;
+                cannonball.height = 32;
+                cannonball.style.position = "absolute";
+                cannonball.style.zIndex = "4";
+                cannonball.style.objectFit = "none";
+                cannonball.style.top = "0px";
+                cannonball.style.left = "0px";
+                cannonball.style.objectPosition = "-1088px -128px"; // Position for cannonball in atlas
+
+                // Set initial position
+                const startCell = document.getElementById(`cell-${startX}-${startY}`);
+                const startRect = startCell.getBoundingClientRect();
+                const wrapperRect = grid_wrapper.getBoundingClientRect();
+
+                cannonball.style.left = `${startRect.left - wrapperRect.left + RENDER_SIZE / 2 - 16}px`;
+                cannonball.style.top = `${startRect.top - wrapperRect.top + RENDER_SIZE / 2 - 16}px`;
+
+                grid_wrapper.appendChild(cannonball);
+
+                // Animate
+                const endCell = document.getElementById(`cell-${endX}-${endY}`);
+                const endRect = endCell.getBoundingClientRect();
+
+                const targetX = endRect.left - wrapperRect.left + RENDER_SIZE / 2 - 16;
+                const targetY = endRect.top - wrapperRect.top + RENDER_SIZE / 2 - 16;
+
+                const animation = cannonball.animate([
+                    { left: cannonball.style.left, top: cannonball.style.top },
+                    { left: `${targetX}px`, top: `${targetY}px` }
+                ], {
+                    duration: 1000, // 1 second
+                    easing: 'ease-in-out'
+                });
+
+                animation.onfinish = () => {
+                    cannonball.remove();
+                    // You can add explosion effect or damage calculation here
+                    renderMap();
+                };
+            }
+
+            function stringToWasm(str, isNewString = true) {
+                if (isNewString) {
+                    // Clear the buffer in Odin if this is a new string
+                    wasm.exports.new_string();
+                }
+
+                // Convert each character to its ASCII code and send it to Odin
+                for (let i = 0; i < str.length; i++) {
+                    const charCode = str.charCodeAt(i);
+                    if (charCode > 255) {
+                        console.warn(`Character '${str[i]}' is not a single byte. Skipping.`);
+                        continue;
+                    }
+                    wasm.exports.append_char(charCode);
+                }
+
+                // Finish processing the input
+                wasm.exports.finish_string_input();
+            }
+
+            fetch('odin2.game.wasm')
+                .then(function(response) { return response.arrayBuffer(); })
+                .then(function(bytes) { return WebAssembly.instantiate(bytes, importObject); })
+                .then(function(results) {
+                    var instance = results.instance;
+                    wasm2 = instance;
+                });
+
+            fetch('odin.game.wasm')
+                .then(function(response) { return response.arrayBuffer(); })
+                .then(function(bytes) { return WebAssembly.instantiate(bytes, importObject); })
+                .then(function(results) {
+                    var instance = results.instance;
+                    wasm = instance;
+
+                    wasm.exports.game_init();
+
+                    wasm.exports.set_viewport_size(8, 8);
+                    var click_wrapper = document.getElementById("click_wrapper");
+                    click_wrapper.style.width = RENDER_SIZE * 8 + "px";
+                    click_wrapper.style.height = RENDER_SIZE * 8 + "px";
+
+                    var grid_wrapper = document.getElementById("grid_wrapper");
+                    click_wrapper.addEventListener("click", handleCellClick);
+                    for (let y = 0; y < 8; y++) {
+                        for (let x = 0; x < 8; x++) {
+                            var cell = document.createElement("div");
+                            cell.classList.add("cell");
+                            cell.style.width = RENDER_SIZE + "px";
+                            cell.style.height = RENDER_SIZE + "px";
+                            cell.style.gridRowStart = y + 1;
+                            cell.style.gridColumnStart = x + 1;
+                            cell.style.overflow = "hidden";
+                            cell.id = "cell-" + x + "-" + y;
+                            cell.style.mixBlendMode = "screen";
+                            cell.style.position = "relative";
+                            grid_wrapper.appendChild(cell);
+                        }
+                    }
+
+                    stringToWasm("npc1");
+                    wasm.exports.current_buffer_to_console();
+                    console.log("HP:",wasm.exports.get_npc_hp());
+
+                    renderMap();
+                });
+
+            var player_confirmation = null;
+            function handleCellClick(event) {
+                var x = Math.floor(event.offsetX / RENDER_SIZE);
+                var y = Math.floor(event.offsetY / RENDER_SIZE);
+
+                console.log("Clicked On:", x, y);
+            }
+
+            function renderMap() {
+                // BACKGROUND LAYER
+                var bg_layer = wasm.exports.get_layer_in_current_map_id_by_type(wasm.exports.layer_type_background(), 0);
+                console.log("BG Layer:", bg_layer);
+                for (let y = 0; y < 8; y++) {
+                    for (let x = 0; x < 8; x++) {
+                        var cell = document.getElementById("cell-" + x + "-" + y);
+                        if (cell.querySelector(".layer-" + bg_layer)) { continue; }
+                        var img = document.createElement("img");
+                        img.src = "images/atlas.png";
+                        img.width = RENDER_SIZE;
+                        img.height = RENDER_SIZE;
+                        img.style.width = RENDER_SIZE + "px";
+                        img.style.height = RENDER_SIZE + "px";
+                        img.style.position = "absolute";
+                        img.style.top = "0";
+                        img.style.left = "0";
+                        img.style.zIndex = "1";
+                        img.style.objectFit = "none";
+                        // var pos = 64 * 0;
+                        // img.style.objectPosition = "-" + pos + "px 0px";
+                        // img.classList.add("layer-" + bg_layer);
+                        img.classList.add("layer-" + bg_layer, "water-animation");
+                        cell.appendChild(img);
+                    }
+                }
+
+                // ANYTHING LAYER
+                // TODO: Check how many layers of this type there are
+                var anything_layer = wasm.exports.get_layer_in_current_map_id_by_type(wasm.exports.layer_type_anything(), 0);
+                console.log("Anything Layer:", anything_layer);
+                for (let y = 0; y < 8; y++) {
+                    for (let x = 0; x < 8; x++) {
+                        var cell = document.getElementById("cell-" + x + "-" + y);
+                        var cell_value = wasm.exports.get_viewport_value_at_coordinates(anything_layer, x, y);
+                        if (cell.querySelector(".layer-" + anything_layer)) {
+                            cell.querySelector(".layer-" + anything_layer).remove();
+                        }
+                        if (cell_value > 0) {
+                            console.log("Anything Layer Cell Value:", cell_value, x, y);
+                            if (cell.querySelector(".layer-" + anything_layer)) { continue; }
+                            var img = document.createElement("img");
+                            img.src = "images/atlas.png";
+                            img.width = RENDER_SIZE;
+                            img.height = RENDER_SIZE;
+                            img.style.width = RENDER_SIZE + "px";
+                            img.style.height = RENDER_SIZE + "px";
+                            img.style.position = "absolute";
+                            img.style.top = "0";
+                            img.style.left = "0";
+                            img.style.zIndex = "2";
+                            img.classList.add("layer-" + anything_layer);
+                            img.style.objectFit = "none";
+                            if (cell_value == 1) {
+                                var pos = 64 * 16;
+                                img.style.objectPosition = "-" + pos + "px 0px";
+                            } else if (cell_value == 3) {
+                                var size = 32;
+                                img.src = "images/purchased/atlas-2.png";
+                                img.style.width = "32px";
+                                img.style.height = "32px";
+                                img.style.transform = "scale(2)";
+                                img.style.imageRendering = "pixelated";
+                                img.style.marginLeft = "16px";
+                                img.style.marginTop = "16px";
+                                var posx = 0;
+                                var posy = 2;
+                                img.style.objectPosition = "calc(calc(" + size + "*" + posx + ") * -1px) calc(calc(" + size + "*" + posy + ") * -1px)";
+                            } else if (cell_value == 4) {
+                                var size = 32;
+                                img.src = "images/purchased/atlas-2.png";
+                                img.style.width = "32px";
+                                img.style.height = "32px";
+                                img.style.transform = "scale(2)";
+                                img.style.imageRendering = "pixelated";
+                                img.style.marginLeft = "16px";
+                                img.style.marginTop = "16px";
+                                var posx = 0;
+                                var posy = 3;
+                                img.style.objectPosition = "calc(calc(" + size + "*" + posx + ") * -1px) calc(calc(" + size + "*" + posy + ") * -1px)";
+                            }
+                            cell.appendChild(img);
+                        }
+                    }
+                }
+
+                var ship_layer = wasm.exports.get_layer_in_current_map_id_by_type(wasm.exports.layer_type_ships(), 0);
+                if (ship_layer > 0) {
+                    console.log("Ship Layer:", ship_layer);
+                    for (let y = 0; y < 8; y++) {
+                        for (let x = 0; x < 8; x++) {
+                            var cell = document.getElementById("cell-" + x + "-" + y);
+                            var cell_value = wasm.exports.get_viewport_value_at_coordinates(ship_layer, x, y);
+                            if (cell.querySelector(".layer-" + ship_layer)) {
+                                cell.querySelector(".layer-" + ship_layer).remove();
+                            }
+                            if (cell_value > 0) {
+                                console.log("Ship Layer Cell Value:", cell_value, x, y);
+                                var img = document.createElement("img");
+                                img.src = "images/atlas.png";
+                                img.width = RENDER_SIZE;
+                                img.height = RENDER_SIZE;
+                                img.style.width = RENDER_SIZE + "px";
+                                img.style.height = RENDER_SIZE + "px";
+                                img.style.position = "absolute";
+                                img.style.top = "0";
+                                img.style.left = "0";
+                                img.style.zIndex = "3";
+                                img.classList.add("layer-" + ship_layer);
+                                img.style.objectFit = "none";
+                                if (cell_value == 1) {
+                                    var pos = 64 * 23;
+                                    img.style.objectPosition = "-" + pos + "px 0px";
+                                } else if (cell_value == 2) {
+                                    var pos = 64 * 24;
+                                    img.style.objectPosition = "-" + pos + "px 0px";
+                                } else if (cell_value == 3) {
+                                    var pos = 64 * 25;
+                                    img.style.objectPosition = "-" + pos + "px 0px";
+                                } else if (cell_value == 4) {
+                                    var pos = 64 * 26;
+                                    img.style.objectPosition = "-" + pos + "px 0px";
+                                } else if (cell_value == 5) {
+                                    var pos = 64 * 27;
+                                    img.style.objectPosition = "-" + pos + "px 0px";
+                                } else if (cell_value == 6) {
+                                    var pos = 64 * 13;
+                                    img.style.objectPosition = "-" + pos + "px 0px";
+                                }
+                                cell.appendChild(img);
+                            }
+                        }
+                    }
+                }
+                var npc_layer = wasm.exports.get_layer_in_current_map_id_by_type(wasm.exports.layer_type_npcs(), 0);
+                console.log("NPC Layer:", npc_layer);
+                if (npc_layer > 0) {
+                    for (let y = 0; y < 8; y++) {
+                        for (let x = 0; x < 8; x++) {
+                            var cell = document.getElementById("cell-" + x + "-" + y);
+                            var cell_value = wasm.exports.get_viewport_value_at_coordinates(npc_layer, x, y);
+                            if (cell.querySelector(".layer-" + npc_layer)) {
+                                cell.querySelector(".layer-" + npc_layer).remove();
+                            }
+                            if (cell_value > 0) {
+                                console.log("NPC Layer Cell Value:", cell_value, x, y);
+                                var img = document.createElement("img");
+                                img.src = "images/atlas.png";
+                                img.width = RENDER_SIZE;
+                                img.height = RENDER_SIZE;
+                                img.style.width = RENDER_SIZE + "px";
+                                img.style.height = RENDER_SIZE + "px";
+                                img.style.position = "absolute";
+                                img.style.top = "0";
+                                img.style.left = "0";
+                                img.style.zIndex = "3";
+                                img.classList.add("layer-" + npc_layer);
+                                img.style.objectFit = "none";
+                                if (cell_value == 1) {
+                                    img.src = "images/purchased/character_1-8.png";
+                                } else if (cell_value == 2) {
+                                    img.src = "images/purchased/character_1-8.png";
+                                }
+                                cell.appendChild(img);
+                            }
+                        }
+                    }
+                }
+            }
+        </script>
+    </head>
+    <body style="background: black; color: white;">
+        <!-- <img id="preview" src="images/atlas.png" id="atlas" style="object-fit: none; object-position: calc(-1 * (calc(64 * 17)*1px)) calc(-1 * (calc(64 * 2)*1px));" width="64" height="64">
+        <img id="cannonball" src="images/atlas.png" id="atlas" style="object-fit: none; object-position: calc(-1 * (calc(64 * 17)*1px)) calc(-1 * (calc(64 * 2)*1px));" width="32" height="32"> -->
+        <div id="wrapper">
+            <div id="grid_wrapper"></div>
+            <div id="click_wrapper"></div>
+            <div id="menu_wrapper">
+                <div class="in_ocean_menu choices">
+                    <div>Anchor</div>
+                    <div>Scope</div>
+                    <div>Fleet</div>
+                    <div>Items</div>
+                    <div>Talk</div>
+                    <div>Settings</div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
