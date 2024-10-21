@@ -1,5 +1,17 @@
 # The Actual Game Code
 
+## A note about this markdown file
+
+Use my literate programming parser to generate this code. Here is an example command how to do that:
+
+``` bash
+\path\to\bun \path\to\literate-programming\parser.js \path\to\uwnh-remake\odin\wasm_game\game.md
+```
+
+It will generate a `wasm_game.odin` file which you can then build using the normal Odin toolchain.
+
+Note that you can alternatively use HTML for your literate programming too.
+
 ## Console Logging In Javascript?
 
 WASM is a very simplified set of instructions which don't really interact with JS directly. Unless you add inter-connectivity, so to speak.
