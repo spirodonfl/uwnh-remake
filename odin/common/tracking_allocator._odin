@@ -1,0 +1,112 @@
+package main
+
+import "core:fmt"
+import "core:mem"
+import "core:log"
+import "core:runtime"
+
+
+// NOTE(Oskar):   An example of how to do a leak checking allocator with Odin's context system.
+//
+// Please keep in mind this isn't carefully tested so there could be bugs. Some known issues off
+// the top of my head:
+//  - not thread safe (but can be easily added using sync package)
+//  - context.temp_allocator acquiring its memory is reported as a leak
+//  - Free_All is silently ignored
+//  - Double free's aren't detected
+
+
+main :: proc() {
+    tracking_allocator_data := Tracking_Allocator_Data{backing = context.allocator};
+    context.allocator = tracking_allocator(&tracking_allocator_data);
+    defer check_leaks(tracking_allocator_data);
+
+    // Do some leaks
+    new(int);
+}
+
+
+Tracking_Allocation :: struct {
+    memory: rawptr,
+    size: int,
+    location: runtime.Source_Code_Location,
+}
+
+Tracking_Allocator_Data :: struct {
+    backing: mem.Allocator,
+    allocs: map[rawptr]Tracking_Allocation,
+}
+
+tracking_allocator :: proc(data: ^Tracking_Allocator_Data) -> mem.Allocator {
+    return mem.Allocator{
+        data = data,
+        procedure = proc(allocator_data: rawptr, mode: mem.Allocator_Mode, size, alignment: int, old_memory: rawptr, old_size: int, flags: u64 = 0, loc := #caller_location) -> (result: rawptr) {
+            data := cast(^Tracking_Allocator_Data) allocator_data;
+            result = data.backing.procedure(data.backing.data, mode, size, alignment, old_memory, old_size, flags, loc);
+
+            {
+                    // restore default allocator within this scope so `map` allocation works normally.
+                context.allocator = data.backing;
+        
+                if mode == .Alloc {
+                    data.allocs[result] = Tracking_Allocation{
+                        memory = result,
+                        size = size,
+                        location = loc,
+                    };
+                }
+                else if mode == .Free {
+                    delete_key(&data.allocs, old_memory);
+                }
+                else if mode == .Resize {
+                    delete_key(&data.allocs, old_memory);
+                    data.allocs[result] = Tracking_Allocation{
+                        memory = result,
+                        size = size,
+                        location = loc,
+                    };
+                }
+            }
+
+            return;
+        }
+    };
+}
+
+check_leaks :: proc(data: Tracking_Allocator_Data) {
+    for _, value in data.allocs {
+        fmt.printf("Allocation %p of size %d leaked @ %s:%d(%s)\n", value.memory, value.size,
+                   value.location.file_path, value.location.line, value.location.procedure);
+    }
+}
+
+
+
+/*
+
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
+
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <https://unlicense.org>
+
+*/
