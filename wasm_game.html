@@ -1,0 +1,1990 @@
+<html>
+    <head>
+        <title>The Game</title>
+        <style type="text/css">
+            body {
+                background-color: rgb(20, 20, 20);
+                color: white;
+                font-family: monospace, fangsong;
+                font-size: 24px;
+            }
+            * {
+                box-sizing: border-box;
+            }
+
+            #scene_text_wrapper {
+                z-index: 99;
+            }
+            #player_menu {
+                z-index: 100;
+            }
+            #scene_text_wrapper, #player_menu, #blackjack_table {
+                position: absolute;
+                width: 384px;
+                background-color: rgba(20, 20, 20, 0.8);
+                padding: 10px;
+                font-size: 16px;
+                z-index: 10;
+            }
+            #player_menu {
+                height: 384px;
+            }
+
+            .scene_choice.current {
+                background-color: rgba(117, 116, 116, 0.8);
+            }
+            .scene_choice.disabled {
+                color: rgb(137, 137, 137);
+            }
+            .inventory_item_name.current {
+                background-color: rgba(117, 116, 116, 0.8);
+            }
+            .inventory_item_name.will_buy {
+                background-color: rgb(100, 150, 100);
+            }
+
+            .atlas {
+                background-image: url("data:image/png;base64, <!-- ATLAS FILE HERE -->");
+                background-size: calc(3008px/2) calc(2304px/2);
+            }
+        </style>
+        <script type="text/javascript">
+            const wasmBase64 = "<!-- WASM_FILE_HERE -->";
+            // NOTE: Confirmed that if you open this file as file:// path, you CAN connect to a local websocket without security!
+            class FSM {
+                constructor () {
+                    this.states = {};
+                    this.currentState = 'default';
+                }
+                moveToState(state) {
+                    if (!this.states[state] || this.currentState === state) {
+                        return false;
+                    } else {
+                        if (this.states[state]._before) {
+                            this.states[state]._before();
+                        }
+                        this.currentState = state;
+                        if (this.states[state]._after) {
+                            this.states[state]._after();
+                        }
+                        return true;
+                    }
+                }
+                runAction(action, ...args) {
+                    if (!this.states[this.currentState][action]) {
+                        return false;
+                    } else {
+                        this.states[this.currentState][action](...args);
+                        return true;
+                    }
+                }
+                _populateTestStates () {
+                    this.states = {
+                        'test': {
+                            '_before': () => {console.log('before');},
+                            '_after': () => {console.log('after');},
+                            'special action': (a, c) => {console.log('SPECIAL', [a, c]);}
+                        }
+                    };
+                    /*
+                    let abc = new FSM();
+                    abc._populateTestStates();
+                    abc.moveToState('test');
+                    abc.runAction('special action');
+                    abc.runAction('special action', 23, 34);
+                    */
+                }
+            }
+            function getRandomInt(max) {
+                return Math.floor(Math.random() * max);
+            }
+            var wasm;
+            var scene_name;
+            var scene_state_name;
+            var output_string_buffers = []
+            var output_array_buffers = []
+            function read_last_string_buffer(offset = 1) {
+                return output_string_buffers[output_string_buffers.length - offset]
+            }
+            function read_last_array_buffer(offset = 1) {
+                return output_array_buffers[output_array_buffers.length - offset]
+            }
+            var importObject = {
+                env: {
+                    memory: new WebAssembly.Memory({
+                        initial: 512,     // 200 pages = ~12.8MB
+                        maximum: 2048     // 1000 pages = ~64MB
+                    }),
+                    js_console_log: function(ptr, len) {
+                        var bytes = new Uint8Array(wasm.exports.memory.buffer, ptr, len)
+                        var message = new TextDecoder('utf-8').decode(bytes)
+                        console.log(message)
+                    },
+                    js_output_string_buffer: function(ptr, len) {
+                        var bytes = new Uint8Array(wasm.exports.memory.buffer, ptr, len)
+                        var message = new TextDecoder('utf-8').decode(bytes)
+                        // console.log(message)
+                        output_string_buffers.push(message)
+                        MAX_STRING_BUFFER_ENTRIES = 200
+                        if (output_string_buffers.length > MAX_STRING_BUFFER_ENTRIES) {
+                            output_string_buffers.shift()
+                        }
+                    },
+                    js_output_array_buffer: function(ptr, len) {
+                        var array = new Int32Array(wasm.exports.memory.buffer, ptr, len)
+                        // console.log(array)
+                        output_array_buffers.push(array)
+                        MAX_STRING_ARRAY_ENTRIES = 200
+                        if (output_array_buffers.length > MAX_STRING_ARRAY_ENTRIES) {
+                            output_array_buffers.shift()
+                        }
+                    },
+                    js_test_js_out: function(a) {
+                        console.log(a);
+                        var b = new Uint32Array(wasm.exports.memory.buffer, a, 2);
+                        console.log(b[0], b[1]);
+                        var c = new Uint8Array(wasm.exports.memory.buffer, a + 8, 13);
+                        console.log(new TextDecoder('utf-8').decode(c));
+                    },
+                    js_test_js_out_array: function(a) {
+                        console.log(a);
+                        var b = new Uint32Array(wasm.exports.memory.buffer, a, 3);
+                        console.log(b[0], b[1], b[2]);
+                    }
+                }
+            }
+
+            function formatMemorySize(bytes) {
+                const kb = bytes / 1024;
+                const mb = kb / 1024;
+                const gb = mb / 1024;
+                
+                if (gb >= 1) return `${gb.toFixed(2)} GB`;
+                if (mb >= 1) return `${mb.toFixed(2)} MB`;
+                if (kb >= 1) return `${kb.toFixed(2)} KB`;
+                return `${bytes} Bytes`;
+            }
+
+            function wasm_setInputString(str) {
+                var encoder = new TextEncoder();
+                var bytes = encoder.encode(str);
+
+                var ptr = wasm.exports.get_input_string_buffer_ptr();
+                var maxSize = wasm.exports.get_input_string_buffer_len();
+                
+                if (bytes.length > maxSize) {
+                    throw new Error("String too large for buffer");
+                }
+
+                new Uint8Array(wasm.exports.memory.buffer).set(bytes, ptr);
+
+                wasm.exports.set_input_string_buffer_length(str.length);
+            }
+            function wasm_setInputArray(array) {
+                var ptr = wasm.exports.get_input_array_buffer_ptr();
+                var maxSize = wasm.exports.get_input_array_buffer_len();
+                
+                if (array.length > maxSize) {
+                    throw new Error("Array too large for buffer");
+                }
+
+                new Int32Array(wasm.exports.memory.buffer, ptr, array.length).set(array);
+
+                wasm.exports.set_input_array_buffer_length(array.length);
+            }
+            // function stringToFloat32(string) {
+            //     var bytes = new TextEncoder().encode(string)
+            //     // Pad the bytes array to be a multiple of 4
+            //     var paddedLength = Math.ceil(bytes.length / 4) * 4
+            //     var paddedBytes = new Uint8Array(paddedLength)
+            //     paddedBytes.set(bytes)
+                
+            //     var float = new Float32Array(paddedBytes.buffer)
+                
+            //     for (var i = 0; i < float.length; ++i) {
+            //         wasm.exports.f32_to_string(float[i])
+            //     }
+            // }
+            function readStringFromWasm(start, length) {
+                // console.trace({start, length})
+                var string_buffer = new Uint8Array(
+                    wasm.exports.memory.buffer,
+                    start,
+                    length,
+                )
+                var string = new TextDecoder('utf-8').decode(string_buffer)
+                // console.log("String from WASM:", string)
+                return string
+            }
+            function readDbStringFromWasm(id, machine_name = false) {
+                var start, length
+                if (machine_name) {
+                    start = wasm.exports.get_string_machine_name_ptr(id)
+                    length = wasm.exports.get_string_machine_name_len(id)
+                } else {
+                    start = wasm.exports.get_string_text_ptr(id)
+                    length = wasm.exports.get_string_text_len(id)
+                }
+                // console.log(readStringFromWasm(start, length), {start, length})
+                return readStringFromWasm(start, length)
+            }
+
+            // gh = GameHelper
+            var gh = {
+                oceanBattleCurrentTurn: {
+                    npc_id: null,
+                    x: null,
+                    y: null,
+                },
+                // General stuff
+                getGameMode: function() {
+                    return readDbStringFromWasm(wasm.exports.get_current_game_mode())
+                },
+
+                // Player stuff
+                getPlayerGold: function () {
+                    return wasm.exports.get_player_gold()
+                },
+                getPlayerTotalItems: function () {
+                    return wasm.exports.get_player_total_items()
+                },
+                getPlayerInventoryItemStringId: function (item_id) {
+                    return wasm.exports.get_player_inventory_item_string_id();
+                },
+
+                shouldRedraw: function () {
+                    return wasm.exports.renderer_should_redraw();
+                },
+
+                getCurrentLayerIDByString: function (string) {
+                    wasm_setInputString(string)
+                    var string_id = wasm.exports.find_string_id_by_machine_name_from_input()
+                    // console.log("getCurrentLayerIDByString:", string_id)
+                    return wasm.exports.find_layer_id_by_string_id(string_id)
+                },
+
+                getCurrentSceneInventoryId: function () {
+                    return wasm.exports.get_current_scene_inventory_id();
+                },
+                getCurrentSceneInventoryTotalItems: function (inventory_id) {
+                    return wasm.exports.get_inventory_total_items(inventory_id);
+                },
+                getCurrentSceneInventoryItemName: function(inventory_item_id) {
+                    var string_id = wasm.exports.get_current_scene_inventory_item_string_id(inventory_item_id);
+                    return readDbStringFromWasm(string_id);
+                },
+                getCurrentSceneInventoryItemAdjustedPrice: function (inventory_item_id) {
+                    return wasm.exports.get_current_scene_inventory_item_adjusted_price(inventory_item_id);
+                },
+                // getCurrentSceneInventoryTotalHeld
+
+                getCurrentSceneName: function () {
+                    // console.log("current scene string id", wasm.exports.get_current_scene_string_id());
+                    return readDbStringFromWasm(wasm.exports.get_current_scene_string_id(), true)
+                },
+                getCurrentSceneStateName: function () {
+                    // console.log("current scene state string id", wasm.exports.get_current_scene_state_string_id());
+                    return readDbStringFromWasm(wasm.exports.get_current_scene_state_string_id(), true)
+                },
+                getCurrentSceneDialogue: function () {
+                    return readDbStringFromWasm(wasm.exports.get_current_scene_dialogue_string_id())
+                },
+                getCurrentSceneHasDialogue: function () {
+                    var id = wasm.exports.get_current_scene_dialogue_string_id()
+                    if (id !== wasm.exports.get_sentry()) {
+                        return true
+                    }
+                    return false
+                },
+                getCurrentSceneChoicesCount: function () {
+                    return wasm.exports.get_current_scene_total_choices()
+                },
+                getCurrentSceneChoiceEnabled: function (t) {
+                    // console.log("Scene Choice Enabled", {
+                    //     t,
+                    //     enabled: wasm.exports.get_current_scene_choice_enabled(t)
+                    // });
+                    return wasm.exports.get_current_scene_choice_enabled(t) !== wasm.exports.get_sentry();
+                },
+                getCurrentSceneChoiceText: function (t) {
+                    // console.log("getCurrentSceneChoiceText", t);
+                    return readDbStringFromWasm(wasm.exports.get_current_scene_choice_string_id(t))
+                },
+                getCurrentSceneChoiceMachineName: function (t) {
+                    return readDbStringFromWasm(wasm.exports.get_current_scene_choice_string_id(t), true);
+                },
+                getCurrentSceneNeedsNumericalInput: function () {
+                    return wasm.exports.get_current_scene_needs_numerical_input();
+                },
+                getCurrentSceneNeedsStringInput: function () {
+                    return wasm.exports.get_current_scene_needs_string_input();
+                },
+                getCurrentOceanBattleTurnNpcId: function () {
+                    return wasm.exports.get_current_ocean_battle_turn_npc_id();
+                },
+            }
+
+            // uih = UIHelper
+            var uih = {
+                el: {},
+                scene: {
+                    name: '',
+                    state_name: '',
+                    inventory_id: 0,
+                    total_choices: 0,
+                    total_inventory_items: 0,
+                    elements: [],
+                    current_element: 0,
+                },
+                oceanBattleTurnHighlight: {
+                    element: null,
+                    x: 0,
+                    y: 0,
+                },
+                showingPlayerMenu: false,
+                initialize: function () {
+                    this.el.opening_title = document.getElementById('opening_title')
+                    this.el.player_menu = document.getElementById('player_menu')
+                    this.el.player_menu.gold = document.querySelector('#player_menu #gold')
+                    this.el.player_menu.total_items = document.querySelector('#player_menu #total_items')
+                    this.el.scene_text_wrapper = document.getElementById('scene_text_wrapper')
+                    this.el.scene_text_wrapper.dialogue = document.getElementById('scene_dialogue')
+                    this.el.scene_text_wrapper.inventory = document.getElementById('scene_inventory')
+                    this.el.scene_text_wrapper.choices = document.getElementById('scene_choices')
+                    this.el.blackjack_table = document.getElementById('blackjack_table')
+
+                    // var atlas_image = new Image();
+                    // atlas_image.src = "data:image/png;base64,   " + atlasBase64;
+                    var atlas_element = document.createElement('div');
+                    atlas_element.id = "spiros_atlas_element";
+                    atlas_element.classList.add('atlas');
+                    atlas_element.style.width = '32px';
+                    atlas_element.style.height = '32px';
+                    document.body.appendChild(atlas_element);
+                    // 3008 / 64
+                    // 2304 / 64
+                    // spriteimagearray[sea_tile_square_one] = 0/0, [sea_tile_bitcoin_mining_square_two]=32/0 [2]
+                    // Player sprite
+                    // atlas class
+                    // backgroundPosition = x/y of spriteimagearray @ given index
+                    // --> convert PX (xpx ypx)
+                    // create a dom element for player inside of viewport element
+                    // --> use image blending (mix-blend-mode) technique for multiple sprite images in the viewport parent dom element
+                    // --> remap keybinds to move only player dom element, not change background color of viewport dom element
+                },
+                getTile: function (x, y) {
+                    var tile = document.querySelector('[world_x="' + x + '"][world_y="' + y + '"]');
+                    if (tile instanceof HTMLElement) {
+                        return tile;
+                    }
+                    return wasm.exports.get_sentry();
+                },
+
+                // Create as many divs as necessary for a number of coordinates
+                multiHighlightsData: [],
+                addMultiHighlight: function(type, x, y, zIndex, color) {
+                    var exists = false;
+                    for (var d = 0; d < uih.multiHighlightsData.length; ++d) {
+                        var hd = uih.multiHighlightsData[d];
+                        if (hd.x == x && hd.y == y && (!hd.type || hd.type == type)) {
+                            // console.log("Already exists", hd);
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        uih.multiHighlightsData.push({
+                            x, y, color,
+                            element: null,
+                            zIndex,
+                            type
+                        });
+                    }
+                },
+                clearMultiHighlights: function (type) {
+                    for (var d = 0; d < uih.multiHighlightsData.length; ++d) {
+                        var hd = uih.multiHighlightsData[d];
+                        if (hd.element !== null && ((type && hd.type == type) || !type)) {
+                            hd.x = null;
+                            hd.y = null;
+                            hd.type = null;
+                            hd.element.remove();
+                        }
+                    }
+
+                    if (!type) {
+                        uih.multiHighlightsData = [];
+                    }
+                },
+                renderHighlights: function(type) {
+                    for (var d = 0; d < uih.multiHighlightsData.length; ++d) {
+                        var hd = uih.multiHighlightsData[d];
+                        if (
+                            ((type && hd.type == type) || !type) &&
+                            hd.element == null
+                        ) {
+                            var div = document.createElement('div');
+                            if (hd.type === "ocean_battle_current_turn_ship") {
+                                div.style.borderBottom = "2px solid red";
+                            } else {
+                                if (hd.color) {
+                                    div.style.backgroundColor = hd.color;
+                                } else {
+                                    div.style.backgroundColor = 'rgba(100, 100, 100, 0.3)';
+                                }
+                            }
+                            div.style.width = TILE_SIZE_SCALED + 'px';
+                            div.style.height = TILE_SIZE_SCALED + 'px';
+                            div.style.position = 'absolute';
+                            div.style.zIndex = hd.zIndex ?? 30;
+                            div.classList.add('multihighlight');
+                            div.id = d;
+                            div.setAttribute("data-type", type);
+                            uih.multiHighlightsData[d].element = div;
+                            var tile = uih.getTile(hd.x, hd.y);
+                            if (tile !== wasm.exports.get_sentry()) {
+                                tile.appendChild(uih.multiHighlightsData[d].element);
+                            }
+                        }
+                    }
+                },
+                getHighlight: function(type) {
+                    if (!type) {
+                        return;
+                    }
+                    for (var d = 0; d < uih.multiHighlightsData.length; ++d) {
+                        var hd = uih.multiHighlightsData[d];
+                        if (type == hd.type) {
+                            return hd;
+                        }
+                    }
+                    return wasm.exports.get_sentry();
+                },
+                moveHighlight: function(index, direction) {
+                    var hd = uih.multiHighlightsData[index];
+                    var tile = uih.getTile(hd.x, hd.y);
+                    if (tile !== wasm.exports.get_sentry()) {
+                        for (var c = 0; c < tile.children.length; ++c) {
+                            if (tile.children[c].id == index && tile.children[c].classList.contains('multihighlight')) {
+                                tile.children[c].remove();
+                            }
+                        }
+                    }
+
+                    if (direction === "left") {
+                        --hd.x;
+                        if (hd.x < 0) {
+                            hd.x = 0;
+                        }
+                    } else if (direction == "right") {
+                        ++hd.x;
+                        if (hd.x >= wasm.exports.get_current_world_width()) {
+                            hd.x = wasm.exports.get_current_world_width() - 1;
+                        }
+                    } else if (direction === "up") {
+                        --hd.y;
+                        if (hd.y < 0) {
+                            hd.y = 0;
+                        }
+                    } else if (direction == "down") {
+                        ++hd.y;
+                        if (hd.y >= wasm.exports.get_current_world_height()) {
+                            hd.y = wasm.exports.get_current_world_height() - 1;
+                        }
+                    }
+
+                    tile = uih.getTile(hd.x, hd.y);
+                    if (tile !== wasm.exports.get_sentry()) {
+                        tile.appendChild(uih.multiHighlightsData[index].element);
+                    }
+                },
+
+                initializeSceneChoices: function () {
+                    this.scene.elements = [];
+                    if (scene_name === "scene_general_shop" && scene_state_name === "general_shop_buy") {
+                        var inventory_elements = document.querySelectorAll('.inventory_item_name');
+                        for (var i = 0; i < inventory_elements.length; ++i) {
+                            if (inventory_elements[i] instanceof HTMLElement) {
+                                this.scene.elements.push(inventory_elements[i]);
+                            }
+                        }
+                    }
+                    var scene_choice_elements = document.querySelectorAll('.scene_choice');
+                    for (var i = 0; i < scene_choice_elements.length; ++i) {
+                        if (scene_choice_elements[i] instanceof HTMLElement) {
+                            this.scene.elements.push(scene_choice_elements[i]);
+                        }
+                    }
+                    
+                    if (scene_name === "scene_general_shop" && scene_state_name === "general_shop_buy") {
+                        this.scene.elements[this.scene.elements.length - 1].classList.add('current');
+                        this.scene.current_element = this.scene.elements.length - 1;
+                    } else {
+                        if (this.scene.elements.length > 0) {
+                            this.scene.elements[0].classList.add('current');
+                        } else {
+                            console.error('No scene elements to work with');
+                        }
+                        this.scene.current_element = 0;
+                    }
+                },
+                sceneChoiceCursorUp: function () {
+                    if (this.scene.current_element > 0) {
+                        this.scene.elements[this.scene.current_element].classList.remove('current');
+                        this.scene.current_element -= 1;
+                        if (this.scene.current_element < 0) {
+                            this.scene.current_element = 0;
+                        }
+                        this.scene.elements[this.scene.current_element].classList.add('current');
+                    }
+                },
+                sceneChoiceCursorDown: function () {
+                    if (this.scene.current_element < this.scene.elements.length - 1) {
+                        this.scene.elements[this.scene.current_element].classList.remove('current');
+                        this.scene.current_element += 1;
+                        if (this.scene.current_element >= this.scene.elements.length) {
+                            this.scene.current_element = this.scene.elements.length - 1;
+                        }
+                        this.scene.elements[this.scene.current_element].classList.add('current');
+                    }
+                },
+                sceneChoiceSelect: function () {
+                    if (scene_name === "scene_general_shop" && scene_state_name === "general_shop_buy") {
+                        var current_scene_inventory_item = document.querySelector('.inventory_item_name.current');
+                        if (current_scene_inventory_item instanceof HTMLElement) {
+                            var current_scene_inventory_item_id = current_scene_inventory_item.id;
+                            console.log("CURRENT INVENTORY ITEM ID", current_scene_inventory_item_id);
+                            wasm_setInputArray([current_scene_inventory_item_id, 1]);
+                            var current_will_buy_elements = document.querySelectorAll('.inventory_item_name.will_buy');
+                            for (var i = 0; i < current_will_buy_elements.length; ++i) {
+                                if (current_will_buy_elements[i] instanceof HTMLElement) {
+                                    current_will_buy_elements[i].classList.remove('will_buy');
+                                }
+                            }
+                            document.querySelector('.inventory_item_name.current').classList.add('will_buy');
+                        }
+                    }
+                    var current_scene_choice = document.querySelector('.scene_choice.current');
+                    if (current_scene_choice instanceof HTMLElement) {
+                        if (gh.getCurrentSceneNeedsNumericalInput()) {
+                            var current_value = document.getElementById('scene_user_numerical_input').value;
+                            wasm.exports.user_input_number(current_value);
+                        }
+                        wasm.exports.current_scene_make_choice(current_scene_choice.id);
+                    }
+                },
+                // Function to get card value (1-13)
+                getCardValue: function (cardNumber) {
+                    // Get the remainder when divided by 13 (0-12)
+                    let value = cardNumber % 13;
+                    
+                    // Adjust for 0 to be 13 (King)
+                    if (value === 0) value = 13;
+                    
+                    // Convert to visual representation
+                    switch (value) {
+                        case 11: return 'J';
+                        case 12: return 'Q';
+                        case 13: return 'K';
+                        case 1: return 'A';
+                        default: return value.toString();
+                    }
+                },
+                showOpeningTitleScreen: function () {
+                    this.el.opening_title.style.display = 'block';
+                },
+                hideOpeningTitleScreen: function () {
+                    this.el.opening_title.style.display = 'none';
+                },
+                showPlayerMenu: function () {
+                    this.el.player_menu.style.display = 'block';
+
+                    // TODO: Potentially move this to its own function but its fine for now
+                    this.el.player_menu.gold.innerHTML = gh.getPlayerGold();
+                    this.el.player_menu.total_items.innerHTML = gh.getPlayerTotalItems();
+                    for (var t = 0; t < gh.getPlayerTotalItems(); ++t) {
+                        var string_id = gh.getPlayerInventoryItemStringId(t);
+                        var div = document.createElement("div");
+                        div.innerHTML = readDbStringFromWasm(string_id);
+                        document.getElementById("items_list").appendChild(div);
+                    }
+                },
+                hidePlayerMenu: function () {
+                    this.el.player_menu.style.display = 'none'
+                },
+                clearSceneChoices: function () {
+                    var choices = document.querySelectorAll('.scene_choice')
+                    for (var c = 0; c < choices.length; ++c) {
+                        if (choices[c] instanceof HTMLElement) {
+                            choices[c].remove()
+                        }
+                    }
+                    document.getElementById('scene_choices').style.display = 'none'
+                    var items = document.querySelectorAll('.inventory_item')
+                    for (var i = 0; i < items.length; ++i) {
+                        if (items[i] instanceof HTMLElement) {
+                            items[i].remove()
+                        }
+                    }
+                    document.getElementById('scene_inventory').innerHTML = ''
+                    document.getElementById('scene_inventory').style.display = 'none'
+                    if (document.getElementById('shop_total_cost')) {
+                        document.getElementById('shop_total_cost').remove()
+                    }
+                },
+                showSceneTextWrapper: function () {
+                    this.el.scene_text_wrapper.style.display = 'block'
+                },
+                hideSceneTextWrapper: function () {
+                    this.el.scene_text_wrapper.style.display = 'none'
+                },
+                showSceneDialogue: function (dialogue) {
+                    this.el.scene_text_wrapper.dialogue.style.display = 'block'
+                    this.el.scene_text_wrapper.dialogue.innerHTML = dialogue
+                },
+                hideSceneDialogue: function () {
+                    this.el.scene_text_wrapper.dialogue.style.display = 'none'
+                    this.el.scene_text_wrapper.dialogue.innerHTML = ''
+                },
+                showSceneInventory: function () {
+                    this.el.scene_text_wrapper.inventory.style.display = 'block'
+                },
+                hideSceneInventory: function () {
+                    this.el.scene_text_wrapper.inventory.style.display = 'none'
+                    this.el.scene_text_wrapper.inventory.innerHTML = ''
+                },
+                showSceneChoices: function () {
+                    this.el.scene_text_wrapper.choices.style.display = 'block'
+                },
+                hideSceneChoices: function () {
+                    this.el.scene_text_wrapper.choices.style.display = 'none'
+                    this.el.scene_text_wrapper.choices.innerHTML = ''
+                },
+                showBlackjackTable: function () {
+                    this.el.blackjack_table.style.display = 'block'
+                },
+                hideBlackjackTable: function () {
+                    this.el.blackjack_table.style.display = 'none'
+                    uih.removeCardsFromBlackjackTable()
+                },
+                updateCardsOnBlackjackTable: function () {
+                    uih.removeCardsFromBlackjackTable()
+                    var player_title = document.createElement('div')
+                    player_title.innerHTML = 'Player'
+                    document.getElementById('blackjack_player_hand').appendChild(player_title)
+                    for (var i = 0; i < 10; ++i) {
+                        var numerical_card = wasm.exports.blackjack_get_player_deck_card(i)
+                        if (numerical_card !== wasm.exports.get_sentry()) {
+                            var card = document.createElement('div')
+                            card.innerHTML = uih.getCardValue(numerical_card)
+                            card.style.backgroundColor = 'white'
+                            card.style.color = 'black'
+                            card.style.border = '1px solid gold'
+                            document.getElementById('blackjack_player_hand').appendChild(card)
+                        }
+                    }
+                    var dealer_title = document.createElement('div')
+                    dealer_title.innerHTML = 'Dealer'
+                    document.getElementById('blackjack_dealer_hand').appendChild(dealer_title)
+                    for (var i = 0; i < 10; ++i) {
+                        var numerical_card = wasm.exports.blackjack_get_dealer_deck_card(i)
+                        if (numerical_card !== wasm.exports.get_sentry()) {
+                            var card = document.createElement('div')
+                            card.innerHTML = uih.getCardValue(numerical_card)
+                            card.style.backgroundColor = 'white'
+                            card.style.color = 'black'
+                            card.style.border = '1px solid gold'
+                            document.getElementById('blackjack_dealer_hand').appendChild(card)
+                        }
+                    }
+                    var player_total = wasm.exports.blackjack_get_players_deck_value()
+                    var dealer_total = wasm.exports.blackjack_get_dealers_deck_value()
+                    document.getElementById('blackjack_player_total').innerHTML = 'Player: ' + player_total
+                    document.getElementById('blackjack_dealer_total').innerHTML = 'Dealer: ' + dealer_total
+                },
+                removeCardsFromBlackjackTable: function () {
+                    // TODO: Handle these element references properly
+                    document.getElementById('blackjack_player_total').innerHTML = 0
+                    document.getElementById('blackjack_dealer_total').innerHTML = 0
+                    var cards = document.querySelectorAll('#blackjack_table #blackjack_player_hand div')
+                    for (var c = 0; c < cards.length; ++c) {
+                        if (cards[c] instanceof HTMLElement) {
+                            cards[c].remove()
+                        }
+                    }
+                    var cards = document.querySelectorAll('#blackjack_table #blackjack_dealer_hand div')
+                    for (var c = 0; c < cards.length; ++c) {
+                        if (cards[c] instanceof HTMLElement) {
+                            cards[c].remove()
+                        }
+                    }
+                },
+            }
+
+            var OceanBattlePlayerMoving = {
+                intended_x: null,
+                intended_y: null,
+            };
+
+            var force_redraw = false;
+            // var rotateX = 67
+            var RAF = {
+                fps: 60,
+                interval: 1000,
+                last_time: 0,
+                is_paused: false,
+                last_log_time: 0,
+                log_interval: 0,
+                fps_value: 0,
+                last_fps_time: 0,
+                frame_count: 0,
+                initialize: function () {
+                    RAF.interval = RAF.interval / RAF.fps
+                },
+                animate: function(current_time) {
+                    requestAnimationFrame(RAF.animate)
+
+                    if (!RAF.is_paused) {
+                        // Calculate time elapsed since last frame
+                        var delta_time = current_time - RAF.last_time
+
+                        // Only update if enough time has passed
+                        if (delta_time >= RAF.interval) {
+                            // Update last time, accounting for any extra time
+                            RAF.last_time = current_time - (delta_time % RAF.interval)
+
+                            RAF.update(delta_time, current_time)
+                            RAF.render()
+
+                            ++RAF.frame_count
+                        }
+                    }
+
+                    // Calculate FPS every second
+                    if (current_time - RAF.last_fps_time >= 1000) {
+                        RAF.fps_value = Math.round((RAF.frame_count * 1000) / (current_time - RAF.last_fps_time))
+                        RAF.frame_count = 0
+                        RAF.last_fps_time = current_time
+                    }
+                },
+                update: function(delta_time, current_time) {
+                    if (current_time - RAF.last_log_time >= RAF.log_interval) {
+                        RAF.last_log_time = current_time
+                    }
+                    // TODO: Update should_render_tiles here instead
+                    // wasm.tick
+                    // should_render_tiles = true;
+                },
+                can_tick: true,
+                render: function () {
+                    // should_render_tiles = gh.shouldRedraw();
+                    if (wasm) {
+                        if (RAF.frame_count % 15 == 0) {
+                            var bg_elements = document.querySelectorAll('.bg_element');
+                            for (var bge = 0; bge < bg_elements.length; ++bge) {
+                                if (bg_elements[bge] instanceof HTMLElement) {
+                                    if (bg_elements[bge].bgTick == undefined || bg_elements[bge].bgTick == NaN) {
+                                        bg_elements[bge].bgTick = 0;
+                                    }
+                                    var bgTick = bg_elements[bge].bgTick;
+                                    ++bg_elements[bge].bgTick;
+                                    if (bg_elements[bge].bgTick > 7) {
+                                        bg_elements[bge].bgTick = 0;
+                                    }
+                                    bg_elements[bge].style.backgroundPosition = 'calc(-1 * calc(32px * ' + bgTick + ')) 0px';
+                                }
+                            }
+                        }
+                        should_render_tiles = true;
+                        // console.log("Current memory:", formatMemorySize(wasm.exports.memory.buffer.byteLength))
+                        // document.body.setAttribute('style', 'transform-style: preserve-3d; perspective: 1000px')
+                        // document.querySelector('#viewport').style.transform = 'rotateX(' + rotateX + 'deg)'
+                        // document.querySelector('#viewport div[viewport_x="0"][viewport_y="0"]').style.transform = 'rotateY(80deg)'
+                        game_mode = gh.getGameMode()
+                        // uih.hidePlayerMenu()
+                        if (game_mode === "In Player Menu") {
+                            // should_render_tiles = false;
+                            uih.showPlayerMenu()
+                        } else if (game_mode === "In Scene" && gh.shouldRedraw()) {
+                            // should_render_tiles = false;
+                            scene_name = gh.getCurrentSceneName()
+                            scene_state_name = gh.getCurrentSceneStateName()
+                            console.log({scene_name, scene_state_name})
+                            if (scene_name === "scene_blackjack") {
+                                uih.showSceneTextWrapper()
+                                if (gh.getCurrentSceneHasDialogue()) {
+                                    uih.showSceneDialogue(gh.getCurrentSceneDialogue())
+                                }
+
+                                uih.clearSceneChoices()
+                                clear_scene_inputs()
+                                if (gh.getCurrentSceneChoicesCount() > 0) {
+                                    var total_choices = gh.getCurrentSceneChoicesCount()
+                                    scene_total_choices += total_choices
+                                    for (var t = 0; t < scene_total_choices; ++t) {
+                                        if (!gh.getCurrentSceneChoiceEnabled(t)) { continue; }
+                                        var choice = gh.getCurrentSceneChoiceText(t)
+                                        var machine_name = gh.getCurrentSceneChoiceMachineName(t)
+                                        var choice_el
+                                        if (machine_name === "number_input") {
+                                            choice_el = document.createElement('div')
+                                            choice_el.classList.add('scene_choice')
+                                            choice_el.innerHTML = gh.getCurrentSceneInputNumber()
+                                            choice_el.id = t
+                                        } else {
+                                            choice_el = document.createElement('div')
+                                            choice_el.classList.add('scene_choice')
+                                            choice_el.innerHTML = choice
+                                            choice_el.id = t
+                                        }
+                                        if (t === 0) {
+                                            choice_el.classList.add('current')
+                                        }
+                                        uih.el.scene_text_wrapper.choices.appendChild(choice_el)
+                                    }
+                                    uih.showSceneChoices()
+                                }
+
+                                if (gh.getCurrentSceneNeedsNumericalInput() !== wasm.exports.get_sentry()) {
+                                    document.getElementById('scene_user_numerical_input').value = 0
+                                    document.getElementById('scene_numerical_input').style.display = 'block'
+                                } else {
+                                    document.getElementById('scene_numerical_input').style.display = 'none'
+                                }
+
+                                // TODO: Only show table on certain states.
+                                if (scene_state_name !== "" && scene_state_name !== wasm.exports.get_sentry()) {
+                                    uih.showBlackjackTable()
+                                    uih.updateCardsOnBlackjackTable()
+                                } else {
+                                    console.log("scene state name", scene_state_name);
+                                    uih.hideBlackjackTable()
+                                }
+                                uih.initializeSceneChoices();
+                            } else if (scene_name === "scene_general_shop") {
+                                uih.scene.name = scene_name;
+                                uih.scene.state_name = scene_state_name;
+                                uih.showSceneTextWrapper()
+                                if (gh.getCurrentSceneHasDialogue()) {
+                                    uih.showSceneDialogue(gh.getCurrentSceneDialogue())
+                                }
+
+                                uih.clearSceneChoices()
+                                clear_scene_inputs()
+                                if (gh.getCurrentSceneChoicesCount() > 0) {
+                                    var total_choices = gh.getCurrentSceneChoicesCount();
+                                    uih.scene.total_scene_choices = total_choices;
+                                    scene_total_choices += total_choices;
+                                    // console.log("Scene total choices", scene_total_choices);
+                                    for (var t = 0; t < scene_total_choices; ++t) {
+                                        if (!gh.getCurrentSceneChoiceEnabled(t)) {
+                                            continue;
+                                        }
+                                        var choice = gh.getCurrentSceneChoiceText(t)
+                                        var machine_name = gh.getCurrentSceneChoiceMachineName(t)
+                                        var choice_el
+                                        if (machine_name === "number_input") {
+                                            choice_el = document.createElement('div')
+                                            choice_el.classList.add('scene_choice')
+                                            choice_el.innerHTML = gh.getCurrentSceneInputNumber()
+                                            choice_el.id = t
+                                        } else {
+                                            choice_el = document.createElement('div')
+                                            choice_el.classList.add('scene_choice')
+                                            choice_el.innerHTML = choice
+                                            choice_el.id = t
+                                        }
+                                        uih.el.scene_text_wrapper.choices.appendChild(choice_el)
+                                    }
+                                    uih.showSceneChoices()
+                                }
+
+                                if (gh.getCurrentSceneNeedsNumericalInput() !== wasm.exports.get_sentry()) {
+                                    document.getElementById('scene_user_numerical_input').value = 0
+                                    document.getElementById('scene_numerical_input').style.display = 'block'
+                                } else {
+                                    document.getElementById('scene_numerical_input').style.display = 'none'
+                                }
+
+                                if (scene_state_name === "general_shop_buy") {
+                                    var inventory_id = gh.getCurrentSceneInventoryId();
+                                    var total_inventory_items = gh.getCurrentSceneInventoryTotalItems(inventory_id);
+                                    uih.scene.inventory_id = inventory_id;
+                                    uih.scene.total_inventory_items = total_inventory_items;
+                                    if (total_inventory_items > 0 && total_inventory_items !== wasm.exports.get_sentry()) {
+                                        for (var item = 0; item < total_inventory_items; ++item) {
+                                            var this_name = gh.getCurrentSceneInventoryItemName(item);
+                                            var this_price = gh.getCurrentSceneInventoryItemAdjustedPrice(item);
+
+                                            var el_inventory_item = document.createElement('div');
+                                            el_inventory_item.innerHTML = this_name;
+                                            el_inventory_item.id = item;
+                                            el_inventory_item.classList.add('inventory_item');
+                                            el_inventory_item.classList.add('inventory_item_name');
+                                            document.getElementById('scene_inventory').appendChild(el_inventory_item);
+
+                                            var el_inventory_item_price = document.createElement('div');
+                                            el_inventory_item_price.innerHTML = this_price;
+                                            el_inventory_item_price.id = item;
+                                            el_inventory_item_price.classList.add('inventory_item');
+                                            el_inventory_item_price.classList.add('inventory_item_price');
+                                            document.getElementById('scene_inventory').appendChild(el_inventory_item_price);
+                                        }
+                                        document.getElementById('scene_inventory').style.display = 'grid';
+                                        // only need two columns for now, one for name and one for price
+                                        document.getElementById('scene_inventory').style.gridTemplateColumns = '1fr 1fr';
+                                    }
+                                } else {
+                                    document.getElementById('scene_inventory').style.display = 'none';
+                                }
+                                uih.initializeSceneChoices();
+                            } else if (
+                                scene_name === "scene_npc_rvice" ||
+                                scene_name === "scene_npc_lafolie" ||
+                                scene_name === "scene_npc_nakor" ||
+                                scene_name === "scene_npc_travis" ||
+                                scene_name === "scene_npc_loller"
+                            ) {
+                                uih.scene.name = scene_name;
+                                uih.scene.state_name = scene_state_name;
+                                uih.showSceneTextWrapper()
+                                if (gh.getCurrentSceneHasDialogue()) {
+                                    uih.showSceneDialogue(gh.getCurrentSceneDialogue())
+                                }
+
+                                uih.clearSceneChoices()
+                                clear_scene_inputs()
+                                if (gh.getCurrentSceneChoicesCount() > 0) {
+                                    var total_choices = gh.getCurrentSceneChoicesCount();
+                                    uih.scene.total_scene_choices = total_choices;
+                                    scene_total_choices += total_choices;
+                                    // console.log("Scene total choices", scene_total_choices);
+                                    for (var t = 0; t < scene_total_choices; ++t) {
+                                        if (!gh.getCurrentSceneChoiceEnabled(t)) {
+                                            continue;
+                                        }
+                                        var choice = gh.getCurrentSceneChoiceText(t)
+                                        var machine_name = gh.getCurrentSceneChoiceMachineName(t)
+                                        var choice_el
+                                        if (machine_name === "number_input") {
+                                            choice_el = document.createElement('div')
+                                            choice_el.classList.add('scene_choice')
+                                            choice_el.innerHTML = gh.getCurrentSceneInputNumber()
+                                            choice_el.id = t
+                                        } else {
+                                            choice_el = document.createElement('div')
+                                            choice_el.classList.add('scene_choice')
+                                            choice_el.innerHTML = choice
+                                            choice_el.id = t
+                                        }
+                                        uih.el.scene_text_wrapper.choices.appendChild(choice_el)
+                                    }
+                                    uih.showSceneChoices()
+                                }
+
+                                if (gh.getCurrentSceneNeedsNumericalInput() !== wasm.exports.get_sentry()) {
+                                    document.getElementById('scene_user_numerical_input').value = 0
+                                    document.getElementById('scene_numerical_input').style.display = 'block'
+                                } else {
+                                    document.getElementById('scene_numerical_input').style.display = 'none'
+                                }
+                                uih.initializeSceneChoices();
+                            } else if (scene_name == "scene_ocean_battle") {
+                                // should_render_tiles = true;
+                                wasm.exports.should_redraw_everything();
+
+                                var current_turn_npc_id = gh.getCurrentOceanBattleTurnNpcId();
+                                var current_turn_npc_x = wasm.exports.get_current_ocean_battle_turn_npc_x();
+                                var current_turn_npc_y = wasm.exports.get_current_ocean_battle_turn_npc_y();
+                                if (current_turn_npc_id !== gh.oceanBattleCurrentTurn.npc_id) {
+                                    uih.clearMultiHighlights();
+                                    OceanBattlePlayerMoving.intended_x = current_turn_npc_x;
+                                    OceanBattlePlayerMoving.intended_y = current_turn_npc_y;
+                                    uih.addMultiHighlight(
+                                        "ocean_battle_current_turn_ship",
+                                        wasm.exports.get_current_ocean_battle_turn_npc_x(),
+                                        wasm.exports.get_current_ocean_battle_turn_npc_y()
+                                    );
+                                    gh.oceanBattleCurrentTurn.npc_id = current_turn_npc_id;
+                                    gh.oceanBattleCurrentTurn.x = current_turn_npc_x;
+                                    gh.oceanBattleCurrentTurn.y = current_turn_npc_y;
+                                }
+                                if (
+                                    gh.oceanBattleCurrentTurn.x !== current_turn_npc_x ||
+                                    gh.oceanBattleCurrentTurn.y !== current_turn_npc_y
+                                ) {
+                                    // Ship has moved
+                                    uih.clearMultiHighlights("ocean_battle_current_turn_ship");
+                                    uih.addMultiHighlight(
+                                        "ocean_battle_current_turn_ship",
+                                        current_turn_npc_x,
+                                        current_turn_npc_y,
+                                    );
+                                    gh.oceanBattleCurrentTurn.x = current_turn_npc_x;
+                                    gh.oceanBattleCurrentTurn.y = current_turn_npc_y;
+                                }
+
+                                uih.scene.name = scene_name;
+                                uih.scene.state_name = scene_state_name;
+                                if (uih.scene.state_name == "ship_is_attacking_with_cannon") {
+                                    var attacker_world_npc_id = wasm.exports.get_ocean_battle_attacker_world_npc_id();
+                                    var target_world_npc_id = wasm.exports.get_ocean_battle_target_world_npc_id();
+                                    var attacker_coords = {
+                                        x: wasm.exports.get_world_npc_x(attacker_world_npc_id),
+                                        y: wasm.exports.get_world_npc_y(attacker_world_npc_id),
+                                    };
+                                    var target_coords = {
+                                        x: wasm.exports.get_world_npc_x(target_world_npc_id),
+                                        y: wasm.exports.get_world_npc_y(target_world_npc_id),
+                                    };
+                                    var attacker_tile_element = document.querySelector('[world_x="' + attacker_coords.x + '"][world_y="' + attacker_coords.y + '"]');
+                                    var target_tile_element = document.querySelector('[world_x="' + target_coords.x + '"][world_y="' + target_coords.y + '"]');
+
+                                    if (attacker_tile_element && target_tile_element) {
+                                        var cannon_tile = document.createElement('div');
+                                        cannon_tile.id = "cannon_tile";
+                                        cannon_tile.style.position = "absolute";
+                                        cannon_tile.style.zIndex = "100";
+                                        cannon_tile.style.width = TILE_SIZE_SCALED + "px";
+                                        cannon_tile.style.height = TILE_SIZE_SCALED + "px";
+                                        cannon_tile.classList.add("atlas");
+                                        cannon_tile.style.backgroundPosition = "calc(-1 * calc(64px * 9)) calc(-1 * calc(64px * 1))";
+                                        cannon_tile.style.top = attacker_tile_element.getClientRects()[0].top + "px";
+                                        cannon_tile.style.left = attacker_tile_element.getClientRects()[0].left + "px";
+                                        var attacker_animation_y = attacker_tile_element.getClientRects()[0].top;
+                                        var attacker_animation_x = attacker_tile_element.getClientRects()[0].left;
+                                        var target_animation_y = target_tile_element.getClientRects()[0].top;
+                                        var target_animation_x = target_tile_element.getClientRects()[0].left;
+                                        // target_tile_element.style.border = "3px solid white";
+                                        document.body.appendChild(cannon_tile);
+                                        var animation_interval = setInterval(() => {
+                                            if (target_animation_x > attacker_animation_x) {
+                                                attacker_animation_x += 5;
+                                                if (attacker_animation_x > target_animation_x) {
+                                                    attacker_animation_x = target_animation_x;
+                                                }
+                                            } else {
+                                                attacker_animation_x -= 5;
+                                                if (attacker_animation_x < target_animation_x) {
+                                                    attacker_animation_x = target_animation_x;
+                                                }
+                                            }
+                                            cannon_tile.style.left = attacker_animation_x + "px";
+                                            if (target_animation_y > attacker_animation_y) {
+                                                attacker_animation_y += 5;
+                                                if (attacker_animation_y > target_animation_y) {
+                                                    attacker_animation_y = target_animation_y;
+                                                }
+                                            } else {
+                                                attacker_animation_y -= 5;
+                                                if (attacker_animation_y < target_animation_y) {
+                                                    attacker_animation_y = target_animation_y;
+                                                }
+                                            }
+                                            cannon_tile.style.top = attacker_animation_y + "px";
+                                            if (attacker_animation_x == target_animation_x && attacker_animation_y == target_animation_y) {
+                                                cannon_tile.remove();
+                                                clearInterval(animation_interval);
+                                            }
+                                        }, 20);
+                                    } else {
+                                        console.log("Target", target_tile_element);
+                                        console.log("Attacker", attacker_tile_element);
+                                    }
+                                }
+                                uih.showSceneTextWrapper()
+                                if (gh.getCurrentSceneHasDialogue()) {
+                                    uih.showSceneDialogue(gh.getCurrentSceneDialogue())
+                                }
+
+                                uih.clearSceneChoices()
+                                clear_scene_inputs()
+                                if (gh.getCurrentSceneChoicesCount() > 0) {
+                                    var total_choices = gh.getCurrentSceneChoicesCount();
+                                    uih.scene.total_scene_choices = total_choices;
+                                    scene_total_choices += total_choices;
+                                    // console.log("Scene total choices", scene_total_choices);
+                                    for (var t = 0; t < scene_total_choices; ++t) {
+                                        if (!gh.getCurrentSceneChoiceEnabled(t)) {
+                                            continue;
+                                        }
+                                        var choice = gh.getCurrentSceneChoiceText(t)
+                                        var machine_name = gh.getCurrentSceneChoiceMachineName(t)
+                                        var choice_el
+                                        if (machine_name === "number_input") {
+                                            choice_el = document.createElement('div')
+                                            choice_el.classList.add('scene_choice')
+                                            choice_el.innerHTML = gh.getCurrentSceneInputNumber()
+                                            choice_el.id = t
+                                        } else {
+                                            choice_el = document.createElement('div')
+                                            choice_el.classList.add('scene_choice')
+                                            choice_el.innerHTML = choice
+                                            choice_el.id = t
+                                        }
+                                        uih.el.scene_text_wrapper.choices.appendChild(choice_el)
+                                    }
+                                    uih.showSceneChoices()
+                                }
+                                uih.initializeSceneChoices();
+
+                                if (scene_state_name == "ship_is_attacking_with_cannon")
+                                {
+                                    // This is the confirmation of a cannon attack
+                                    uih.clearMultiHighlights("ocean_battle_targets");
+                                    uih.clearMultiHighlights("choose_target");
+                                }
+
+                                if (
+                                    scene_state_name == "ocean_battle_cannon_attack_choose_target" ||
+                                    scene_state_name == "ocean_battle_board_attack_choose_target"
+                                ) {
+                                    uih.clearMultiHighlights("ocean_battle_targets");
+                                    if (scene_state_name == "ocean_battle_cannon_attack_choose_target") {
+                                        var total_coordinates_to_check = wasm.exports.get_total_valid_cannon_coordinates();
+                                        for (var c = 0; c < total_coordinates_to_check; ++c) {
+                                            var coord_x = wasm.exports.ocean_battle_get_valid_cannon_coordinates_x(c);
+                                            var coord_y = wasm.exports.ocean_battle_get_valid_cannon_coordinates_y(c);
+                                            if (coord_x !== wasm.exports.get_sentry() && coord_y !== wasm.exports.get_sentry()) {
+                                                uih.addMultiHighlight("ocean_battle_targets", coord_x, coord_y, 33, 'rgba(255, 0, 0, 0.5)');
+                                            }
+                                        }
+                                    } else if (scene_state_name == "ocean_battle_board_attack_choose_target") {
+                                        var total_coordinates_to_check = wasm.exports.get_total_valid_boarding_coordinates();
+                                        for (var c = 0; c < total_coordinates_to_check; ++c) {
+                                            var coord_x = wasm.exports.ocean_battle_get_valid_boarding_coordinates_x(c);
+                                            var coord_y = wasm.exports.ocean_battle_get_valid_boarding_coordinates_y(c);
+                                            if (coord_x !== wasm.exports.get_sentry() && coord_y !== wasm.exports.get_sentry()) {
+                                                uih.addMultiHighlight("ocean_battle_targets", coord_x, coord_y, 33, 'rgba(255, 0, 0, 0.5)');
+                                            }
+                                        }
+                                    }
+                                    uih.renderHighlights("ocean_battle_targets");
+                                }
+
+                                if (scene_state_name == "ocean_battle_moving")
+                                {
+                                    var total = wasm.exports.ocean_battle_get_total_valid_movement_coordinates();
+                                    for (var t = 0; t < total; ++t) {
+                                        var x = wasm.exports.ocean_battle_get_valid_movement_coordinate_x(t);
+                                        var y = wasm.exports.ocean_battle_get_valid_movement_coordinate_y(t);
+                                        uih.addMultiHighlight("ocean_battle_moving", x, y, 32, "rgba(100, 100, 100, 0.3)");
+                                    }
+                                    uih.renderHighlights("ocean_battle_moving");
+                                }
+
+                                // TODO: Should not be able to move a ship to its own current coordinates
+                            } else if (scene_name == "scene_digi_tal_bank") {
+                                console.log("BANK");
+                            }
+
+                            if (scene_name !== "scene_ocean_battle") {
+                                uih.clearMultiHighlights("ocean_battle");
+                            }
+                        } else if (game_mode === "In Port") {
+                            clear_scene_inputs()
+                            uih.hideOpeningTitleScreen()
+                            uih.hideSceneTextWrapper()
+                            // uih.hidePlayerMenu()
+                            uih.hideBlackjackTable()
+                            document.getElementById('viewport').style.display = 'grid'
+                            document.getElementById('viewport').style.gridTemplateColumns = `repeat(${wasm.exports.get_viewport_width()}, 1fr)`
+                            document.getElementById('viewport').style.gridTemplateRows = `repeat(${wasm.exports.get_viewport_height()}, 1fr)`
+                            // should_render_tiles = true;
+                            // force_redraw = true;
+                        } else {
+                            // console.log("game mode", game_mode);
+                        }
+
+                        if (should_render_tiles) {
+                            if (gh.shouldRedraw() || force_redraw) {
+                                var bg_elements = document.querySelectorAll('.bg_element');
+                                for (var be = 0; be < bg_elements.length; ++be) {
+                                    if (bg_elements[be] instanceof HTMLElement) {
+                                        bg_elements[be].remove();
+                                    }
+                                }
+                                var npc_elements = document.querySelectorAll('.npc_element');
+                                for (var npc = 0; npc < npc_elements.length; ++npc) {
+                                    if (npc_elements[npc] instanceof HTMLElement) {
+                                        npc_elements[npc].remove();
+                                    }
+                                }
+                                var lo_elements = document.querySelectorAll('.layer_one_element');
+                                for (var lo = 0; lo < lo_elements.length; ++lo) {
+                                    if (lo_elements[lo] instanceof HTMLElement) {
+                                        lo_elements[lo].remove();
+                                    }
+                                }
+                                var lt_elements = document.querySelectorAll('.layer_two_element');
+                                for (var lt = 0; lt < lt_elements.length; ++lt) {
+                                    if (lt_elements[lt] instanceof HTMLElement) {
+                                        lt_elements[lt].remove();
+                                    }
+                                }
+                                // console.log('Should redraw')
+                                // TODO: This should become "render viewport" (a function) or whatever
+                                for (var x = 0; x < wasm.exports.get_viewport_width(); ++x) {
+                                    for (var j = 0; j < wasm.exports.get_viewport_height(); ++j) {
+                                        var tile = document.querySelector('[world_x="' + x + '"][world_y="' + j + '"]');
+                                        if (should3d) {
+                                            tile.style.transformStyle = 'preserve-3d';
+                                        }
+                                        // var world_x = wasm.exports.get_world_coordinate_x_from_viewport_coordinate(i, j);
+                                        // var world_y = wasm.exports.get_world_coordinate_y_from_viewport_coordinate(i, j);
+                                        world_x = x;
+                                        world_y = j;
+                                        // tile.setAttribute('world_x', world_x);
+                                        // tile.setAttribute('world_y', world_y);
+
+                                        // One approach: get values for all layers, read through array buffer
+                                        // var total_layers = wasm.exports.get_viewport_values_at_coordinates(i, j)
+                                        // for (var t = 0; t < total_layers; ++t) {
+                                        //     var layer_name = read_last_string_buffer(t + 1)
+                                        //     if (layer_name === "npc_layer") {
+                                        //         var npc_name = read_last_string_buffer(t + 2)
+                                        //         // console.log(npc_name)
+                                        //         var npc_iterator = read_last_array_buffer(t + 1)[0]
+                                        //         var npc_direction = read_last_array_buffer(t + 2)[1]
+                                        //         // console.log({npc_iterator, npc_direction})
+                                        //         if (npc_iterator === 2) {
+                                        //             tile.style.backgroundColor = 'blue'
+                                        //         }
+                                        //     } else if (layer_name === "background_layer") {
+                                        //         var layer_iterator = read_last_array_buffer(t + 1)[0]
+                                        //         var layer_value = read_last_array_buffer(t + 1)[1]
+                                        //         // console.log({layer_iterator, layer_value})
+                                        //         if (layer_value === 1) {
+                                        //             tile.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'
+                                        //         }
+                                        //     }
+                                        // }
+
+                                        // Second approach: Just iterate through all layers and check the name
+                                        // var total_layers = wasm.exports.get_current_world_total_layers()
+                                        // // Note: You would think it has to be <, just <, but 0 is an empty layer as a placeholder so we have to go with <=
+                                        // for (var t = 0; t <= total_layers; ++t) {
+                                        //     wasm.exports.get_current_world_layer_name_by_id(t)
+                                        //     if (read_last_string_buffer() === "npc_layer") {
+                                        //         var layer_value = wasm.exports.get_viewport_value_at_coordinates(t, i, j)
+                                        //         if (layer_value > 0) {
+                                        //             tile.style.backgroundColor = 'blue'
+                                        //         }
+                                        //     } else if (read_last_string_buffer() === "background_layer") {
+                                        //         var layer_value = wasm.exports.get_viewport_value_at_coordinates(t, i, j)
+                                        //         if (layer_value > 0) {
+                                        //             tile.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'
+                                        //         }
+                                        //     }
+                                        // }
+
+                                        // Third approach: Get specific layers you want to deal with up front
+                                        var layer_id = gh.getCurrentLayerIDByString("background_layer")
+                                        if (layer_id !== wasm.exports.get_sentry()) {
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y)
+                                            if (layer_value !== wasm.exports.get_sentry()) {
+                                                // tile.style.backgroundColor = 'rgba(0, 0, 100, 0.8)'
+                                                var bg_element = document.createElement('div');
+                                                bg_element.classList.add('atlas');
+                                                bg_element.classList.add('bg_element');
+                                                bg_element.style.width = '32px';
+                                                bg_element.style.height = '32px';
+                                                bg_element.style.position = 'absolute';
+                                                tile.appendChild(bg_element);
+                                                tile.style.mixBlendMode = 'normal';
+                                            }
+                                        }
+                                        var layer_id = gh.getCurrentLayerIDByString("layer_one");
+                                        if (layer_id !== wasm.exports.get_sentry()) {
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y);
+                                            if (layer_value !== wasm.exports.get_sentry()) {
+                                                var layer_one_element = document.createElement('div');
+                                                layer_one_element.classList.add('atlas');
+                                                layer_one_element.classList.add('layer_one_element');
+                                                layer_one_element.style.width = '32px';
+                                                layer_one_element.style.height = '32px';
+                                                layer_one_element.style.setProperty('--atlas-x', 0);
+                                                layer_one_element.style.setProperty('--atlas-y', 0);
+                                                if (layer_value == 33) {
+                                                    layer_one_element.style.setProperty('--atlas-x', 3);
+                                                    layer_one_element.style.setProperty('--atlas-y', 1);
+                                                } else if (layer_value == 34) {
+                                                    layer_one_element.style.setProperty('--atlas-x', 33);
+                                                    layer_one_element.style.setProperty('--atlas-y', 0);
+                                                } else if (layer_value == 35) {
+                                                    layer_one_element.style.setProperty('--atlas-x', 41);
+                                                    layer_one_element.style.setProperty('--atlas-y', 0);
+                                                } else if (layer_value == 36) {
+                                                    layer_one_element.style.setProperty('--atlas-x', 28);
+                                                    layer_one_element.style.setProperty('--atlas-y', 1);
+                                                } else if (layer_value == 37) {
+                                                    layer_one_element.style.setProperty('--atlas-x', 7);
+                                                    layer_one_element.style.setProperty('--atlas-y', 1);
+                                                } else if (layer_value == 38) {
+                                                    layer_one_element.style.setProperty('--atlas-x', 32);
+                                                    layer_one_element.style.setProperty('--atlas-y', 1);
+                                                } else if (layer_value == 39) {
+                                                    layer_one_element.style.setProperty('--atlas-x', 8);
+                                                    layer_one_element.style.setProperty('--atlas-y', 1);
+                                                } else if (layer_value == 40) {
+                                                    layer_one_element.style.setProperty('--atlas-x', 46);
+                                                    layer_one_element.style.setProperty('--atlas-y', 0);
+                                                } else if (layer_value == 41) {
+                                                    layer_one_element.style.setProperty('--atlas-x', 44);
+                                                    layer_one_element.style.setProperty('--atlas-y', 0);
+                                                }
+                                                layer_one_element.style.backgroundPosition = "calc(-1 * calc(32px * var(--atlas-x))) calc(-1 * calc(32px * var(--atlas-y)))";
+                                                layer_one_element.style.position = 'absolute';
+                                                tile.appendChild(layer_one_element);
+                                                tile.style.mixBlendMode = 'normal';
+                                                // tile.style.backgroundColor = 'purple'
+                                            }
+                                        }
+                                        var layer_id = gh.getCurrentLayerIDByString("layer_two");
+                                        if (layer_id !== wasm.exports.get_sentry()) {
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y);
+                                            if (layer_value !== wasm.exports.get_sentry()) {
+                                                var layer_element = document.createElement('div');
+                                                layer_element.classList.add('atlas');
+                                                layer_element.classList.add('layer_two_element');
+                                                layer_element.style.width = '32px';
+                                                layer_element.style.height = '32px';
+                                                layer_element.style.setProperty('--atlas-x', 0);
+                                                layer_element.style.setProperty('--atlas-y', 0);
+                                                if (layer_value == 69) {
+                                                    layer_element.style.setProperty('--atlas-x', 12);
+                                                    layer_element.style.setProperty('--atlas-y', 0);
+                                                }
+                                                layer_element.style.backgroundPosition = "calc(-1 * calc(32px * var(--atlas-x))) calc(-1 * calc(32px * var(--atlas-y)))";
+                                                layer_element.style.position = 'absolute';
+                                                tile.appendChild(layer_element);
+                                                tile.style.mixBlendMode = 'normal';
+                                                // tile.style.backgroundColor = 'purple'
+                                            }
+                                        }
+                                        var layer_id = gh.getCurrentLayerIDByString("npc_layer")
+                                        if (layer_id !== wasm.exports.get_sentry()) {
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y)
+                                            if (layer_value !== wasm.exports.get_sentry()) {
+                                                // TODO: One approach: Check the machine name of the player and see if it's a player
+                                                // tile.style.backgroundColor = 'green'
+                                                var world_npc_name_id = wasm.exports.get_world_npc_name_id(layer_value);
+                                                var name = "";
+                                                var type = 0;
+                                                if (world_npc_name_id !== wasm.exports.get_sentry()) {
+                                                    name = readDbStringFromWasm(world_npc_name_id, true);
+                                                }
+                                                type = wasm.exports.get_world_npc_type(layer_value);
+                                                var npc_element = document.createElement('div');
+                                                npc_element.classList.add('atlas');
+                                                npc_element.classList.add('npc_element');
+                                                npc_element.style.width = '32px';
+                                                npc_element.style.height = '32px';
+                                                npc_element.style.setProperty('--atlas-x', 21);
+                                                npc_element.style.setProperty('--atlas-y', 2);
+                                                npc_element.style.backgroundPosition = 'calc(-1 * calc(32px * 16)) calc(-1 * calc(32px * 2))';
+                                                if (world_npc_name_id !== wasm.exports.get_sentry() && name == "bank_teller") {
+                                                    npc_element.style.setProperty('--atlas-x', 34);
+                                                    npc_element.style.setProperty('--atlas-y', 1);
+                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "general_shop_owner") {
+                                                    npc_element.style.setProperty('--atlas-x', 35);
+                                                    npc_element.style.setProperty('--atlas-y', 2);
+                                                    npc_element.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
+                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "blackjack_player") {
+                                                    npc_element.style.setProperty('--atlas-x', 36);
+                                                    npc_element.style.setProperty('--atlas-y', 2);
+                                                    npc_element.style.backgroundColor = 'rgba(0, 0, 255, 0.5)';
+                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "npc_ocean_battle") {
+                                                    npc_element.style.setProperty('--atlas-x', 37);
+                                                    npc_element.style.setProperty('--atlas-y', 2);
+                                                    npc_element.style.backgroundColor = 'rgba(0, 255, 0, 0.5)';
+                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "npc_rvice") {
+                                                    npc_element.style.setProperty('--atlas-x', 40);
+                                                    npc_element.style.setProperty('--atlas-y', 2);
+                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "npc_lafolie") {
+                                                    npc_element.style.setProperty('--atlas-x', 41);
+                                                    npc_element.style.setProperty('--atlas-y', 2);
+                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "npc_nakor") {
+                                                    npc_element.style.setProperty('--atlas-x', 42);
+                                                    npc_element.style.setProperty('--atlas-y', 2);
+                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "npc_travis") {
+                                                    npc_element.style.setProperty('--atlas-x', 43);
+                                                    npc_element.style.setProperty('--atlas-y', 2);
+                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "npc_loller") {
+                                                    npc_element.style.setProperty('--atlas-x', 44);
+                                                    npc_element.style.setProperty('--atlas-y', 2);
+                                                } else if (type !== wasm.exports.get_sentry() && type === 3) {
+                                                    npc_element.style.setProperty('--atlas-x', 19);
+                                                    npc_element.style.setProperty('--atlas-y', 0);
+                                                    var ship_id = wasm.exports.get_world_npc_entity_id(layer_value);
+                                                    var ship_crew = wasm.exports.get_ship_crew(ship_id);
+                                                    var ship_hull = wasm.exports.get_ship_hull(ship_id);
+                                                    if (game_mode === "In Scene") {
+                                                        scene_name = gh.getCurrentSceneName();
+                                                        scene_state_name = gh.getCurrentSceneStateName();
+                                                        if (scene_name == "scene_ocean_battle") {
+                                                            var fleet_ship_id = wasm.exports.get_ship_id_by_fleet_ship_id(ship_id);
+                                                            var fleet_id = wasm.exports.get_fleet_ship_fleet_id(fleet_ship_id);
+                                                            var start_offset = 19;
+                                                            start_offset += fleet_id;
+                                                            npc_element.style.setProperty('--atlas-x', start_offset);
+                                                        }
+                                                    }
+                                                    npc_element.innerHTML = ship_crew + ' -- ' + ship_hull;
+                                                    npc_element.style.fontSize = '8px';
+                                                } else {
+                                                    // console.log(name);
+                                                }
+                                                npc_element.style.backgroundPosition = "calc(-1 * calc(32px * var(--atlas-x))) calc(-1 * calc(32px * var(--atlas-y)))";
+                                                npc_element.style.position = 'absolute';
+                                                if (should3d) {
+                                                    npc_element.style.transform = 'rotate3d(1, 1, 1, 52deg)';
+                                                    npc_element.style.transformStyle = 'preserve-3d';
+                                                }
+                                                tile.appendChild(npc_element);
+                                                tile.style.mixBlendMode = 'normal';
+                                            }
+                                        }
+                                        var layer_id = gh.getCurrentLayerIDByString("block_layer")
+                                        if (layer_id !== wasm.exports.get_sentry()) {
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y)
+                                            if (layer_value !== wasm.exports.get_sentry()) {
+                                                tile.style.backgroundColor = 'yellow'
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        wasm.exports.tick()
+                    } else {
+                        alert("NO WASM")
+                    }
+
+                    if (scene_name == "scene_ocean_battle") {
+                        uih.renderHighlights("ocean_battle_current_turn_ship");
+                        uih.renderHighlights("ocean_battle_moving");
+                    }
+                },
+                togglePause: function () {
+                    RAF.is_paused = !RAF.is_paused
+                    console.log(RAF.is_paused ? 'RAF paused' : 'RAF resumed')
+                }
+            }
+
+            var should_render_tiles = false;
+            var scene_choice_cursor = 0
+            var scene_total_choices = 0
+            function clear_scene_inputs() {
+                scene_choice_cursor = 0
+                scene_total_choices = 0
+            }
+
+            window.addEventListener('load', function () {
+                RAF.initialize()
+
+                var base64 = true
+                if (base64) {
+                    var bytes = Uint8Array.from(atob(wasmBase64), c => c.charCodeAt(0))
+                    WebAssembly.instantiate(bytes, importObject).then(results => {
+                        var instance = results.instance
+                        wasm = instance
+
+                        // NOTE: This is how you call a function that's not exported. JS calls WASM functions through the indirect function table.
+                        // console.log(wasm);
+                        // console.log(wasm.exports.__indirect_function_table);
+                        // console.log(wasm.exports.__indirect_function_table.get(1)());
+
+                        console.log("Starting memory:", formatMemorySize(wasm.exports.memory.buffer.byteLength))
+                        console.log("Pages:", wasm.exports.memory.buffer.byteLength / 65536);
+
+                        start_game()
+                    })
+                } else {
+                    fetch('wasm_game.wasm')
+                        .then(function(response) { return response.arrayBuffer() })
+                        .then(function(bytes) { return WebAssembly.instantiate(bytes, importObject) })
+                        .then(function(results) {
+                            var instance = results.instance
+                            wasm = instance
+
+                            console.log("Starting memory:", formatMemorySize(wasm.exports.memory.buffer.byteLength))
+                            console.log("Pages:", wasm.exports.memory.buffer.byteLength / 65536);
+
+                            start_game()
+                        })
+                }
+
+                // NOTE: Keeping this here because, in the future, we may want this
+                // async function loadGameTextFromUrl(url) {
+                //     const response = await fetch(url);
+                //     const binaryData = await response.arrayBuffer();
+                //     const uint8Array = new Uint8Array(binaryData);
+                    
+                //     return loadGameText(uint8Array);                }
+
+                // // Usage example:
+                // loadGameTextFromUrl('text_data.bin')
+                //     .then(gameText => {
+                //         console.log(gameText); // Your array of text strings
+                //     })
+                //     .catch(error => {
+                //         console.error("Error loading game text:", error);
+                //     });
+            })
+
+            var should3d = false;
+            var game_mode;
+            var TILE_SIZE = 16;
+            var TILE_SCALE = 2;
+            var TILE_SIZE_SCALED = TILE_SIZE * TILE_SCALE;
+            function start_game() {
+                console.log('Starting game here')
+
+                wasm.exports.set_viewport_size(12, 12)
+                document.getElementById('viewport').style.width = (TILE_SIZE_SCALED * wasm.exports.get_viewport_width()) + 'px'
+                document.getElementById('viewport').style.height = (TILE_SIZE_SCALED * wasm.exports.get_viewport_height()) + 'px'
+                for (var vty = 0; vty < wasm.exports.get_viewport_height(); ++vty) {
+                    for (var vtx = 0; vtx < wasm.exports.get_viewport_width(); ++vtx) {
+                        var tile = document.createElement('div')
+                        tile.style.width = TILE_SIZE_SCALED + 'px'
+                        tile.style.height = TILE_SIZE_SCALED + 'px'
+                        tile.style.backgroundColor = 'purple'
+                        // tile.style.border = '1px solid white'
+                        tile.setAttribute('viewport_x', vtx)
+                        tile.setAttribute('viewport_y', vty)
+                        tile.setAttribute('world_x', vtx)
+                        tile.setAttribute('world_y', vty)
+                        tile.bgTick = 0;
+                        document.getElementById('viewport').appendChild(tile)
+                    }
+                }
+                wasm.exports.initialize_game()
+                console.log("Current memory:", formatMemorySize(wasm.exports.memory.buffer.byteLength))
+                game_mode = gh.getGameMode()
+                if (game_mode == "Empty") {
+                    uih.initialize()
+                    console.log('Game is empty, starting frames')
+                    requestAnimationFrame(RAF.animate)
+                }
+
+                var degx = 85;
+                var degy = 0;
+                document.addEventListener('mousemove', function (e) {
+                    if (should3d) {
+                        degx += e.movementX;
+                        degy += e.movementY;
+                        document.getElementById('viewport').style.transform = "perspective(1000px) rotateX(" + degx + "deg) rotateY(" + degy + "deg)";
+                        document.getElementById('viewport').style.transformStyle = "preserve-3d";
+                    }
+                });
+                if (should3d) {
+                    document.getElementById('viewport').style.transform = "perspective(1000px) rotate3d(0, 1, 0, 85deg)";
+                    document.getElementById('viewport').style.transformStyle = "preserve-3d";
+                }
+
+                document.addEventListener('keyup', function (e) {
+                    game_mode = gh.getGameMode()
+                    switch (e.code) {
+                        case "KeyZ":
+                            if (game_mode === "In Scene") {
+                                if (
+                                    scene_name == "scene_ocean_battle" &&
+                                    (scene_state_name == "ocean_battle_cannon_attack_choose_target" ||
+                                    scene_state_name == "ocean_battle_board_attack_choose_target")
+                                ) {
+                                    var h_choose_target = uih.getHighlight("choose_target");
+                                    if (
+                                        scene_state_name == "ocean_battle_cannon_attack_choose_target" &&
+                                        wasm.exports.ocean_battle_is_valid_cannon_coordinates(
+                                            h_choose_target.x,
+                                            h_choose_target.y
+                                        ) !== wasm.exports.get_sentry()
+                                    ) {
+                                        wasm.exports.ocean_battle_set_intended_cannon_coordinates(
+                                            h_choose_target.x, h_choose_target.y
+                                        );
+                                        uih.clearMultiHighlights();
+                                        wasm.exports.current_scene_make_choice(0);
+                                    } else if(
+                                        scene_state_name == "ocean_battle_board_attack_choose_target" &&
+                                        wasm.exports.ocean_battle_is_valid_boarding_coordinates(
+                                            h_choose_target.x,
+                                            h_choose_target.y
+                                        ) !== wasm.exports.get_sentry()
+                                    ) {
+                                        wasm.exports.ocean_battle_set_intended_boarding_coordinates(
+                                            h_choose_target.x, h_choose_target.y
+                                        );
+                                        uih.clearMultiHighlights();
+                                        wasm.exports.current_scene_make_choice(0);
+                                    }
+                                } else {
+                                    if (scene_name == "scene_ocean_battle" && scene_state_name == "ocean_battle_moving") {
+                                        uih.clearMultiHighlights("ocean_battle_moving_intended");
+                                        uih.clearMultiHighlights("ocean_battle_moving");
+                                    }
+                                    uih.sceneChoiceSelect();
+                                }
+                            } else {
+                                wasm.exports.user_input_a();
+                            }
+                            break;
+                        case "KeyX":
+                            if (game_mode === "In Scene") {
+                                if (
+                                    scene_name == "scene_ocean_battle" &&
+                                    (scene_state_name == "ocean_battle_cannon_attack_choose_target" ||
+                                    scene_state_name == "ocean_battle_board_attack_choose_target")
+                                ) {
+                                    uih.clearMultiHighlights();
+                                    // 1 for exit
+                                    wasm.exports.current_scene_make_choice(1);
+                                }
+                            } else {
+                                wasm.exports.user_input_b();
+                            }
+                            break;
+                        case "KeyC":
+                            wasm.exports.user_input_x()
+                            break;
+                        case "KeyV":
+                            wasm.exports.user_input_y()
+                            break;
+                        case "KeyA":
+                            if (game_mode === "In Scene") {
+                                if (scene_name == "scene_ocean_battle" && scene_state_name == "ocean_battle_moving") {
+                                    var current_ship_x = wasm.exports.get_ocean_battle_current_turn_ship_x();
+                                    var current_ship_y = wasm.exports.get_ocean_battle_current_turn_ship_y();
+                                    if (OceanBattlePlayerMoving.intended_y == null) {
+                                        OceanBattlePlayerMoving.intended_y = current_ship_y;
+                                    }
+                                    if (OceanBattlePlayerMoving.intended_x == null) {
+                                        OceanBattlePlayerMoving.intended_x = current_ship_x - 1;
+                                    } else {
+                                        --OceanBattlePlayerMoving.intended_x;
+                                    }
+                                    if (OceanBattlePlayerMoving.intended_x < 0) {
+                                        OceanBattlePlayerMoving.intended_x = 0;
+                                    }
+
+                                    if (
+                                        OceanBattlePlayerMoving.intended_x >= 0 &&
+                                        wasm.exports.ocean_battle_is_world_coordinate_in_ship_movement_range(
+                                            OceanBattlePlayerMoving.intended_x,
+                                            OceanBattlePlayerMoving.intended_y
+                                        )
+                                    ) {
+                                        wasm.exports.set_ocean_battle_data_intended_move_x(OceanBattlePlayerMoving.intended_x);
+                                        wasm.exports.set_ocean_battle_data_intended_move_y(OceanBattlePlayerMoving.intended_y);
+                                        uih.clearMultiHighlights("ocean_battle_moving_intended");
+                                        uih.addMultiHighlight(
+                                            "ocean_battle_moving_intended",
+                                            OceanBattlePlayerMoving.intended_x,
+                                            OceanBattlePlayerMoving.intended_y,
+                                            38,
+                                            "rgba(100, 200, 255, 0.5)"
+                                        );
+                                        uih.renderHighlights("ocean_battle_moving_intended");
+                                    } else {
+                                        ++OceanBattlePlayerMoving.intended_x;
+                                    }
+                                } else if (
+                                    scene_name == "scene_ocean_battle" &&
+                                    (
+                                        scene_state_name == "ocean_battle_cannon_attack_choose_target" ||
+                                        scene_state_name == "ocean_battle_board_attack_choose_target"
+                                    )
+                                ) {
+                                    var choose_target = uih.getHighlight("choose_target");
+                                    if (choose_target !== wasm.exports.get_sentry())
+                                    {
+                                        uih.moveHighlight(parseInt(choose_target.element.id), "left");
+                                    }
+                                    else
+                                    {
+                                        uih.addMultiHighlight(
+                                            "choose_target",
+                                            wasm.exports.get_ocean_battle_current_turn_ship_x(),
+                                            wasm.exports.get_ocean_battle_current_turn_ship_y(),
+                                            33,
+                                            "rgba(0, 255, 0, 0.5)"
+                                        );
+                                        uih.renderHighlights("choose_target");
+                                    }
+                                }
+                            } else {
+                                wasm.exports.user_input_left();
+                            }
+                            break;
+                        case "KeyD":
+                            if (game_mode === "In Scene") {
+                                if (scene_name == "scene_ocean_battle" && scene_state_name == "ocean_battle_moving") {
+                                    var current_ship_x = wasm.exports.get_ocean_battle_current_turn_ship_x();
+                                    var current_ship_y = wasm.exports.get_ocean_battle_current_turn_ship_y();
+                                    if (OceanBattlePlayerMoving.intended_y == null) {
+                                        OceanBattlePlayerMoving.intended_y = current_ship_y;
+                                    }
+                                    if (OceanBattlePlayerMoving.intended_x == null) {
+                                        OceanBattlePlayerMoving.intended_x = current_ship_x + 1;
+                                    } else {
+                                        ++OceanBattlePlayerMoving.intended_x;
+                                    }
+                                    if (OceanBattlePlayerMoving.intended_x >= wasm.exports.get_current_world_width()) {
+                                        OceanBattlePlayerMoving.intended_x = wasm.exports.get_current_world_width();
+                                    }
+                                    if (
+                                        OceanBattlePlayerMoving.intended_x < wasm.exports.get_current_world_width() &&
+                                        wasm.exports.ocean_battle_is_world_coordinate_in_ship_movement_range(
+                                            OceanBattlePlayerMoving.intended_x,
+                                            OceanBattlePlayerMoving.intended_y
+                                        )
+                                    ) {
+                                        wasm.exports.set_ocean_battle_data_intended_move_x(OceanBattlePlayerMoving.intended_x);
+                                        wasm.exports.set_ocean_battle_data_intended_move_y(OceanBattlePlayerMoving.intended_y);
+                                        uih.clearMultiHighlights("ocean_battle_moving_intended");
+                                        uih.addMultiHighlight(
+                                            "ocean_battle_moving_intended",
+                                            OceanBattlePlayerMoving.intended_x,
+                                            OceanBattlePlayerMoving.intended_y,
+                                            38,
+                                            "rgba(100, 200, 255, 0.5)"
+                                        );
+                                        uih.renderHighlights("ocean_battle_moving_intended");
+                                    } else {
+                                        --OceanBattlePlayerMoving.intended_x;
+                                    }
+                                } else if (
+                                    scene_name == "scene_ocean_battle" &&
+                                    (
+                                        scene_state_name == "ocean_battle_cannon_attack_choose_target" ||
+                                        scene_state_name == "ocean_battle_board_attack_choose_target"
+                                    )
+                                ) {
+                                    var choose_target = uih.getHighlight("choose_target");
+                                    if (choose_target !== wasm.exports.get_sentry())
+                                    {
+                                        uih.moveHighlight(parseInt(choose_target.element.id), "right");
+                                    }
+                                    else
+                                    {
+                                        uih.addMultiHighlight(
+                                            "choose_target",
+                                            wasm.exports.get_ocean_battle_current_turn_ship_x(),
+                                            wasm.exports.get_ocean_battle_current_turn_ship_y(),
+                                            33,
+                                            "rgba(0, 255, 0, 0.5)"
+                                        );
+                                        uih.renderHighlights("choose_target");
+                                    }
+                                }
+                            }
+                            wasm.exports.user_input_right();
+                            break;
+                        case "KeyW":
+                            if (game_mode === "In Scene") {
+                                if (scene_name == "scene_ocean_battle" && scene_state_name == "ocean_battle_moving") {
+                                    var current_ship_x = wasm.exports.get_ocean_battle_current_turn_ship_x();
+                                    var current_ship_y = wasm.exports.get_ocean_battle_current_turn_ship_y();
+                                    if (OceanBattlePlayerMoving.intended_x == null) {
+                                        OceanBattlePlayerMoving.intended_x = current_ship_x;
+                                    }
+                                    if (OceanBattlePlayerMoving.intended_y == null) {
+                                        OceanBattlePlayerMoving.intended_y = current_ship_y - 1;
+                                    } else {
+                                        --OceanBattlePlayerMoving.intended_y;
+                                    }
+                                    if (OceanBattlePlayerMoving.intended_y < 0) {
+                                        OceanBattlePlayerMoving.intended_y = 0;
+                                    }
+                                    if (
+                                        OceanBattlePlayerMoving.intended_y >= 0 &&
+                                        wasm.exports.ocean_battle_is_world_coordinate_in_ship_movement_range(
+                                            OceanBattlePlayerMoving.intended_x,
+                                            OceanBattlePlayerMoving.intended_y
+                                        )
+                                    ) {
+                                        wasm.exports.set_ocean_battle_data_intended_move_x(OceanBattlePlayerMoving.intended_x);
+                                        wasm.exports.set_ocean_battle_data_intended_move_y(OceanBattlePlayerMoving.intended_y);
+                                        uih.clearMultiHighlights("ocean_battle_moving_intended");
+                                        uih.addMultiHighlight(
+                                            "ocean_battle_moving_intended",
+                                            OceanBattlePlayerMoving.intended_x,
+                                            OceanBattlePlayerMoving.intended_y,
+                                            38,
+                                            "rgba(100, 200, 255, 0.5)"
+                                        );
+                                        uih.renderHighlights("ocean_battle_moving_intended");
+                                    } else {
+                                        ++OceanBattlePlayerMoving.intended_y;
+                                    }
+                                    // Note: Assumption is that, if you're moving, you only have the confirm option so it's ok
+                                } else if (
+                                    scene_name == "scene_ocean_battle" &&
+                                    (
+                                        scene_state_name == "ocean_battle_cannon_attack_choose_target" ||
+                                        scene_state_name == "ocean_battle_board_attack_choose_target"
+                                    )
+                                ) {
+                                    var choose_target = uih.getHighlight("choose_target");
+                                    if (choose_target !== wasm.exports.get_sentry())
+                                    {
+                                        uih.moveHighlight(parseInt(choose_target.element.id), "up");
+                                    }
+                                    else
+                                    {
+                                        uih.addMultiHighlight(
+                                            "choose_target",
+                                            wasm.exports.get_ocean_battle_current_turn_ship_x(),
+                                            wasm.exports.get_ocean_battle_current_turn_ship_y(),
+                                            33,
+                                            "rgba(0, 255, 0, 0.5)"
+                                        );
+                                        uih.renderHighlights("choose_target");
+                                    }
+                                } else {
+                                    uih.sceneChoiceCursorUp();
+                                }
+                            } else {
+                                wasm.exports.user_input_up();
+                            }
+                            break;
+                        case "KeyS":
+                            if (game_mode === "In Scene") {
+                                if (scene_name == "scene_ocean_battle" && scene_state_name == "ocean_battle_moving") {
+                                    var current_ship_x = wasm.exports.get_ocean_battle_current_turn_ship_x();
+                                    var current_ship_y = wasm.exports.get_ocean_battle_current_turn_ship_y();
+                                    if (OceanBattlePlayerMoving.intended_x == null) {
+                                        OceanBattlePlayerMoving.intended_x = current_ship_x;
+                                    }
+                                    if (OceanBattlePlayerMoving.intended_y == null) {
+                                        OceanBattlePlayerMoving.intended_y = current_ship_y + 1;
+                                    } else {
+                                        ++OceanBattlePlayerMoving.intended_y;
+                                    }
+                                    if (OceanBattlePlayerMoving.intended_y >= wasm.exports.get_current_world_height()) {
+                                        OceanBattlePlayerMoving.intended_y = wasm.exports.get_current_world_height();
+                                    }
+                                    if (
+                                        OceanBattlePlayerMoving.intended_y < wasm.exports.get_current_world_height() &&
+                                        wasm.exports.ocean_battle_is_world_coordinate_in_ship_movement_range(
+                                            OceanBattlePlayerMoving.intended_x,
+                                            OceanBattlePlayerMoving.intended_y
+                                        )
+                                    ) {
+                                        wasm.exports.set_ocean_battle_data_intended_move_x(OceanBattlePlayerMoving.intended_x);
+                                        wasm.exports.set_ocean_battle_data_intended_move_y(OceanBattlePlayerMoving.intended_y);
+                                        uih.clearMultiHighlights("ocean_battle_moving_intended");
+                                        uih.addMultiHighlight(
+                                            "ocean_battle_moving_intended",
+                                            OceanBattlePlayerMoving.intended_x,
+                                            OceanBattlePlayerMoving.intended_y,
+                                            38,
+                                            "rgba(100, 200, 255, 0.5)"
+                                        );
+                                        uih.renderHighlights("ocean_battle_moving_intended");
+                                    } else {
+                                        --OceanBattlePlayerMoving.intended_y;
+                                    }
+                                    // Note: Assumption is that, if you're moving, you only have the confirm option so it's ok
+                                } else if (
+                                    scene_name == "scene_ocean_battle" &&
+                                    (
+                                        scene_state_name == "ocean_battle_cannon_attack_choose_target" ||
+                                        scene_state_name == "ocean_battle_board_attack_choose_target"
+                                    )
+                                ) {
+                                    var choose_target = uih.getHighlight("choose_target");
+                                    if (choose_target !== wasm.exports.get_sentry())
+                                    {
+                                        uih.moveHighlight(parseInt(choose_target.element.id), "down");
+                                    }
+                                    else
+                                    {
+                                        uih.addMultiHighlight(
+                                            "choose_target",
+                                            wasm.exports.get_ocean_battle_current_turn_ship_x(),
+                                            wasm.exports.get_ocean_battle_current_turn_ship_y(),
+                                            33,
+                                            "rgba(0, 255, 0, 0.5)"
+                                        );
+                                        uih.renderHighlights("choose_target");
+                                    }
+                                } else {
+                                    uih.sceneChoiceCursorDown();
+                                }
+                            } else {
+                                wasm.exports.user_input_down();
+                            }
+                            break;
+                        case "KeyQ":
+                            wasm.exports.user_input_left_bumper();
+                            break;
+                        case "KeyE":
+                            wasm.exports.user_input_right_bumper();
+                            break;
+                        case "KeyT":
+                            wasm.exports.user_input_start();
+                            if (uih.showingPlayerMenu) {
+                                uih.hidePlayerMenu();
+                                uih.showingPlayerMenu = false;
+                            } else {
+                                uih.showPlayerMenu();
+                                uih.showingPlayerMenu = true;
+                            }
+                            break;
+                        case "KeyG":
+                            wasm.exports.user_input_select();
+                            break;
+                    }
+                })
+            }
+        </script>
+    </head>
+    <body>
+        <div id="opening_title" style="display: none; text-align: center;">
+            <img src="title.png" style="width: 100%;" />
+        </div>
+        <div id="new_load_options_menu" style="display: none; text-align: center;">
+            <img src="title2.webp" style="width: 100%; padding-left: 20%; padding-right: 20%;" />
+            <div>
+                <div class="choice">New</div>
+                <div class="choice">Load</div>
+                <div class="choice">Options</div>
+            </div>
+        </div>
+        <div id="new_menu" style="display: none; text-align: center;">
+            <img src="title2.webp" style="width: 100%; padding-left: 20%; padding-right: 20%;" />
+            <div>
+                <div class="choice">Stats</div>
+                <div class="choice">Looks</div>
+                <div class="choice">Name</div>
+            </div>
+        </div>
+        <div id="scene_text_wrapper" style="display: none;">
+            <div id="scene_dialogue" style="display: none;"></div>
+            <div id="scene_inventory" style="display: none;"></div>
+            <div id="scene_numerical_input" style="display: none;">
+                <input type="number" id="scene_user_numerical_input" />
+            </div>
+            <div id="scene_string_input" style="display: none;">
+                <input type="text" id="scene_user_string_input" />
+            </div>
+            <div id="scene_choices" style="display: none;"></div>
+        </div>
+        <div id="player_menu" style="display: none;">
+            <div>Gold: <span id="gold"></span></div>
+            <div>Total Items: <span id="total_items"></span></div>
+            <div id="items_list"></div>
+        </div>
+        <div id="blackjack_table" style="display: none; margin-top: 120px;">
+            <div>Blackjack Table</div>
+            <div id="blackjack_player_hand" style="display: grid; grid-auto-flow: column;"></div>
+            <div id="blackjack_dealer_hand" style="display: grid; grid-auto-flow: column;"></div>
+            <div id="blackjack_player_total"></div>
+            <div id="blackjack_dealer_total"></div>
+        </div>
+        <div id="viewport" style="display: none;"></div>
+        <button id="debug" onclick="wasm.exports.test();">DEBUG</button>
+    </body>
+</html>

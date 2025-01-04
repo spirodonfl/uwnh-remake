@@ -10,10 +10,16 @@ node-modules
 null
 .vite
 
+bun.exe
+
 # generated files
 game/embeds.zig
 web/scripts/js.bindings.js
 !build-game.sh
+
+clang_warnings.txt
+link_warnings.txt
+llc_warnings.txt
 
 # Nate's config files (he needs a lot of tools to help him write code, it's a skill issue)
 jsconfig.json
