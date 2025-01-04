@@ -1,33 +1,5 @@
 package wasm_game
 
-/**
- * General TODO list
- * 
- * Load up another world/port to make sure that works
- * Demonstrate ocean movement (should be easy, load up world, npc=primary ship, auto move direction every tick)
- * Move structs to fsm w/ data arrays + offsets
- * Test and finalize FSM input handling (empty right now)
- * Update key presses for keydown/keyup instead of just "pressed"
- * Ocean battles
- * - renderer needs a way to show all possible range squares + allow you to iterate over squares and then narrow down the range as if you had moved there
- * - as you do an intended move, also show available targets (either ones you can do man-to-man or ones you can cannon)
- * - FSM for the battle so you can do turn orders and all that
- * - Test multiple fleets with teams (1v1v1 or 2v1 etc...)
- * - Test ending menu where you get to pick the spoils from ships leftover on any adverserial team
- * - Remember you can take the ship (but have to repair it and crew it) or you can just take the goods off of it
- * Implement day/night system or time system in general
- * See if there's a way to setup wind patterns in certain parts of the world instead of randomizing it or hard coding it in stone
- * Hotel/Inn sleep thing
- * Captains need to move around the world as time goes by
- * Hire captains at hotel/inn
- * Gossip with randos at the bar or the waitress
- * Give gifts to waitress or tell stories
- * Discoveries
- * Investments in ports and specific port areas
- * Instead of putting all strings into a big pool, use general pool filters for specific strings
- * GameMode needs an FSM pretty badly
- */
-
 import "core:fmt"
 import "core:strings"
 
@@ -567,29 +539,31 @@ free_general_item :: proc(index: u32) {
 
 //------------------------------------- SCENES -------------------------------------//
 current_scene: u32
-trigger_scene :: proc(scene_string_id: u32) {
-    console_log("Handling scene %d %s", scene_string_id, gsmnb_id(scene_string_id))
+trigger_scene :: proc(scene: u32) {
+    console_log("Handling scene %d %s", scene, gsmnb_id(scene))
     if current_scene != SENTRY {
-        console_log("Serious error. Tried to trigger a scene while we were already in one [%d]", current_scene)
+        console_log("Serious error. Tried to trigger a scene while we were already in one")
         return
     }
     found: bool = false
-    switch gsmnb_id(scene_string_id) {
+    switch gsmnb_id(scene) {
         case "scene_digi_tal_bank":
-            // current_scene = find_scene_by_name_id(scene)
+            current_scene = find_scene_by_name_id(scene)
             found = true
         case "scene_player_menu":
-            // current_scene = find_scene_by_name_id(scene)
+            current_scene = find_scene_by_name_id(scene)
             found = true
         case "scene_general_shop":
-            // current_scene = find_scene_by_name_id(scene)
+            current_scene = find_scene_by_name_id(scene)
             found = true
         case "scene_blackjack":
-            create_blackjack_fsm()
+            current_scene = find_scene_by_name_id(scene)
+            Finite_State_Machines_Pool.data[current_scene].trigger()
+            console_log("Scene blackjack found: %d", current_scene)
             found = true
     }
     if !found {
-        console_log("Could not find scene %d", scene_string_id)
+        console_log("Could not find scene %d", scene)
     } else {
         should_redraw_everything()
     }
@@ -1634,23 +1608,8 @@ handle_input :: proc(input: UserInput, force: bool = false) {
     if (!accepting_input && !force) {
         return
     }
-
-    // TODO: Upgrade this so that FSMS that can and want to handle input go into general pool filter. Easier than iterating all fsms
-    for i: u32 = 0; i < MAX_FSMS; i += 1 {
-        if FSMS_Pool.data[i].can_handle_input == 1 && FSMS_Pool.data[i].wants_to_handle_input == 1 {
-            FSMS_Pool.data[i].handle_input(input)
-        }
-    }
-
     if current_game_mode == GameMode.In_Scene {
-        // current_scene_handle_input(input)
-    } else if current_game_mode == GameMode.In_Player_Menu {
-        if current_game_mode == GameMode.In_Player_Menu {
-            current_game_mode = previous_game_mode
-        } else {
-            previous_game_mode = current_game_mode
-            current_game_mode = GameMode.In_Player_Menu
-        }
+        current_scene_handle_input(input)
     } else if current_game_mode == GameMode.In_Port {
         player := get_player_in_world()
         if input == UserInput.Up {
@@ -1666,13 +1625,7 @@ handle_input :: proc(input: UserInput, force: bool = false) {
             move_player_right()
             update_camera()
         } else if input == UserInput.Start {
-            // TODO: Duplicated in the current_game_mode chain in this area. Fix it
-            if current_game_mode == GameMode.In_Player_Menu {
-                current_game_mode = previous_game_mode
-            } else {
-                previous_game_mode = current_game_mode
-                current_game_mode = GameMode.In_Player_Menu
-            }
+            trigger_scene(fsibmn("scene_player_menu"))
         } else if input == UserInput.A {
             intended_direction_x: u32 = 0
             intended_direction_y: u32 = 0
@@ -1796,11 +1749,8 @@ GameMode :: enum u32 {
     In_Port,
     In_Ocean,
     On_Land,
-    In_Player_Menu,
 }
 current_game_mode: GameMode
-previous_game_mode: GameMode
-// TODO: GameMode FSM so it's manageable
 @(export)
 get_current_game_mode :: proc() -> u32 {
     #partial switch current_game_mode {
@@ -1810,16 +1760,12 @@ get_current_game_mode :: proc() -> u32 {
             return find_string_id_by_machine_name("in_port")
         case .In_Scene:
             return find_string_id_by_machine_name("in_scene")
-        case .In_Player_Menu:
-            return fsibmn("in_player_menu")
         case:
             console_log("Could not find game mode?")
     }
     return SENTRY
 }
 has_game_started: bool = false
-input_handling: bool = true
-
 @(export)
 tick :: proc () {
     increment_tick_counter(&tick_counter)
@@ -1832,7 +1778,6 @@ tick :: proc () {
     } else if current_game_mode == GameMode.In_Scene {
         // TODO: Anything here?
     }
-    fsm_tick()
 }
 
 find_x_id_by_machine_name :: proc(max_items: u32, pool: ^Resource_Pool($T, $MAX_RESOURCES, $MAX_FREE_IDS), text: string) -> u32 {
@@ -1851,75 +1796,76 @@ find_x_id_by_machine_name :: proc(max_items: u32, pool: ^Resource_Pool($T, $MAX_
 
 
 //------------------------------------- BLACKJACK -------------------------------------//
-BlackjackStruct :: struct {
-    deck: [48]u32,
-    player_deck: [10]u32,
-    player_deck_index: u32,
-    dealer_deck: [10]u32,
-    dealer_deck_index: u32,
-    deck_index: u32,
-    player_standing: bool,
-    dealer_standing: bool,
-    bet: u32,
-}
-Blackjack: BlackjackStruct
+DECK: [48]u32 // Adjusted size to 48 to exclude Jacks
+PLAYER_DECK: [10]u32
+PLAYER_DECK_INDEX: u32
+DEALER_DECK: [10]u32
+DEALER_DECK_INDEX: u32
+DECK_INDEX: u32
+PLAYER_STANDING: bool
+DEALER_STANDING: bool
+BET: u32
+
 @(export)
 blackjack_get_player_deck_card :: proc(index: u32) -> u32 {
-    return Blackjack.player_deck[index]
+    return PLAYER_DECK[index]
 }
+
 @(export)
 blackjack_get_dealer_deck_card :: proc(index: u32) -> u32 {
-    return Blackjack.dealer_deck[index]
+    return DEALER_DECK[index]
 }
+
 @(export)
 blackjack_randomize_deck :: proc() {
     deck_index := 0
     for i: u32 = 0; i < 52; i += 1 {
         // Skip Jack cards
         if i % 13 != 10 {
-            Blackjack.deck[deck_index] = i
+            DECK[deck_index] = i
             deck_index += 1
         }
     }
     // Adjusted loop to 47 from 52
     for i: u32 = 47; i > 0; i -= 1 {
         random_index := get_random_number(0, i + 1)
-        temp := Blackjack.deck[i]
-        Blackjack.deck[i] = Blackjack.deck[random_index]
-        Blackjack.deck[random_index] = temp
+        temp := DECK[i]
+        DECK[i] = DECK[random_index]
+        DECK[random_index] = temp
     }
-    Blackjack.deck_index = 0
-    Blackjack.bet = 0
-    Blackjack.player_standing = false
-    Blackjack.dealer_standing = false
-    for i: u32 = 0; i < 10; i += 1 {
-        Blackjack.player_deck[i] = SENTRY
-        Blackjack.dealer_deck[i] = SENTRY
-    }
+    DECK_INDEX = 0
+    BET = 0
+    PLAYER_STANDING = false
+    DEALER_STANDING = false
 }
+
 @(export)
 blackjack_start_game :: proc() {
     blackjack_randomize_deck()
-    Blackjack.player_deck_index = 0
-    Blackjack.dealer_deck_index = 0
-    Blackjack.player_deck_index = blackjack_add_card_to_deck(&Blackjack.player_deck, Blackjack.player_deck_index)
-    Blackjack.dealer_deck_index = blackjack_add_card_to_deck(&Blackjack.dealer_deck, Blackjack.dealer_deck_index)
-    Blackjack.player_deck_index = blackjack_add_card_to_deck(&Blackjack.player_deck, Blackjack.player_deck_index)
-    Blackjack.dealer_deck_index = blackjack_add_card_to_deck(&Blackjack.dealer_deck, Blackjack.dealer_deck_index)
+    PLAYER_DECK_INDEX = 0
+    DEALER_DECK_INDEX = 0
+    PLAYER_DECK_INDEX = blackjack_add_card_to_deck(&PLAYER_DECK, PLAYER_DECK_INDEX)
+    DEALER_DECK_INDEX = blackjack_add_card_to_deck(&DEALER_DECK, DEALER_DECK_INDEX)
+    PLAYER_DECK_INDEX = blackjack_add_card_to_deck(&PLAYER_DECK, PLAYER_DECK_INDEX)
+    DEALER_DECK_INDEX = blackjack_add_card_to_deck(&DEALER_DECK, DEALER_DECK_INDEX)
 }
+
 @(export)
 blackjack_add_card_to_players_deck :: proc() {
-    Blackjack.player_deck_index = blackjack_add_card_to_deck(&Blackjack.player_deck, Blackjack.player_deck_index)
+    PLAYER_DECK_INDEX = blackjack_add_card_to_deck(&PLAYER_DECK, PLAYER_DECK_INDEX)
 }
+
 @(export)
 blackjack_add_card_to_dealers_deck :: proc() {
-    Blackjack.dealer_deck_index = blackjack_add_card_to_deck(&Blackjack.dealer_deck, Blackjack.dealer_deck_index)
+    DEALER_DECK_INDEX = blackjack_add_card_to_deck(&DEALER_DECK, DEALER_DECK_INDEX)
 }
+
 blackjack_add_card_to_deck :: proc(someones_deck: ^[10]u32, someones_deck_index: u32) -> u32 {
-    someones_deck[someones_deck_index] = Blackjack.deck[Blackjack.deck_index]
-    Blackjack.deck_index += 1
+    someones_deck[someones_deck_index] = DECK[DECK_INDEX]
+    DECK_INDEX += 1
     return someones_deck_index + 1
 }
+
 @(export)
 blackjack_get_card_value :: proc(card_index: u32) -> u32 {
     card := card_index % 13
@@ -1931,38 +1877,35 @@ blackjack_get_card_value :: proc(card_index: u32) -> u32 {
     }
     return card
 }
+
 @(export)
 blackjack_get_dealers_deck_value :: proc() -> u32 {
     total: u32 = 0
-    for i: u32 = 0; i < Blackjack.dealer_deck_index; i += 1 {
-        total += blackjack_get_card_value(Blackjack.dealer_deck[i])
+    for i: u32 = 0; i < DEALER_DECK_INDEX; i += 1 {
+        total += blackjack_get_card_value(DEALER_DECK[i])
     }
     return total
 }
+
 @(export)
 blackjack_get_players_deck_value :: proc() -> u32 {
     total: u32 = 0
-    for i: u32 = 0; i < Blackjack.player_deck_index; i += 1 {
-        total += blackjack_get_card_value(Blackjack.player_deck[i])
+    for i: u32 = 0; i < PLAYER_DECK_INDEX; i += 1 {
+        total += blackjack_get_card_value(PLAYER_DECK[i])
     }
     return total
 }
+
 @(export)
 blackjack_player_hit :: proc() {
-    Blackjack.player_deck_index = blackjack_add_card_to_deck(&Blackjack.player_deck, Blackjack.player_deck_index)
-    player_total := blackjack_get_deck_value(&Blackjack.player_deck, Blackjack.player_deck_index)
-    if player_total > 21 {
-        Blackjack.player_standing = true
-    }
+    PLAYER_DECK_INDEX = blackjack_add_card_to_deck(&PLAYER_DECK, PLAYER_DECK_INDEX)
 }
+
 @(export)
 blackjack_dealer_hit :: proc() {
-    Blackjack.dealer_deck_index = blackjack_add_card_to_deck(&Blackjack.dealer_deck, Blackjack.dealer_deck_index)
-    dealer_total := blackjack_get_deck_value(&Blackjack.dealer_deck, Blackjack.dealer_deck_index)
-    if dealer_total > 21 {
-        Blackjack.dealer_standing = true
-    }
+    DEALER_DECK_INDEX = blackjack_add_card_to_deck(&DEALER_DECK, DEALER_DECK_INDEX)
 }
+
 blackjack_get_deck_value :: proc(deck: ^[10]u32, deck_index: u32) -> u32 {
     total: u32 = 0
     for i: u32 = 0; i < deck_index; i += 1 {
@@ -1970,46 +1913,44 @@ blackjack_get_deck_value :: proc(deck: ^[10]u32, deck_index: u32) -> u32 {
     }
     return total
 }
+
 @(export)
 blackjack_check_winner :: proc() -> u32 {
-    player_total := blackjack_get_deck_value(&Blackjack.player_deck, Blackjack.player_deck_index)
-    dealer_total := blackjack_get_deck_value(&Blackjack.dealer_deck, Blackjack.dealer_deck_index)
+    player_total := blackjack_get_deck_value(&PLAYER_DECK, PLAYER_DECK_INDEX)
+    dealer_total := blackjack_get_deck_value(&DEALER_DECK, DEALER_DECK_INDEX)
     if player_total > 21 {
         return 2
     }
     if dealer_total > 21 {
         return 1
     }
-    if Blackjack.player_standing && Blackjack.dealer_standing {
-        if player_total > dealer_total {
-            return 3
-        }
-        if dealer_total > player_total {
-            return 4
-        }
+    if player_total > dealer_total {
+        return 1
     }
-    // 2 = player went over
-    // 1 = dealer went over
-    // 3 = player won (assumption is both parties are standing)
-    // 4 = dealer won
-    // 0 = nothin
+    if dealer_total > player_total {
+        return 2
+    }
+    // 2 = dealer, 1 = player, 0 = tie
     return 0
 }
+
 @(export)
 blackjack_player_stand :: proc() {
-    Blackjack.player_standing = true
+    PLAYER_STANDING = true
 }
+
 @(export)
 blackjack_dealer_stand :: proc() {
-    Blackjack.dealer_standing = true
+    DEALER_STANDING = true
 }
+
 @(export)
 blackjack_dealer_turn :: proc() {
-    dealer_total := blackjack_get_deck_value(&Blackjack.dealer_deck, Blackjack.dealer_deck_index)
+    dealer_total := blackjack_get_deck_value(&DEALER_DECK, DEALER_DECK_INDEX)
     if dealer_total < 17 {
         blackjack_dealer_hit()
     } else {
-        Blackjack.dealer_standing = true
+        DEALER_STANDING = true
     }
 }
 
@@ -2272,27 +2213,19 @@ initialize_game :: proc() {
     )
     ran_string(
         "Would you like to place a bet?",
-        "blackjack_ask_to_place_bet"
+        "blackjack_place_bet"
     )
     ran_string(
         "How much would you like to bet?",
-        "blackjack_ask_for_bet_amount"
+        "blackjack_bet_amount"
     )
     ran_string(
         "Are you sure you want to bet %d gold?",
         "blackjack_confirm_bet"
     )
     ran_string(
-        "You didn't bet the minimum amount of 5 gold",
-        "blackjack_not_minimum_bet"
-    )
-    ran_string(
-        "You are betting more than the maximum amount of 10,000 gold",
+        "You don't have enough gold to place that bet",
         "blackjack_bet_too_much"
-    )
-    ran_string(
-        "You don't have enough gold for that bet",
-        "blackjack_not_enough_gold"
     )
     ran_string(
         "You can hit or stay",
@@ -2323,28 +2256,8 @@ initialize_game :: proc() {
         "stand"
     )
     ran_string(
-        "Dealing the deck",
-        "blackjack_deal_deck"
-    )
-    ran_string(
-        "It's your turn. Hit or stand",
-        "blackjack_player_turn"
-    )
-    ran_string(
-        "My turn",
+        "Dealers turn",
         "blackjack_dealer_turn"
-    )
-    ran_string(
-        "Has one of us won yet?",
-        "blackjack_check_winner"
-    )
-    ran_string(
-        "Let's see what you get",
-        "blackjack_deal_player_card"
-    )
-    ran_string(
-        "Let's see what I get",
-        "blackjack_deal_dealer_card"
     )
 
     // Game Modes
@@ -2371,10 +2284,6 @@ initialize_game :: proc() {
     ran_string(
         "On Land",
         "on_land"
-    )
-    ran_string(
-        "In Player Menu",
-        "in_player_menu"
     )
 
     // Layers
@@ -2845,6 +2754,8 @@ initialize_game :: proc() {
     Used -> show list of used ships, review their details, ask for X dollars, haggle, then accept and add to fleet or don't
     Invest -> how much? are you sure? Wow thank you!
     */
+
+    create_blackjack_fsm()
 }
 
 @(export)
@@ -2919,19 +2830,12 @@ if captain := get_npc_captain(npc); captain != nil {
     // Use captain attributes
 }
 */
-// TODO: It seems that free_ids_count is not properly named? It should be free_ids_index or something like that
+// TODO: Write your own allocator for this maybe?
 Resource_Pool :: struct($T: typeid, $MAX_RESOURCES, $MAX_FREE_IDS: u32) {
     data: [MAX_RESOURCES]T,
     free_ids: [MAX_FREE_IDS]u32,
     free_ids_count: u32,
     next_free_id: u32,
-}
-free_pool :: proc(pool: ^Resource_Pool($T, $MAX_RESOURCES, $MAX_FREE_IDS)) {
-    pool.free_ids_count = 0
-    pool.next_free_id = 0
-    for i: u32 = 0; i < MAX_RESOURCES; i += 1 {
-        pool.data[i] = T{}
-    }
 }
 allocate_resource :: proc(pool: ^Resource_Pool($T, $MAX_RESOURCES, $MAX_FREE_IDS)) -> u32 {
     // #no_bounds_check {
@@ -2967,27 +2871,6 @@ resource_add_new :: proc(pool: ^Resource_Pool($T, $MAX_RESOURCES, $MAX_FREE_IDS)
     }
     return SENTRY
 }
-// Safely add new resource with error handling
-Error_Code :: enum {
-    None,
-    Invalid_Resource,
-    Pool_Full,
-    Invalid_State_Transition,
-    // Add other error codes
-}
-Result :: struct($T: typeid) {
-    value: T,
-    error: Error_Code,
-}
-// TODO: Use throughout codebase for better error handling
-resource_add_new_safe :: proc(pool: ^Resource_Pool($T, $MAX_RESOURCES, $MAX_FREE_IDS), new_entry: T) -> Result(u32) {
-    id := allocate_resource(pool)
-    if id == SENTRY {
-        return Result(u32){SENTRY, .Pool_Full}
-    }
-    pool.data[id] = new_entry
-    return Result(u32){id, .None}
-}
 resource_find :: proc(pool: ^Resource_Pool($T, $MAX_RESOURCES, $MAX_FREE_IDS), predicate: proc(T) -> bool) -> u32 {
     for id in 0..<MAX_RESOURCES {
         if predicate(pool.data[id]) {
@@ -2998,812 +2881,796 @@ resource_find :: proc(pool: ^Resource_Pool($T, $MAX_RESOURCES, $MAX_FREE_IDS), p
     return SENTRY
 }
 
-GeneralPoolFilter :: struct ($MAX_GPF: u32) {
-    data: [MAX_GPF]u32,
-    iterator: u32
-}
-add_to_general_pool_filter :: proc(filter: ^GeneralPoolFilter($MAX_GPF), id: u32) -> u32 {
-    if filter.iterator >= (len(filter.data) - 1) {
-        console_log("This pool filter is maxed out")
-    }
-
-    filter.data[filter.iterator] = id
-    filter.iterator += 1
-    return filter.iterator - 1
-}
-get_fsm_from_filter :: proc(filter: ^GeneralPoolFilter($MAX_GPF), id: u32) -> ^FiniteStateMachineStruct {
-    return &FSMS_Pool.data[filter.data[id]]
-}
-
-MAX_PROCS: u32 : 100
-MAX_PROCS_FREE_IDS: u32 : 10
-MAX_PROCS_POOL: Resource_Pool(
-    proc(data: [2]u32),
-    MAX_PROCS,
-    MAX_PROCS_FREE_IDS
-)
-@(export)
-test_procs_pool :: proc() {
-    proc_id := resource_add_new(
-        &MAX_PROCS_POOL,
-        proc(data: [2]u32) {
-            console_log("Hello from proc %d", data[0])
-        })
-    MAX_PROCS_POOL.data[proc_id]({69, 0})
-}
-
 
 //------------------------------------- FINITE STATE MACHINES -------------------------------------//
-FiniteStateMachineType :: enum {
+MAX_FINITE_STATES: u32 : 100
+MAX_FINITE_STATE_FLAGS: u32 : 100
+MAX_FINITE_STATE_HISTORY: u32 : 100
+Finite_State_Machine_Type :: enum {
     None,
     Scene,
-    NPC,
-    Player,
-    Game,
 }
-MAX_FSM_FLAGS: u32 : 20
-MAX_FSM_HISTORY: u32 : 100
-MAX_FSM_CHOICES: u32 : 10
-MAX_FSM_DATA: u32 : 100
 FiniteStateMachineStruct :: struct {
-    // Reference to FiniteStateMachineType
+    name_id: u32,
+    states: [MAX_FINITE_STATES]u32,
     type: u32,
     current_state: u32,
-    previous_state: u32,
-    can_handle_input: u32,
-    wants_to_handle_input: u32,
-    initialized: u32,
-    data: [MAX_FSM_DATA]u32,
-    history: [MAX_FSM_HISTORY]u32,
+    total_states: u32,
+    flags: [MAX_FINITE_STATE_FLAGS]u32,
+    history: [MAX_FINITE_STATE_HISTORY]u32,
+    trigger: proc(),
+}
+MAX_FINITE_STATE_MACHINES: u32 : 100
+MAX_FINITE_STATE_MACHINES_FREE_IDS: u32 : 10
+Finite_State_Machines_Pool: Resource_Pool(FiniteStateMachineStruct, MAX_FINITE_STATE_MACHINES, MAX_FINITE_STATE_MACHINES_FREE_IDS)
+// Note: The naming here is purposefully faked so you know what you're reaching for. Under the hood, it's all FSMs
+find_scene_by_name_id :: proc(name_id: u32) -> u32 {
+    for i: u32 = 0; i < MAX_FINITE_STATE_MACHINES; i += 1 {
+        if Finite_State_Machines_Pool.data[i].type != u32(Finite_State_Machine_Type.Scene) {
+            continue
+        }
+        if Finite_State_Machines_Pool.data[i].name_id == name_id {
+            return i
+        }
+    }
+    return SENTRY
+}
 
-    needs_numerical_input: u32,
-    needs_string_input: u32,
+DefaultFiniteStateStruct :: struct {
+    name_id: u32,
+    
+    on_enter: proc(),
+    on_exit: proc(),
+    execute_action: proc(action: u32),
+    enter_allowed: proc() -> bool,
+}
+MAX_DEFAULT_FINITE_STATES: u32 : 100
+MAX_DEFAULT_FINITE_STATES_FREE_IDS: u32 : 10
+Default_Finite_States_Pool: Resource_Pool(DefaultFiniteStateStruct, MAX_DEFAULT_FINITE_STATES, MAX_DEFAULT_FINITE_STATES_FREE_IDS)
+get_default_finite_state_ref :: proc(fsm: ^FiniteStateMachineStruct, state: u32) -> ^DefaultFiniteStateStruct {
+    return &Default_Finite_States_Pool.data[fsm.states[state]]
+}
 
+SceneStateStruct :: struct {
+    default_state_id: u32,
+
+    // Just use ENUMS
+    // choices: [MAX_SCENE_CHOICES]u32,
+    total_choices: u32,
+    // TODO: Track this based on user input
+    current_choice: u32,
+    // For things like "How much?" and you have to focus on number input and listen to up and down inputs to change the number
+    focused_on_choice: bool,
+    make_choice: proc(choice: u32),
+    get_choice: proc(choice: u32) -> u32,
+    choice_to_string_id: proc(choice: u32) -> u32,
     handle_input: proc(input: UserInput),
 
-    // Note: States, in raw data (like a .bin file) don't care about storing events & listeners
-    // They only care about their own state. It's up to business logic code to care about
-    // associating states to other states and handling functions
-}
-MAX_FSMS: u32 : 100
-MAX_FSMS_FREE_IDS: u32 : 10
-FSMS_Pool: Resource_Pool(FiniteStateMachineStruct, MAX_FSMS, MAX_FSMS_FREE_IDS)
-MAX_FSMS_TO_TICK: u32 : 100
-FSMS_To_Tick: GeneralPoolFilter(MAX_FSMS_TO_TICK)
-MAX_FSM_SCENES: u32 : 20
-FSMS_Scenes: GeneralPoolFilter(MAX_FSM_SCENES)
+    inventory_id: u32,
+    // Store this in the InventoryItemStruct instead. It's pretty common
+    // current_chosen_inventory: [MAX_INVENTORY_SPACE * 2]u32,
+    // TODO: Track this based on user input (increment decrement amount)
+    current_chosen_inventory: u32,
+    set_chosen_inventory: proc(item_id: u32, amount: u32),
 
-fsm_tick :: proc() {
-    // TODO: First fsm to tick will always be GAME
-    for i: u32 = 0; i < MAX_FSMS_TO_TICK; i += 1 {
-        if FSMS_To_Tick.data[i] != SENTRY {
-            fsm := &FSMS_Pool.data[FSMS_To_Tick.data[i]]
+    // TODO: Track this based on user input (like up down increases decreases number + right bumper increases by 10, etc...)
+    current_input_number: u32,
 
-            if fsm.type == u32(FiniteStateMachineType.Scene) {
-                if current_scene != SENTRY && current_scene != FSMS_To_Tick.data[i] {
-                    console_log("Cannot start a new scene when there is one in play [%d][%d]", current_scene, fsm.data[SceneDefaultData.id])
-                    continue
-                }
-                if fsm.data[SceneDefaultData.id] == fsibmn("scene_blackjack") {
-                    if fsm.initialized == SENTRY {
-                        // create_blackjack_fsm()
-                        console_log("FSM exists in tick array but is not initialized [%d]", fsm.data[SceneDefaultData.id])
-                        continue
-                    }
-                    switch fsm.data[SceneDefaultData.state_string_id] {
-                        case fsibmn("welcome_to_blackjack"):
-                            // Technically should not need anything here
-                        case fsibmn("blackjack_ask_to_place_bet"):
-                            // Not needed here either since we're already moved on through choice input, not tick
-                            // blackjack_ask_to_place_bet(fsm)
-                        case fsibmn("blackjack_ask_for_bet_amount"):
-                            // Nothing needed here
-                            // blackjack_bet_how_much()
-                    }
-
-                }
-            } else if fsm.type == u32(FiniteStateMachineType.NPC) {
-                // ... This
-            }
-        }
-    }
+    dialogue_id: u32,
+    should_free_dialogue: bool,
 }
-
-// Note: Keep in mind that when you save the data to a .bin file, it's all u32s anyways so don't worry about bool vs u32
-SceneFiniteStateMachineStruct :: struct {
-    using finite_state_machine: FiniteStateMachineStruct,
-    make_choice: proc(choice_id: u32) -> u32
+MAX_SCENE_FINITE_STATES: u32 : 100
+MAX_SCENE_FINITE_STATES_FREE_IDS: u32 : 10
+Scene_Finite_States_Pool: Resource_Pool(SceneStateStruct, MAX_SCENE_FINITE_STATES, MAX_SCENE_FINITE_STATES_FREE_IDS)
+get_scene_finite_state_ref :: proc(fsm: ^FiniteStateMachineStruct, state: u32) -> ^SceneStateStruct {
+    return &Scene_Finite_States_Pool.data[fsm.states[state]]
 }
-SceneDefaultData :: enum u32 {
-    id,
-    dialogue_string_id,
-    state_string_id,
-    input_number,
-    // string somewhere here
-}
-SCENE_DATA_OFFSET: u32 : len(SceneDefaultData)
-@(export)
-get_current_scene_total_choices :: proc() -> u32 {
-    fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-    if fsm.data[SceneDefaultData.id] == fsibmn("scene_blackjack") {
-        return len(SceneBlackjackChoices)
-    }
-    return SENTRY
+get_scene_default_finite_state_ref :: proc(fsm: ^FiniteStateMachineStruct, state: u32) -> ^DefaultFiniteStateStruct {
+    return get_default_finite_state_ref(fsm, get_scene_finite_state_ref(fsm, state).default_state_id)
 }
 @(export)
-get_current_scene_string_id :: proc() -> u32 {
-    fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-    return fsm.data[SceneDefaultData.id]
+current_scene_get_dialogue :: proc() -> u32 {
+    fsm := &Finite_State_Machines_Pool.data[current_scene]
+    return get_scene_finite_state_ref(fsm, fsm.current_state).dialogue_id
 }
 @(export)
-get_current_scene_dialogue_string_id :: proc() -> u32 {
-    fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-    return fsm.data[SceneDefaultData.dialogue_string_id]
+current_scene_get_total_choices :: proc() -> u32 {
+    fsm := &Finite_State_Machines_Pool.data[current_scene]
+    return get_scene_finite_state_ref(fsm, fsm.current_state).total_choices
 }
 @(export)
-get_current_scene_state_string_id :: proc() -> u32 {
-    fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-    return fsm.data[SceneDefaultData.state_string_id]
+current_scene_get_choice_string :: proc(choice: u32) -> u32 {
+    fsm := &Finite_State_Machines_Pool.data[current_scene]
+    actual_choice := get_scene_finite_state_ref(fsm, fsm.current_state).get_choice(choice)
+    return get_scene_finite_state_ref(fsm, fsm.current_state).choice_to_string_id(actual_choice)
+}
+current_scene_handle_input :: proc(input: UserInput) {
+    fsm := &Finite_State_Machines_Pool.data[current_scene]
+    scene_state := get_scene_finite_state_ref(fsm, fsm.current_state)
+    scene_state.handle_input(input)
 }
 @(export)
-get_current_scene_state_id :: proc() -> u32 {
-    fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-    return fsm.current_state
+current_scene_get_name :: proc() -> u32 {
+    fsm := &Finite_State_Machines_Pool.data[current_scene]
+    return fsm.name_id
 }
 @(export)
-get_current_scene_choice_enabled :: proc(choice_id: u32) -> bool {
-    fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-    if fsm.data[SceneDefaultData.id] == fsibmn("scene_blackjack") {
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to get a choice not in the FSM [%d]", choice_id)
-            return false
-        }
-        if fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + choice_id] == 1 {
-            return true
-        }
-        return false
-    }
-    return false
+current_scene_get_state :: proc() -> u32 {
+    // Get the defaultstatestruct from current state of fsm and then return its name_id
+    fsm := &Finite_State_Machines_Pool.data[current_scene]
+    return get_scene_default_finite_state_ref(fsm, fsm.current_state).name_id
 }
 @(export)
-get_current_scene_choice_string_id :: proc(choice_id: u32) -> u32 {
-    fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-    if fsm.data[SceneDefaultData.id] == fsibmn("scene_blackjack") {
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to get a choice not in the FSM [%d]", choice_id)
-            return SENTRY
-        }
-        return fsm.data[SCENE_DATA_OFFSET + choice_id]
-    }
-    return SENTRY
+current_scene_get_current_chosen_inventory :: proc() -> u32 {
+    fsm := &Finite_State_Machines_Pool.data[current_scene]
+    return get_scene_finite_state_ref(fsm, fsm.current_state).current_chosen_inventory
 }
 @(export)
-current_scene_make_choice :: proc(choice_id: u32) -> u32 {
-    fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-    if fsm.data[SceneDefaultData.id] == fsibmn("scene_blackjack") {
-        return current_scene_handle_choice(choice_id)
-    }
-    console_log("Could not find current scene to make a choice against")
-    return SENTRY
-}
-current_scene_handle_choice: proc(choice_id: u32) -> u32
-@(export)
-get_current_scene_id :: proc() -> u32 {
-    return current_scene
+current_scene_get_current_input_number :: proc() -> u32 {
+    fsm := &Finite_State_Machines_Pool.data[current_scene]
+    return get_scene_finite_state_ref(fsm, fsm.current_state).current_input_number
 }
 @(export)
-get_current_scene_needs_numerical_input :: proc() -> u32 {
-    fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-    return fsm.needs_numerical_input
+current_scene_get_current_choice :: proc() -> u32 {
+    fsm := &Finite_State_Machines_Pool.data[current_scene]
+    return get_scene_finite_state_ref(fsm, fsm.current_state).current_choice
 }
 @(export)
-get_current_scene_needs_string_input :: proc() -> u32 {
-    fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-    return fsm.needs_string_input
+current_scene_get_current_choice_focused :: proc() -> bool {
+    fsm := &Finite_State_Machines_Pool.data[current_scene]
+    return get_scene_finite_state_ref(fsm, fsm.current_state).focused_on_choice
 }
 
+BlackjackSceneStates :: enum {
+    // These first 4 must be in sequential order
+    SayHello,
+    NoMoneyToPlay,
+    AskToPlaceBet,
+    AskToConfirmBet,
+    DealFirstCards,
 
-//--------------------------------------------------------------------------------------------//
-//------------------------------------- SCENE: BLACKJACK -------------------------------------//
-//--------------------------------------------------------------------------------------------//
-SceneBlackjackChoices :: enum u32 {
-    Confirm, Exit,
-    Bet, Hit, Stand,
+    // If the player has already stood then we execute this state but just skip to the dealer
+    AskPlayerToHitOrStand,
+    DealPlayerCard,
+    // If the dealer has stood then we execute this state but just skip to CheckForWinner
+    DealerHitsOrStands,
+    DealDealerCard,
+    // If both players have stood OR there's already a winner...
+    CheckForWinner,
 }
-SceneBlackjackStates :: enum u32 {
-    Hello,
-    AskToBet,
-    BetHowMuch, NotMinimumBet, NotEnoughGold, BetTooMuch, ConfirmBetHowMuch,
-    DealDeck,
-    PlayerTurn, DealerTurn,
-    DealPlayerCard, DealDealerCard,
-    CheckWinner,
-    GameOver,
+BlackjackSceneChoices :: enum {
+    Confirm,
+    Cancel,
+    Hit,
+    Stand,
+    NumberInput,
 }
+BLACKJACK_FSM: ^FiniteStateMachineStruct
 create_blackjack_fsm :: proc() {
-    console_log("Creating blackjack scene")
-    fsm := SceneFiniteStateMachineStruct{
-        type             = u32(FiniteStateMachineType.Scene),
-        current_state    = u32(SceneBlackjackStates.Hello),
-        previous_state   = SENTRY,
-        can_handle_input = SENTRY,
-        initialized      = SENTRY,
-        // Not needed right now: fsm.history
-        // Not needed right now: fsm.data
+    fsm_id := resource_add_new(
+        &Finite_State_Machines_Pool,
+        FiniteStateMachineStruct{
+            name_id = find_string_id_by_machine_name("scene_blackjack"),
+            type = u32(Finite_State_Machine_Type.Scene),
+            current_state = u32(BlackjackSceneStates.SayHello),
+            total_states = len(BlackjackSceneStates),
+        })
+    BLACKJACK_FSM = &Finite_State_Machines_Pool.data[fsm_id]
+    BLACKJACK_FSM.trigger = proc() {
+        scene_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.SayHello))
+        BLACKJACK_FSM.current_state = u32(BlackjackSceneStates.SayHello)
+        scene_state.on_enter()
     }
-    // TODO: Need to free this at the end or keep it in the pool and re-use it if it exists
+    for i: u32 = 0; i < len(BlackjackSceneStates); i += 1 {
+        default_state_id := resource_add_new(
+            &Default_Finite_States_Pool,
+            DefaultFiniteStateStruct{
+                name_id = find_string_id_by_machine_name("empty"),
+                on_enter = proc() {console_log("Why dis empty do?")},
+                on_exit = proc() {},
+                execute_action = proc(action: u32) {},
+                enter_allowed = proc() -> bool { return true },
+            })
+        scene_state_id := resource_add_new(
+            &Scene_Finite_States_Pool,
+            SceneStateStruct{
+                default_state_id = default_state_id,
+                total_choices = SENTRY,
+                current_choice = SENTRY,
+                focused_on_choice = false,
+                make_choice = proc(choice: u32) {},
+                get_choice = proc(choice: u32) -> u32 { return SENTRY },
+                choice_to_string_id = proc(choice: u32) -> u32 { return SENTRY },
+                inventory_id = SENTRY,
+                set_chosen_inventory = proc(item_id: u32, amount: u32) {},
+                dialogue_id = SENTRY,
+                should_free_dialogue = false,
+                // Interestingly enough, if you don't have this definition here (and probably the others), when you enter a scene and run handle_input, it tells you there's a signature mismatch
+                // TODO: Come up with a function return a default struct so you don't have to do this every time
+                handle_input = proc(input: UserInput) {},
+                current_chosen_inventory = SENTRY,
+                current_input_number = SENTRY,
+            })
+        BLACKJACK_FSM.states[i] = scene_state_id
 
-    fsm.initialized = 1
-
-    fsm_id := resource_add_new(&FSMS_Pool, fsm)
-    console_log("FSM ID is %d", fsm_id)
-    pool_id := add_to_general_pool_filter(&FSMS_Scenes, fsm_id)
-    current_scene = pool_id
-    console_log("FSM Pool ID is %d", pool_id)
-    scene_blackjack_hello(&FSMS_Pool.data[fsm_id])
-}
-scene_blackjack_hello :: proc(fsm: ^FiniteStateMachineStruct) {
-    current_game_mode = GameMode.In_Scene
-
-    fsm.data[SceneDefaultData.dialogue_string_id] = fsibmn("welcome_to_blackjack")
-    fsm.data[SceneDefaultData.id] = fsibmn("scene_blackjack")
-    fsm.data[SceneDefaultData.state_string_id] = fsibmn("welcome_to_blackjack")
-    // TODO: Default setup for this kind of data for every FSM
-    fsm.data[SceneDefaultData.input_number] = SENTRY
-
-    fsm.data[SCENE_DATA_OFFSET + u32(SceneBlackjackChoices.Confirm)] = fsibmn("confirm")
-    fsm.data[SCENE_DATA_OFFSET + u32(SceneBlackjackChoices.Exit)] = fsibmn("exit")
-    fsm.data[SCENE_DATA_OFFSET + u32(SceneBlackjackChoices.Bet)] = fsibmn("bet")
-    fsm.data[SCENE_DATA_OFFSET + u32(SceneBlackjackChoices.Hit)] = fsibmn("hit")
-    fsm.data[SCENE_DATA_OFFSET + u32(SceneBlackjackChoices.Stand)] = fsibmn("stand")
-
-    // To turn choices on or off during different states
-    for i: u32 = 0; i < len(SceneBlackjackChoices); i += 1 {
-        fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + i] = SENTRY
-    }
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Confirm)] = 1
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Exit)] = 1
-
-    current_scene_handle_choice = proc(choice_id: u32) -> u32 {
-        fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to make a choice not in the FSM [%d]", choice_id)
-            return SENTRY
+        if i == u32(BlackjackSceneStates.SayHello) {
+            blackjack_scene_say_hello()
+        } else if i == u32(BlackjackSceneStates.NoMoneyToPlay) {
+            blackjack_scene_no_money_to_play()
+        } else if i == u32(BlackjackSceneStates.AskToPlaceBet) {
+            blackjack_scene_ask_to_place_bet()
+        } else if i == u32(BlackjackSceneStates.AskToConfirmBet) {
+            blackjack_scene_ask_to_confirm_bet()
+        } else if i == u32(BlackjackSceneStates.DealFirstCards) {
+            blackjack_scene_deal_first_cards()
+        } else if i == u32(BlackjackSceneStates.AskPlayerToHitOrStand) {
+            blackjack_scene_ask_player_to_hit_or_stand()
         }
-
-        if choice_id == u32(SceneBlackjackChoices.Confirm) {
-            fsm.data[SceneDefaultData.dialogue_string_id] = SENTRY
-            scene_blackjack_ask_to_place_bet(fsm)
-            return 1
-        } else if choice_id == u32(SceneBlackjackChoices.Exit) {
-            free_resource(&FSMS_Pool, current_scene)
-            current_scene = SENTRY
-            current_game_mode = GameMode.In_Port
-        } else {
-            console_log("Unrecognized choice [%d]", choice_id)
-        }
-        return SENTRY
     }
 }
-scene_blackjack_ask_to_place_bet :: proc(fsm: ^FiniteStateMachineStruct) {
-    if fsm.current_state != u32(SceneBlackjackStates.Hello) {
-        console_log("Not allowed to move [%d to %d]", fsm.current_state, u32(SceneBlackjackStates.Hello))
-        console_log("Previous state was %d", fsm.previous_state)
-        return
-    }
-    fsm.previous_state = fsm.current_state
-    fsm.current_state = u32(SceneBlackjackStates.AskToBet)
-    for i: u32 = 0; i < len(SceneBlackjackChoices); i += 1 {
-        fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + i] = SENTRY
-    }
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Confirm)] = 1
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Exit)] = 1
-    fsm.data[SceneDefaultData.dialogue_string_id] = fsibmn("blackjack_ask_to_place_bet")
-    fsm.data[SceneDefaultData.state_string_id] = fsibmn("blackjack_ask_to_place_bet")
-    console_log("Moved fsm to 'ask_to_place_bet'")
-    should_redraw_everything()
-    current_scene_handle_choice = proc(choice_id: u32) -> u32 {
-        fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to make a choice not in the FSM [%d]", choice_id)
-            return SENTRY
-        }
 
-        if choice_id == u32(SceneBlackjackChoices.Confirm) {
-            fsm.data[SceneDefaultData.dialogue_string_id] = SENTRY
-            scene_blackjack_bet_how_much(fsm)
-            return 1
-        } else {
-            console_log("Unrecognized choice [%d]", choice_id)
-        }
-        return SENTRY
+blackjack_scene_say_hello :: proc () {
+    default_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.SayHello))
+    default_state.name_id = find_string_id_by_machine_name("welcome_to_blackjack")
+    default_state.on_enter = proc() {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.SayHello))
+        // Confirm, Cancel
+        scene_state.total_choices = 2
+        scene_state.dialogue_id = find_string_id_by_machine_name("welcome_to_blackjack")
+        current_game_mode = GameMode.In_Scene
+        scene_state.current_choice = 0
     }
-}
-scene_blackjack_bet_how_much :: proc(fsm: ^FiniteStateMachineStruct) {
-    if fsm.current_state != u32(SceneBlackjackStates.AskToBet) {
-        console_log("Not allowed to move [%d to %d]", fsm.current_state, u32(SceneBlackjackStates.BetHowMuch))
-        console_log("Previous state was %d", fsm.previous_state)
-        return
-    }
-    fsm.previous_state = fsm.current_state
-    fsm.current_state = u32(SceneBlackjackStates.BetHowMuch)
-    for i: u32 = 0; i < len(SceneBlackjackChoices); i += 1 {
-        fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + i] = SENTRY
-    }
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Confirm)] = 1
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Exit)] = 1
-    fsm.data[SceneDefaultData.dialogue_string_id] = fsibmn("blackjack_ask_for_bet_amount")
-    fsm.data[SceneDefaultData.state_string_id] = fsibmn("blackjack_ask_for_bet_amount")
-    console_log("Moved fsm to 'blackjack_ask_for_bet_amount'")
-    fsm.needs_numerical_input = 1
-    should_redraw_everything()
-    current_scene_handle_choice = proc(choice_id: u32) -> u32 {
-        fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to make a choice not in the FSM [%d]", choice_id)
-            return SENTRY
-        }
-
-        if choice_id == u32(SceneBlackjackChoices.Confirm) {
-            fsm.data[SceneDefaultData.dialogue_string_id] = SENTRY
-            scene_blackjack_confirm_bet(fsm)
-            return 1
-        } else {
-            console_log("Unrecognized choice [%d]", choice_id)
-        }
-        return SENTRY
-    }
-}
-scene_blackjack_confirm_bet :: proc(fsm: ^FiniteStateMachineStruct) {
-    if fsm.current_state != u32(SceneBlackjackStates.BetHowMuch) {
-        console_log("Not allowed to move [%d to %d]", fsm.current_state, u32(SceneBlackjackStates.ConfirmBetHowMuch))
-        console_log("Previous state was %d", fsm.previous_state)
-        return
-    }
-    if input_number == SENTRY {
-        console_log("No input number received yet")
-        return
-    }
-    if fsm.data[SceneDefaultData.input_number] == SENTRY {
-        if input_number > get_player().gold {
-            scene_blackjack_not_enough_gold(fsm)
-            return
-        } else if input_number < 5 {
-            scene_blackjack_not_minimum_bet(fsm)
-            return
-        } else if input_number > 10000 {
-            scene_blackjack_bet_too_much(fsm)
-            return
-        } else {
-            fsm.data[SceneDefaultData.input_number] = input_number
-        }
-    }
-    fsm.previous_state = fsm.current_state
-    fsm.current_state = u32(SceneBlackjackStates.ConfirmBetHowMuch)
-    for i: u32 = 0; i < len(SceneBlackjackChoices); i += 1 {
-        fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + i] = SENTRY
-    }
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Confirm)] = 1
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Exit)] = 1
-    if fsm.data[SceneDefaultData.dialogue_string_id] == SENTRY {
-        string_id := ran_string(
-            format_string(gstbmn("blackjack_confirm_bet"), fsm.data[SceneDefaultData.input_number]),
-            "blackjack_confirm_bet_%d"
-        )
-        fsm.data[SceneDefaultData.dialogue_string_id] = string_id
-    }
-    fsm.data[SceneDefaultData.state_string_id] = fsibmn("blackjack_confirm_bet")
-    console_log("Moved fsm to 'blackjack_confirm_bet'")
-    fsm.needs_numerical_input = 0
-    should_redraw_everything()
-    current_scene_handle_choice = proc(choice_id: u32) -> u32 {
-        fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to make a choice not in the FSM [%d]", choice_id)
-            return SENTRY
-        }
-
-        if choice_id == u32(SceneBlackjackChoices.Confirm) {
-            free_resource(&Strings_Pool, fsm.data[SceneDefaultData.dialogue_string_id])
-            fsm.data[SceneDefaultData.dialogue_string_id] = SENTRY
-            scene_blackjack_deal_deck(fsm)
-            return 1
-        } else {
-            console_log("Unrecognized choice [%d]", choice_id)
-        }
-        return SENTRY
-    }
-}
-scene_blackjack_not_minimum_bet :: proc(fsm: ^FiniteStateMachineStruct) {
-    if fsm.current_state != u32(SceneBlackjackStates.BetHowMuch) {
-        console_log("Not allowed to move [%d to %d]", fsm.current_state, u32(SceneBlackjackStates.NotMinimumBet))
-        console_log("Previous state was %d", fsm.previous_state)
-        return
-    }
-    fsm.previous_state = fsm.current_state
-    fsm.current_state = u32(SceneBlackjackStates.NotMinimumBet)
-    for i: u32 = 0; i < len(SceneBlackjackChoices); i += 1 {
-        fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + i] = SENTRY
-    }
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Confirm)] = 1
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Exit)] = 1
-    fsm.data[SceneDefaultData.dialogue_string_id] = fsibmn("blackjack_not_minimum_bet")
-    fsm.data[SceneDefaultData.state_string_id] = fsibmn("blackjack_not_minimum_bet")
-    console_log("Moved fsm to 'blackjack_not_minimum_bet'")
-    should_redraw_everything()
-    current_scene_handle_choice = proc(choice_id: u32) -> u32 {
-        fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to make a choice not in the FSM [%d]", choice_id)
-            return SENTRY
-        }
-
-        if choice_id == u32(SceneBlackjackChoices.Confirm) {
-            fsm.data[SceneDefaultData.dialogue_string_id] = SENTRY
-            scene_blackjack_bet_how_much(fsm)
-            return 1
-        } else {
-            console_log("Unrecognized choice [%d]", choice_id)
-        }
-        return SENTRY
-    }
-}
-scene_blackjack_bet_too_much :: proc(fsm: ^FiniteStateMachineStruct) {
-    if fsm.current_state != u32(SceneBlackjackStates.BetHowMuch) {
-        console_log("Not allowed to move [%d to %d]", fsm.current_state, u32(SceneBlackjackStates.BetTooMuch))
-        console_log("Previous state was %d", fsm.previous_state)
-        return
-    }
-    fsm.previous_state = fsm.current_state
-    fsm.current_state = u32(SceneBlackjackStates.BetTooMuch)
-    for i: u32 = 0; i < len(SceneBlackjackChoices); i += 1 {
-        fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + i] = SENTRY
-    }
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Confirm)] = 1
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Exit)] = 1
-    fsm.data[SceneDefaultData.dialogue_string_id] = fsibmn("blackjack_bet_too_much")
-    fsm.data[SceneDefaultData.state_string_id] = fsibmn("blackjack_bet_too_much")
-    console_log("Moved fsm to 'blackjack_bet_too_much'")
-    should_redraw_everything()
-    current_scene_handle_choice = proc(choice_id: u32) -> u32 {
-        fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to make a choice not in the FSM [%d]", choice_id)
-            return SENTRY
-        }
-
-        if choice_id == u32(SceneBlackjackChoices.Confirm) {
-            fsm.data[SceneDefaultData.dialogue_string_id] = SENTRY
-            scene_blackjack_bet_how_much(fsm)
-            return 1
-        } else {
-            console_log("Unrecognized choice [%d]", choice_id)
-        }
-        return SENTRY
-    }
-}
-scene_blackjack_not_enough_gold :: proc(fsm: ^FiniteStateMachineStruct) {
-    if fsm.current_state != u32(SceneBlackjackStates.BetHowMuch) {
-        console_log("Not allowed to move [%d to %d]", fsm.current_state, u32(SceneBlackjackStates.NotEnoughGold))
-        console_log("Previous state was %d", fsm.previous_state)
-        return
-    }
-    fsm.previous_state = fsm.current_state
-    fsm.current_state = u32(SceneBlackjackStates.BetTooMuch)
-    for i: u32 = 0; i < len(SceneBlackjackChoices); i += 1 {
-        fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + i] = SENTRY
-    }
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Confirm)] = 1
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Exit)] = 1
-    fsm.data[SceneDefaultData.dialogue_string_id] = fsibmn("blackjack_not_enough_gold")
-    fsm.data[SceneDefaultData.state_string_id] = fsibmn("blackjack_not_enough_gold")
-    console_log("Moved fsm to 'blackjack_not_enough_gold'")
-    should_redraw_everything()
-    current_scene_handle_choice = proc(choice_id: u32) -> u32 {
-        fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to make a choice not in the FSM [%d]", choice_id)
-            return SENTRY
-        }
-
-        if choice_id == u32(SceneBlackjackChoices.Confirm) {
-            fsm.data[SceneDefaultData.dialogue_string_id] = SENTRY
-            scene_blackjack_hello(fsm)
-            return 1
-        } else {
-            console_log("Unrecognized choice [%d]", choice_id)
-        }
-        return SENTRY
-    }
-}
-scene_blackjack_deal_deck :: proc(fsm: ^FiniteStateMachineStruct) {
-    if fsm.current_state != u32(SceneBlackjackStates.ConfirmBetHowMuch) {
-        console_log("-- blackjack deal deck --")
-        console_log("Not allowed to move [%d to %d]", fsm.current_state, u32(SceneBlackjackStates.DealDeck))
-        console_log("Previous state was %d", fsm.previous_state)
-        return
-    }
-    Blackjack.bet = fsm.data[SceneDefaultData.input_number]
-    blackjack_start_game()
-    fsm.previous_state = fsm.current_state
-    fsm.current_state = u32(SceneBlackjackStates.DealDeck)
-    for i: u32 = 0; i < len(SceneBlackjackChoices); i += 1 {
-        fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + i] = SENTRY
-    }
-    // Note: Only confirm in this case!
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Confirm)] = 1
-    fsm.data[SceneDefaultData.dialogue_string_id] = fsibmn("blackjack_deal_deck")
-    fsm.data[SceneDefaultData.state_string_id] = fsibmn("blackjack_deal_deck")
-    console_log("Moved fsm to 'blackjack_deal_deck'")
-    should_redraw_everything()
-    current_scene_handle_choice = proc(choice_id: u32) -> u32 {
-        fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to make a choice not in the FSM [%d]", choice_id)
-            return SENTRY
-        }
-
-        if choice_id == u32(SceneBlackjackChoices.Confirm) {
-            fsm.data[SceneDefaultData.dialogue_string_id] = SENTRY
-            scene_blackjack_player_turn(fsm)
-            return 1
-        } else {
-            console_log("Unrecognized choice [%d]", choice_id)
-        }
-        return SENTRY
-    }
-}
-scene_blackjack_player_turn :: proc(fsm: ^FiniteStateMachineStruct) {
-    using SceneBlackjackStates
-    to := u32(SceneBlackjackStates.PlayerTurn)
-    if
-        fsm.current_state != u32(DealDeck) &&
-        fsm.current_state != u32(DealerTurn) &&
-        fsm.current_state != u32(CheckWinner) &&
-        fsm.current_state != u32(PlayerTurn) &&
-        fsm.current_state != u32(DealDealerCard)
-    {
-        console_log("Not allowed to move [%d to %d]", fsm.current_state, to)
-        console_log("Previous state was %d", fsm.previous_state)
-        return
-    }
-    if Blackjack.player_standing && Blackjack.dealer_standing {
-        scene_blackjack_check_winner(fsm)
-        return
-    } else if Blackjack.player_standing {
-        scene_blackjack_dealer_turn(fsm)
-        return
-    }
-    fsm.previous_state = fsm.current_state
-    fsm.current_state = to
-    for i: u32 = 0; i < len(SceneBlackjackChoices); i += 1 {
-        fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + i] = SENTRY
-    }
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Hit)] = 1
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Stand)] = 1
-    fsm.data[SceneDefaultData.dialogue_string_id] = fsibmn("blackjack_player_turn")
-    fsm.data[SceneDefaultData.state_string_id] = fsibmn("blackjack_player_turn")
-    console_log("Moved fsm to 'blackjack_player_turn'")
-    should_redraw_everything()
-    current_scene_handle_choice = proc(choice_id: u32) -> u32 {
-        fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to make a choice not in the FSM [%d]", choice_id)
-            return SENTRY
-        }
-
-        if choice_id == u32(SceneBlackjackChoices.Hit) {
-            fsm.data[SceneDefaultData.dialogue_string_id] = SENTRY
-            console_log("Player is hitting")
-            blackjack_player_hit()
-            scene_blackjack_deal_player_card(fsm)
-            return 1
-        } else if choice_id == u32(SceneBlackjackChoices.Stand) {
-            fsm.data[SceneDefaultData.dialogue_string_id] = SENTRY
-            console_log("Player is standing")
-            blackjack_player_stand()
-            // Don't need to check for winner here
-            scene_blackjack_dealer_turn(fsm)
-            return 1
-        } else {
-            console_log("Unrecognized choice [%d]", choice_id)
-        }
-        return SENTRY
-    }
-}
-scene_blackjack_deal_player_card :: proc(fsm: ^FiniteStateMachineStruct) {
-    a := u32(SceneBlackjackStates.PlayerTurn)
-    z := u32(SceneBlackjackStates.DealPlayerCard)
-    if fsm.current_state != a {
-        console_log("Not allowed to move [%d to %d]", fsm.current_state, z)
-        console_log("Previous state was %d", fsm.previous_state)
-        return
-    }
-    fsm.previous_state = fsm.current_state
-    fsm.current_state = z
-    for i: u32 = 0; i < len(SceneBlackjackChoices); i += 1 {
-        fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + i] = SENTRY
-    }
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Confirm)] = 1
-    fsm.data[SceneDefaultData.dialogue_string_id] = fsibmn("blackjack_deal_player_card")
-    fsm.data[SceneDefaultData.state_string_id] = fsibmn("blackjack_deal_player_card")
-    console_log("Moved fsm to 'blackjack_deal_player_card'")
-    should_redraw_everything()
-    current_scene_handle_choice = proc(choice_id: u32) -> u32 {
-        fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to make a choice not in the FSM [%d]", choice_id)
-            return SENTRY
-        }
-
-        if choice_id == u32(SceneBlackjackChoices.Confirm) {
-            fsm.data[SceneDefaultData.dialogue_string_id] = SENTRY
-            if blackjack_check_winner() == 1 || blackjack_check_winner() == 3 {
-                scene_blackjack_check_winner(fsm)
-            } else {
-                scene_blackjack_dealer_turn(fsm)
+    // TODO: on_exit = if should_free_dialogue then free_string(dialogue_id)
+    state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.SayHello))
+    state.handle_input = proc(input: UserInput) {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+        #partial switch input {
+            case UserInput.Down: {
+                scene_state.current_choice += 1
+                if scene_state.current_choice >= scene_state.total_choices {
+                    scene_state.current_choice = 0
+                }
+                should_redraw_everything()
             }
-            return 1
-        } else {
-            console_log("Unrecognized choice [%d]", choice_id)
-        }
-        return SENTRY
-    }
-}
-scene_blackjack_dealer_turn :: proc(fsm: ^FiniteStateMachineStruct) {
-    using SceneBlackjackStates
-    to := u32(SceneBlackjackStates.DealerTurn)
-    if
-        fsm.current_state != u32(PlayerTurn) &&
-        fsm.current_state != u32(CheckWinner) &&
-        fsm.current_state != u32(DealerTurn) &&
-        fsm.current_state != u32(DealPlayerCard) &&
-        fsm.current_state != u32(DealDealerCard)
-    {
-        console_log("Not allowed to move [%d to %d]", fsm.current_state, to)
-        console_log("Previous state was %d", fsm.previous_state)
-        return
-    }
-    if Blackjack.player_standing && Blackjack.dealer_standing {
-        scene_blackjack_check_winner(fsm)
-        return
-    } else if Blackjack.dealer_standing {
-        scene_blackjack_player_turn(fsm)
-        return
-    }
-    fsm.previous_state = fsm.current_state
-    fsm.current_state = to
-    for i: u32 = 0; i < len(SceneBlackjackChoices); i += 1 {
-        fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + i] = SENTRY
-    }
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Confirm)] = 1
-    fsm.data[SceneDefaultData.dialogue_string_id] = fsibmn("blackjack_dealer_turn")
-    fsm.data[SceneDefaultData.state_string_id] = fsibmn("blackjack_dealer_turn")
-    console_log("Moved fsm to 'blackjack_dealer_turn'")
-    should_redraw_everything()
-    current_scene_handle_choice = proc(choice_id: u32) -> u32 {
-        fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to make a choice not in the FSM [%d]", choice_id)
-            return SENTRY
-        }
-
-        if choice_id == u32(SceneBlackjackChoices.Confirm) {
-            fsm.data[SceneDefaultData.dialogue_string_id] = SENTRY
-            if !Blackjack.dealer_standing {
-                scene_blackjack_deal_dealer_card(fsm)
-            } else {
-                scene_blackjack_check_winner(fsm)
+            case UserInput.Up: {
+                if scene_state.current_choice == 0 {
+                    scene_state.current_choice = scene_state.total_choices - 1
+                } else {
+                    scene_state.current_choice -= 1
+                }
+                should_redraw_everything()
             }
-            return 1
-        } else {
-            console_log("Unrecognized choice [%d]", choice_id)
+            case UserInput.A: {
+                scene_state.make_choice(scene_state.current_choice)
+            }
+        }
+    }
+    state.make_choice = proc(choice: u32) {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+        switch choice {
+            case u32(BlackjackSceneChoices.Confirm): {
+                BLACKJACK_FSM.current_state = u32(BlackjackSceneStates.AskToPlaceBet)
+                default_scene_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.AskToPlaceBet))
+                default_scene_state.on_enter()
+                should_redraw_everything()
+            }
+            case u32(BlackjackSceneChoices.Cancel): {
+                current_game_mode = GameMode.In_Port
+                should_redraw_everything()
+            }
+        }
+    }
+    state.get_choice = proc(choice: u32) -> u32 {
+        switch choice {
+            case 0: return u32(BlackjackSceneChoices.Confirm)
+            case 1: return u32(BlackjackSceneChoices.Cancel)
         }
         return SENTRY
     }
-}
-scene_blackjack_deal_dealer_card :: proc(fsm: ^FiniteStateMachineStruct) {
-    a := u32(SceneBlackjackStates.DealerTurn)
-    z := u32(SceneBlackjackStates.DealDealerCard)
-    if fsm.current_state != a {
-        console_log("Not allowed to move [%d to %d]", fsm.current_state, z)
-        console_log("Previous state was %d", fsm.previous_state)
-        return
-    }
-    fsm.previous_state = fsm.current_state
-    fsm.current_state = z
-    for i: u32 = 0; i < len(SceneBlackjackChoices); i += 1 {
-        fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + i] = SENTRY
-    }
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Confirm)] = 1
-    fsm.data[SceneDefaultData.dialogue_string_id] = fsibmn("blackjack_deal_dealer_card")
-    fsm.data[SceneDefaultData.state_string_id] = fsibmn("blackjack_deal_dealer_card")
-    console_log("Moved fsm to 'blackjack_deal_dealer_card'")
-    blackjack_dealer_turn()
-    should_redraw_everything()
-    current_scene_handle_choice = proc(choice_id: u32) -> u32 {
-        fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to make a choice not in the FSM [%d]", choice_id)
-            return SENTRY
-        }
-
-        if choice_id == u32(SceneBlackjackChoices.Confirm) {
-            fsm.data[SceneDefaultData.dialogue_string_id] = SENTRY
-            scene_blackjack_check_winner(fsm)
-            return 1
-        } else {
-            console_log("Unrecognized choice [%d]", choice_id)
-        }
-        return SENTRY
-    }
-}
-scene_blackjack_check_winner :: proc(fsm: ^FiniteStateMachineStruct) {
-    using SceneBlackjackStates
-    to := u32(CheckWinner)
-    if
-        fsm.current_state != u32(PlayerTurn) &&
-        fsm.current_state != u32(DealerTurn) &&
-        fsm.current_state != u32(DealPlayerCard) &&
-        fsm.current_state != u32(DealDealerCard)
-    {
-        console_log("Not allowed to move [%d to %d]", fsm.current_state, to)
-        console_log("Previous state was %d", fsm.previous_state)
-        return
-    }
-
-    winner: u32
-    if blackjack_check_winner() == 0 && (!Blackjack.player_standing || !Blackjack.dealer_standing) {
-        if Blackjack.dealer_standing {
-            scene_blackjack_player_turn(fsm)
-        } else if Blackjack.player_standing {
-            scene_blackjack_dealer_turn(fsm)
-        } else {
-            scene_blackjack_player_turn(fsm)
-        }
-        return
-    }
-
-    fsm.previous_state = fsm.current_state
-    fsm.current_state = to
-    for i: u32 = 0; i < len(SceneBlackjackChoices); i += 1 {
-        fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + i] = SENTRY
-    }
-    fsm.data[SCENE_DATA_OFFSET + len(SceneBlackjackChoices) + u32(SceneBlackjackChoices.Confirm)] = 1
-    string_id: u32 = 0
-    winner = blackjack_check_winner()
-    if winner == 1 || winner == 3 {
-        string_id = fsibmn("blackjack_player_won")
-        get_player().gold += Blackjack.bet
-    } else {
-        string_id = fsibmn("blackjack_dealer_won")
-        get_player().gold -= Blackjack.bet
-    }
-    fsm.data[SceneDefaultData.dialogue_string_id] = string_id
-    fsm.data[SceneDefaultData.state_string_id] = fsibmn("blackjack_check_winner")
-    console_log("Moved fsm to 'blackjack_check_winner'")
-    should_redraw_everything()
-    current_scene_handle_choice = proc(choice_id: u32) -> u32 {
-        fsm := &FSMS_Pool.data[FSMS_Scenes.data[current_scene]]
-        if choice_id > len(SceneBlackjackChoices) {
-            console_log("Tried to make a choice not in the FSM [%d]", choice_id)
-            return SENTRY
-        }
-
-        if choice_id == u32(SceneBlackjackChoices.Confirm) {
-            fsm.data[SceneDefaultData.dialogue_string_id] = SENTRY
-            // TODO: Have to go back to previous state of game
-            current_game_mode = GameMode.In_Port
-            return 1
-        } else {
-            console_log("Unrecognized choice [%d]", choice_id)
+    state.choice_to_string_id = proc(choice: u32) -> u32 {
+        switch choice {
+            case u32(BlackjackSceneChoices.Confirm): return fsibmn("confirm")
+            case u32(BlackjackSceneChoices.Cancel): return fsibmn("cancel")
         }
         return SENTRY
     }
 }
 
+blackjack_scene_no_money_to_play :: proc () {
+    default_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.NoMoneyToPlay))
+    default_state.name_id = find_string_id_by_machine_name("blackjack_no_money")
+    default_state.on_enter = proc() {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.NoMoneyToPlay))
+        scene_state.total_choices = 2
+        scene_state.dialogue_id = find_string_id_by_machine_name("blackjack_no_money")
+        scene_state.current_choice = 0
+    }
 
-//--------------------------------------------------------------------------------------------//
-//------------------------------------- MENU: PLAYER -------------------------------------//
-//--------------------------------------------------------------------------------------------//
-// Note: We currently don't really need a player menu FSM or anything. Just trigger the state
+    state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.NoMoneyToPlay))
+    state.handle_input = proc(input: UserInput) {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+        #partial switch input {
+            case UserInput.Down: {
+                scene_state.current_choice += 1
+                if scene_state.current_choice >= scene_state.total_choices {
+                    scene_state.current_choice = 0
+                }
+                should_redraw_everything()
+            }
+            case UserInput.Up: {
+                if scene_state.current_choice == 0 {
+                    scene_state.current_choice = scene_state.total_choices - 1
+                } else {
+                    scene_state.current_choice -= 1
+                }
+                should_redraw_everything()
+            }
+            case UserInput.A: {
+                scene_state.make_choice(scene_state.current_choice)
+            }
+        }
+    }
+    state.make_choice = proc(choice: u32) {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+        switch choice {
+            case 0: {
+                BLACKJACK_FSM.current_state = u32(BlackjackSceneStates.SayHello)
+                default_scene_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+                default_scene_state.on_enter()
+                should_redraw_everything()
+            }
+            case 1: {
+                current_game_mode = GameMode.In_Port
+                should_redraw_everything()
+            }
+        }
+    }
+    state.get_choice = proc(choice: u32) -> u32 {
+        switch choice {
+            case 0: return u32(BlackjackSceneChoices.Confirm)
+            case 1: return u32(BlackjackSceneChoices.Cancel)
+        }
+        return SENTRY
+    }
+    state.choice_to_string_id = proc(choice: u32) -> u32 {
+        switch choice {
+            case u32(BlackjackSceneChoices.Confirm): return fsibmn("confirm")
+            case u32(BlackjackSceneChoices.Cancel): return fsibmn("cancel")
+        }
+        return SENTRY
+    }
+}
+
+blackjack_scene_ask_to_place_bet :: proc () {
+    default_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.AskToPlaceBet))
+    default_state.name_id = find_string_id_by_machine_name("blackjack_place_bet")
+    default_state.on_enter = proc() {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.AskToPlaceBet))
+        // Number Input, Confirm, Cancel
+        scene_state.total_choices = 3
+        scene_state.dialogue_id = find_string_id_by_machine_name("blackjack_place_bet")
+        scene_state.current_choice = 0
+        scene_state.focused_on_choice = false
+    }
+
+    state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.AskToPlaceBet))
+    state.handle_input = proc(input: UserInput) {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+        #partial switch input {
+            case UserInput.Down: {
+                if scene_state.focused_on_choice == false {
+                    scene_state.current_choice += 1
+                    if scene_state.current_choice >= scene_state.total_choices {
+                        scene_state.current_choice = 0
+                    }
+                } else {
+                    if scene_state.current_input_number > 0 {
+                        scene_state.current_input_number -= 1
+                    }
+                    if scene_state.current_input_number == 0 {
+                        scene_state.current_input_number = get_player().gold
+                    }
+                }
+                should_redraw_everything()
+            }
+            case UserInput.Up: {
+                if scene_state.focused_on_choice == false {
+                    if scene_state.current_choice == 0 {
+                        scene_state.current_choice = scene_state.total_choices - 1
+                    } else {
+                        scene_state.current_choice -= 1
+                    }
+                } else {
+                    if scene_state.current_input_number + 1 > get_player().gold {
+                        scene_state.current_input_number = get_player().gold
+                    } else {
+                        scene_state.current_input_number += 1
+                    }
+                }
+                should_redraw_everything()
+            }
+            case UserInput.A: {
+                if scene_state.current_choice == 0 {
+                    scene_state.focused_on_choice = true
+                } else {
+                    if scene_state.current_choice == 1 {
+                        if scene_state.current_input_number == 0 {
+                            // TODO: State indicating you have to bet more than 0 gold
+                        } else {
+                            // TODO: Move to confirm bet
+                        }
+                    }
+                    // TODO: Does the logic above belong here: scene_state.make_choice(scene_state.current_choice)
+                }
+                should_redraw_everything()
+            }
+            case UserInput.B: {
+                if scene_state.focused_on_choice {
+                    scene_state.focused_on_choice = false
+                } else {
+                    default_scene_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+                    default_scene_state.on_exit()
+                    BLACKJACK_FSM.current_state = u32(BlackjackSceneStates.SayHello)
+                    default_scene_state = get_scene_default_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+                    default_scene_state.on_enter()
+                }
+                should_redraw_everything()
+            }
+        }
+    }
+    state.get_choice = proc(choice: u32) -> u32 {
+        switch choice {
+            case 0: return u32(BlackjackSceneChoices.NumberInput)
+            case 1: return u32(BlackjackSceneChoices.Confirm)
+            case 2: return u32(BlackjackSceneChoices.Cancel)
+        }
+        return SENTRY
+    }
+    state.choice_to_string_id = proc(choice: u32) -> u32 {
+        switch choice {
+            case u32(BlackjackSceneChoices.NumberInput): return fsibmn("number_input")
+            case u32(BlackjackSceneChoices.Confirm): return fsibmn("confirm")
+            case u32(BlackjackSceneChoices.Cancel): return fsibmn("cancel")
+        }
+        return SENTRY
+    }
+}
+
+blackjack_scene_ask_to_confirm_bet :: proc () {
+    default_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.AskToConfirmBet))
+    default_state.name_id = find_string_id_by_machine_name("blackjack_confirm_bet")
+    default_state.on_enter = proc() {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.AskToConfirmBet))
+        // Confirm, Cancel
+        scene_state.total_choices = 2
+        scene_state.dialogue_id = find_string_id_by_machine_name("blackjack_confirm_bet")
+        scene_state.current_choice = 0
+    }
+    state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.AskToConfirmBet))
+    state.handle_input = proc(input: UserInput) {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+        #partial switch input {
+            case UserInput.Down: {
+                // TODO: Cursor choice thingk
+                should_redraw_everything()
+            }
+            case UserInput.Up: {
+                // TODO: Cursor choice thing
+                should_redraw_everything()
+            }
+            case UserInput.A: {
+                if scene_state.current_choice == 1 {
+                    BET = input_number
+                    // TODO: Move to "deal first cards state"
+                }
+                should_redraw_everything()
+            }
+            case UserInput.B: {
+                default_scene_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+                default_scene_state.on_exit()
+                BLACKJACK_FSM.current_state = u32(BlackjackSceneStates.SayHello)
+                default_scene_state = get_scene_default_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+                default_scene_state.on_enter()
+                should_redraw_everything()
+            }
+        }
+    }
+    state.get_choice = proc(choice: u32) -> u32 {
+        switch choice {
+            case 0: return u32(BlackjackSceneChoices.Confirm)
+            case 1: return u32(BlackjackSceneChoices.Cancel)
+        }
+        return SENTRY
+    }
+    state.choice_to_string_id = proc(choice: u32) -> u32 {
+        switch choice {
+            case u32(BlackjackSceneChoices.Confirm): return fsibmn("confirm")
+            case u32(BlackjackSceneChoices.Cancel): return fsibmn("cancel")
+        }
+        return SENTRY
+    }
+}
+
+blackjack_scene_deal_first_cards :: proc () {
+    default_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.DealFirstCards))
+    default_state.name_id = find_string_id_by_machine_name("empty")
+    default_state.on_enter = proc() {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.DealFirstCards))
+        // Confirm, Cancel
+        scene_state.total_choices = 2
+        scene_state.dialogue_id = find_string_id_by_machine_name("empty")
+        scene_state.current_choice = 0
+
+        blackjack_start_game()
+    }
+    state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.DealFirstCards))
+    state.handle_input = proc(input: UserInput) {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+        #partial switch input {
+            case UserInput.Down: {
+                // TODO: Cursor choice thing
+                should_redraw_everything()
+            }
+            case UserInput.Up: {
+                // TODO: Cursor choice thing
+                should_redraw_everything()
+            }
+            case UserInput.A: {
+                if scene_state.current_choice == 1 {
+                    // TODO: Move to ???
+                }
+                should_redraw_everything()
+            }
+            case UserInput.B: {
+                default_scene_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+                default_scene_state.on_exit()
+                BLACKJACK_FSM.current_state = u32(BlackjackSceneStates.SayHello)
+                default_scene_state = get_scene_default_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+                default_scene_state.on_enter()
+                should_redraw_everything()
+            }
+        }
+    }
+    state.get_choice = proc(choice: u32) -> u32 {
+        switch choice {
+            case 0: return u32(BlackjackSceneChoices.Confirm)
+            case 1: return u32(BlackjackSceneChoices.Cancel)
+        }
+        return SENTRY
+    }
+    state.choice_to_string_id = proc(choice: u32) -> u32 {
+        switch choice {
+            case u32(BlackjackSceneChoices.Confirm): return fsibmn("confirm")
+            case u32(BlackjackSceneChoices.Cancel): return fsibmn("cancel")
+        }
+        return SENTRY
+    }
+}
+
+blackjack_scene_ask_player_to_hit_or_stand :: proc () {
+    default_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.AskPlayerToHitOrStand))
+    default_state.name_id = find_string_id_by_machine_name("empty")
+    default_state.on_enter = proc() {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.AskPlayerToHitOrStand))
+        // Hit, Stand
+        scene_state.total_choices = 2
+        scene_state.dialogue_id = find_string_id_by_machine_name("empty")
+        scene_state.current_choice = 0
+
+        if PLAYER_STANDING && !DEALER_STANDING {
+            default_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.AskPlayerToHitOrStand))
+            default_state.on_exit()
+            BLACKJACK_FSM.current_state = u32(BlackjackSceneStates.DealerHitsOrStands)
+            default_scene_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.DealerHitsOrStands))
+            default_scene_state.on_enter()
+        } else {
+            default_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.AskPlayerToHitOrStand))
+            default_state.on_exit()
+            BLACKJACK_FSM.current_state = u32(BlackjackSceneStates.CheckForWinner)
+            default_scene_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.CheckForWinner))
+            default_scene_state.on_enter()
+        }
+    }
+
+    state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.AskPlayerToHitOrStand))
+    state.handle_input = proc(input: UserInput) {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+        #partial switch input {
+            case UserInput.Down: {
+                // TODO: Cursor choice thing
+                should_redraw_everything()
+            }
+            case UserInput.Up: {
+                // TODO: Cursor choice thing
+                should_redraw_everything()
+            }
+            case UserInput.A: {
+                if scene_state.current_choice == 0 {
+                    blackjack_player_hit()
+                    // TODO: Go to DealPlayerCard
+                } else if scene_state.current_choice == 1 {
+                    blackjack_player_stand()
+                }
+                should_redraw_everything()
+            }
+            // Note: B doesn't get you out of this. Once you're in, you're in
+        }
+    }
+    state.get_choice = proc(choice: u32) -> u32 {
+        switch choice {
+            case 0: return u32(BlackjackSceneChoices.Hit)
+            case 1: return u32(BlackjackSceneChoices.Stand)
+        }
+        return SENTRY
+    }
+    state.choice_to_string_id = proc(choice: u32) -> u32 {
+        switch choice {
+            case u32(BlackjackSceneChoices.Hit): return fsibmn("blackjack_hit")
+            case u32(BlackjackSceneChoices.Stand): return fsibmn("blackjack_stand")
+        }
+        return SENTRY
+    }
+}
+
+blackjack_scene_dealer_hits_or_stands :: proc () {
+    default_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.DealerHitsOrStands))
+    default_state.name_id = find_string_id_by_machine_name("empty")
+    default_state.on_enter = proc() {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.DealerHitsOrStands))
+        // Confirm, Cancel
+        scene_state.total_choices = 2
+        scene_state.dialogue_id = find_string_id_by_machine_name("empty")
+        scene_state.current_choice = 0
+    }
+    state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.DealerHitsOrStands))
+    state.handle_input = proc(input: UserInput) {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+        #partial switch input {
+            case UserInput.Down: {
+                // TODO: Cursor choice thing
+                should_redraw_everything()
+            }
+            case UserInput.Up: {
+                // TODO: Cursor choice thing
+                should_redraw_everything()
+            }
+            case UserInput.A: {
+                if scene_state.current_choice == 1 {
+                    // TODO: Move to ???
+                }
+                should_redraw_everything()
+            }
+            case UserInput.B: {
+                default_scene_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+                default_scene_state.on_exit()
+                BLACKJACK_FSM.current_state = u32(BlackjackSceneStates.SayHello)
+                default_scene_state = get_scene_default_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+                default_scene_state.on_enter()
+                should_redraw_everything()
+            }
+        }
+    }
+    state.get_choice = proc(choice: u32) -> u32 {
+        switch choice {
+            case 0: return u32(BlackjackSceneChoices.Confirm)
+            case 1: return u32(BlackjackSceneChoices.Cancel)
+        }
+        return SENTRY
+    }
+    state.choice_to_string_id = proc(choice: u32) -> u32 {
+        switch choice {
+            case u32(BlackjackSceneChoices.Confirm): return fsibmn("confirm")
+            case u32(BlackjackSceneChoices.Cancel): return fsibmn("cancel")
+        }
+        return SENTRY
+    }
+}
+
+blackjack_scene_deal_dealer_card :: proc () {
+    default_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.DealDealerCard))
+    default_state.name_id = find_string_id_by_machine_name("empty")
+    default_state.on_enter = proc() {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.DealDealerCard))
+        // Confirm, Cancel
+        scene_state.total_choices = 2
+        scene_state.dialogue_id = find_string_id_by_machine_name("empty")
+        scene_state.current_choice = 0
+    }
+    state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.DealDealerCard))
+    state.handle_input = proc(input: UserInput) {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+        #partial switch input {
+            case UserInput.Down: {
+                // TODO: Cursor choice thing
+                should_redraw_everything()
+            }
+            case UserInput.Up: {
+                // TODO: Cursor choice thing
+                should_redraw_everything()
+            }
+            case UserInput.A: {
+                if scene_state.current_choice == 1 {
+                    // TODO: Move to ???
+                }
+                should_redraw_everything()
+            }
+            case UserInput.B: {
+                default_scene_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+                default_scene_state.on_exit()
+                BLACKJACK_FSM.current_state = u32(BlackjackSceneStates.SayHello)
+                default_scene_state = get_scene_default_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+                default_scene_state.on_enter()
+                should_redraw_everything()
+            }
+        }
+    }
+    state.get_choice = proc(choice: u32) -> u32 {
+        switch choice {
+            case 0: return u32(BlackjackSceneChoices.Confirm)
+            case 1: return u32(BlackjackSceneChoices.Cancel)
+        }
+        return SENTRY
+    }
+    state.choice_to_string_id = proc(choice: u32) -> u32 {
+        switch choice {
+            case u32(BlackjackSceneChoices.Confirm): return fsibmn("confirm")
+            case u32(BlackjackSceneChoices.Cancel): return fsibmn("cancel")
+        }
+        return SENTRY
+    }
+}
+
+blackjack_scene_check_for_winner :: proc () {
+    default_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.CheckForWinner))
+    default_state.name_id = find_string_id_by_machine_name("empty")
+    default_state.on_enter = proc() {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.CheckForWinner))
+        // Confirm, Cancel
+        scene_state.total_choices = 2
+        scene_state.dialogue_id = find_string_id_by_machine_name("empty")
+        scene_state.current_choice = 0
+    }
+
+    state := get_scene_finite_state_ref(BLACKJACK_FSM, u32(BlackjackSceneStates.CheckForWinner))
+    state.handle_input = proc(input: UserInput) {
+        scene_state := get_scene_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+        #partial switch input {
+            case UserInput.Down: {
+                // TODO: Cursor choice thing
+                should_redraw_everything()
+            }
+            case UserInput.Up: {
+                // TODO: Cursor choice thing
+                should_redraw_everything()
+            }
+            case UserInput.A: {
+                if scene_state.current_choice == 1 {
+                    // TODO: Move to ???
+                }
+                should_redraw_everything()
+            }
+            case UserInput.B: {
+                default_scene_state := get_scene_default_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+                default_scene_state.on_exit()
+                BLACKJACK_FSM.current_state = u32(BlackjackSceneStates.SayHello)
+                default_scene_state = get_scene_default_finite_state_ref(BLACKJACK_FSM, BLACKJACK_FSM.current_state)
+                default_scene_state.on_enter()
+                should_redraw_everything()
+            }
+        }
+    }
+    state.get_choice = proc(choice: u32) -> u32 {
+        switch choice {
+            case 0: return u32(BlackjackSceneChoices.Confirm)
+            case 1: return u32(BlackjackSceneChoices.Cancel)
+        }
+        return SENTRY
+    }
+    state.choice_to_string_id = proc(choice: u32) -> u32 {
+        switch choice {
+            case u32(BlackjackSceneChoices.Confirm): return fsibmn("confirm")
+            case u32(BlackjackSceneChoices.Cancel): return fsibmn("cancel")
+        }
+        return SENTRY
+    }
+}

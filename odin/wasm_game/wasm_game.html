@@ -5,25 +5,401 @@
             body {
                 background-color: rgb(20, 20, 20);
                 color: white;
-                font-family: 'Times New Roman';
+                font-family: monospace, fangsong;
                 font-size: 24px;
             }
             * {
                 box-sizing: border-box;
             }
+
+            #scene_text_wrapper {
+                z-index: 99;
+            }
+            #player_menu {
+                z-index: 100;
+            }
+            #scene_text_wrapper, #player_menu, #blackjack_table {
+                position: absolute;
+                width: 384px;
+                background-color: rgba(20, 20, 20, 0.8);
+                padding: 10px;
+                font-size: 16px;
+            }
+            #player_menu {
+                height: 384px;
+            }
+
+            .scene_choice.current {
+                background-color: rgba(0, 0, 0, 0.3)
+            }
         </style>
         <script type="text/javascript">
+            const wasmBase64 = "<!-- WASM_FILE_HERE -->";
+            // NOTE: Confirmed that if you open this file as file:// path, you CAN connect to a local websocket without security!
+            class FSM {
+                constructor () {
+                    this.states = {};
+                    this.currentState = 'default';
+                }
+                moveToState(state) {
+                    if (!this.states[state] || this.currentState === state) {
+                        return false;
+                    } else {
+                        if (this.states[state]._before) {
+                            this.states[state]._before();
+                        }
+                        this.currentState = state;
+                        if (this.states[state]._after) {
+                            this.states[state]._after();
+                        }
+                        return true;
+                    }
+                }
+                runAction(action, ...args) {
+                    if (!this.states[this.currentState][action]) {
+                        return false;
+                    } else {
+                        this.states[this.currentState][action](...args);
+                        return true;
+                    }
+                }
+                _populateTestStates () {
+                    this.states = {
+                        'test': {
+                            '_before': () => {console.log('before');},
+                            '_after': () => {console.log('after');},
+                            'special action': (a, c) => {console.log('SPECIAL', [a, c]);}
+                        }
+                    };
+                    /*
+                    let abc = new FSM();
+                    abc._populateTestStates();
+                    abc.moveToState('test');
+                    abc.runAction('special action');
+                    abc.runAction('special action', 23, 34);
+                    */
+                }
+            }
             var wasm
+            var output_string_buffers = []
+            var output_array_buffers = []
+            function read_last_string_buffer(offset = 1) {
+                return output_string_buffers[output_string_buffers.length - offset]
+            }
+            function read_last_array_buffer(offset = 1) {
+                return output_array_buffers[output_array_buffers.length - offset]
+            }
             var importObject = {
                 env: {
+                    memory: new WebAssembly.Memory({
+                        initial: 512,     // 200 pages = ~12.8MB
+                        maximum: 2048     // 1000 pages = ~64MB
+                    }),
                     js_console_log: function(ptr, len) {
                         var bytes = new Uint8Array(wasm.exports.memory.buffer, ptr, len)
                         var message = new TextDecoder('utf-8').decode(bytes)
                         console.log(message)
-                    }
-
+                    },
+                    js_output_string_buffer: function(ptr, len) {
+                        var bytes = new Uint8Array(wasm.exports.memory.buffer, ptr, len)
+                        var message = new TextDecoder('utf-8').decode(bytes)
+                        // console.log(message)
+                        output_string_buffers.push(message)
+                        MAX_STRING_BUFFER_ENTRIES = 200
+                        if (output_string_buffers.length > MAX_STRING_BUFFER_ENTRIES) {
+                            output_string_buffers.shift()
+                        }
+                    },
+                    js_output_array_buffer: function(ptr, len) {
+                        var array = new Int32Array(wasm.exports.memory.buffer, ptr, len)
+                        // console.log(array)
+                        output_array_buffers.push(array)
+                        MAX_STRING_ARRAY_ENTRIES = 200
+                        if (output_array_buffers.length > MAX_STRING_ARRAY_ENTRIES) {
+                            output_array_buffers.shift()
+                        }
+                    },
                 }
             }
+
+            function formatMemorySize(bytes) {
+                const kb = bytes / 1024;
+                const mb = kb / 1024;
+                const gb = mb / 1024;
+                
+                if (gb >= 1) return `${gb.toFixed(2)} GB`;
+                if (mb >= 1) return `${mb.toFixed(2)} MB`;
+                if (kb >= 1) return `${kb.toFixed(2)} KB`;
+                return `${bytes} Bytes`;
+            }
+
+            function wasm_setInputString(str) {
+                var encoder = new TextEncoder();
+                var bytes = encoder.encode(str);
+
+                var ptr = wasm.exports.get_input_string_buffer_ptr();
+                var maxSize = wasm.exports.get_input_string_buffer_len();
+                
+                if (bytes.length > maxSize) {
+                    throw new Error("String too large for buffer");
+                }
+
+                new Uint8Array(wasm.exports.memory.buffer).set(bytes, ptr);
+
+                wasm.exports.set_input_string_buffer_length(str.length)
+            }
+            function wasm_setInputArray(array) {
+                var ptr = wasm.exports.get_input_array_buffer_ptr();
+                var maxSize = wasm.exports.get_input_array_buffer_len();
+                
+                if (array.length > maxSize) {
+                    throw new Error("Array too large for buffer");
+                }
+
+                new Int32Array(wasm.exports.memory.buffer, ptr, array.length).set(array);
+            }
+            function readStringFromWasm(start, length) {
+                // console.trace({start, length})
+                var string_buffer = new Uint8Array(
+                    wasm.exports.memory.buffer,
+                    start,
+                    length,
+                )
+                var string = new TextDecoder('utf-8').decode(string_buffer)
+                // console.log("String from WASM:", string)
+                return string
+            }
+            function readDbStringFromWasm(id, machine_name = false) {
+                var start, length
+                if (machine_name) {
+                    start = wasm.exports.get_string_machine_name_ptr(id)
+                    length = wasm.exports.get_string_machine_name_len(id)
+                } else {
+                    start = wasm.exports.get_string_text_ptr(id)
+                    length = wasm.exports.get_string_text_len(id)
+                }
+                return readStringFromWasm(start, length)
+            }
+
+            // gh = GameHelper
+            var gh = {
+                // General stuff
+                getGameMode: function() {
+                    return readDbStringFromWasm(wasm.exports.get_current_game_mode())
+                },
+
+                // Player stuff
+                getPlayerGold: function () {
+                    return wasm.exports.get_player_gold()
+                },
+                getPlayerTotalItems: function () {
+                    return wasm.exports.get_player_total_items()
+                },
+
+                shouldRedraw: function () {
+                    return wasm.exports.renderer_should_redraw()
+                },
+
+                getCurrentLayerIDByString: function (string) {
+                    wasm_setInputString(string)
+                    var string_id = wasm.exports.find_string_id_by_machine_name_from_input()
+                    // console.log("getCurrentLayerIDByString:", string_id)
+                    return wasm.exports.find_layer_id_by_string_id(string_id)
+                },
+
+                getCurrentSceneName: function () {
+                    return readDbStringFromWasm(wasm.exports.get_current_scene_string_id(), true)
+                },
+                getCurrentSceneStateName: function () {
+                    return readDbStringFromWasm(wasm.exports.get_current_scene_state_string_id(), true)
+                },
+                getCurrentSceneDialogue: function () {
+                    return readDbStringFromWasm(wasm.exports.get_current_scene_dialogue_string_id())
+                },
+                getCurrentSceneHasDialogue: function () {
+                    var id = wasm.exports.get_current_scene_dialogue_string_id()
+                    if (id !== wasm.exports.get_sentry()) {
+                        return true
+                    }
+                    return false
+                },
+                getCurrentSceneChoicesCount: function () {
+                    return wasm.exports.get_current_scene_total_choices()
+                },
+                getCurrentSceneChoiceEnabled: function (t) {
+                    return wasm.exports.get_current_scene_choice_enabled(t)
+                },
+                getCurrentSceneChoiceText: function (t) {
+                    return readDbStringFromWasm(wasm.exports.get_current_scene_choice_string_id(t))
+                },
+                getCurrentSceneChoiceMachineName: function (t) {
+                    return readDbStringFromWasm(wasm.exports.get_current_scene_choice_string_id(t), true)
+                },
+                getCurrentSceneNeedsNumericalInput: function () {
+                    return wasm.exports.get_current_scene_needs_numerical_input()
+                },
+                getCurrentSceneNeedsStringInput: function () {
+                    return wasm.exports.get_current_scene_needs_string_input()
+                },
+            }
+
+            // uih = UIHelper
+            var uih = {
+                el: {},
+                initialize: function () {
+                    this.el.opening_title = document.getElementById('opening_title')
+                    this.el.player_menu = document.getElementById('player_menu')
+                    this.el.player_menu.gold = document.querySelector('#player_menu #gold')
+                    this.el.player_menu.total_items = document.querySelector('#player_menu #total_items')
+                    this.el.scene_text_wrapper = document.getElementById('scene_text_wrapper')
+                    this.el.scene_text_wrapper.dialogue = document.getElementById('scene_dialogue')
+                    this.el.scene_text_wrapper.inventory = document.getElementById('scene_inventory')
+                    this.el.scene_text_wrapper.choices = document.getElementById('scene_choices')
+                    this.el.blackjack_table = document.getElementById('blackjack_table')
+                },
+                // Function to get card value (1-13)
+                getCardValue: function (cardNumber) {
+                    // Get the remainder when divided by 13 (0-12)
+                    let value = cardNumber % 13;
+                    
+                    // Adjust for 0 to be 13 (King)
+                    if (value === 0) value = 13;
+                    
+                    // Convert to visual representation
+                    switch (value) {
+                        case 11: return 'J';
+                        case 12: return 'Q';
+                        case 13: return 'K';
+                        case 1: return 'A';
+                        default: return value.toString();
+                    }
+                },
+                showOpeningTitleScreen: function () {
+                    this.el.opening_title.style.display = 'block'
+                },
+                hideOpeningTitleScreen: function () {
+                    this.el.opening_title.style.display = 'none'
+                },
+                showPlayerMenu: function () {
+                    this.el.player_menu.style.display = 'block'
+
+                    // TODO: Potentially move this to its own function but its fine for now
+                    this.el.player_menu.gold.innerHTML = gh.getPlayerGold()
+                    this.el.player_menu.total_items.innerHTML = gh.getPlayerTotalItems()
+                },
+                hidePlayerMenu: function () {
+                    this.el.player_menu.style.display = 'none'
+                },
+                clearSceneChoices: function () {
+                    var choices = document.querySelectorAll('.scene_choice')
+                    for (var c = 0; c < choices.length; ++c) {
+                        if (choices[c] instanceof HTMLElement) {
+                            choices[c].remove()
+                        }
+                    }
+                    document.getElementById('scene_choices').style.display = 'none'
+                    var items = document.querySelectorAll('.inventory_item')
+                    for (var i = 0; i < items.length; ++i) {
+                        if (items[i] instanceof HTMLElement) {
+                            items[i].remove()
+                        }
+                    }
+                    document.getElementById('scene_inventory').innerHTML = ''
+                    document.getElementById('scene_inventory').style.display = 'none'
+                    if (document.getElementById('shop_total_cost')) {
+                        document.getElementById('shop_total_cost').remove()
+                    }
+                },
+                showSceneTextWrapper: function () {
+                    this.el.scene_text_wrapper.style.display = 'block'
+                },
+                hideSceneTextWrapper: function () {
+                    this.el.scene_text_wrapper.style.display = 'none'
+                },
+                showSceneDialogue: function (dialogue) {
+                    this.el.scene_text_wrapper.dialogue.style.display = 'block'
+                    this.el.scene_text_wrapper.dialogue.innerHTML = dialogue
+                },
+                hideSceneDialogue: function () {
+                    this.el.scene_text_wrapper.dialogue.style.display = 'none'
+                    this.el.scene_text_wrapper.dialogue.innerHTML = ''
+                },
+                showSceneInventory: function () {
+                    this.el.scene_text_wrapper.inventory.style.display = 'block'
+                },
+                hideSceneInventory: function () {
+                    this.el.scene_text_wrapper.inventory.style.display = 'none'
+                    this.el.scene_text_wrapper.inventory.innerHTML = ''
+                },
+                showSceneChoices: function () {
+                    this.el.scene_text_wrapper.choices.style.display = 'block'
+                },
+                hideSceneChoices: function () {
+                    this.el.scene_text_wrapper.choices.style.display = 'none'
+                    this.el.scene_text_wrapper.choices.innerHTML = ''
+                },
+                showBlackjackTable: function () {
+                    this.el.blackjack_table.style.display = 'block'
+                },
+                hideBlackjackTable: function () {
+                    this.el.blackjack_table.style.display = 'none'
+                    uih.removeCardsFromBlackjackTable()
+                },
+                updateCardsOnBlackjackTable: function () {
+                    uih.removeCardsFromBlackjackTable()
+                    var player_title = document.createElement('div')
+                    player_title.innerHTML = 'Player'
+                    document.getElementById('blackjack_player_hand').appendChild(player_title)
+                    for (var i = 0; i < 10; ++i) {
+                        var numerical_card = wasm.exports.blackjack_get_player_deck_card(i)
+                        if (numerical_card !== wasm.exports.get_sentry()) {
+                            var card = document.createElement('div')
+                            card.innerHTML = uih.getCardValue(numerical_card)
+                            card.style.backgroundColor = 'white'
+                            card.style.color = 'black'
+                            card.style.border = '1px solid gold'
+                            document.getElementById('blackjack_player_hand').appendChild(card)
+                        }
+                    }
+                    var dealer_title = document.createElement('div')
+                    dealer_title.innerHTML = 'Dealer'
+                    document.getElementById('blackjack_dealer_hand').appendChild(dealer_title)
+                    for (var i = 0; i < 10; ++i) {
+                        var numerical_card = wasm.exports.blackjack_get_dealer_deck_card(i)
+                        if (numerical_card !== wasm.exports.get_sentry()) {
+                            var card = document.createElement('div')
+                            card.innerHTML = uih.getCardValue(numerical_card)
+                            card.style.backgroundColor = 'white'
+                            card.style.color = 'black'
+                            card.style.border = '1px solid gold'
+                            document.getElementById('blackjack_dealer_hand').appendChild(card)
+                        }
+                    }
+                    var player_total = wasm.exports.blackjack_get_players_deck_value()
+                    var dealer_total = wasm.exports.blackjack_get_dealers_deck_value()
+                    document.getElementById('blackjack_player_total').innerHTML = 'Player: ' + player_total
+                    document.getElementById('blackjack_dealer_total').innerHTML = 'Dealer: ' + dealer_total
+                },
+                removeCardsFromBlackjackTable: function () {
+                    // TODO: Handle these element references properly
+                    document.getElementById('blackjack_player_total').innerHTML = 0
+                    document.getElementById('blackjack_dealer_total').innerHTML = 0
+                    var cards = document.querySelectorAll('#blackjack_table #blackjack_player_hand div')
+                    for (var c = 0; c < cards.length; ++c) {
+                        if (cards[c] instanceof HTMLElement) {
+                            cards[c].remove()
+                        }
+                    }
+                    var cards = document.querySelectorAll('#blackjack_table #blackjack_dealer_hand div')
+                    for (var c = 0; c < cards.length; ++c) {
+                        if (cards[c] instanceof HTMLElement) {
+                            cards[c].remove()
+                        }
+                    }
+                },
+            }
+
+            // var rotateX = 67
             var RAF = {
                 fps: 60,
                 interval: 1000,
@@ -39,18 +415,23 @@
                 },
                 animate: function(current_time) {
                     requestAnimationFrame(RAF.animate)
+
                     if (!RAF.is_paused) {
                         // Calculate time elapsed since last frame
                         var delta_time = current_time - RAF.last_time
+
                         // Only update if enough time has passed
                         if (delta_time >= RAF.interval) {
                             // Update last time, accounting for any extra time
                             RAF.last_time = current_time - (delta_time % RAF.interval)
+
                             RAF.update(delta_time, current_time)
                             RAF.render()
+
                             ++RAF.frame_count
                         }
                     }
+
                     // Calculate FPS every second
                     if (current_time - RAF.last_fps_time >= 1000) {
                         RAF.fps_value = Math.round((RAF.frame_count * 1000) / (current_time - RAF.last_fps_time))
@@ -63,124 +444,239 @@
                         RAF.last_log_time = current_time
                     }
                 },
+                can_tick: true,
                 render: function () {
                     if (wasm) {
-                        wasm.exports.tick()
-                        if (wasm.exports.get_current_game_mode() === wasm.exports.get_game_mode_in_opening_title()) {
-                            document.getElementById('opening_title').style.display = 'block'
-                        } else if (wasm.exports.get_current_game_mode() === wasm.exports.get_game_mode_in_new_load_options_menu()) {
-                            document.getElementById('opening_title').style.display = 'none'
-                            document.getElementById('new_menu').style.display = 'none'
-                            document.getElementById('new_load_options_menu').style.display = 'block'
-                        } else if (wasm.exports.get_current_game_mode() === wasm.exports.get_game_mode_in_new_menu()) {
-                            document.getElementById('new_load_options_menu').style.display = 'none'
-                            document.getElementById('new_menu').style.display = 'block'
-                        } else if (wasm.exports.get_current_game_mode() === wasm.exports.get_game_mode_in_scene()) {
-                            document.getElementById('new_menu').style.display = 'none'
-                            if (wasm.exports.get_current_scene_dialogue_len() > 0) {
-                                document.getElementById('scene_dialogue').style.display = 'block'
-                                document.getElementById('scene_dialogue').innerHTML = getCurrentSceneDialogue()
-                            } else {
-                                document.getElementById('scene_dialogue').style.display = 'none'
-                                document.getElementById('scene_dialogue').innerHTML = ''
-                            }
-                            if (wasm.exports.get_current_scene_menu_len() > 0) {
-                                if (getCurrentSceneMenu() === "in_port_bank" && document.getElementById('scene_choices').style.display === 'none') {
-                                    for (var i = 0; i < wasm.exports.get_max_scene_choices(); ++i) {
-                                        if (wasm.exports.get_current_scene_choices_len(i) > 0) {
-                                            var choice = document.createElement('div')
-                                            choice.innerHTML = getCurrentSceneChoice(i)
-                                            document.getElementById('scene_choices').appendChild(choice)
-                                        }
-                                    }
-                                    document.getElementById('scene_choices').style.display = 'block'
+                        // console.log("Current memory:", formatMemorySize(wasm.exports.memory.buffer.byteLength))
+                        // document.body.setAttribute('style', 'transform-style: preserve-3d; perspective: 1000px')
+                        // document.querySelector('#viewport').style.transform = 'rotateX(' + rotateX + 'deg)'
+                        // document.querySelector('#viewport div[viewport_x="0"][viewport_y="0"]').style.transform = 'rotateY(80deg)'
+                        game_mode = gh.getGameMode()
+                        uih.hidePlayerMenu()
+                        if (game_mode === "In Player Menu") {
+                            uih.showPlayerMenu()
+                        } else if (game_mode === "In Scene" && gh.shouldRedraw()) {
+                            scene_name = gh.getCurrentSceneName()
+                            scene_state_name = gh.getCurrentSceneStateName()
+                            console.log({scene_name, scene_state_name})
+                            if (scene_name === "scene_blackjack") {
+                                uih.showSceneTextWrapper()
+                                if (gh.getCurrentSceneHasDialogue()) {
+                                    uih.showSceneDialogue(gh.getCurrentSceneDialogue())
                                 }
-                            } else {
-                                document.getElementById('scene_choices').style.display = 'none'
-                                document.getElementById('scene_choices').innerHTML = ''
+
+                                uih.clearSceneChoices()
+                                clear_scene_inputs()
+                                if (gh.getCurrentSceneChoicesCount() > 0) {
+                                    var total_choices = gh.getCurrentSceneChoicesCount()
+                                    scene_total_choices += total_choices
+                                    for (var t = 0; t < scene_total_choices; ++t) {
+                                        if (!gh.getCurrentSceneChoiceEnabled(t)) { continue; }
+                                        var choice = gh.getCurrentSceneChoiceText(t)
+                                        var machine_name = gh.getCurrentSceneChoiceMachineName(t)
+                                        var choice_el
+                                        if (machine_name === "number_input") {
+                                            choice_el = document.createElement('div')
+                                            choice_el.classList.add('scene_choice')
+                                            choice_el.innerHTML = gh.getCurrentSceneInputNumber()
+                                            choice_el.id = t
+                                        } else {
+                                            choice_el = document.createElement('div')
+                                            choice_el.classList.add('scene_choice')
+                                            choice_el.innerHTML = choice
+                                            choice_el.id = t
+                                        }
+                                        if (t === 0) {
+                                            choice_el.classList.add('current')
+                                        }
+                                        uih.el.scene_text_wrapper.choices.appendChild(choice_el)
+                                    }
+                                    uih.showSceneChoices()
+                                }
+
+                                if (gh.getCurrentSceneNeedsNumericalInput()) {
+                                    document.getElementById('scene_user_numerical_input').value = 0
+                                    document.getElementById('scene_numerical_input').style.display = 'block'
+                                } else {
+                                    document.getElementById('scene_numerical_input').style.display = 'none'
+                                }
+
+                                if (
+                                    scene_state_name == "blackjack_deal_deck" ||
+                                    scene_state_name == "blackjack_player_turn" ||
+                                    scene_state_name == "blackjack_dealer_turn" ||
+                                    scene_state_name == "blackjack_check_winner" ||
+                                    scene_state_name == "blackjack_deal_player_card" ||
+                                    scene_state_name == "blackjack_deal_dealer_card"
+                                ) {
+                                    uih.showBlackjackTable()
+                                    uih.updateCardsOnBlackjackTable()
+                                } else {
+                                    uih.hideBlackjackTable()
+                                }
                             }
-                        } else if (wasm.exports.get_current_game_mode() === wasm.exports.get_game_mode_in_port()) {
-                            document.getElementById('scene_dialogue').style.display = 'none'
+                        } else if (game_mode === "In Port") {
+                            clear_scene_inputs()
+                            uih.hideOpeningTitleScreen()
+                            uih.hideSceneTextWrapper()
+                            uih.hidePlayerMenu()
+                            uih.hideBlackjackTable()
                             document.getElementById('viewport').style.display = 'grid'
                             document.getElementById('viewport').style.gridTemplateColumns = `repeat(${wasm.exports.get_viewport_width()}, 1fr)`
                             document.getElementById('viewport').style.gridTemplateRows = `repeat(${wasm.exports.get_viewport_height()}, 1fr)`
-                            // if (wasm.exports.renderer_should_redraw()) {
+
+                            if (gh.shouldRedraw()) {
                                 // console.log('Should redraw')
                                 // TODO: This should become "render viewport" or whatever
                                 for (var i = 0; i < wasm.exports.get_viewport_width(); ++i) {
                                     for (var j = 0; j < wasm.exports.get_viewport_height(); ++j) {
                                         var tile = document.getElementById('viewport').children[i + j * wasm.exports.get_viewport_width()]
-                                        // TODO: Magic number where we know it's 0, for now
-                                        var bg_layer = 0
-                                        var value = wasm.exports.get_viewport_value_at_coordinates(bg_layer, i, j)
-                                        if (value === 1) {
-                                            tile.style.backgroundColor = 'rgb(50, 50, 50)'
-                                        } else if (value === 2) {
-                                            tile.style.backgroundColor = 'red'
-                                        } else {
-                                            tile.style.backgroundColor = 'black'
+
+                                        // One approach: get values for all layers, read through array buffer
+                                        // var total_layers = wasm.exports.get_viewport_values_at_coordinates(i, j)
+                                        // for (var t = 0; t < total_layers; ++t) {
+                                        //     var layer_name = read_last_string_buffer(t + 1)
+                                        //     if (layer_name === "npc_layer") {
+                                        //         var npc_name = read_last_string_buffer(t + 2)
+                                        //         // console.log(npc_name)
+                                        //         var npc_iterator = read_last_array_buffer(t + 1)[0]
+                                        //         var npc_direction = read_last_array_buffer(t + 2)[1]
+                                        //         // console.log({npc_iterator, npc_direction})
+                                        //         if (npc_iterator === 2) {
+                                        //             tile.style.backgroundColor = 'blue'
+                                        //         }
+                                        //     } else if (layer_name === "bg_layer") {
+                                        //         var layer_iterator = read_last_array_buffer(t + 1)[0]
+                                        //         var layer_value = read_last_array_buffer(t + 1)[1]
+                                        //         // console.log({layer_iterator, layer_value})
+                                        //         if (layer_value === 1) {
+                                        //             tile.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'
+                                        //         }
+                                        //     }
+                                        // }
+
+                                        // Second approach: Just iterate through all layers and check the name
+                                        // var total_layers = wasm.exports.get_current_world_total_layers()
+                                        // // Note: You would think it has to be <, just <, but 0 is an empty layer as a placeholder so we have to go with <=
+                                        // for (var t = 0; t <= total_layers; ++t) {
+                                        //     wasm.exports.get_current_world_layer_name_by_id(t)
+                                        //     if (read_last_string_buffer() === "npc_layer") {
+                                        //         var layer_value = wasm.exports.get_viewport_value_at_coordinates(t, i, j)
+                                        //         if (layer_value > 0) {
+                                        //             tile.style.backgroundColor = 'blue'
+                                        //         }
+                                        //     } else if (read_last_string_buffer() === "bg_layer") {
+                                        //         var layer_value = wasm.exports.get_viewport_value_at_coordinates(t, i, j)
+                                        //         if (layer_value > 0) {
+                                        //             tile.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'
+                                        //         }
+                                        //     }
+                                        // }
+
+                                        // Third approach: Get specific layers you want to deal with up front
+                                        var layer_id = gh.getCurrentLayerIDByString("bg_layer")
+                                        if (layer_id !== wasm.exports.get_sentry()) {
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, i, j)
+                                            if (layer_value !== wasm.exports.get_sentry()) {
+                                                tile.style.backgroundColor = 'rgba(0, 0, 100, 0.8)'
+                                            }
                                         }
-                                        var npc_layer = 1
-                                        var npc_value = wasm.exports.get_viewport_value_at_coordinates(npc_layer, i, j)
-                                        if (npc_value !== -1) {
-                                            tile.style.backgroundColor = 'blue'
+                                        var layer_id = gh.getCurrentLayerIDByString("layer_one")
+                                        if (layer_id !== wasm.exports.get_sentry()) {
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, i, j)
+                                            if (layer_value !== wasm.exports.get_sentry()) {
+                                                tile.style.backgroundColor = 'purple'
+                                            }
+                                        }
+                                        var layer_id = gh.getCurrentLayerIDByString("npc_layer")
+                                        if (layer_id !== wasm.exports.get_sentry()) {
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, i, j)
+                                            if (layer_value !== wasm.exports.get_sentry()) {
+                                                // TODO: One approach: Check the machine name of the player and see if it's a player
+                                                tile.style.backgroundColor = 'green'
+                                            }
+                                        }
+                                        var layer_id = gh.getCurrentLayerIDByString("block_layer")
+                                        if (layer_id !== wasm.exports.get_sentry()) {
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, i, j)
+                                            if (layer_value !== wasm.exports.get_sentry()) {
+                                                tile.style.backgroundColor = 'yellow'
+                                            }
                                         }
                                     }
                                 }
-                            // }
-                        } else {
-                            console.log('Unknown game mode:', wasm.exports.get_current_game_mode())
+                            }
                         }
+                    } else {
+                        alert("NO WASM")
                     }
+                    wasm.exports.tick()
                 },
                 togglePause: function () {
                     RAF.is_paused = !RAF.is_paused
                     console.log(RAF.is_paused ? 'RAF paused' : 'RAF resumed')
                 }
             }
+
+            var scene_choice_cursor = 0
+            var scene_total_choices = 0
+            function clear_scene_inputs() {
+                scene_choice_cursor = 0
+                scene_total_choices = 0
+            }
+
             window.addEventListener('load', function () {
                 RAF.initialize()
-                fetch('wasm_game.wasm')
-                    .then(function(response) { return response.arrayBuffer() })
-                    .then(function(bytes) { return WebAssembly.instantiate(bytes, importObject) })
-                    .then(function(results) {
+
+                var base64 = true
+                if (base64) {
+                    var bytes = Uint8Array.from(atob(wasmBase64), c => c.charCodeAt(0))
+                    WebAssembly.instantiate(bytes, importObject).then(results => {
                         var instance = results.instance
                         wasm = instance
 
+                        console.log("Starting memory:", formatMemorySize(wasm.exports.memory.buffer.byteLength))
+                        console.log("Pages:", wasm.exports.memory.buffer.byteLength / 65536);
+
                         start_game()
                     })
+                } else {
+                    fetch('wasm_game.wasm')
+                        .then(function(response) { return response.arrayBuffer() })
+                        .then(function(bytes) { return WebAssembly.instantiate(bytes, importObject) })
+                        .then(function(results) {
+                            var instance = results.instance
+                            wasm = instance
 
+                            console.log("Starting memory:", formatMemorySize(wasm.exports.memory.buffer.byteLength))
+                            console.log("Pages:", wasm.exports.memory.buffer.byteLength / 65536);
+
+                            start_game()
+                        })
+                }
+
+                // NOTE: Keeping this here because, in the future, we may want this
+                // async function loadGameTextFromUrl(url) {
+                //     const response = await fetch(url);
+                //     const binaryData = await response.arrayBuffer();
+                //     const uint8Array = new Uint8Array(binaryData);
+                    
+                //     return loadGameText(uint8Array);                }
+
+                // // Usage example:
+                // loadGameTextFromUrl('text_data.bin')
+                //     .then(gameText => {
+                //         console.log(gameText); // Your array of text strings
+                //     })
+                //     .catch(error => {
+                //         console.error("Error loading game text:", error);
+                //     });
             })
 
-            function readStringFromWasm(start, length) {
-                var string_buffer = new Uint8Array(
-                    wasm.exports.memory.buffer,
-                    start,
-                    length,
-                )
-                var string = new TextDecoder('utf-8').decode(string_buffer)
-                return string
-            }
-            function getCurrentSceneName() {
-                var ptr = wasm.exports.get_current_scene_name_ptr()
-                var len = wasm.exports.get_current_scene_name_len()
-                return readStringFromWasm(ptr, len)
-            }
-            function getCurrentSceneCursor() {
-                return readStringFromWasm(wasm.exports.get_current_scene_cursor_ptr(), wasm.exports.get_current_scene_cursor_len())
-            }
-            function getCurrentSceneDialogue() {
-                return readStringFromWasm(wasm.exports.get_current_scene_dialogue_ptr(), wasm.exports.get_current_scene_dialogue_len())
-            }
-            function getCurrentSceneMenu() {
-                return readStringFromWasm(wasm.exports.get_current_scene_menu_ptr(), wasm.exports.get_current_scene_menu_len())
-            }
-            function getCurrentSceneChoice(which) {
-                return readStringFromWasm(wasm.exports.get_current_scene_choices_ptr(which), wasm.exports.get_current_scene_choices_len(which))
-            }
-
+            var game_mode
             function start_game() {
                 console.log('Starting game here')
+
                 var TILE_SIZE = 16
                 var TILE_SCALE = 2
                 var TILE_SIZE_SCALED = TILE_SIZE * TILE_SCALE
@@ -202,17 +698,41 @@
                     }
                 }
                 wasm.exports.initialize_game()
-                if (wasm.exports.get_current_game_mode() == wasm.exports.get_game_mode_in_empty()) {
+                console.log("Current memory:", formatMemorySize(wasm.exports.memory.buffer.byteLength))
+                game_mode = gh.getGameMode()
+                if (game_mode == "Empty") {
+                    uih.initialize()
                     console.log('Game is empty, starting frames')
                     requestAnimationFrame(RAF.animate)
                 }
+
                 document.addEventListener('keyup', function (e) {
+                    game_mode = gh.getGameMode()
                     switch (e.code) {
                         case "KeyZ":
                             wasm.exports.user_input_a()
+                            if (game_mode === "In Scene") {
+                                var current_scene_choice = document.querySelector('.scene_choice.current')
+                                if (current_scene_choice instanceof HTMLElement) {
+                                    if (gh.getCurrentSceneNeedsNumericalInput()) {
+                                        var current_value = document.getElementById('scene_user_numerical_input').value
+                                        console.log("CURRENT VALUE IS", current_value)
+                                        wasm.exports.user_input_number(current_value)
+                                    }
+                                    wasm.exports.current_scene_make_choice(current_scene_choice.id)
+                                } else {
+                                    console.log("Tried to get an element that didn't exist")
+                                }
+                            }
                         break
                         case "KeyX":
                             wasm.exports.user_input_b()
+                        break
+                        case "KeyC":
+                            wasm.exports.user_input_x()
+                        break
+                        case "KeyV":
+                            wasm.exports.user_input_y()
                         break
                         case "KeyA":
                             wasm.exports.user_input_left()
@@ -222,38 +742,93 @@
                         break
                         case "KeyW":
                             wasm.exports.user_input_up()
+                            if (game_mode === "In Scene") {
+                                var current_scene_choices = document.querySelectorAll('.scene_choice')
+                                for (var i = 0; i < current_scene_choices.length; ++i) {
+                                    current_scene_choices[i].classList.remove('current')
+                                }
+                                if ((scene_choice_cursor - 1) < 0) {
+                                    scene_choice_cursor = current_scene_choices.length - 1
+                                } else {
+                                    scene_choice_cursor -= 1
+                                }
+                                current_scene_choices[scene_choice_cursor].classList.add('current')
+                            }
                         break
                         case "KeyS":
                             wasm.exports.user_input_down()
+                            if (game_mode === "In Scene") {
+                                var current_scene_choices = document.querySelectorAll('.scene_choice')
+                                for (var i = 0; i < current_scene_choices.length; ++i) {
+                                    current_scene_choices[i].classList.remove('current')
+                                }
+                                if ((scene_choice_cursor + 1) >= current_scene_choices.length) {
+                                    scene_choice_cursor = 0
+                                } else {
+                                    scene_choice_cursor += 1
+                                }
+                                current_scene_choices[scene_choice_cursor].classList.add('current')
+                            }
+                        break
+                        case "KeyQ":
+                            wasm.exports.user_input_left_bumper()
+                        break
+                        case "KeyE":
+                            wasm.exports.user_input_right_bumper()
+                        break
+                        case "KeyT":
+                            wasm.exports.user_input_start()
+                        break
+                        case "KeyG":
+                            wasm.exports.user_input_select()
                         break
                     }
                 })
-
             }
-
         </script>
     </head>
     <body>
-        <div id="opening_title" style="display: none;">The Games Opening Title Here. Press A (Z) to start!</div>
-        <div id="new_load_options_menu" style="display: none;">
-            <p>Press A (Z) to start new game</p>
-            <ul>
-                <li>New</li>
-                <li>Load</li>
-                <li>Options</li>
-            </ul>
+        <div id="opening_title" style="display: none; text-align: center;">
+            <img src="title.png" style="width: 100%;" />
         </div>
-        <div id="new_menu" style="display: none;">
-            <p>Press A (Z) to start new game</p>
-            <p>Press B (X) to go back to main menu</p>
-            <ul>
-                <li>Stats</li>
-                <li>Looks</li>
-                <li>Name</li>
-            </ul>
+        <div id="new_load_options_menu" style="display: none; text-align: center;">
+            <img src="title2.webp" style="width: 100%; padding-left: 20%; padding-right: 20%;" />
+            <div>
+                <div class="choice">New</div>
+                <div class="choice">Load</div>
+                <div class="choice">Options</div>
+            </div>
         </div>
-        <div id="scene_dialogue" style="display: none;"></div>
-        <div id="scene_choices" style="display: none;"></div>
+        <div id="new_menu" style="display: none; text-align: center;">
+            <img src="title2.webp" style="width: 100%; padding-left: 20%; padding-right: 20%;" />
+            <div>
+                <div class="choice">Stats</div>
+                <div class="choice">Looks</div>
+                <div class="choice">Name</div>
+            </div>
+        </div>
+        <div id="scene_text_wrapper" style="display: none;">
+            <div id="scene_dialogue" style="display: none;"></div>
+            <div id="scene_inventory" style="display: none;"></div>
+            <div id="scene_numerical_input" style="display: none;">
+                <input type="number" id="scene_user_numerical_input" />
+            </div>
+            <div id="scene_string_input" style="display: none;">
+                <input type="text" id="scene_user_string_input" />
+            </div>
+            <div id="scene_choices" style="display: none;"></div>
+        </div>
+        <div id="player_menu" style="display: none;">
+            <div>Gold: <span id="gold"></span></div>
+            <div>Total Items: <span id="total_items"></span></div>
+        </div>
+        <div id="blackjack_table" style="display: none; margin-top: 100px;">
+            <div>Blackjack Table</div>
+            <div id="blackjack_player_hand" style="display: grid; grid-auto-flow: column;"></div>
+            <div id="blackjack_dealer_hand" style="display: grid; grid-auto-flow: column;"></div>
+            <div id="blackjack_player_total"></div>
+            <div id="blackjack_dealer_total"></div>
+        </div>
         <div id="viewport" style="display: none;"></div>
     </body>
 </html>

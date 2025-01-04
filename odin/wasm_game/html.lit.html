@@ -1,28 +1,18 @@
-# The HTML For The Game
+<lit input_path="\\MSI-Leopard\Users\spiro\D\uwnh-remake\odin\wasm_game" output_path="" include="" ignore=""></lit>
 
-For the browser based version, we're going to run this with JS and HTML, all vanilla, using as much ES5 as possible.
-
-## JS Console Log w/ WASM
-
-If you look at [odin.md](./odin.md) there's some Odin/WASM code that foreign exports a `console_log` function. That function maps onto this `js_console_log` function. In essence, WASM calls this javascript code and executes it.
-
-Since text strings are really just an array of u8 characters "under the hood", we use a uint8array with a pointer location to the memory space and a length to get the string and decode it into utf-8.
-
-<!-- lit block js_console_log_function -->
-``` js
-js_console_log: function(ptr, len) {
+<h1>The HTML For The Game</h1>
+<p class="">For the browser based version, we're going to run this with JS and HTML, all vanilla, using as much ES5 as possible.</p>
+<h2>JS Console Log w/ WASM</h2>
+<p class="">If you look at [odin.md](./odin.md) there's some Odin/WASM code that foreign exports a `console_log` function. That function maps onto this `js_console_log` function. In essence, WASM calls this javascript code and executes it.</p>
+<p class="">Since text strings are really just an array of u8 characters "under the hood", we use a uint8array with a pointer location to the memory space and a length to get the string and decode it into utf-8.</p>
+<textarea type="block" language="js" contenteditable="" spellcheck="false" name="js_console_log_function" style="height: 103px; width: 1230px;">js_console_log: function(ptr, len) {
     var bytes = new Uint8Array(wasm.exports.memory.buffer, ptr, len)
     var message = new TextDecoder('utf-8').decode(bytes)
     console.log(message)
 }
-```
-<!-- lit end_block -->
-
-Sometimes we may want to manually reach into the wasm memory and read strings so we'll just expand the js_console_log function here into a more generalized one we can use directly from the JS side.
-
-<!-- lit block read_string_from_wasm_function -->
-``` js
-function readStringFromWasm(start, length) {
+</textarea>
+<p class="">Sometimes we may want to manually reach into the wasm memory and read strings so we'll just expand the js_console_log function here into a more generalized one we can use directly from the JS side.</p>
+<textarea type="block" language="js" contenteditable="" spellcheck="false" name="read_string_from_wasm_function" style="width: 1204px; height: 385px;">function readStringFromWasm(start, length) {
     var string_buffer = new Uint8Array(
         wasm.exports.memory.buffer,
         start,
@@ -49,16 +39,10 @@ function getCurrentSceneMenu() {
 function getCurrentSceneChoice(which) {
     return readStringFromWasm(wasm.exports.get_current_scene_choices_ptr(which), wasm.exports.get_current_scene_choices_len(which))
 }
-```
-<!-- lit end_block -->
-
-## Fetching the WASM
-
-We instantiate a fetch protocol and read the wasm file as an array buffer. Once it's read, we attach it to the global `wasm` variable for easy access and start the game.
-
-<!-- lit block fetch_wasm_function -->
-``` js
-fetch('wasm_game.wasm')
+</textarea>
+<h2>Fetching the WASM</h2>
+<p class="">We instantiate a fetch protocol and read the wasm file as an array buffer. Once it's read, we attach it to the global `wasm` variable for easy access and start the game.</p>
+<textarea type="block" language="js" contenteditable="" spellcheck="false" name="fetch_wasm_function" style="width: 602px; height: 155px;">fetch('wasm_game.wasm')
     .then(function(response) { return response.arrayBuffer() })
     .then(function(bytes) { return WebAssembly.instantiate(bytes, importObject) })
     .then(function(results) {
@@ -67,14 +51,9 @@ fetch('wasm_game.wasm')
 
         start_game()
     })
-```
-<!-- lit end_block -->
-
-## Starting the game
-
-<!-- lit block start_game_function -->
-``` js
-function start_game() {
+</textarea>
+<h2>Starting the game</h2>
+<textarea type="block" language="js" contenteditable="" spellcheck="false" name="start_game_function" style="width: 1223px; height: 436px;">function start_game() {
     console.log('Starting game here')
 
     var TILE_SIZE = 16
@@ -105,19 +84,13 @@ function start_game() {
 
     {{{ user_input_functionality }}}
 }
-```
-<!-- lit end_block -->
+</textarea>
+<h2>Tick and RequestAnimationFrame and FPS</h2>
+<p class="">Our Odin/WASM game has a tick function. This tick function essentially runs WASM operations on the game like updating the state of the game, moving global NPCs around, or other things. Our renderer (in this case, JS) needs to call this tick function or the game doesn't move forward (usually). We also want to tie this into the rendering frames so that each frame on the rendering side calls the WASM tick function. This ensure the frames are synchronized (hopefully) with the game.</p>
+<p class="">Browsers and javascript already have a nice feature called `requestAnimationFrame` which we'll use to manage our framerate (we can manually throttle or set it) and run tick alongside the frames.</p>
+<p class="">TODO: Break this out and explain it better</p>
 
-## Tick and RequestAnimationFrame and FPS
-
-Our Odin/WASM game has a tick function. This tick function essentially runs WASM operations on the game like updating the state of the game, moving global NPCs around, or other things. Our renderer (in this case, JS) needs to call this tick function or the game doesn't move forward (usually). We also want to tie this into the rendering frames so that each frame on the rendering side calls the WASM tick function. This ensure the frames are synchronized (hopefully) with the game.
-
-Browsers and javascript already have a nice feature called `requestAnimationFrame` which we'll use to manage our framerate (we can manually throttle or set it) and run tick alongside the frames.
-
-TODO: Break this out and explain it better
-
-<!-- lit block raf_functionality -->
-``` js
+<textarea type="block" language="js" contenteditable="" spellcheck="false" name="raf_functionality" style="height: 1985px; width: 1221px;">var rotateX = 67
 var RAF = {
     fps: 60,
     interval: 1000,
@@ -165,6 +138,9 @@ var RAF = {
     render: function () {
         if (wasm) {
             wasm.exports.tick()
+            // document.body.setAttribute('style', 'transform-style: preserve-3d; perspective: 1000px')
+            // document.querySelector('#viewport').style.transform = 'rotateX(' + rotateX + 'deg)'
+            // document.querySelector('#viewport div[viewport_x="0"][viewport_y="0"]').style.transform = 'rotateY(80deg)'
             if (wasm.exports.get_current_game_mode() === wasm.exports.get_game_mode_in_opening_title()) {
                 document.getElementById('opening_title').style.display = 'block'
             } else if (wasm.exports.get_current_game_mode() === wasm.exports.get_game_mode_in_new_load_options_menu()) {
@@ -193,6 +169,18 @@ var RAF = {
                             }
                         }
                         document.getElementById('scene_choices').style.display = 'block'
+                    } else if (getCurrentSceneMenu() === "in_port_bank") {
+                        var chosen_id = wasm.exports.get_current_scene_chosen()
+                        var choice_elements = document.querySelectorAll('#scene_choices div')
+                        for (var ce = 0; ce < choice_elements.length; ++ce) {
+                            if (choice_elements[ce] instanceof HTMLElement) {
+                                if (ce === chosen_id) {
+                                    choice_elements[ce].style.backgroundColor = 'rgba(0, 0, 200, 0.6)'
+                                } else {
+                                    choice_elements[ce].style.backgroundColor = 'initial'
+                                }
+                            }
+                        }
                     }
                 } else {
                     document.getElementById('scene_choices').style.display = 'none'
@@ -225,6 +213,16 @@ var RAF = {
                             if (npc_value !== -1) {
                                 tile.style.backgroundColor = 'blue'
                             }
+                            var building_layer = 2
+                            var building_value = wasm.exports.get_viewport_value_at_coordinates(building_layer, i, j)
+                            if (building_value !== -1) {
+                                tile.style.backgroundColor = 'purple'
+                            }
+                            var block_layer = 3
+                            var block_layer_value = wasm.exports.get_viewport_value_at_coordinates(block_layer, i, j)
+                            if (block_layer_value !== -1) {
+                                //tile.style.backgroundColor = 'rgba(0, 0, 0, 0.3)'
+                            }
                         }
                     }
                 // }
@@ -244,14 +242,9 @@ window.addEventListener('load', function () {
 
     {{{ fetch_wasm_function }}}
 })
-```
-<!-- lit end_block -->
-
-## User Input
-
-<!-- lit block user_input_functionality -->
-``` js
-document.addEventListener('keyup', function (e) {
+</textarea>
+<h2>User Input</h2>
+<textarea type="block" language="js" contenteditable="" spellcheck="false" name="user_input_functionality" style="width: 1229px; height: 321px;">document.addEventListener('keyup', function (e) {
     switch (e.code) {
         case "KeyZ":
             wasm.exports.user_input_a()
@@ -273,21 +266,17 @@ document.addEventListener('keyup', function (e) {
         break
     }
 })
-```
-<!-- lit end_block -->
+</textarea>
+<h1>The final output!</h1>
 
-# The final output!
-
-<!-- lit output wasm_game.html -->
-``` html
-<html>
+<textarea type="output" language="js" contenteditable="" spellcheck="false" name="wasm_game.html" style="height: 692px; width: 758px;"><html>
     <head>
         <title>The Game</title>
         <style type="text/css">
             body {
                 background-color: rgb(20, 20, 20);
                 color: white;
-                font-family: 'Times New Roman';
+                font-family: fangsong;
                 font-size: 24px;
             }
             * {
@@ -330,5 +319,4 @@ document.addEventListener('keyup', function (e) {
         <div id="viewport" style="display: none;"></div>
     </body>
 </html>
-```
-<!-- lit end_output -->
+</textarea>

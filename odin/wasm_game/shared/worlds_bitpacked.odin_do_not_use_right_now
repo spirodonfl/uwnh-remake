@@ -1,0 +1,229 @@
+package shared
+
+TOTAL_WORLDS :: 100
+
+WorldData :: enum {
+    // Reference to string
+    Name,
+    Internal_ID,
+    Width,
+    Height,
+    Total_Layers,
+}
+WORLD_DATA_LENGTH :: u32(len(WorldData))
+WORLD_DATA_TYPE :: [WORLD_DATA_LENGTH]u32
+create_base_world :: proc() -> WORLD_DATA_TYPE {
+    world: WORLD_DATA_TYPE
+    for i: u32 = 0; i < WORLD_DATA_LENGTH; i += 1 {
+        world[i] = 0
+    }
+    return world
+}
+
+LayerData :: enum {
+    // Name??
+    Internal_ID,
+    Is_Same,
+    // If Is_Same == true
+    Same_Value,
+    // world width, height, values for all
+    Covers_World,
+    // []x,y,value
+    Specific_Values,
+    // u32 length so we can can use internal_id as offset * Length + Length to get full array
+    Length,
+    // z-index
+    Order,
+    Values_Per_32,
+    Bits_Per_Value,
+}
+LAYER_DATA_LENGTH :: u32(len(LayerData))
+LAYER_DATA_TYPE :: [LAYER_DATA_LENGTH]u32
+create_base_layer :: proc() -> LAYER_DATA_TYPE {
+    layer: LAYER_DATA_TYPE
+    for i: u32 = 0; i < LAYER_DATA_LENGTH; i += 1 {
+        layer[i] = 0
+    }
+    return layer
+}
+
+// TODO: Replace with the USE_WASM if/else and update length dynamically on ROM side of things
+ALL_LAYERS_LENGTH :: 1250 * 300
+
+layer_set_bits_per_value :: proc(layer: ^LAYER_DATA_TYPE, value: u32) {
+    layer[LayerData.Bits_Per_Value] = value
+}
+layer_set_values_per_32 :: proc(layer: ^LAYER_DATA_TYPE, value: u32) {
+    layer[LayerData.Values_Per_32] = value
+}
+layer_set_length :: proc(layer: ^LAYER_DATA_TYPE, value: u32) {
+    layer[LayerData.Length] = value
+}
+get_layer_bit_sizes :: proc(max_value: u32) -> (u32, u32) {
+    bits_per_value: u32
+    values_per_32: u32
+    if max_value <= 0xF {
+        // 15
+        bits_per_value = 4
+        values_per_32 = 8
+    } else if max_value <= 0xFF {
+        // 255
+        bits_per_value = 8
+        values_per_32 = 4
+    } else if max_value <= 0xFFF {
+        // 4096
+        bits_per_value = 12
+        values_per_32 = 2
+    } else {
+        bits_per_value = 32
+        values_per_32 = 1
+    }
+
+    return bits_per_value, values_per_32
+}
+get_layer_total_length :: proc(total_cells: u32, values_per_32: u32) -> u32 {
+    return (total_cells + values_per_32 - 1) / values_per_32
+    // make([]u32, returned_length)
+}
+set_layer_coordinate_value :: proc(
+        world: ^WORLD_DATA_TYPE,
+        layer: ^LAYER_DATA_TYPE,
+        layer_data: ^$T,
+        offset: u32,
+        x: u32, y: u32, value: u32
+    ) {
+    if x < 0 || x >= world_get_width(world) || y < 0 || y >= world_get_height(world) {
+        return
+    }
+
+    cell_index := y * world_get_width(world) + x
+    array_index := cell_index / layer[LayerData.Values_Per_32]
+    value_index := cell_index % layer[LayerData.Values_Per_32]
+
+    shift_amount := value_index * layer[LayerData.Bits_Per_Value]
+    mask := u32(1 << layer[LayerData.Bits_Per_Value] - 1) << shift_amount
+
+    layer_data[offset + array_index] &= ~mask
+    layer_data[offset + array_index] |= (value << shift_amount)
+}
+get_layer_coordinate_value :: proc(
+        world: ^WORLD_DATA_TYPE,
+        layer: ^LAYER_DATA_TYPE,
+        layer_data: ^$T,
+        offset: u32,
+        x: u32, y: u32
+    ) -> u32 {
+    if x < 0 || x >= world_get_width(world) || y < 0 || y >= world_get_height(world) {
+        return 0
+    }
+
+    cell_index := y * world_get_width(world) + x
+    array_index := cell_index / layer[LayerData.Values_Per_32]
+    value_index := cell_index % layer[LayerData.Values_Per_32]
+
+    shift_amount := value_index * layer[LayerData.Bits_Per_Value]
+    mask := u32(1 << layer[LayerData.Bits_Per_Value] - 1)
+
+    return (layer_data[offset + array_index] >> shift_amount) & mask
+}
+
+MAX_u32 :: 0x7FFFFFFF // 2,147,483,647
+MIN_u32 :: 0x80000000 // -2,147,483,647
+U32_MIN :: 0x00000000 // 0
+U32_MAX :: 0xFFFFFFFF // 4,294,967,295
+// u32(U32_MIN)
+U8_MIN :: 0x00
+U8_MAX :: 0xFF
+// u8(U8_MIN)
+U16_MIN :: 0x0000
+U16_MAX :: 0xFFFF
+// u16(U16_MIN)
+// NOTE: SPIRO THIS IS RIGHT TO LEFT!
+// Get hex digit at position (0 is rightmost, moving left)
+check_hex_digit :: proc(value: $T, position: int) -> T where intrinsics.type_is_unsigned(T) {
+    assert(position >= 0 && position < size_of(T) * 2, "Position out of range")
+    
+    shift_amount := (size_of(T) * 2 - 1 - position) * 4
+    mask := T(0xF) << uint(shift_amount)
+    digit := (value & mask) >> uint(shift_amount)
+    return digit
+}
+// NOTE: SPIRO THIS IS RIGHT TO LEFT!
+// Set hex digit at position (0 is rightmost, moving left)
+overwrite_hex :: proc(value: $T, new_digit: T, position: int) -> T where intrinsics.type_is_unsigned(T) {
+    assert(position >= 0 && position < size_of(T) * 2, "Position out of range")
+    assert(new_digit <= 0xF, "New digit must be a single hex digit (0-F)")
+    
+    shift_amount := (size_of(T) * 2 - 1 - position) * 4
+    clear_mask := ~(T(0xF) << uint(shift_amount))
+    set_mask := (new_digit & 0xF) << uint(shift_amount)
+    
+    return (value & clear_mask) | set_mask
+}
+
+// TODO: Idea... you *could* store this in a consts.bin file and dynamically dump it. This would make the game way more mod-able
+TOTAL_LAYERS :: 100
+
+get_world_layer_coordinates_values :: proc(world_id: u32, layer_id: u32, x: u32, y: u32) {
+    // world := get_world(world_id)
+    // layer := get_layer(world_id, layer_id)
+    // layer.get_value(x, y)
+}
+
+world_get_width :: proc(world: ^WORLD_DATA_TYPE) -> u32 {
+    return world[WorldData.Width]
+}
+world_get_height :: proc(world: ^WORLD_DATA_TYPE) -> u32 {
+    return world[WorldData.Height]
+}
+world_set_width :: proc(world: ^WORLD_DATA_TYPE, value: u32) {
+    world[WorldData.Width] = value
+}
+world_set_height :: proc(world: ^WORLD_DATA_TYPE, value: u32) {
+    world[WorldData.Height] = value
+}
+
+
+/**
+rom_dump
+
+
+world: [shared.WORLD_DATA_LENGTH]u32
+world = shared.create_base_world()
+shared.world_set_width(&world, 100)
+shared.world_set_height(&world, 100)
+layer: [shared.LAYER_DATA_LENGTH]u32
+layer = shared.create_base_layer()
+layer_cursor: u32 = 0
+bits_per, values_per := shared.get_layer_bit_sizes(0xF)
+shared.layer_set_bits_per_value(&layer, bits_per)
+shared.layer_set_values_per_32(&layer, values_per)
+this_layer_length := shared.get_layer_total_length((100*100), values_per)
+shared.layer_set_length(&layer, this_layer_length)
+fmt.println("Layer Length =", this_layer_length)
+layer_data := make([]u32, shared.ALL_LAYERS_LENGTH)
+defer delete(layer_data)
+for i: u32 = 0; i < shared.ALL_LAYERS_LENGTH; i += 1 {
+    layer_data[i] = 0
+}
+shared.set_layer_coordinate_value(
+    &world,
+    &layer,
+    &layer_data,
+    layer_cursor,
+    0, 0, 3
+)
+test_value := shared.get_layer_coordinate_value(
+    &world,
+    &layer,
+    &layer_data,
+    layer_cursor,
+    0, 0
+)
+file, err = os.open("layer_coordinate_data.bin", os.O_CREATE|os.O_WRONLY)
+if err != nil {
+    return
+}
+defer os.close(file)
+os.write_ptr(file, raw_data(layer_data[:]), size_of(u32) * len(layer_data))
+*/

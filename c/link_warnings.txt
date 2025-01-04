@@ -1,0 +1,8 @@
+wasm-ld: error: fsm.o: undefined symbol: vsnprintf
+wasm-ld: error: fsm.o: undefined symbol: strlen
+wasm-ld: error: fsm.o: undefined symbol: js_console_log
+wasm-ld: error: fsm.o: undefined symbol: vsnprintf
+wasm-ld: error: fsm.o: undefined symbol: strlen
+wasm-ld: error: fsm.o: undefined symbol: js_output_string_buffer
+wasm-ld: error: fsm.o: undefined symbol: memcpy
+wasm-ld: error: fsm.o: undefined symbol: js_output_array_buffer

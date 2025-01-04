@@ -10,6 +10,8 @@ node-modules
 null
 .vite
 
+bun.exe
+
 # generated files
 game/embeds.zig
 web/scripts/js.bindings.js
