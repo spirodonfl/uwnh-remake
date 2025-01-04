@@ -1175,7 +1175,50 @@
 
                                 // TODO: Should not be able to move a ship to its own current coordinates
                             } else if (scene_name == "scene_digi_tal_bank") {
-                                console.log("BANK");
+                                uih.scene.name = scene_name;
+                                uih.scene.state_name = scene_state_name;
+                                uih.showSceneTextWrapper()
+                                if (gh.getCurrentSceneHasDialogue()) {
+                                    uih.showSceneDialogue(gh.getCurrentSceneDialogue())
+                                }
+
+                                uih.clearSceneChoices()
+                                clear_scene_inputs()
+                                if (gh.getCurrentSceneChoicesCount() > 0) {
+                                    var total_choices = gh.getCurrentSceneChoicesCount();
+                                    uih.scene.total_scene_choices = total_choices;
+                                    scene_total_choices += total_choices;
+                                    // console.log("Scene total choices", scene_total_choices);
+                                    for (var t = 0; t < scene_total_choices; ++t) {
+                                        if (!gh.getCurrentSceneChoiceEnabled(t)) {
+                                            continue;
+                                        }
+                                        var choice = gh.getCurrentSceneChoiceText(t)
+                                        var machine_name = gh.getCurrentSceneChoiceMachineName(t)
+                                        var choice_el
+                                        if (machine_name === "number_input") {
+                                            choice_el = document.createElement('div')
+                                            choice_el.classList.add('scene_choice')
+                                            choice_el.innerHTML = gh.getCurrentSceneInputNumber()
+                                            choice_el.id = t
+                                        } else {
+                                            choice_el = document.createElement('div')
+                                            choice_el.classList.add('scene_choice')
+                                            choice_el.innerHTML = choice
+                                            choice_el.id = t
+                                        }
+                                        uih.el.scene_text_wrapper.choices.appendChild(choice_el)
+                                    }
+                                    uih.showSceneChoices()
+                                }
+
+                                if (gh.getCurrentSceneNeedsNumericalInput() !== wasm.exports.get_sentry()) {
+                                    document.getElementById('scene_user_numerical_input').value = 0
+                                    document.getElementById('scene_numerical_input').style.display = 'block'
+                                } else {
+                                    document.getElementById('scene_numerical_input').style.display = 'none'
+                                }
+                                uih.initializeSceneChoices();
                             }
 
                             if (scene_name !== "scene_ocean_battle") {
