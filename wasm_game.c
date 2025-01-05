@@ -12,6 +12,8 @@ uint32_t test_world_data_out(uint32_t t) {
 
 #define BUFFER_SIZE 1024
 
+typedef uint32_t u32;
+
 void console_log(const char* message);
 void console_log_format(const char* format, ...);
 char* string_format(const char* format, ...);
@@ -19,34 +21,43 @@ unsigned long strlen(const char* str);
 int strcmp(const char* str1, const char* str2);
 #define SENTRY UINT32_MAX
 __attribute__((visibility("default")))
-uint32_t get_sentry() {
+uint32_t get_sentry()
+{
     return SENTRY;
 }
 extern void js_console_log(void* ptr, uint32_t len);
-void console_log(const char* message) {
-    if (message != NULL) {
+void console_log(const char* message)
+{
+    if (message != NULL)
+    {
         js_console_log((void*)message, (uint32_t)(sizeof(char) * strlen(message)));
     }
 }
-char* string_format(const char* format, ...) {
+char* string_format(const char* format, ...)
+{
     static char local_buffer[BUFFER_SIZE];
     char* buf_ptr = local_buffer;
     va_list args;
     va_start(args, format);
     
     const char* fmt_ptr = format;
-    while (*fmt_ptr && (buf_ptr - local_buffer) < BUFFER_SIZE - 1) {
-        if (*fmt_ptr != '%') {
+    while (*fmt_ptr && (buf_ptr - local_buffer) < BUFFER_SIZE - 1)
+    {
+        if (*fmt_ptr != '%')
+        {
             *buf_ptr++ = *fmt_ptr++;
             continue;
         }
         
         fmt_ptr++; // Skip '%'
-        switch (*fmt_ptr) {
-            case 'd': {
+        switch (*fmt_ptr)
+        {
+            case 'd':
+            {
                 int val = va_arg(args, int);
                 
-                if (val == 0) {
+                if (val == 0)
+                {
                     *buf_ptr++ = '0';
                     break;
                 }
@@ -54,29 +65,35 @@ char* string_format(const char* format, ...) {
                 char num_buffer[12];
                 char* num_ptr = num_buffer;
                 
-                if (val < 0) {
+                if (val < 0)
+                {
                     *buf_ptr++ = '-';
                     val = -val;
                 }
                 
-                while (val > 0) {
+                while (val > 0)
+                {
                     *num_ptr++ = '0' + (val % 10);
                     val /= 10;
                 }
                 
-                while (num_ptr > num_buffer) {
+                while (num_ptr > num_buffer)
+                {
                     *buf_ptr++ = *--num_ptr;
                 }
                 break;
             }
-            case 's': {
+            case 's':
+            {
                 char* str = va_arg(args, char*);
-                while (*str && (buf_ptr - local_buffer) < BUFFER_SIZE - 1) {
+                while (*str && (buf_ptr - local_buffer) < BUFFER_SIZE - 1)
+                {
                     *buf_ptr++ = *str++;
                 }
                 break;
             }
-            case 'c': {
+            case 'c':
+            {
                 char c = (char)va_arg(args, int);
                 *buf_ptr++ = c;
                 break;
@@ -89,7 +106,8 @@ char* string_format(const char* format, ...) {
     va_end(args);
     return local_buffer;
 }
-void console_log_format(const char* format, ...) {
+void console_log_format(const char* format, ...)
+{
     va_list args;
     va_start(args, format);
     
@@ -99,10 +117,13 @@ void console_log_format(const char* format, ...) {
     
     // First pass: collect all arguments
     const char* fmt_ptr = format;
-    while (*fmt_ptr) {
-        if (*fmt_ptr == '%') {
+    while (*fmt_ptr)
+    {
+        if (*fmt_ptr == '%')
+        {
             fmt_ptr++;
-            switch (*fmt_ptr) {
+            switch (*fmt_ptr)
+            {
                 case 'd':
                     arg_values[arg_count++] = (void*)(long)va_arg(args, int);
                     break;
@@ -127,7 +148,8 @@ void console_log_format(const char* format, ...) {
     
     console_log(formatted);
 }
-uint32_t max(uint32_t a, uint32_t b) {
+uint32_t max(uint32_t a, uint32_t b)
+{
     return a > b ? a : b;
 }
 
@@ -220,20 +242,23 @@ void test();
 // ------------------------------------------------------------------------------------------------
 // Enums
 // ------------------------------------------------------------------------------------------------
-enum ShouldRedraw {
+enum ShouldRedraw
+{
     SHOULD_REDRAW_NOTHING,
     SHOULD_REDRAW_EVERYTHING,
     SHOULD_REDRAW_SHIPS,
     SHOULD_REDRAW_NPCS,
     SHOULD_REDRAW_PLAYERS,
 };
-enum Direction {
+enum Direction
+{
     DIRECTION_UP,
     DIRECTION_DOWN,
     DIRECTION_LEFT,
     DIRECTION_RIGHT,
 };
-enum GameMode {
+enum GameMode
+{
     GAME_MODE_EMPTY,
     GAME_MODE_IN_SCENE,
     GAME_MODE_IN_OCEAN_BATTLE,
@@ -241,7 +266,8 @@ enum GameMode {
     GAME_MODE_ON_LAND,
     GAME_MODE_IN_PLAYER_MENU,
 };
-enum ResourceType {
+enum ResourceType
+{
     RESOURCE_NPC,
     RESOURCE_GOOD,
     RESOURCE_STRING,
@@ -251,29 +277,34 @@ enum ResourceType {
     RESOURCE_SPECIAL_ITEM,
     RESOURCE_TYPE_COUNT,
 };
-enum NPCType {
+enum NPCType
+{
     NPC_TYPE_EMPTY,
     NPC_TYPE_HUMAN,
     NPC_TYPE_ANIMAL,
     NPC_TYPE_SHIP,
     NPC_TYPE_OTHER,
 };
-enum NPCData {
+enum NPCData
+{
     NPC_NAME_ID,
     NPC_TYPE,
     NPC_DATA_SIZE,
 };
-enum GeneralItemData {
+enum GeneralItemData
+{
     GENERAL_ITEM_NAME_ID,
     GENERAL_ITEM_BASE_PRICE,
     GENERAL_ITEM_DATA_SIZE,
 };
-enum StringData {
+enum StringData
+{
     STRING_MACHINE_NAME_LENGTH, // Length of machine name
     STRING_TEXT_LENGTH,         // Length of display text
     STRING_DATA_SIZE,
 };
-enum BaseShipData {
+enum BaseShipData
+{
     BASE_SHIP_NAME_ID,
     BASE_SHIP_TOP_MATERIAL_ID,
     BASE_SHIP_BASE_PRICE,
@@ -283,7 +314,8 @@ enum BaseShipData {
     BASE_SHIP_BASE_SPEED,
     BASE_SHIP_DATA_SIZE,
 };
-enum ShipData {
+enum ShipData
+{
     SHIP_NAME_ID,
     // TODO: SHIP CUSTOM NAME
     SHIP_BASE_SHIP_ID,
@@ -299,7 +331,8 @@ enum ShipData {
     SHIP_HULL,
     SHIP_DATA_SIZE,
 };
-enum ShipMaterialData {
+enum ShipMaterialData
+{
     SHIP_MATERIAL_NAME_ID,
     SHIP_MATERIAL_BASE_PRICE,
     SHIP_MATERIAL_MOD_POWER,
@@ -308,29 +341,34 @@ enum ShipMaterialData {
     SHIP_MATERIAL_MOD_SPEED,
     SHIP_MATERIAL_DATA_SIZE,
 };
-enum GoodData {
+enum GoodData
+{
     GOOD_NAME_ID,
     GOOD_BASE_PRICE,
     GOOD_DATA_SIZE,
 };
-enum WeaponData {
+enum WeaponData
+{
     WEAPON_NAME_ID,
     WEAPON_BASE_PRICE,
     WEAPON_POWER,
     WEAPON_DATA_SIZE,
 };
-enum ArmorData {
+enum ArmorData
+{
     ARMOR_NAME_ID,
     ARMOR_BASE_PRICE,
     ARMOR_DEFENSE,
     ARMOR_DATA_SIZE,
 };
-enum SpecialItemData {
+enum SpecialItemData
+{
     SPECIAL_ITEM_NAME_ID,
     SPECIAL_ITEM_BASE_PRICE,
     SPECIAL_ITEM_DATA_SIZE,
 };
-enum WorldNPCData {
+enum WorldNPCData
+{
     WORLD_NPC_NPC_ID,
     WORLD_NPC_CAPTAIN_ID,
     WORLD_NPC_POSITION_X,
@@ -344,7 +382,8 @@ enum WorldNPCData {
     WORLD_NPC_ENTITY_ID,
     WORLD_NPC_DATA_SIZE,
 };
-enum CaptainData {
+enum CaptainData
+{
     CAPTAIN_NPC_ID,
     CAPTAIN_WORLD_NPC_ID,
     CAPTAIN_IN_WORLD,
@@ -364,7 +403,8 @@ enum CaptainData {
     CAPTAIN_EQUIPPED_ARMOR_ID,
     CAPTAIN_DATA_SIZE,
 };
-enum WorldData {
+enum WorldData
+{
     WORLD_NAME_ID,
     WORLD_WIDTH,
     WORLD_HEIGHT,
@@ -373,14 +413,16 @@ enum WorldData {
     WORLD_TOTAL_LAYERS,
     WORLD_DATA_SIZE,
 };
-enum LayerType {
+enum LayerType
+{
     LAYER_TYPE_MATCHES_WORLD_SIZE,
     LAYER_TYPE_HAS_SPECIFIC_SIZE,
     LAYER_TYPE_HAS_SPECIFIC_COORDINATES,
     LAYER_TYPE_IS_SAME_VALUE,
     LAYER_TYPE_HAS_FUNCTION,
 };
-enum LayerData {
+enum LayerData
+{
     LAYER_NAME_ID,
     // The idea is that you store into the global world data
     LAYER_GLOBAL_WORLD_DATA_OFFSET,
@@ -396,7 +438,8 @@ enum LayerData {
     LAYER_IS_BLOCK,
     LAYER_DATA_SIZE,
 };
-enum BankData {
+enum BankData
+{
     BANK_DEPOSIT,
     BANK_LOAN,
     BANK_DEPOSIT_ORIGINAL_AMOUNT,
@@ -410,20 +453,24 @@ enum BankData {
     BANK_MAX_LOAN_AMOUNT,
     BANK_DATA_SIZE,
 };
-enum SceneBank {
+enum SceneBank
+{
     SCENE_BANK_WELCOME,
     SCENE_BANK_DATA_SIZE,
 };
-enum SceneBankChoices {
+enum SceneBankChoices
+{
     SCENE_BANK_CHOICE_CONFIRM,
     SCENE_BANK_CHOICES_DATA_SIZE,
 };
-enum InventoryData {
+enum InventoryData
+{
     INVENTORY_NAME_ID,
     INVENTORY_TOTAL_ITEMS,
     INVENTORY_DATA_SIZE,
 };
-enum InventoryType {
+enum InventoryType
+{
     INVENTORY_TYPE_GOOD,
     INVENTORY_TYPE_ARMOR,
     INVENTORY_TYPE_WEAPON,
@@ -432,7 +479,8 @@ enum InventoryType {
     INVENTORY_TYPE_BASE_SHIP,
     INVENTORY_TYPE_SHIP,
 };
-enum InventoryItemData {
+enum InventoryItemData
+{
     INVENTORY_ITEM_NAME_ID,
     INVENTORY_ITEM_NUMBER_HELD,
     INVENTORY_ITEM_ADJUSTED_PRICE,
@@ -443,7 +491,8 @@ enum InventoryItemData {
     INVENTORY_ITEM_NUMBER_CHOSEN,
     INVENTORY_ITEM_DATA_SIZE,
 };
-enum PortData {
+enum PortData
+{
     PORT_NAME_ID,
     PORT_GLOBAL_LOCATION_X,
     PORT_GLOBAL_LOCATION_Y,
@@ -452,7 +501,8 @@ enum PortData {
     PORT_SHIPYARD_INVESTMENT_LEVEL,
     PORT_DATA_SIZE,
 };
-enum StatsData {
+enum StatsData
+{
     STATS_BATTLE_LEVEL,
     STATS_NAVIGATION_LEVEL,
     STATS_LEADERSHIP,
@@ -465,12 +515,14 @@ enum StatsData {
     STATS_LUCK,
     STATS_DATA_SIZE,
 };
-enum SkillData {
+enum SkillData
+{
     SKILL_NAME_ID,
     SKILL_STATS_REQUIREMENTS,
     SKILL_DATA_SIZE,
 };
-enum EntityData {
+enum EntityData
+{
     ENTITY_NAME_ID,
     ENTITY_IS_INTERACTABLE,
     ENTITY_IS_BLOCKABLE,
@@ -478,7 +530,8 @@ enum EntityData {
     ENTITY_INTERACTION_SCENE,
     ENTITY_DATA_SIZE,
 };
-enum FleetData {
+enum FleetData
+{
     FLEET_TOTAL_SHIPS,
     FLEET_TOTAL_CAPTAINS,
     FLEET_FIRST_MATE_ID,
@@ -487,29 +540,34 @@ enum FleetData {
     FLEET_GENERAL_ID,
     FLEET_DATA_SIZE,
 };
-enum FleetShipData {
+enum FleetShipData
+{
     FLEET_SHIP_SHIP_ID,
     FLEET_SHIP_FLEET_ID,
     FLEET_SHIP_DATA_SIZE,
 };
-enum FleetCaptainData {
+enum FleetCaptainData
+{
     FLEET_CAPTAIN_CAPTAIN_ID,
     FLEET_CAPTAIN_FLEET_ID,
     FLEET_CAPTAIN_DATA_SIZE,
 };
-enum CannonData {
+enum CannonData
+{
     CANNON_NAME_ID,
     CANNON_RANGE,
     CANNON_POWER,
     CANNON_BASE_PRICE,
     CANNON_DATA_SIZE,
 };
-enum FigureheadData {
+enum FigureheadData
+{
     FIGUREHEAD_NAME_ID,
     FIGUREHEAD_BASE_PRICE,
     FIGUREHEAD_DATA_SIZE,
 };
-enum UserInput {
+enum UserInput
+{
     USER_INPUT_A,
     USER_INPUT_B,
     USER_INPUT_X,
@@ -525,7 +583,8 @@ enum UserInput {
     USER_INPUT_CUSTOM_NUMBER,
     USER_INPUT_CUSTOM_STRING,
 };
-enum Scene {
+enum Scene
+{
     SCENE_BLACKJACK,
     SCENE_GENERAL_SHOP,
     SCENE_DOCKYARD,
@@ -541,7 +600,8 @@ enum Scene {
 
     SCENE_DATA_SIZE,
 };
-enum SceneGeneralShop {
+enum SceneGeneralShop
+{
     SCENE_GENERAL_SHOP_ACTION_INIT,
     SCENE_GENERAL_SHOP_RUN_STATE,
     SCENE_GENERAL_SHOP_CURRENT_INPUT_NUMBER,
@@ -566,7 +626,8 @@ enum SceneGeneralShop {
 
     SCENE_GENERAL_SHOP_DATA_SIZE,
 };
-enum SceneDockyard {
+enum SceneDockyard
+{
     SCENE_DOCKYARD_ACTION_INIT,
     SCENE_DOCKYARD_RUN_STATE,
     SCENE_DOCKYARD_CURRENT_INPUT_NUMBER,
@@ -586,7 +647,8 @@ enum SceneDockyard {
 
     SCENE_DOCKYARD_DATA_SIZE,
 };
-enum BasicScene {
+enum BasicScene
+{
     SCENE_ACTION_INIT,
     SCENE_CURRENT_STATE,
     SCENE_CURRENT_STATE_STRING_ID,
@@ -609,7 +671,8 @@ enum BasicScene {
     SCENE_TRIGGERED_BY_WORLD_NPC_ID,
     SCENE_BASIC_DATA_SIZE,
 };
-enum SceneNpcStates {
+enum SceneNpcStates
+{
     SCENE_NPC_STATES_RVICE_TRASH_TALK,
     SCENE_NPC_STATES_LAFOLIE_TRASH_TALK,
     SCENE_NPC_STATES_NAKOR_TRASH_TALK,
@@ -618,12 +681,14 @@ enum SceneNpcStates {
 
     SCENE_NPC_STATES_DATA_SIZE,
 };
-enum SceneNpcChoices {
+enum SceneNpcChoices
+{
     SCENE_NPC_CHOICE_CONFIRM,
 
     SCENE_NPC_CHOICES_DATA_SIZE,
 };
-enum SceneBlackjackStates {
+enum SceneBlackjackStates
+{
     SCENE_BLACKJACK_STATE_HELLO,
     SCENE_BLACKJACK_STATE_ASK_FOR_BET_AMOUNT,
     SCENE_BLACKJACK_STATE_BET_AMOUNT_NOT_MINIMUM,
@@ -640,7 +705,8 @@ enum SceneBlackjackStates {
     SCENE_BLACKJACK_STATE_DEALER_WON,
     SCENE_BLACKJACK_STATE_SIZE,
 };
-enum SceneBlackjackChoices {
+enum SceneBlackjackChoices
+{
     SCENE_BLACKJACK_CHOICE_CONFIRM,
     SCENE_BLACKJACK_CHOICE_BACK,
     SCENE_BLACKJACK_CHOICE_HIT,
@@ -648,7 +714,8 @@ enum SceneBlackjackChoices {
 
     SCENE_BLACKJACK_DATA_SIZE,
 };
-enum SceneOceanBattleStates {
+enum SceneOceanBattleStates
+{
     SCENE_OCEAN_BATTLE_STATE_SETUP,
     SCENE_OCEAN_BATTLE_STATE_PLACEMENT,
     SCENE_OCEAN_BATTLE_STATE_TAKE_TURN,
@@ -664,7 +731,8 @@ enum SceneOceanBattleStates {
 
     SCENE_OCEAN_BATTLE_STATE_DATA_SIZE,
 };
-enum SceneOceanBattleChoices {
+enum SceneOceanBattleChoices
+{
     SCENE_OCEAN_BATTLE_CHOICE_CONFIRM,
     SCENE_OCEAN_BATTLE_CHOICE_BACK,
     SCENE_OCEAN_BATTLE_CHOICE_END_TURN,
@@ -692,7 +760,8 @@ enum SceneOceanBattleChoices {
 
     SCENE_OCEAN_BATTLE_CHOICE_DATA_SIZE,
 };
-enum OceanBattleData {
+enum OceanBattleData
+{
     OCEAN_BATTLE_DATA_INITIALIZED,
     OCEAN_BATTLE_DATA_WORLD_ID,
     OCEAN_BATTLE_DATA_WORLD_NAME_ID,
@@ -868,22 +937,26 @@ static uint32_t ocean_battle_data[OCEAN_BATTLE_DATA_SIZE];
 // ------------------------------------------------------------------------------------------------
 // GLOBAL FUNCTIONS
 // ------------------------------------------------------------------------------------------------
-char* my_strcpy(char* dest, const char* src) {
+char* my_strcpy(char* dest, const char* src)
+{
     char* original_dest = dest;
     while ((*dest++ = *src++) != '\0');
     // Null terminate
     *dest = '\0';
     return original_dest;
 }
-uint32_t get_string_data_offset(uint32_t index) {
+uint32_t get_string_data_offset(uint32_t index)
+{
     return index * MAX_STRING_LENGTH * 2;
 }
-unsigned long strlen(const char* str) {
+unsigned long strlen(const char* str)
+{
     unsigned long len = 0;
     while (str[len] != '\0') len++;
     return len;
 }
-int strcmp(const char* str1, const char* str2) {
+int strcmp(const char* str1, const char* str2)
+{
     while (*str1 && (*str1 == *str2)) {
         str1++;
         str2++;
@@ -895,8 +968,10 @@ int strcmp(const char* str1, const char* str2) {
 // Resource Initialization
 // ------------------------------------------------------------------------------------------------
 #define CREATE_INIT_DATA_FUNC(name, data_size, data) \
-void init_data_##name() { \
-    for (uint32_t i = 0; i < (data_size); ++i) { \
+void init_data_##name() \
+{ \
+    for (uint32_t i = 0; i < (data_size); ++i) \
+    { \
         (data)[i] = SENTRY; \
     } \
 }
@@ -926,13 +1001,17 @@ CREATE_INIT_DATA_FUNC(world_npc, G_WORLD_NPC_DATA_SIZE, g_world_npc_data);
 CREATE_INIT_DATA_FUNC(bank, G_BANK_DATA_SIZE, g_bank_data);
 CREATE_INIT_DATA_FUNC(captain, G_CAPTAIN_DATA_SIZE, g_captain_data);
 
-void init_string_data(void) {
-    for (uint32_t i = 0; i < G_STRING_DATA_SIZE; ++i) {
+void init_string_data(void)
+{
+    for (uint32_t i = 0; i < G_STRING_DATA_SIZE; ++i)
+    {
         g_string_data[i] = '\0';
     }
 }
-void init_string_info(void) {
-    for (uint32_t i = 0; i < G_STRING_INFO_SIZE; ++i) {
+void init_string_info(void)
+{
+    for (uint32_t i = 0; i < G_STRING_INFO_SIZE; ++i)
+    {
         g_string_info[i] = SENTRY;
     }
 }
@@ -970,10 +1049,13 @@ void init_string_info(void) {
 // Global Scene Stuff
 // ------------------------------------------------------------------------------------------------
 uint32_t previous_scene_state;
-void clear_current_scene() {
-    for (uint32_t i = 0; i < MAX_SCENE_DATA_SIZE; ++i) {
+void clear_current_scene()
+{
+    for (uint32_t i = 0; i < MAX_SCENE_DATA_SIZE; ++i)
+    {
         // TODO: This is hacky. We need a better function or a second function. One clears everything, one clears only critical
-        if (i == SCENE_TRIGGERED_BY_WORLD_NPC_ID) {
+        if (i == SCENE_TRIGGERED_BY_WORLD_NPC_ID)
+        {
             continue;
         }
         CurrentScene[i] = SENTRY;
@@ -984,213 +1066,275 @@ void clear_current_scene() {
     clear_current_scene_strings();
 }
 
-void clear_current_scene_choices() {
-    for (uint32_t i = 0; i < MAX_SCENE_CHOICES; ++i) {
+void clear_current_scene_choices()
+{
+    for (uint32_t i = 0; i < MAX_SCENE_CHOICES; ++i)
+    {
         CurrentSceneChoices[i] = SENTRY;
     }
     CurrentScene[SCENE_CURRENT_TOTAL_CHOICES] = 0;
     current_scene_clear_choice_strings();
 }
 
-void clear_current_scene_states() {
-    for (uint32_t i = 0; i < MAX_SCENE_STATES; ++i) {
+void clear_current_scene_states()
+{
+    for (uint32_t i = 0; i < MAX_SCENE_STATES; ++i)
+    {
         CurrentSceneStates[i] = SENTRY;
     }
 }
 
-void clear_current_scene_strings() {
-    for (uint32_t i = 0; i < MAX_SCENE_STRINGS; ++i) {
+void clear_current_scene_strings()
+{
+    for (uint32_t i = 0; i < MAX_SCENE_STRINGS; ++i)
+    {
         CurrentSceneStrings[i] = SENTRY;
     }
 }
 
 // TODO: Is this still needed now?
-void set_current_scene_data(uint32_t key, uint32_t value) {
+void set_current_scene_data(uint32_t key, uint32_t value)
+{
     CurrentScene[SCENE_BASIC_DATA_SIZE + key] = value;
 }
 // TODO: Is this still needed now?
-uint32_t get_current_scene_data(uint32_t key) {
+uint32_t get_current_scene_data(uint32_t key)
+{
     return CurrentScene[SCENE_BASIC_DATA_SIZE + key];
 }
 
-void set_current_scene_inventory_id(uint32_t value) {
+void set_current_scene_inventory_id(uint32_t value)
+{
     CurrentScene[SCENE_CURRENT_INVENTORY_ID] = value;
 }
-uint32_t get_current_scene_inventory_id() {
+uint32_t get_current_scene_inventory_id()
+{
     return CurrentScene[SCENE_CURRENT_INVENTORY_ID];
 }
 
-void set_current_scene_string_id(uint32_t value) {
+void set_current_scene_string_id(uint32_t value)
+{
     CurrentScene[SCENE_CURRENT_SCENE_STRING_ID] = value;
 }
-uint32_t get_current_scene_string_id() {
+uint32_t get_current_scene_string_id()
+{
     return CurrentScene[SCENE_CURRENT_SCENE_STRING_ID];
 }
 
-void set_current_scene_state(uint32_t value) {
+void set_current_scene_state(uint32_t value)
+{
     CurrentScene[SCENE_CURRENT_STATE] = value;
 }
-uint32_t get_current_scene_state() {
+uint32_t get_current_scene_state()
+{
     return CurrentScene[SCENE_CURRENT_STATE];
 }
 
-void set_current_scene(uint32_t value) {
+void set_current_scene(uint32_t value)
+{
     CurrentScene[SCENE_CURRENT_SCENE] = value;
 }
-uint32_t get_current_scene() {
+uint32_t get_current_scene()
+{
     return CurrentScene[SCENE_CURRENT_SCENE];
 }
 
-void set_current_scene_state_string_id(uint32_t value) {
+void set_current_scene_state_string_id(uint32_t value)
+{
     CurrentScene[SCENE_CURRENT_STATE_STRING_ID] = value;
 }
-uint32_t get_current_scene_state_string_id() {
+uint32_t get_current_scene_state_string_id()
+{
     return CurrentScene[SCENE_CURRENT_STATE_STRING_ID];
 }
 
-void set_current_scene_triggered_by_world_npc_id(uint32_t id) {
+void set_current_scene_triggered_by_world_npc_id(uint32_t id)
+{
     CurrentScene[SCENE_TRIGGERED_BY_WORLD_NPC_ID] = id;
 }
-uint32_t get_current_scene_triggered_by_world_npc_id() {
+uint32_t get_current_scene_triggered_by_world_npc_id()
+{
     return CurrentScene[SCENE_TRIGGERED_BY_WORLD_NPC_ID];
 }
 
-void set_current_scene_dialogue_string_id(uint32_t value) {
+void set_current_scene_dialogue_string_id(uint32_t value)
+{
     CurrentScene[SCENE_CURRENT_DIALOGUE_STRING_ID] = value;
 }
-uint32_t get_current_scene_dialogue_string_id() {
+uint32_t get_current_scene_dialogue_string_id()
+{
     return CurrentScene[SCENE_CURRENT_DIALOGUE_STRING_ID];
 }
 
-uint32_t get_current_scene_total_choices() {
+uint32_t get_current_scene_total_choices()
+{
     return CurrentScene[SCENE_CURRENT_TOTAL_CHOICES];
 }
-void set_current_scene_total_choices(uint32_t total) {
+void set_current_scene_total_choices(uint32_t total)
+{
     CurrentScene[SCENE_CURRENT_TOTAL_CHOICES] = total;
 }
 
-uint32_t get_current_scene_total_states() {
+uint32_t get_current_scene_total_states()
+{
     return CurrentScene[SCENE_TOTAL_STATES];
 }
-void set_current_scene_total_states(uint32_t total) {
+void set_current_scene_total_states(uint32_t total)
+{
     CurrentScene[SCENE_TOTAL_STATES] = total;
 }
 
-uint32_t get_current_scene_choice_enabled(uint32_t choice) {
+uint32_t get_current_scene_choice_enabled(uint32_t choice)
+{
     CurrentScene[SCENE_CURRENT_CHOICE] = choice;
-    if (CurrentSceneChoices[choice] != SENTRY) {
+    if (CurrentSceneChoices[choice] != SENTRY)
+    {
         return CurrentSceneChoices[choice];
     }
     return SENTRY;
 }
 
-void set_current_scene_needs_numerical_input(uint32_t on_off) {
+void set_current_scene_needs_numerical_input(uint32_t on_off)
+{
     CurrentScene[SCENE_WAITING_FOR_INPUT_NUMBER] = SENTRY;
-    if (on_off == true) {
+    if (on_off == true)
+    {
         CurrentScene[SCENE_WAITING_FOR_INPUT_NUMBER] = 1;
     }
 }
-uint32_t get_current_scene_needs_numerical_input() {
+uint32_t get_current_scene_needs_numerical_input()
+{
     return CurrentScene[SCENE_WAITING_FOR_INPUT_NUMBER];
 }
 
-void current_scene_make_choice(uint32_t choice) {
+void current_scene_make_choice(uint32_t choice)
+{
     CurrentScene[SCENE_CURRENT_CHOICE] = choice;
-    if (get_current_scene() == SCENE_BLACKJACK) {
+    if (get_current_scene() == SCENE_BLACKJACK)
+    {
         scene_blackjack(SCENE_MAKE_CHOICE);
-    } else if (get_current_scene() == SCENE_GENERAL_SHOP) {
+    } else if (get_current_scene() == SCENE_GENERAL_SHOP)
+    {
         scene_general_shop(SCENE_MAKE_CHOICE);
-    } else if (get_current_scene() == SCENE_OCEAN_BATTLE) {
+    } else if (get_current_scene() == SCENE_OCEAN_BATTLE)
+    {
         scene_ocean_battle(SCENE_MAKE_CHOICE);
-    } else if (get_current_scene() == SCENE_NPC_RVICE) {
+    } else if (get_current_scene() == SCENE_NPC_RVICE)
+    {
         scene_npc_rvice(SCENE_MAKE_CHOICE);
-    } else if (get_current_scene() == SCENE_NPC_LAFOLIE) {
+    } else if (get_current_scene() == SCENE_NPC_LAFOLIE)
+    {
         scene_npc_lafolie(SCENE_MAKE_CHOICE);
-    } else if (get_current_scene() == SCENE_NPC_NAKOR) {
+    } else if (get_current_scene() == SCENE_NPC_NAKOR)
+    {
         scene_npc_nakor(SCENE_MAKE_CHOICE);
-    } else if (get_current_scene() == SCENE_NPC_TRAVIS) {
+    } else if (get_current_scene() == SCENE_NPC_TRAVIS)
+    {
         scene_npc_travis(SCENE_MAKE_CHOICE);
-    } else if (get_current_scene() == SCENE_NPC_LOLLER) {
+    } else if (get_current_scene() == SCENE_NPC_LOLLER)
+    {
         scene_npc_loller(SCENE_MAKE_CHOICE);
-    } else if (get_current_scene() == SCENE_BANK) {
+    } else if (get_current_scene() == SCENE_BANK)
+    {
         scene_bank(SCENE_MAKE_CHOICE);
     }
 }
-uint32_t current_scene_get_current_choice() {
+uint32_t current_scene_get_current_choice()
+{
     return CurrentScene[SCENE_CURRENT_CHOICE];
 }
-uint32_t current_scene_add_choice(uint32_t value) {
+uint32_t current_scene_add_choice(uint32_t value)
+{
     uint32_t total_choices = get_current_scene_total_choices();
     CurrentSceneChoices[total_choices] = value;
     set_current_scene_total_choices(total_choices + 1);
     return total_choices;
 }
-uint32_t current_scene_get_choice(uint32_t which) {
+uint32_t current_scene_get_choice(uint32_t which)
+{
     return CurrentSceneChoices[which];
 }
-void current_scene_clear_choice_strings() {
-    for (uint32_t i = 0; i < MAX_SCENE_CHOICES; ++i) {
+void current_scene_clear_choice_strings()
+{
+    for (uint32_t i = 0; i < MAX_SCENE_CHOICES; ++i)
+    {
         CurrentSceneChoicesString[i] = SENTRY;
     }
 }
-void current_scene_set_choice_string_id(uint32_t choice, uint32_t string_id) {
+void current_scene_set_choice_string_id(uint32_t choice, uint32_t string_id)
+{
     CurrentSceneChoicesString[choice] = string_id;
 }
-uint32_t get_current_scene_choice_string_id(uint32_t choice) {
+uint32_t get_current_scene_choice_string_id(uint32_t choice)
+{
     return CurrentSceneChoicesString[choice];
 }
 
-void current_scene_add_state(uint32_t value) {
+void current_scene_add_state(uint32_t value)
+{
     uint32_t total_states = get_current_scene_total_states();
     CurrentSceneStates[total_states] = value;
     set_current_scene_total_states(total_states + 1);
 }
-uint32_t current_scene_get_state(uint32_t which) {
+uint32_t current_scene_get_state(uint32_t which)
+{
     return CurrentSceneStates[which];
 }
 
-void set_current_scene_total_strings(uint32_t value) {
+void set_current_scene_total_strings(uint32_t value)
+{
     CurrentSceneStrings[SCENE_TOTAL_STRINGS] = value;
 }
-uint32_t get_current_scene_total_strings() {
+uint32_t get_current_scene_total_strings()
+{
     return CurrentScene[SCENE_TOTAL_STRINGS];
 }
 
-void map_current_scene_inventory_id() {
+void map_current_scene_inventory_id()
+{
     uint32_t world_npc_id = get_current_scene_triggered_by_world_npc_id();
     set_current_scene_inventory_id(get_world_npc_inventory_id(world_npc_id));
 }
-void clear_current_scene_inventory_items() {
-    for (uint32_t i = 0; i < MAX_INVENTORY_ITEMS; ++i) {
+void clear_current_scene_inventory_items()
+{
+    for (uint32_t i = 0; i < MAX_INVENTORY_ITEMS; ++i)
+    {
         CurrentSceneInventoryItems[i] = SENTRY;
     }
 }
-void map_current_scene_inventory_items() {
+void map_current_scene_inventory_items()
+{
     uint32_t inventory_id = get_current_scene_inventory_id();
     clear_current_scene_inventory_items();
     uint32_t csii = 0;
-    for (uint32_t i = 0; i < MAX_INVENTORY_ITEMS; ++i) {
-        if (get_inventory_item_inventory_id(i) == inventory_id) {
+    for (uint32_t i = 0; i < MAX_INVENTORY_ITEMS; ++i)
+    {
+        if (get_inventory_item_inventory_id(i) == inventory_id)
+        {
             CurrentSceneInventoryItems[csii] = i;
             ++csii;
         }
     }
 }
-uint32_t get_current_scene_inventory_item_string_id(uint32_t inventory_item_id) {
+uint32_t get_current_scene_inventory_item_string_id(uint32_t inventory_item_id)
+{
     uint32_t real_inventory_id = CurrentSceneInventoryItems[inventory_item_id];
     return get_inventory_item_string_id(real_inventory_id);
 }
-uint32_t get_current_scene_inventory_item_adjusted_price(uint32_t inventory_item_id) {
+uint32_t get_current_scene_inventory_item_adjusted_price(uint32_t inventory_item_id)
+{
     uint32_t real_inventory_id = CurrentSceneInventoryItems[inventory_item_id];
     return get_inventory_item_adjusted_price(real_inventory_id);
 }
 
-void current_scene_add_string(uint32_t value) {
+void current_scene_add_string(uint32_t value)
+{
     uint32_t total_strings = get_current_scene_total_strings();
     CurrentSceneStrings[total_strings] = value;
     set_current_scene_total_strings(total_strings + 1);
 }
-uint32_t current_scene_get_string(uint32_t which) {
+uint32_t current_scene_get_string(uint32_t which)
+{
     return CurrentSceneStrings[which];
 }
 
@@ -1201,22 +1345,27 @@ uint32_t current_scene_get_string(uint32_t which) {
 // MAXIMUM_WORLD_WIDTH * MAXIMUM_WORLD_HEIGHT * MAXIMUM_WORLD_LAYERS
 uint32_t GLOBAL_WORLD_DATA[G_GLOBAL_WORLD_DATA_SIZE];
 uint32_t GLOBAL_WORLD_DATA_ITERATOR;
-void add_value_to_global_world_data(uint32_t layer_id, uint32_t x, uint32_t y, uint32_t value) {
+void add_value_to_global_world_data(uint32_t layer_id, uint32_t x, uint32_t y, uint32_t value)
+{
     uint32_t layer_width = g_layer_data[layer_id * LAYER_DATA_SIZE + LAYER_WIDTH];
     uint32_t offset = x + y * layer_width;
     offset += g_layer_data[layer_id * LAYER_DATA_SIZE + LAYER_GLOBAL_WORLD_DATA_OFFSET];
-    if (offset >= G_GLOBAL_WORLD_DATA_SIZE) {
+    if (offset >= G_GLOBAL_WORLD_DATA_SIZE)
+    {
         console_log("ERROR: Global world data not big enough for layer data");
     }
     GLOBAL_WORLD_DATA[offset] = value;
 }
-void clear_global_world_data() {
-    for (uint32_t i = 0; i < G_GLOBAL_WORLD_DATA_SIZE; ++i) {
+void clear_global_world_data()
+{
+    for (uint32_t i = 0; i < G_GLOBAL_WORLD_DATA_SIZE; ++i)
+    {
         GLOBAL_WORLD_DATA[i] = SENTRY;
     }
     GLOBAL_WORLD_DATA_ITERATOR = 0;
 }
-uint32_t get_layer_data_by_coordinates(uint32_t layer_id, uint32_t x, uint32_t y) {
+uint32_t get_layer_data_by_coordinates(uint32_t layer_id, uint32_t x, uint32_t y)
+{
     uint32_t layer_width = g_layer_data[layer_id * LAYER_DATA_SIZE + LAYER_WIDTH];
     uint32_t offset = x + y * layer_width;
     offset += g_layer_data[layer_id * LAYER_DATA_SIZE + LAYER_GLOBAL_WORLD_DATA_OFFSET];
@@ -1227,13 +1376,15 @@ uint32_t get_layer_data_by_coordinates(uint32_t layer_id, uint32_t x, uint32_t y
 // Resource Creation
 // ------------------------------------------------------------------------------------------------
 #define CREATE_ENTITY_FUNC(name, data_type, data_size, max_entities, name_id, count, entity_data) \
-uint32_t create_##name(data_type data[data_size], ...) { \
+uint32_t create_##name(data_type data[data_size], ...) \
+{ \
     va_list args; \
     va_start(args, data); \
     uint32_t should_clear = va_arg(args, uint32_t); \
     uint32_t value = SENTRY; \
     CREATE_ENTITY(data, entity_data, data_size, max_entities, name_id, count, value); \
-    if (should_clear == 1) { \
+    if (should_clear == 1) \
+    { \
         CLEAR_DATA(data, data_size); \
     } \
     va_end(args); \
@@ -1242,15 +1393,19 @@ uint32_t create_##name(data_type data[data_size], ...) { \
 
 #define CREATE_ENTITY(data, entity_data, entity_size, max_entities, name_id, count, value) \
     do { \
-        if (data[name_id] == SENTRY) { \
+        if (data[name_id] == SENTRY) \
+        { \
             console_log("Tried to create an entity with an empty name"); \
             value = SENTRY; \
             break; \
         } \
-        for (uint32_t i = 0; i < max_entities; ++i) { \
+        for (uint32_t i = 0; i < max_entities; ++i) \
+        { \
             uint32_t offset = i * entity_size; \
-            if (entity_data[offset + name_id] == SENTRY) { \
-                for (uint32_t j = 0; j < entity_size; j += 1) { \
+            if (entity_data[offset + name_id] == SENTRY) \
+            { \
+                for (uint32_t j = 0; j < entity_size; j += 1) \
+                { \
                     entity_data[offset + j] = data[j]; \
                 } \
                 count += 1; \
@@ -1262,26 +1417,31 @@ uint32_t create_##name(data_type data[data_size], ...) { \
 
 #define CLEAR_DATA(data, size) \
     do { \
-        for (uint32_t i = 0; i < (size); ++i) { \
+        for (uint32_t i = 0; i < (size); ++i) \
+        { \
             (data)[i] = SENTRY; \
         } \
     } while (0)
 
 #define CLEAR_DATA(data, size) \
     do { \
-        for (uint32_t i = 0; i < (size); ++i) { \
+        for (uint32_t i = 0; i < (size); ++i) \
+        { \
             (data)[i] = SENTRY; \
         } \
     } while (0)
 
 #define FREE_ENTITY(entity_type, entity_data, entity_size, max_entities, count) \
-void free_##entity_type(uint32_t data_index) { \
-    if (data_index >= max_entities) { \
+void free_##entity_type(uint32_t data_index) \
+{ \
+    if (data_index >= max_entities) \
+    { \
         console_log("Tried to free a " #entity_type " resource that doesn't exist"); \
         return; \
     } \
     uint32_t offset = data_index * entity_size; \
-    for (uint32_t i = 0; i < entity_size; ++i) { \
+    for (uint32_t i = 0; i < entity_size; ++i) \
+    { \
         entity_data[offset + i] = SENTRY; \
     } \
     count -= 1; \
@@ -1314,7 +1474,8 @@ CREATE_ENTITY_FUNC(cannon, uint32_t, CANNON_DATA_SIZE, MAX_CANNONS, CANNON_NAME_
 CREATE_ENTITY_FUNC(figurehead, uint32_t, FIGUREHEAD_DATA_SIZE, MAX_FIGUREHEADS, FIGUREHEAD_NAME_ID, g_figurehead_count, g_figurehead_data);
 
 
-int32_t create_string(const char* machine_name, const char* text) {
+int32_t create_string(const char* machine_name, const char* text)
+{
     uint32_t machine_name_len = 0;
     uint32_t text_len = 0;
     
@@ -1322,19 +1483,23 @@ int32_t create_string(const char* machine_name, const char* text) {
     while (machine_name[machine_name_len] && machine_name_len < MAX_STRING_LENGTH) machine_name_len++;
     while (text[text_len] && text_len < MAX_STRING_LENGTH) text_len++;
 
-    if (machine_name_len >= MAX_STRING_LENGTH || text_len >= MAX_STRING_LENGTH) {
+    if (machine_name_len >= MAX_STRING_LENGTH || text_len >= MAX_STRING_LENGTH)
+    {
         console_log("String is too long");
         return SENTRY;
     }
 
-    for (uint32_t i = 0; i < MAX_STRINGS; ++i) {
+    for (uint32_t i = 0; i < MAX_STRINGS; ++i)
+    {
         uint32_t info_offset = i * STRING_DATA_SIZE;
-        if (g_string_info[info_offset + (uint32_t)STRING_MACHINE_NAME_LENGTH] == SENTRY) {
+        if (g_string_info[info_offset + (uint32_t)STRING_MACHINE_NAME_LENGTH] == SENTRY)
+        {
             // Calculate the offset for string data
             uint32_t string_offset = i * (MAX_STRING_LENGTH * 2);
             
             // Clear the memory first
-            for (uint32_t j = 0; j < MAX_STRING_LENGTH * 2; j++) {
+            for (uint32_t j = 0; j < MAX_STRING_LENGTH * 2; j++)
+            {
                 g_string_data[string_offset + j] = '\0';
             }
             
@@ -1372,11 +1537,14 @@ int32_t create_string(const char* machine_name, const char* text) {
 // ------------------------------------------------------------------------------------------------ //
 // STRING FUNCTIONS
 // ------------------------------------------------------------------------------------------------ //
-uint32_t get_string_id_by_machine_name(const char* machine_name) {
-    for (uint32_t i = 0; i < MAX_STRINGS; ++i) {
+uint32_t get_string_id_by_machine_name(const char* machine_name)
+{
+    for (uint32_t i = 0; i < MAX_STRINGS; ++i)
+    {
         uint32_t info_offset = i * STRING_DATA_SIZE;
         // Check if this slot is occupied first
-        if (g_string_info[info_offset + (uint32_t)STRING_MACHINE_NAME_LENGTH] == SENTRY) {
+        if (g_string_info[info_offset + (uint32_t)STRING_MACHINE_NAME_LENGTH] == SENTRY)
+        {
             continue;
         }
         
@@ -1387,27 +1555,32 @@ uint32_t get_string_id_by_machine_name(const char* machine_name) {
         
         // console_log_format("Comparing '%s' with '%s'", stored_name, machine_name);
         
-        if (strcmp(stored_name, machine_name) == 0) {
+        if (strcmp(stored_name, machine_name) == 0)
+        {
             return i;
         }
     }
     console_log_format("== could not find string id by machine name %s ==", machine_name);
     return SENTRY;
 }
-const char* get_string_text(uint32_t index) {
+const char* get_string_text(uint32_t index)
+{
     if (index >= MAX_STRINGS) return "";
     uint32_t offset = index * MAX_STRING_LENGTH * 2;
     uint32_t info_offset = offset + STRING_DATA_SIZE;
     uint32_t length = g_string_info[info_offset + (uint32_t)STRING_TEXT_LENGTH];
     char slice[length + 1];
-    for (uint32_t j = 0; j < length; j += 1) {
+    for (uint32_t j = 0; j < length; j += 1)
+    {
         slice[j] = g_string_data[offset + j];
     }
     slice[length] = '\0';
     return slice;
 }
-const char* get_string_machine_name(uint32_t index) {
-    if (index >= MAX_STRINGS) {
+const char* get_string_machine_name(uint32_t index)
+{
+    if (index >= MAX_STRINGS)
+    {
         console_log("Tried to get a string beyond what the system holds");
         return "";
     }
@@ -1415,19 +1588,23 @@ const char* get_string_machine_name(uint32_t index) {
     uint32_t info_offset = index * STRING_DATA_SIZE;
     uint32_t length = g_string_info[info_offset + (uint32_t)STRING_MACHINE_NAME_LENGTH];
     char slice[length + 1];
-    for (uint32_t j = 0; j < length; j += 1) {
+    for (uint32_t j = 0; j < length; j += 1)
+    {
         slice[j] = g_string_data[offset + j];
     }
     slice[length] = '\0';
     return slice;
 }
-char* get_string_text_ptr(uint32_t index) {
+char* get_string_text_ptr(uint32_t index)
+{
     if (index >= MAX_STRINGS) return NULL;
     uint32_t offset = index * MAX_STRING_LENGTH * 2;
     return &g_string_data[offset + (uint32_t)MAX_STRING_LENGTH];
 }
-uint32_t get_string_text_len(uint32_t index) {
-    if (index >= MAX_STRINGS) {
+uint32_t get_string_text_len(uint32_t index)
+{
+    if (index >= MAX_STRINGS)
+    {
         console_log("Tried to get the length of a string that doesn't exist");
         console_log_format("Index: %d", index);
         return SENTRY;
@@ -1435,13 +1612,16 @@ uint32_t get_string_text_len(uint32_t index) {
     uint32_t offset = index * STRING_DATA_SIZE;
     return g_string_info[offset + (uint32_t)STRING_TEXT_LENGTH];
 }
-char* get_string_machine_name_ptr(uint32_t index) {
+char* get_string_machine_name_ptr(uint32_t index)
+{
     if (index >= MAX_STRINGS) return NULL;
     uint32_t offset = index * MAX_STRING_LENGTH * 2;
     return &g_string_data[offset];
 }
-uint32_t get_string_machine_name_len(uint32_t index) {
-    if (index >= MAX_STRINGS) {
+uint32_t get_string_machine_name_len(uint32_t index)
+{
+    if (index >= MAX_STRINGS)
+    {
         console_log("Tried to get the length of a string that doesn't exist");
         return SENTRY;
     }
@@ -1452,63 +1632,78 @@ uint32_t get_string_machine_name_len(uint32_t index) {
 // ------------------------------------------------------------------------------------------------ //
 // CANNON FUNCTIONS
 // ------------------------------------------------------------------------------------------------ //
-void set_cannon_name_id(uint32_t index, uint32_t name_id) {
+void set_cannon_name_id(uint32_t index, uint32_t name_id)
+{
     if (index >= MAX_CANNONS) return;
     if (name_id >= MAX_STRINGS) return;
     g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_NAME_ID] = name_id;
 }
-uint32_t get_cannon_name_id(uint32_t index) {
+uint32_t get_cannon_name_id(uint32_t index)
+{
     if (index >= MAX_CANNONS) return SENTRY;
     return g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_NAME_ID];
 }
-const char* get_cannon_machine_name(uint32_t index) {
+const char* get_cannon_machine_name(uint32_t index)
+{
     if (index >= MAX_CANNONS) return "";
     uint32_t name_id = get_cannon_name_id(index);
     return get_string_machine_name(name_id);
 }
-const char* get_cannon_text(uint32_t index) {
+const char* get_cannon_text(uint32_t index)
+{
     if (index >= MAX_CANNONS) return "";
     uint32_t name_id = get_cannon_name_id(index);
     return get_string_text(name_id);
 }
-void set_cannon_range(uint32_t index, uint32_t range) {
+void set_cannon_range(uint32_t index, uint32_t range)
+{
     if (index >= MAX_CANNONS) return;
     g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_RANGE] = range;
 }
-uint32_t get_cannon_range(uint32_t index) {
+uint32_t get_cannon_range(uint32_t index)
+{
     if (index >= MAX_CANNONS) return SENTRY;
     return g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_RANGE];
 }
-void set_cannon_power(uint32_t index, uint32_t power) {
+void set_cannon_power(uint32_t index, uint32_t power)
+{
     if (index >= MAX_CANNONS) return;
     g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_POWER] = power;
 }
-uint32_t get_cannon_power(uint32_t index) {
+uint32_t get_cannon_power(uint32_t index)
+{
     if (index >= MAX_CANNONS) return SENTRY;
     return g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_POWER];
 }
-void set_cannon_base_price(uint32_t index, uint32_t base_price) {
+void set_cannon_base_price(uint32_t index, uint32_t base_price)
+{
     if (index >= MAX_CANNONS) return;
     g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_BASE_PRICE] = base_price;
 }
-uint32_t get_cannon_base_price(uint32_t index) {
+uint32_t get_cannon_base_price(uint32_t index)
+{
     if (index >= MAX_CANNONS) return SENTRY;
     return g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_BASE_PRICE];
 }
-uint32_t get_cannon_pointer(uint32_t index) {
+uint32_t get_cannon_pointer(uint32_t index)
+{
     if (index >= MAX_CANNONS) return SENTRY;
     return (uint32_t)&g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE];
 }
-uint32_t get_cannon_length(void) {
+uint32_t get_cannon_length(void)
+{
     return CANNON_DATA_SIZE;
 }
 
 // ------------------------------------------------------------------------------------------------
 // GENERAL ITEMS
 // ------------------------------------------------------------------------------------------------
-uint32_t get_general_item_id_by_string_id(uint32_t string_id) {
-    for (uint32_t i = 0; i < MAX_GENERAL_ITEMS; ++i) {
-        if (g_general_item_data[i * GENERAL_ITEM_DATA_SIZE + GENERAL_ITEM_NAME_ID] == string_id) {
+uint32_t get_general_item_id_by_string_id(uint32_t string_id)
+{
+    for (uint32_t i = 0; i < MAX_GENERAL_ITEMS; ++i)
+    {
+        if (g_general_item_data[i * GENERAL_ITEM_DATA_SIZE + GENERAL_ITEM_NAME_ID] == string_id)
+        {
             return i;
         }
     }
@@ -1518,12 +1713,14 @@ uint32_t get_general_item_id_by_string_id(uint32_t string_id) {
 // ------------------------------------------------------------------------------------------------ //
 // DISTANCES
 // ------------------------------------------------------------------------------------------------ //
-uint32_t distance_between_coordinates(uint32_t a_x, uint32_t a_y, uint32_t b_x, uint32_t b_y) {
+uint32_t distance_between_coordinates(uint32_t a_x, uint32_t a_y, uint32_t b_x, uint32_t b_y)
+{
     uint32_t dx = (b_x > a_x) ? (b_x - a_x) : (a_x - b_x);
     uint32_t dy = (b_y > a_y) ? (b_y - a_y) : (a_y - b_y);
     return dx + dy;
 }
-bool is_coordinate_in_range_of_coordinate(uint32_t a_x, uint32_t a_y, uint32_t b_x, uint32_t b_y, uint32_t range) {
+bool is_coordinate_in_range_of_coordinate(uint32_t a_x, uint32_t a_y, uint32_t b_x, uint32_t b_y, uint32_t range)
+{
     return distance_between_coordinates(a_x, a_y, b_x, b_y) <= range;
 }
 
@@ -1532,22 +1729,28 @@ bool is_coordinate_in_range_of_coordinate(uint32_t a_x, uint32_t a_y, uint32_t b
 // ------------------------------------------------------------------------------------------------ //
 uint32_t tick_counter = 1;
 uint32_t rng_state = 1;
-uint32_t init_random(uint32_t seed) {
+uint32_t init_random(uint32_t seed)
+{
     rng_state = seed;
     return rng_state;
 }
-uint32_t get_random_number(uint32_t min, uint32_t max) {
+uint32_t get_random_number(uint32_t min, uint32_t max)
+{
     uint32_t rng_state = init_random(tick_counter);
     uint32_t adjusted_max = max;
-    if (min == max) {
+    if (min == max)
+    {
         adjusted_max = 100;
     }
     uint32_t range = adjusted_max - min + 1;
     uint32_t result = min + (rng_state % range);
     
-    if (tick_counter == UINT32_MAX) {
+    if (tick_counter == UINT32_MAX)
+    {
         tick_counter = 1;
-    } else {
+    }
+    else
+    {
         tick_counter++;
     }
     
@@ -1557,126 +1760,176 @@ uint32_t get_random_number(uint32_t min, uint32_t max) {
 // ------------------------------------------------------------------------------------------------ //
 // INPUT
 // ------------------------------------------------------------------------------------------------ //
-void user_input_right() {
+void user_input_right()
+{
     handle_input(USER_INPUT_RIGHT);
 }
-void user_input_left() {
+void user_input_left()
+{
     handle_input(USER_INPUT_LEFT);
 }
-void user_input_up() {
+void user_input_up()
+{
     handle_input(USER_INPUT_UP);
 }
-void user_input_down() {
+void user_input_down()
+{
     handle_input(USER_INPUT_DOWN);
 }
-void user_input_a() {
+void user_input_a()
+{
     handle_input(USER_INPUT_A);
 }
-void user_input_start() {
+void user_input_start()
+{
     console_log("START BUTTON PRESSED");
     // TODO: Pause the game/tick
 }
-void user_input_number(uint32_t number) {
+void user_input_number(uint32_t number)
+{
     // Note: This is a bit weird but we are essentially setting the user number and then passing off the "event" to the handler
     current_user_input_number = number;
     handle_input(USER_INPUT_CUSTOM_NUMBER);
 }
 void handle_interaction_scene(uint32_t interaction_scene, uint32_t world_npc_id)
 {
-    if (interaction_scene == SCENE_BLACKJACK) {
+    if (interaction_scene == SCENE_BLACKJACK)
+    {
         set_current_scene_triggered_by_world_npc_id(world_npc_id);
         scene_blackjack(SCENE_ACTION_INIT);
-    } else if (interaction_scene == SCENE_GENERAL_SHOP) {
+    }
+    else if (interaction_scene == SCENE_GENERAL_SHOP)
+    {
         set_current_scene_triggered_by_world_npc_id(world_npc_id);
         scene_general_shop(SCENE_ACTION_INIT);
-    } else if (interaction_scene == SCENE_OCEAN_BATTLE) {
+    }
+    else if (interaction_scene == SCENE_OCEAN_BATTLE)
+    {
         set_current_scene_triggered_by_world_npc_id(world_npc_id);
         scene_ocean_battle(SCENE_ACTION_INIT);
-    } else if (interaction_scene == SCENE_NPC_RVICE) {
+    }
+    else if (interaction_scene == SCENE_NPC_RVICE)
+    {
         set_current_scene_triggered_by_world_npc_id(world_npc_id);
         scene_npc_rvice(SCENE_ACTION_INIT);
-    } else if (interaction_scene == SCENE_NPC_LAFOLIE) {
+    }
+    else if (interaction_scene == SCENE_NPC_LAFOLIE)
+    {
         set_current_scene_triggered_by_world_npc_id(world_npc_id);
         scene_npc_lafolie(SCENE_ACTION_INIT);
-    } else if (interaction_scene == SCENE_NPC_NAKOR) {
+    }
+    else if (interaction_scene == SCENE_NPC_NAKOR)
+    {
         set_current_scene_triggered_by_world_npc_id(world_npc_id);
         scene_npc_nakor(SCENE_ACTION_INIT);
-    } else if (interaction_scene == SCENE_NPC_TRAVIS) {
+    }
+    else if (interaction_scene == SCENE_NPC_TRAVIS)
+    {
         set_current_scene_triggered_by_world_npc_id(world_npc_id);
         scene_npc_travis(SCENE_ACTION_INIT);
-    } else if (interaction_scene == SCENE_NPC_LOLLER) {
+    }
+    else if (interaction_scene == SCENE_NPC_LOLLER)
+    {
         set_current_scene_triggered_by_world_npc_id(world_npc_id);
         scene_npc_loller(SCENE_ACTION_INIT);
-    } else if (interaction_scene == SCENE_BANK) {
+    }
+    else if (interaction_scene == SCENE_BANK)
+    {
         set_current_scene_triggered_by_world_npc_id(world_npc_id);
         scene_bank(SCENE_ACTION_INIT);
     }
 }
-void handle_input(uint32_t input) {
+void handle_input(uint32_t input)
+{
     // TODO: If current_game_mode is GAME_MODE_IN_PORT etc...
     // NOTE: Apparenty you have to declare variables up here, NOT INSIDE THE CASE FUNCTIONS THEMSELVES
-    if (current_game_mode == GAME_MODE_IN_PORT) {
+    if (current_game_mode == GAME_MODE_IN_PORT)
+    {
         uint32_t world_npc_id = get_player_in_world(0);
         uint32_t current_world_x = get_world_npc_x(world_npc_id);
         uint32_t current_world_y = get_world_npc_y(world_npc_id);
         uint32_t current_world_direction = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_DIRECTION];
-        switch (input) {
+        switch (input)
+        {
             case USER_INPUT_A:
-                if (current_world_direction == DIRECTION_UP) {
-                    if (current_world_y > 0) {
+                if (current_world_direction == DIRECTION_UP) 
+                {
+                    if (current_world_y > 0)
+                    {
                         uint32_t intended_y = current_world_y - 1;
-                        for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i) {
-                            if (i == world_npc_id) {
+                        for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
+                        {
+                            if (i == world_npc_id)
+                            {
                                 continue;
                             }
                             uint32_t other_world_x = get_world_npc_x(i);
                             uint32_t other_world_y = get_world_npc_y(i);
-                            if (other_world_x == current_world_x && other_world_y == intended_y) {
+                            if (other_world_x == current_world_x && other_world_y == intended_y)
+                            {
                                 uint32_t interaction_scene = g_world_npc_data[i * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_INTERACTION_SCENE];
                                 handle_interaction_scene(interaction_scene, i);
                             }
                         }
                     }
-                } else if (current_world_direction == DIRECTION_DOWN) {
-                    if (current_world_y < get_current_world_height()) {
+                }
+                else if (current_world_direction == DIRECTION_DOWN)
+                {
+                    if (current_world_y < get_current_world_height())
+                    {
                         uint32_t intended_y = current_world_y + 1;
-                        for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i) {
-                            if (i == world_npc_id) {
+                        for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
+                        {
+                            if (i == world_npc_id)
+                            {
                                 continue;
                             }
                             uint32_t other_world_x = get_world_npc_x(i);
                             uint32_t other_world_y = get_world_npc_y(i);
-                            if (other_world_x == current_world_x && other_world_y == intended_y) {
+                            if (other_world_x == current_world_x && other_world_y == intended_y)
+                            {
                                 uint32_t interaction_scene = g_world_npc_data[i * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_INTERACTION_SCENE];
                                 handle_interaction_scene(interaction_scene, i);
                             }
                         }
                     }
-                } else if (current_world_direction == DIRECTION_LEFT) {
-                    if (current_world_x > 0) {
+                }
+                else if (current_world_direction == DIRECTION_LEFT)
+                {
+                    if (current_world_x > 0)
+                    {
                         uint32_t intended_x = current_world_x - 1;
-                        for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i) {
-                            if (i == world_npc_id) {
+                        for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
+                        {
+                            if (i == world_npc_id)
+                            {
                                 continue;
                             }
                             uint32_t other_world_x = get_world_npc_x(i);
                             uint32_t other_world_y = get_world_npc_y(i);
-                            if (other_world_x == intended_x && other_world_y == current_world_y) {
+                            if (other_world_x == intended_x && other_world_y == current_world_y)
+                            {
                                 uint32_t interaction_scene = g_world_npc_data[i * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_INTERACTION_SCENE];
                                 handle_interaction_scene(interaction_scene, i);
                             }
                         }
                     }
-                } else if (current_world_direction == DIRECTION_RIGHT) {
-                    if (current_world_x < get_current_world_width()) {
+                }
+                else if (current_world_direction == DIRECTION_RIGHT)
+                {
+                    if (current_world_x < get_current_world_width())
+                    {
                         uint32_t intended_x = current_world_x + 1;
-                        for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i) {
-                            if (i == world_npc_id) {
+                        for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
+                        {
+                            if (i == world_npc_id)
+                            {
                                 continue;
                             }
                             uint32_t other_world_x = get_world_npc_x(i);
                             uint32_t other_world_y = get_world_npc_y(i);
-                            if (other_world_x == intended_x && other_world_y == current_world_y) {
+                            if (other_world_x == intended_x && other_world_y == current_world_y)
+                            {
                                 uint32_t interaction_scene = g_world_npc_data[i * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_INTERACTION_SCENE];
                                 handle_interaction_scene(interaction_scene, i);
                             }
@@ -1690,25 +1943,29 @@ void handle_input(uint32_t input) {
                 // printf("Button pressed: %d\n", data->type);
                 break;
             case USER_INPUT_UP:
-                if (current_game_mode != GAME_MODE_IN_SCENE) {
+                if (current_game_mode != GAME_MODE_IN_SCENE)
+                {
                     move_player_up(0);
                     update_camera();
                 }
                 break;
             case USER_INPUT_DOWN:
-                if (current_game_mode != GAME_MODE_IN_SCENE) {
+                if (current_game_mode != GAME_MODE_IN_SCENE)
+                {
                     move_player_down(0);
                     update_camera();
                 }
                 break;
             case USER_INPUT_LEFT:
-                if (current_game_mode != GAME_MODE_IN_SCENE) {
+                if (current_game_mode != GAME_MODE_IN_SCENE)
+                {
                     move_player_left(0);
                     update_camera();
                 }
                 break;
             case USER_INPUT_RIGHT:
-                if (current_game_mode != GAME_MODE_IN_SCENE) {
+                if (current_game_mode != GAME_MODE_IN_SCENE)
+                {
                     move_player_right(0);
                     update_camera();
                 }
@@ -1738,8 +1995,10 @@ void handle_input(uint32_t input) {
 // SHOULD REDRAW
 // ------------------------------------------------------------------------------------------------ //
 enum ShouldRedraw should_redraw = SHOULD_REDRAW_NOTHING;
-uint32_t renderer_should_redraw() {
-    if (should_redraw > 0) {
+uint32_t renderer_should_redraw()
+{
+    if (should_redraw > 0)
+    {
         enum ShouldRedraw original_should_redraw = should_redraw;
         should_redraw = SHOULD_REDRAW_NOTHING;
         return original_should_redraw;
@@ -1747,7 +2006,8 @@ uint32_t renderer_should_redraw() {
 
     return 0;
 }
-void should_redraw_everything() {
+void should_redraw_everything()
+{
     should_redraw = SHOULD_REDRAW_EVERYTHING;
 }
 
@@ -1766,77 +2026,99 @@ uint8_t* output_string_buffer;
 #define INPUT_STRING_BUFFER_SIZE 1024
 uint32_t input_array_buffer[INPUT_ARRAY_BUFFER_SIZE];
 uint8_t input_string_buffer[INPUT_STRING_BUFFER_SIZE];
-void to_output_string_buffer(const char* message) {
-    if (message != NULL) {
+void to_output_string_buffer(const char* message)
+{
+    if (message != NULL)
+    {
         js_output_string_buffer((void*)message, (uint32_t)(sizeof(char) * strlen(message)));
     }
 }
-void to_output_array_buffer(uint32_t array[]) {
-    for (int i = 0; i < OUTPUT_ARRAY_BUFFER_SIZE; ++i) {
+void to_output_array_buffer(uint32_t array[])
+{
+    for (int i = 0; i < OUTPUT_ARRAY_BUFFER_SIZE; ++i)
+    {
         output_array_buffer[i] = array[i];
     }
     js_output_array_buffer(output_array_buffer, OUTPUT_ARRAY_BUFFER_SIZE * sizeof(uint32_t));
 }
-void set_input_string_buffer_length(uint32_t length) {
+void set_input_string_buffer_length(uint32_t length)
+{
     input_string_buffer_length = length;
 }
-void set_input_array_buffer_length(uint32_t length) {
+void set_input_array_buffer_length(uint32_t length)
+{
     input_array_buffer_length = length;
 }
-uint8_t* get_input_string_buffer_ptr() {
+uint8_t* get_input_string_buffer_ptr()
+{
     return input_string_buffer;
 }
-uint32_t* get_input_array_buffer_ptr() {
+uint32_t* get_input_array_buffer_ptr()
+{
     return input_array_buffer;
 }
-uint8_t* get_output_string_buffer_ptr() {
+uint8_t* get_output_string_buffer_ptr()
+{
     return output_string_buffer;
 }
-uint32_t* get_output_array_buffer_ptr() {
+uint32_t* get_output_array_buffer_ptr()
+{
     return output_array_buffer;
 }
-uint32_t get_input_string_buffer_len() {
+uint32_t get_input_string_buffer_len()
+{
     return INPUT_STRING_BUFFER_SIZE;
 }
-uint32_t get_input_array_buffer_len() {
+uint32_t get_input_array_buffer_len()
+{
     return INPUT_ARRAY_BUFFER_SIZE;
 }
-char* format_input_string() {
+char* format_input_string()
+{
     static char formatted[256];
     // somehow clear formatted using NOT stdlib functions
-    for (uint32_t i = 0; i < 256; ++i) {
+    for (uint32_t i = 0; i < 256; ++i)
+    {
         formatted[i] = 0;
     }
     
     char* input = (char*)input_string_buffer;
-    if (input == NULL) {
+    if (input == NULL)
+    {
         console_log("Warning: Input string is NULL");
         return formatted;
     }
     
     uint32_t len = strlen(input);
-    for (uint32_t i = 0; i < len && i < 255; i++) {
+    for (uint32_t i = 0; i < len && i < 255; i++)
+    {
         formatted[i] = input[i];
     }
     formatted[255] = '\0';
     
     return formatted;
 }
-void write_to_output_buffer(char* str) {
-    for (uint32_t i = 0; i < OUTPUT_STRING_BUFFER_SIZE; ++i) {
+void write_to_output_buffer(char* str)
+{
+    for (uint32_t i = 0; i < OUTPUT_STRING_BUFFER_SIZE; ++i)
+    {
         output_string_buffer[i] = 0;
     }
-    for (uint32_t i = 0; i < strlen(str); ++i) {
+    for (uint32_t i = 0; i < strlen(str); ++i)
+    {
         output_string_buffer[i] = str[i];
     }
 }
-uint32_t find_string_id_by_machine_name_from_input() {
+uint32_t find_string_id_by_machine_name_from_input()
+{
     char* input = (char*)input_string_buffer;
     input[input_string_buffer_length] = '\0';
-    for (uint32_t i = input_string_buffer_length + 1; i < INPUT_STRING_BUFFER_SIZE; i++) {
+    for (uint32_t i = input_string_buffer_length + 1; i < INPUT_STRING_BUFFER_SIZE; i++)
+    {
         input[i] = '\0';
     }
-    if (input == NULL) {
+    if (input == NULL)
+    {
         console_log("Warning: Input string is NULL");
         return SENTRY;
     }
@@ -1848,8 +2130,10 @@ uint32_t find_string_id_by_machine_name_from_input() {
 // ------------------------------------------------------------------------------------------------
 // CAMERA
 // ------------------------------------------------------------------------------------------------
-void move_camera_down() {
-    if (current_world == SENTRY) {
+void move_camera_down()
+{
+    if (current_world == SENTRY)
+    {
         return;
     }
     uint32_t map_height = g_world_data[current_world * WORLD_DATA_SIZE + WORLD_HEIGHT];
@@ -1858,13 +2142,16 @@ void move_camera_down() {
     uint32_t max_camera_offset_y = max(0, map_height - viewport_height);
     
     // Check if moving down would exceed the map bounds
-    if (camera_offset_y < max_camera_offset_y) {
+    if (camera_offset_y < max_camera_offset_y)
+    {
         camera_offset_y += 1;
         should_redraw_everything();
     }
 }
-void move_camera_right() {
-    if (current_world == SENTRY) {
+void move_camera_right()
+{
+    if (current_world == SENTRY)
+    {
         return;
     }
     uint32_t map_width = g_world_data[current_world * WORLD_DATA_SIZE + WORLD_WIDTH];
@@ -1873,35 +2160,47 @@ void move_camera_right() {
     uint32_t max_camera_offset_x = max(0, map_width - viewport_width);
     
     // Check if moving right would exceed the map bounds
-    if (camera_offset_x < max_camera_offset_x) {
+    if (camera_offset_x < max_camera_offset_x)
+    {
         camera_offset_x += 1;
         should_redraw_everything();
     }
 }
-void move_camera_up() {
-    if (camera_offset_y > 0) {
+void move_camera_up()
+{
+    if (camera_offset_y > 0)
+    {
         camera_offset_y -= 1;
         should_redraw_everything();
     }
 }
-void move_camera_left() {
-    if (camera_offset_x > 0) {
+void move_camera_left()
+{
+    if (camera_offset_x > 0)
+    {
         camera_offset_x -= 1;
         should_redraw_everything();
     }
 }
-void update_camera() {
+void update_camera()
+{
     uint32_t world_npc_id = get_player_in_world(0);
     uint32_t player_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
     uint32_t player_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
-    if (is_world_coordinate_halfway_of_viewport_more_than_x(player_x)) {
+    if (is_world_coordinate_halfway_of_viewport_more_than_x(player_x))
+    {
         move_camera_right();
-    } else if (is_world_coordinate_halfway_of_viewport_less_than_x(player_x) && camera_offset_x > 0) {
+    }
+    else if (is_world_coordinate_halfway_of_viewport_less_than_x(player_x) && camera_offset_x > 0)
+    {
         move_camera_left();
     }
-    if (is_world_coordinate_halfway_of_viewport_more_than_y(player_y)) {
+    if (is_world_coordinate_halfway_of_viewport_more_than_y(player_y))
+    {
         move_camera_down();
-    } else if (is_world_coordinate_halfway_of_viewport_less_than_y(player_y) && camera_offset_y > 0) {
+    }
+    else if (is_world_coordinate_halfway_of_viewport_less_than_y(player_y) && camera_offset_y > 0)
+    {
         move_camera_up();
     }
     should_redraw_everything();
@@ -1910,44 +2209,57 @@ void update_camera() {
 // ------------------------------------------------------------------------------------------------
 // VIEWPORT
 // ------------------------------------------------------------------------------------------------
-void set_viewport_size(uint32_t width, uint32_t height) {
+void set_viewport_size(uint32_t width, uint32_t height)
+{
     viewport_width = width;
     viewport_height = height;
 }
-uint32_t get_viewport_width() {
+uint32_t get_viewport_width()
+{
     return viewport_width;
 }
-uint32_t get_viewport_height() {
+uint32_t get_viewport_height()
+{
     return viewport_height;
 }
-uint32_t get_viewport_value_at_coordinates(uint32_t layer_index, uint32_t x, uint32_t y) {
-    if (current_world == SENTRY) {
+uint32_t get_viewport_value_at_coordinates(uint32_t layer_index, uint32_t x, uint32_t y)
+{
+    if (current_world == SENTRY)
+    {
         return SENTRY;
     }
     uint32_t world_width = g_world_data[current_world * WORLD_DATA_SIZE + WORLD_WIDTH];
     uint32_t world_height = g_world_data[current_world * WORLD_DATA_SIZE + WORLD_HEIGHT];
     uint32_t x_padding = 0;
     uint32_t y_padding = 0;
-    if (viewport_width > world_width) {
+    if (viewport_width > world_width)
+    {
         x_padding = (viewport_width - world_width) / 2;
     }
-    if (viewport_height > world_height) {
+    if (viewport_height > world_height)
+    {
         y_padding = (viewport_height - world_height) / 2;
     }
     uint32_t x_offset = x - x_padding;
     uint32_t y_offset = y - y_padding;
     x_offset += camera_offset_x;
     y_offset += camera_offset_y;
-    if (x_offset < 0 || y_offset < 0 || x_offset >= world_width || y_offset >= world_height) {
+    if (x_offset < 0 || y_offset < 0 || x_offset >= world_width || y_offset >= world_height)
+    {
         // console_log_format("Off the edge of viewport %d %d %d %d", x_offset, y_offset, world_width, world_height);
         return SENTRY;
     }
 
     const char* machine_name = get_layer_machine_name(layer_index);
-    if (strcmp("npc_layer", machine_name) == 0) {
-        for (uint32_t i = 0; i < MAX_WORLD_NPCS; i++) {
-            if (g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] == x_offset &&
-                g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] == y_offset) {
+    if (strcmp("npc_layer", machine_name) == 0)
+    {
+        for (uint32_t i = 0; i < MAX_WORLD_NPCS; i++)
+        {
+            if (
+                g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] == x_offset &&
+                g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] == y_offset
+            )
+            {
                 // return g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_NPC_ID];
                 return i;
             }
@@ -1955,76 +2267,92 @@ uint32_t get_viewport_value_at_coordinates(uint32_t layer_index, uint32_t x, uin
         return SENTRY;
     }
 
-    if (get_layer_same_value(layer_index) != SENTRY) {
+    if (get_layer_same_value(layer_index) != SENTRY)
+    {
         return get_layer_same_value(layer_index);
     }
     uint32_t value = get_layer_data_by_coordinates(layer_index, x_offset, y_offset);
     return value;
 }
-bool is_world_coordinate_in_viewport(uint32_t x, uint32_t y) {
+bool is_world_coordinate_in_viewport(uint32_t x, uint32_t y)
+{
     return x >= camera_offset_x && x < camera_offset_x + viewport_width &&
            y >= camera_offset_y && y < camera_offset_y + viewport_height;
 }
-uint32_t is_world_coordinate_halfway_of_viewport_more_than_x(uint32_t x) {
+uint32_t is_world_coordinate_halfway_of_viewport_more_than_x(uint32_t x)
+{
     uint32_t halfway_x = camera_offset_x + viewport_width / 2;
     return x > halfway_x;
 }
-uint32_t is_world_coordinate_halfway_of_viewport_more_than_y(uint32_t y) {
+uint32_t is_world_coordinate_halfway_of_viewport_more_than_y(uint32_t y)
+{
     uint32_t halfway_y = camera_offset_y + viewport_height / 2;
     return y > halfway_y;
 }
-uint32_t is_world_coordinate_halfway_of_viewport_less_than_x(uint32_t x) {
+uint32_t is_world_coordinate_halfway_of_viewport_less_than_x(uint32_t x)
+{
     uint32_t halfway_x = camera_offset_x + viewport_width / 2;
     return x < halfway_x;
 }
-uint32_t is_world_coordinate_halfway_of_viewport_less_than_y(uint32_t y) {
+uint32_t is_world_coordinate_halfway_of_viewport_less_than_y(uint32_t y)
+{
     uint32_t halfway_y = camera_offset_y + viewport_height / 2;
     return y < halfway_y;
 }
-uint32_t get_world_coordinate_x_from_viewport_coordinate(uint32_t x, uint32_t y) {
-    if (current_world == SENTRY) {
+uint32_t get_world_coordinate_x_from_viewport_coordinate(uint32_t x, uint32_t y)
+{
+    if (current_world == SENTRY)
+    {
         return SENTRY;
     }
     uint32_t world_width = g_world_data[current_world * WORLD_DATA_SIZE + WORLD_WIDTH];
     uint32_t world_height = g_world_data[current_world * WORLD_DATA_SIZE + WORLD_HEIGHT];
     uint32_t x_padding = 0;
     uint32_t y_padding = 0;
-    if (viewport_width > world_width) {
+    if (viewport_width > world_width)
+    {
         x_padding = (viewport_width - world_width) / 2;
     }
-    if (viewport_height > world_height) {
+    if (viewport_height > world_height)
+    {
         y_padding = (viewport_height - world_height) / 2;
     }
     uint32_t x_offset = x - x_padding;
     uint32_t y_offset = y - y_padding;
     x_offset += camera_offset_x;
     y_offset += camera_offset_y;
-    if (x_offset < 0 || y_offset < 0 || x_offset >= world_width || y_offset >= world_height) {
+    if (x_offset < 0 || y_offset < 0 || x_offset >= world_width || y_offset >= world_height)
+    {
         // console_log_format("Off the edge of viewport %d %d %d %d", x_offset, y_offset, world_width, world_height);
         return SENTRY;
     }
 
     return x_offset;
 }
-uint32_t get_world_coordinate_y_from_viewport_coordinate(uint32_t x, uint32_t y) {
-    if (current_world == SENTRY) {
+uint32_t get_world_coordinate_y_from_viewport_coordinate(uint32_t x, uint32_t y)
+{
+    if (current_world == SENTRY)
+    {
         return SENTRY;
     }
     uint32_t world_width = g_world_data[current_world * WORLD_DATA_SIZE + WORLD_WIDTH];
     uint32_t world_height = g_world_data[current_world * WORLD_DATA_SIZE + WORLD_HEIGHT];
     uint32_t x_padding = 0;
     uint32_t y_padding = 0;
-    if (viewport_width > world_width) {
+    if (viewport_width > world_width)
+    {
         x_padding = (viewport_width - world_width) / 2;
     }
-    if (viewport_height > world_height) {
+    if (viewport_height > world_height)
+    {
         y_padding = (viewport_height - world_height) / 2;
     }
     uint32_t x_offset = x - x_padding;
     uint32_t y_offset = y - y_padding;
     x_offset += camera_offset_x;
     y_offset += camera_offset_y;
-    if (x_offset < 0 || y_offset < 0 || x_offset >= world_width || y_offset >= world_height) {
+    if (x_offset < 0 || y_offset < 0 || x_offset >= world_width || y_offset >= world_height)
+    {
         // console_log_format("Off the edge of viewport %d %d %d %d", x_offset, y_offset, world_width, world_height);
         return SENTRY;
     }
@@ -2035,74 +2363,95 @@ uint32_t get_world_coordinate_y_from_viewport_coordinate(uint32_t x, uint32_t y)
 // ------------------------------------------------------------------------------------------------ //
 // WORLDS & LAYERS
 // ------------------------------------------------------------------------------------------------ //
-uint32_t get_current_world_width() {
+uint32_t get_current_world_width()
+{
     return g_world_data[current_world * WORLD_DATA_SIZE + WORLD_WIDTH];
 }
-uint32_t get_current_world_height() {
+uint32_t get_current_world_height()
+{
     return g_world_data[current_world * WORLD_DATA_SIZE + WORLD_HEIGHT];
 }
-uint32_t get_current_world_total_layers() {
+uint32_t get_current_world_total_layers()
+{
     return g_world_data[current_world * WORLD_DATA_SIZE + WORLD_TOTAL_LAYERS];
 }
-uint32_t get_layer_width(uint32_t layer_index) {
+uint32_t get_layer_width(uint32_t layer_index)
+{
     return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_WIDTH];
 }
-uint32_t get_layer_height(uint32_t layer_index) {
+uint32_t get_layer_height(uint32_t layer_index)
+{
     return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_HEIGHT];
 }
-uint32_t get_layer_global_world_data_offset(uint32_t layer_index) {
+uint32_t get_layer_global_world_data_offset(uint32_t layer_index)
+{
     return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_GLOBAL_WORLD_DATA_OFFSET];
 }
-uint32_t get_layer_is_block(uint32_t layer_index) {
+uint32_t get_layer_is_block(uint32_t layer_index)
+{
     return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_IS_BLOCK];
 }
-uint32_t get_layer_name_id(uint32_t layer_index) {
+uint32_t get_layer_name_id(uint32_t layer_index)
+{
     return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_NAME_ID];
 }
-uint32_t get_layer_type(uint32_t layer_index) {
+uint32_t get_layer_type(uint32_t layer_index)
+{
     return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_TYPE];
 }
-uint32_t get_layer_same_value(uint32_t layer_index) {
+uint32_t get_layer_same_value(uint32_t layer_index)
+{
     return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_SAME_VALUE];
 }
-const char* get_layer_machine_name(uint32_t layer_index) {
+const char* get_layer_machine_name(uint32_t layer_index)
+{
     uint32_t name_id = get_layer_name_id(layer_index);
     return get_string_machine_name(name_id);
 }
-uint32_t find_layer_id_by_string_id(uint32_t string_id) {
-    for (uint32_t i = 0; i < MAX_LAYERS; ++i) {
-        if (g_layer_data[i * LAYER_DATA_SIZE + LAYER_NAME_ID] == string_id) {
+uint32_t find_layer_id_by_string_id(uint32_t string_id)
+{
+    for (uint32_t i = 0; i < MAX_LAYERS; ++i)
+    {
+        if (g_layer_data[i * LAYER_DATA_SIZE + LAYER_NAME_ID] == string_id)
+        {
             return i;
         }
     }
     return SENTRY;
 }
-uint32_t get_layer_id_by_machine_name(char* machine_name) {
+uint32_t get_layer_id_by_machine_name(char* machine_name)
+{
     for (uint32_t i = 0; i < MAX_LAYERS; ++i) {
         uint32_t offset = i * LAYER_DATA_SIZE;
         uint32_t name_id = g_layer_data[offset + LAYER_NAME_ID];
         const char* grabbed_machine_name = get_string_machine_name(name_id);
-        if (strcmp(machine_name, grabbed_machine_name) == 0) {
+        if (strcmp(machine_name, grabbed_machine_name) == 0)
+        {
             return i;
         }
     }
     return SENTRY;
 }
-uint32_t are_coordinates_blocked(uint32_t x, uint32_t y) {
+uint32_t are_coordinates_blocked(uint32_t x, uint32_t y)
+{
     for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i) {
         uint32_t offset = i * WORLD_NPC_DATA_SIZE;
-        if (g_world_npc_data[offset + WORLD_NPC_IS_PLAYER] == true) {
+        if (g_world_npc_data[offset + WORLD_NPC_IS_PLAYER] == true)
+        {
             continue;
         }
-        if (g_world_npc_data[offset + WORLD_NPC_POSITION_X] == x && g_world_npc_data[offset + WORLD_NPC_POSITION_Y] == y) {
+        if (g_world_npc_data[offset + WORLD_NPC_POSITION_X] == x && g_world_npc_data[offset + WORLD_NPC_POSITION_Y] == y)
+        {
             return 1;
         }
     }
 
     uint32_t block_layer_id = get_layer_id_by_machine_name("block_layer");
-    if (block_layer_id != SENTRY) {
+    if (block_layer_id != SENTRY)
+    {
         uint32_t layer_value = get_layer_data_by_coordinates(block_layer_id, x, y);
-        if (layer_value > 0 && layer_value != SENTRY) {
+        if (layer_value > 0 && layer_value != SENTRY)
+        {
             return 1;
         }
     }
@@ -2118,14 +2467,17 @@ void generate_world(char* world_name)
         current_game_mode = GAME_MODE_IN_PORT;
 
         uint32_t world_name_id = get_string_id_by_machine_name("athens");
-        for (uint32_t i = 0; i < MAX_WORLDS; i++) {
+        for (uint32_t i = 0; i < MAX_WORLDS; i++)
+        {
             uint32_t index = i * WORLD_DATA_SIZE;
-            if (g_world_data[index + WORLD_NAME_ID] == world_name_id) {
+            if (g_world_data[index + WORLD_NAME_ID] == world_name_id)
+            {
                 current_world = i;
                 break;
             }
         }
-        if (current_world == SENTRY) {
+        if (current_world == SENTRY)
+        {
             console_log_format("Could not find world %s", world_name);
         }
 
@@ -2185,19 +2537,20 @@ void generate_world(char* world_name)
         add_value_to_global_world_data(layer_id, 7, 2, 38);
         add_value_to_global_world_data(layer_id, 0, 3, 33);
         add_value_to_global_world_data(layer_id, 0, 4, 33);
-        add_value_to_global_world_data(layer_id, 5, 3, 34);
-        add_value_to_global_world_data(layer_id, 5, 4, 34);
-        for (uint32_t column = 1; column < 7; ++column) {
+        for (uint32_t column = 1; column < 7; ++column)
+        {
             add_value_to_global_world_data(layer_id, column, 2, 37);
         }
-        for (uint32_t column = 1; column < 7; ++column) {
+        for (uint32_t column = 1; column < 7; ++column)
+        {
             add_value_to_global_world_data(layer_id, column, 3, 34);
             add_value_to_global_world_data(layer_id, column, 4, 34);
         }
         add_value_to_global_world_data(layer_id, 7, 3, 35);
         add_value_to_global_world_data(layer_id, 7, 4, 35);
         add_value_to_global_world_data(layer_id, 0, 5, 39);
-        for (uint32_t column = 1; column < 7; ++column) {
+        for (uint32_t column = 1; column < 7; ++column)
+        {
             add_value_to_global_world_data(layer_id, column, 5, 40);
         }
         add_value_to_global_world_data(layer_id, 7, 5, 41);
@@ -2382,7 +2735,9 @@ void generate_world(char* world_name)
         create_world_npc(world_npc_data, true);
 
         should_redraw_everything();
-    } else {
+    }
+    else
+    {
         console_log_format("Could not find world %s", world_name);
     }
 }
@@ -2390,19 +2745,24 @@ void generate_world(char* world_name)
 // ------------------------------------------------------------------------------------------------
 // NPCS
 // ------------------------------------------------------------------------------------------------
-uint32_t get_npc_id_by_machine_name(char* machine_name) {
-    for (uint32_t i = 0; i < MAX_NPCS; i++) {
-        if (g_npc_data[i * NPC_DATA_SIZE + NPC_NAME_ID] == get_string_id_by_machine_name(machine_name)) {
+uint32_t get_npc_id_by_machine_name(char* machine_name)
+{
+    for (uint32_t i = 0; i < MAX_NPCS; i++)
+    {
+        if (g_npc_data[i * NPC_DATA_SIZE + NPC_NAME_ID] == get_string_id_by_machine_name(machine_name))
+        {
             return i;
         }
     }
     return SENTRY;
 }
-uint32_t get_npc_name_id(uint32_t npc_id) {
+uint32_t get_npc_name_id(uint32_t npc_id)
+{
     uint32_t offset = npc_id * NPC_DATA_SIZE;
     return g_npc_data[offset + NPC_NAME_ID];
 }
-uint32_t get_npc_type(uint32_t npc_id) {
+uint32_t get_npc_type(uint32_t npc_id)
+{
     uint32_t offset = npc_id * NPC_DATA_SIZE;
     return g_npc_data[offset + NPC_TYPE];
 }
@@ -2410,76 +2770,95 @@ uint32_t get_npc_type(uint32_t npc_id) {
 // ------------------------------------------------------------------------------------------------
 // WORLD NPCS
 // ------------------------------------------------------------------------------------------------
-uint32_t get_world_npc_x(uint32_t world_npc_id) {
+uint32_t get_world_npc_x(uint32_t world_npc_id)
+{
     return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
 }
-uint32_t get_world_npc_y(uint32_t world_npc_id) {
+uint32_t get_world_npc_y(uint32_t world_npc_id)
+{
     return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
 }
-uint32_t get_world_npc_inventory_id(uint32_t world_npc_id) {
+uint32_t get_world_npc_inventory_id(uint32_t world_npc_id)
+{
     return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_INVENTORY_ID];
 }
-uint32_t get_world_npc_type(uint32_t world_npc_id) {
+uint32_t get_world_npc_type(uint32_t world_npc_id)
+{
     uint32_t npc_id = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_NPC_ID];
-    if (npc_id != SENTRY) {
+    if (npc_id != SENTRY)
+    {
         return get_npc_type(npc_id);
     }
     return SENTRY;
 }
-uint32_t get_world_npc_name_id(uint32_t world_npc_id) {
+uint32_t get_world_npc_name_id(uint32_t world_npc_id)
+{
     uint32_t npc_id = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_NPC_ID];
-    if (npc_id != SENTRY) {
+    if (npc_id != SENTRY)
+    {
         return get_npc_name_id(npc_id);
     }
     return SENTRY;
 }
-void clear_world_npc(uint32_t world_npc_id) {
+void clear_world_npc(uint32_t world_npc_id)
+{
     uint32_t offset = world_npc_id * WORLD_NPC_DATA_SIZE;
-    for (uint32_t i = 0; i < WORLD_NPC_DATA_SIZE; ++i) {
+    for (uint32_t i = 0; i < WORLD_NPC_DATA_SIZE; ++i)
+    {
         g_world_npc_data[offset + i] = SENTRY;
     }
     --g_world_npc_count;
 }
-uint32_t get_world_npc_entity_id(uint32_t world_npc_id) {
+uint32_t get_world_npc_entity_id(uint32_t world_npc_id)
+{
     return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_ENTITY_ID];
 }
-void move_world_npc_to(uint32_t world_npc_id, uint32_t x, uint32_t y) {
+void move_world_npc_to(uint32_t world_npc_id, uint32_t x, uint32_t y)
+{
     console_log_format("Moving world npc id %d to x %d and y %d", world_npc_id, x, y);
     g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = x;
     g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = y;
 }
-void move_world_npc_left(uint32_t world_npc_id) {
+void move_world_npc_left(uint32_t world_npc_id)
+{
     uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
     uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
     uint32_t intended_x = current_x - 1;
-    if (current_x > 0 && are_coordinates_blocked(intended_x, current_y) != 1) {
+    if (current_x > 0 && are_coordinates_blocked(intended_x, current_y) != 1)
+    {
         g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = intended_x;
     }
     g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_LEFT;
 }
-void move_world_npc_right(uint32_t world_npc_id) {
+void move_world_npc_right(uint32_t world_npc_id)
+{
     uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
     uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
     uint32_t intended_x = current_x + 1;
-    if (intended_x < get_current_world_width() && are_coordinates_blocked(intended_x, current_y) != 1) {
+    if (intended_x < get_current_world_width() && are_coordinates_blocked(intended_x, current_y) != 1)
+    {
         g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = intended_x;
     }
     g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_RIGHT;
 }
-void move_world_npc_up(uint32_t world_npc_id) {
+void move_world_npc_up(uint32_t world_npc_id)
+{
     uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
     uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
     uint32_t intended_y = current_y - 1;
-    if (current_y > 0 && are_coordinates_blocked(current_x, intended_y) != 1) {
+    if (current_y > 0 && are_coordinates_blocked(current_x, intended_y) != 1)
+    {
         g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = intended_y;
     }
     g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_UP;
 }
-void move_world_npc_down(uint32_t world_npc_id) {
+void move_world_npc_down(uint32_t world_npc_id)
+{
     uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
     uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
     uint32_t intended_y = current_y + 1;
-    if (intended_y < get_current_world_height() && are_coordinates_blocked(current_x, intended_y) != 1) {
+    if (intended_y < get_current_world_height() && are_coordinates_blocked(current_x, intended_y) != 1)
+    {
         g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = intended_y;
     }
     g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
@@ -2488,23 +2867,28 @@ void move_world_npc_down(uint32_t world_npc_id) {
 // ------------------------------------------------------------------------------------------------
 // INVENTORY
 // ------------------------------------------------------------------------------------------------
-uint32_t get_inventory_total_items(uint32_t inventory_id) {
+uint32_t get_inventory_total_items(uint32_t inventory_id)
+{
     uint32_t offset = inventory_id * INVENTORY_DATA_SIZE;
     return g_inventory_data[offset + INVENTORY_TOTAL_ITEMS];
 }
-uint32_t get_inventory_item_inventory_id(uint32_t inventory_item_id) {
+uint32_t get_inventory_item_inventory_id(uint32_t inventory_item_id)
+{
     uint32_t offset = inventory_item_id * INVENTORY_ITEM_DATA_SIZE;
     return g_inventory_item_data[offset + INVENTORY_ITEM_INVENTORY_ID];
 }
-uint32_t get_inventory_item_adjusted_price(uint32_t inventory_item_id) {
+uint32_t get_inventory_item_adjusted_price(uint32_t inventory_item_id)
+{
     uint32_t offset = inventory_item_id * INVENTORY_ITEM_DATA_SIZE;
     return g_inventory_item_data[offset + INVENTORY_ITEM_ADJUSTED_PRICE];
 }
-uint32_t get_inventory_item_string_id(uint32_t inventory_item_id) {
+uint32_t get_inventory_item_string_id(uint32_t inventory_item_id)
+{
     uint32_t offset = inventory_item_id * INVENTORY_ITEM_DATA_SIZE;
     return g_inventory_item_data[offset + INVENTORY_ITEM_NAME_ID];
 }
-void increment_inventory_total_items(uint32_t inventory_id) {
+void increment_inventory_total_items(uint32_t inventory_id)
+{
     uint32_t offset = inventory_id * INVENTORY_DATA_SIZE;
     ++g_inventory_data[offset + INVENTORY_TOTAL_ITEMS];
 }
@@ -2512,31 +2896,38 @@ void increment_inventory_total_items(uint32_t inventory_id) {
 // ------------------------------------------------------------------------------------------------ //
 // PLAYERS
 // ------------------------------------------------------------------------------------------------ //
-uint32_t get_player_gold(uint32_t player_id) {
+uint32_t get_player_gold(uint32_t player_id)
+{
     uint32_t captain_id = players[player_id];
     return g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD];
 }
-void set_player_gold(uint32_t player_id, uint32_t value) {
+void set_player_gold(uint32_t player_id, uint32_t value)
+{
     uint32_t captain_id = players[player_id];
     g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD] = value;
 }
-void subtract_player_gold(uint32_t player_id, uint32_t value) {
+void subtract_player_gold(uint32_t player_id, uint32_t value)
+{
     uint32_t captain_id = players[player_id];
     g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD] -= value;
 }
-void add_player_gold(uint32_t player_id, uint32_t value) {
+void add_player_gold(uint32_t player_id, uint32_t value)
+{
     uint32_t captain_id = players[player_id];
     g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD] -= value;
 }
-uint32_t get_player_npc_id(uint32_t player_id) {
+uint32_t get_player_npc_id(uint32_t player_id)
+{
     uint32_t captain_id = players[player_id];
     return g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_NPC_ID];
 }
-uint32_t get_player_inventory_id(uint32_t player_id) {
+uint32_t get_player_inventory_id(uint32_t player_id)
+{
     uint32_t captain_id = players[player_id];
     return g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_INVENTORY_ID];
 }
-uint32_t get_player_total_items(uint32_t player_id) {
+uint32_t get_player_total_items(uint32_t player_id)
+{
     uint32_t inventory_id = get_player_inventory_id(player_id);
     uint32_t offset = inventory_id * INVENTORY_DATA_SIZE;
     return g_inventory_data[offset + INVENTORY_TOTAL_ITEMS];
@@ -2563,64 +2954,78 @@ uint32_t get_player_inventory_item_string_id(uint32_t item_id)
     }
     return SENTRY;
 }
-uint32_t get_player_in_world(uint32_t player_id) {
+uint32_t get_player_in_world(uint32_t player_id)
+{
     uint32_t npc_id = get_player_npc_id(player_id);
-    for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i) {
-        if (g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_NPC_ID] == npc_id) {
+    for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
+    {
+        if (g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_NPC_ID] == npc_id)
+        {
             return i;
         }
     }
     return SENTRY;
 }
-uint32_t get_player_in_world_x(uint32_t player_id) {
+uint32_t get_player_in_world_x(uint32_t player_id)
+{
     uint32_t world_npc_id = get_player_in_world(player_id);
     return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
 }
-uint32_t get_player_in_world_y(uint32_t player_id) {
+uint32_t get_player_in_world_y(uint32_t player_id)
+{
     uint32_t world_npc_id = get_player_in_world(player_id);
     return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
 }
-void move_player_to(uint32_t player_id, uint32_t x, uint32_t y) {
+void move_player_to(uint32_t player_id, uint32_t x, uint32_t y)
+{
     uint32_t world_npc_id = get_player_in_world(player_id);
     g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = x;
     g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = y;
 }
-void move_player_left(uint32_t player_id) {
+void move_player_left(uint32_t player_id)
+{
     uint32_t world_npc_id = get_player_in_world(player_id);
     uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
     uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
     uint32_t intended_x = current_x - 1;
-    if (current_x > 0 && are_coordinates_blocked(intended_x, current_y) != 1) {
+    if (current_x > 0 && are_coordinates_blocked(intended_x, current_y) != 1)
+    {
         g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = intended_x;
     }
     g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_LEFT;
 }
-void move_player_right(uint32_t player_id) {
+void move_player_right(uint32_t player_id)
+{
     uint32_t world_npc_id = get_player_in_world(player_id);
     uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
     uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
     uint32_t intended_x = current_x + 1;
-    if (intended_x < get_current_world_width() && are_coordinates_blocked(intended_x, current_y) != 1) {
+    if (intended_x < get_current_world_width() && are_coordinates_blocked(intended_x, current_y) != 1) 
+    {
         g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = intended_x;
     }
     g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_RIGHT;
 }
-void move_player_up(uint32_t player_id) {
+void move_player_up(uint32_t player_id)
+{
     uint32_t world_npc_id = get_player_in_world(player_id);
     uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
     uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
     uint32_t intended_y = current_y - 1;
-    if (current_y > 0 && are_coordinates_blocked(current_x, intended_y) != 1) {
+    if (current_y > 0 && are_coordinates_blocked(current_x, intended_y) != 1)
+    {
         g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = intended_y;
     }
     g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_UP;
 }
-void move_player_down(uint32_t player_id) {
+void move_player_down(uint32_t player_id)
+{
     uint32_t world_npc_id = get_player_in_world(player_id);
     uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
     uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
     uint32_t intended_y = current_y + 1;
-    if (intended_y < get_current_world_height() && are_coordinates_blocked(current_x, intended_y) != 1) {
+    if (intended_y < get_current_world_height() && are_coordinates_blocked(current_x, intended_y) != 1)
+    {
         g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = intended_y;
     }
     g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
@@ -2629,36 +3034,45 @@ void move_player_down(uint32_t player_id) {
 // ------------------------------------------------------------------------------------------------ //
 // BASE SHIPS
 // ------------------------------------------------------------------------------------------------ //
-uint32_t get_base_ship_id_by_machine_name(char* machine_name) {
+uint32_t get_base_ship_id_by_machine_name(char* machine_name)
+{
     uint32_t string_id = get_string_id_by_machine_name(machine_name);
-    for (uint32_t i = 0; i < MAX_BASE_SHIPS; ++i) {
-        if (g_base_ship_data[i * BASE_SHIP_DATA_SIZE + BASE_SHIP_NAME_ID] == string_id) {
+    for (uint32_t i = 0; i < MAX_BASE_SHIPS; ++i)
+    {
+        if (g_base_ship_data[i * BASE_SHIP_DATA_SIZE + BASE_SHIP_NAME_ID] == string_id)
+        {
             return i;
         }
     }
     return SENTRY;
 }
-uint32_t get_base_ship_tacking(uint32_t base_ship_id) {
+uint32_t get_base_ship_tacking(uint32_t base_ship_id)
+{
     uint32_t offset = base_ship_id * BASE_SHIP_DATA_SIZE;
     return g_base_ship_data[offset + BASE_SHIP_BASE_TACKING];
 }
-uint32_t get_base_ship_power(uint32_t base_ship_id) {
+uint32_t get_base_ship_power(uint32_t base_ship_id)
+{
     uint32_t offset = base_ship_id * BASE_SHIP_DATA_SIZE;
     return g_base_ship_data[offset + BASE_SHIP_BASE_POWER];
 }
-uint32_t get_base_ship_speed(uint32_t base_ship_id) {
+uint32_t get_base_ship_speed(uint32_t base_ship_id)
+{
     uint32_t offset = base_ship_id * BASE_SHIP_DATA_SIZE;
     return g_base_ship_data[offset + BASE_SHIP_BASE_SPEED];
 }
-uint32_t get_base_ship_max_capacity(uint32_t base_ship_id) {
+uint32_t get_base_ship_max_capacity(uint32_t base_ship_id)
+{
     uint32_t offset = base_ship_id * BASE_SHIP_DATA_SIZE;
     return g_base_ship_data[offset + BASE_SHIP_MAX_CAPACITY];
 }
-uint32_t get_base_ship_base_price(uint32_t base_ship_id) {
+uint32_t get_base_ship_base_price(uint32_t base_ship_id)
+{
     uint32_t offset = base_ship_id * BASE_SHIP_DATA_SIZE;
     return g_base_ship_data[offset + BASE_SHIP_BASE_PRICE];
 }
-uint32_t get_base_ship_top_material_id(uint32_t base_ship_id) {
+uint32_t get_base_ship_top_material_id(uint32_t base_ship_id)
+{
     uint32_t offset = base_ship_id * BASE_SHIP_DATA_SIZE;
     return g_base_ship_data[offset + BASE_SHIP_TOP_MATERIAL_ID];
 }
@@ -2666,66 +3080,86 @@ uint32_t get_base_ship_top_material_id(uint32_t base_ship_id) {
 // ------------------------------------------------------------------------------------------------ //
 // SHIPS
 // ------------------------------------------------------------------------------------------------ //
-uint32_t get_ship_id_by_machine_name(char* machine_name) {
+uint32_t get_ship_id_by_machine_name(char* machine_name)
+{
     uint32_t string_id = get_string_id_by_machine_name(machine_name);
-    for (uint32_t i = 0; i < MAX_SHIPS; ++i) {
-        if (g_ship_data[i * SHIP_DATA_SIZE + SHIP_NAME_ID] == string_id) {
+    for (uint32_t i = 0; i < MAX_SHIPS; ++i)
+    {
+        if (g_ship_data[i * SHIP_DATA_SIZE + SHIP_NAME_ID] == string_id)
+        {
             return i;
         }
     }
     return SENTRY;
 }
-uint32_t get_ship_base_ship_id(uint32_t ship_id) {
+uint32_t get_ship_base_ship_id(uint32_t ship_id)
+{
     uint32_t offset = ship_id * SHIP_DATA_SIZE;
     return g_ship_data[offset + SHIP_BASE_SHIP_ID];
 }
-uint32_t get_ship_tacking(uint32_t ship_id) {
+uint32_t get_ship_tacking(uint32_t ship_id)
+{
     uint32_t offset = ship_id * SHIP_DATA_SIZE;
     return g_ship_data[offset + SHIP_TACKING];
 }
-uint32_t get_ship_power(uint32_t ship_id) {
+uint32_t get_ship_power(uint32_t ship_id)
+{
     uint32_t offset = ship_id * SHIP_DATA_SIZE;
     return g_ship_data[offset + SHIP_POWER];
 }
-uint32_t get_ship_speed(uint32_t ship_id) {
+uint32_t get_ship_speed(uint32_t ship_id)
+{
     uint32_t offset = ship_id * SHIP_DATA_SIZE;
     return g_ship_data[offset + SHIP_SPEED];
 }
-uint32_t get_ship_capacity(uint32_t ship_id) {
+uint32_t get_ship_capacity(uint32_t ship_id)
+{
     uint32_t offset = ship_id * SHIP_DATA_SIZE;
     return g_ship_data[offset + SHIP_CAPACITY];
 }
-uint32_t get_ship_max_crew(uint32_t ship_id) {
+uint32_t get_ship_max_crew(uint32_t ship_id)
+{
     uint32_t offset = ship_id * SHIP_DATA_SIZE;
     return g_ship_data[offset + SHIP_MAX_CREW];
 }
-uint32_t get_ship_max_hull(uint32_t ship_id) {
+uint32_t get_ship_max_hull(uint32_t ship_id)
+{
     uint32_t offset = ship_id * SHIP_DATA_SIZE;
     return g_ship_data[offset + SHIP_MAX_HULL];
 }
-uint32_t get_ship_crew(uint32_t ship_id) {
+uint32_t get_ship_crew(uint32_t ship_id)
+{
     uint32_t offset = ship_id * SHIP_DATA_SIZE;
     return g_ship_data[offset + SHIP_CREW];
 }
-uint32_t get_ship_hull(uint32_t ship_id) {
+uint32_t get_ship_hull(uint32_t ship_id)
+{
     uint32_t offset = ship_id * SHIP_DATA_SIZE;
     return g_ship_data[offset + SHIP_HULL];
 }
-void reduce_ship_hull(uint32_t ship_id, uint32_t damage) {
+void reduce_ship_hull(uint32_t ship_id, uint32_t damage)
+{
     uint32_t offset = ship_id * SHIP_DATA_SIZE;
     // Check if damage would cause underflow
-    if (damage > g_ship_data[offset + SHIP_HULL]) {
+    if (damage > g_ship_data[offset + SHIP_HULL])
+    {
         g_ship_data[offset + SHIP_HULL] = 0;
-    } else {
+    }
+    else
+    {
         g_ship_data[offset + SHIP_HULL] -= damage;
     }
 }
-void reduce_ship_crew(uint32_t ship_id, uint32_t damage) {
+void reduce_ship_crew(uint32_t ship_id, uint32_t damage)
+{
     uint32_t offset = ship_id * SHIP_DATA_SIZE;
     // Check if damage would cause underflow
-    if (damage > g_ship_data[offset + SHIP_CREW]) {
+    if (damage > g_ship_data[offset + SHIP_CREW])
+    {
         g_ship_data[offset + SHIP_CREW] = 0;
-    } else {
+    }
+    else
+    {
         g_ship_data[offset + SHIP_CREW] -= damage;
     }
 }
@@ -2733,7 +3167,8 @@ void reduce_ship_crew(uint32_t ship_id, uint32_t damage) {
 // ------------------------------------------------------------------------------------------------ //
 // FLEETS
 // ------------------------------------------------------------------------------------------------ //
-void add_ship_to_fleet(uint32_t fleet_id, uint32_t ship_id) {
+void add_ship_to_fleet(uint32_t fleet_id, uint32_t ship_id)
+{
     uint32_t offset = fleet_id * FLEET_DATA_SIZE;
     g_fleet_data[offset + FLEET_TOTAL_SHIPS] += 1;
     // TODO: Only need this if the captain of a ship is NOT the same as the fleets general (also a captain)
@@ -2744,31 +3179,40 @@ void add_ship_to_fleet(uint32_t fleet_id, uint32_t ship_id) {
     fleet_ship_data[FLEET_SHIP_SHIP_ID] = ship_id;
     create_fleet_ship(fleet_ship_data, true);
 }
-uint32_t get_fleet_ship_fleet_id(uint32_t fleet_ship_id) {
+uint32_t get_fleet_ship_fleet_id(uint32_t fleet_ship_id)
+{
     uint32_t offset = fleet_ship_id * FLEET_SHIP_DATA_SIZE;
     return g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID];
 }
-uint32_t get_fleet_ship_ship_id(uint32_t fleet_ship_id) {
+uint32_t get_fleet_ship_ship_id(uint32_t fleet_ship_id)
+{
     uint32_t offset = fleet_ship_id * FLEET_SHIP_DATA_SIZE;
     return g_fleet_ship_data[offset + FLEET_SHIP_SHIP_ID];
 }
-uint32_t get_fleet_total_ships(uint32_t fleet_id) {
+uint32_t get_fleet_total_ships(uint32_t fleet_id)
+{
     uint32_t offset = fleet_id * FLEET_DATA_SIZE;
     return g_fleet_data[offset + FLEET_TOTAL_SHIPS];
 }
-uint32_t get_ship_id_by_fleet_ship_id(uint32_t ship_id) {
-    for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i) {
+uint32_t get_ship_id_by_fleet_ship_id(uint32_t ship_id)
+{
+    for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i)
+    {
         uint32_t offset = i * FLEET_SHIP_DATA_SIZE;
-        if (g_fleet_ship_data[offset + FLEET_SHIP_SHIP_ID] == ship_id) {
+        if (g_fleet_ship_data[offset + FLEET_SHIP_SHIP_ID] == ship_id)
+        {
             return i;
         }
     }
     return SENTRY;
 }
-uint32_t get_fleet_id_by_general_id(uint32_t general_id) {
-    for (uint32_t i = 0; i < MAX_FLEETS; ++i) {
+uint32_t get_fleet_id_by_general_id(uint32_t general_id)
+{
+    for (uint32_t i = 0; i < MAX_FLEETS; ++i)
+    {
         uint32_t offset = i * FLEET_DATA_SIZE;
-        if (g_fleet_data[offset + FLEET_GENERAL_ID] == general_id) {
+        if (g_fleet_data[offset + FLEET_GENERAL_ID] == general_id)
+        {
             return i;
         }
     }
@@ -2778,8 +3222,10 @@ uint32_t get_fleet_id_by_general_id(uint32_t general_id) {
 // ------------------------------------------------------------------------------------------------ //
 // GENERAL GAME FUNCTIONS
 // ------------------------------------------------------------------------------------------------ //
-uint32_t get_current_game_mode() {
-    switch (current_game_mode) {
+uint32_t get_current_game_mode()
+{
+    switch (current_game_mode)
+    {
         case GAME_MODE_EMPTY:
             return get_string_id_by_machine_name("empty");
         case GAME_MODE_IN_PORT:
@@ -2796,29 +3242,40 @@ uint32_t get_current_game_mode() {
     return SENTRY;
 }
 
-void increment_tick_counter(uint32_t* tick) {
-    if (*tick == UINT32_MAX) {
+void increment_tick_counter(uint32_t* tick)
+{
+    if (*tick == UINT32_MAX)
+    {
         // Reset to 1 instead of 0 to avoid using 0 as a seed
         *tick = 1;
-    } else {
+    }
+    else
+    {
         *tick += 1;
     }
 }
-void tick() {
+void tick()
+{
     increment_tick_counter(&tick_counter);
-    if (!has_game_started) {
+    if (!has_game_started)
+    {
         has_game_started = true;
         accepting_input = true;
         generate_world("athens");
-    } else if (current_game_mode == GAME_MODE_IN_PORT) {
+    }
+    else if (current_game_mode == GAME_MODE_IN_PORT)
+    {
         // TODO: Anything here?
-    } else if (current_game_mode == GAME_MODE_IN_SCENE) {
+    }
+    else if (current_game_mode == GAME_MODE_IN_SCENE)
+    {
         // TODO: Anything here?
     }
     // TODO: fsm_tick();
 }
 
-void initialize_game() {
+void initialize_game()
+{
     tick_counter = 1;
     current_game_mode = (uint32_t)GAME_MODE_EMPTY;
     clear_current_scene();
@@ -3196,7 +3653,8 @@ void initialize_game() {
     test();
 }
 
-void test() {
+void test()
+{
     set_player_gold(0, 1000);
     console_log("Debug ran");
 
@@ -3410,50 +3868,65 @@ uint32_t blackjack_player_standing;
 uint32_t blackjack_dealer_standing;
 uint32_t blackjack_player_hitting;
 uint32_t blackjack_dealer_hitting;
-uint32_t blackjack_get_player_deck_card(uint32_t index) {
+uint32_t blackjack_get_player_deck_card(uint32_t index)
+{
     return blackjack_player_deck[index];
 }
-uint32_t blackjack_get_dealer_deck_card(uint32_t index) {
+uint32_t blackjack_get_dealer_deck_card(uint32_t index)
+{
     return blackjack_dealer_deck[index];
 }
-uint32_t blackjack_get_card_value(uint32_t card_id) {
+uint32_t blackjack_get_card_value(uint32_t card_id)
+{
     uint32_t card = card_id % 13;
-    if (card == 0) {
+    if (card == 0)
+    {
         return 11;
     }
-    if (card > 10) {
+    if (card > 10)
+    {
         return 10;
     }
     return card;
 }
-uint32_t blackjack_get_dealers_deck_value() {
+uint32_t blackjack_get_dealers_deck_value()
+{
     uint32_t total = 0;
-    for (uint32_t i = 0; i < 10; ++i) {
-        if (blackjack_dealer_deck[i] != SENTRY) {
+    for (uint32_t i = 0; i < 10; ++i)
+    {
+        if (blackjack_dealer_deck[i] != SENTRY)
+        {
             total += blackjack_get_card_value(blackjack_dealer_deck[i]);
         }
     }
     return total;
 }
-uint32_t blackjack_get_players_deck_value() {
+uint32_t blackjack_get_players_deck_value()
+{
     uint32_t total = 0;
-    for (uint32_t i = 0; i < 10; ++i) {
-        if (blackjack_player_deck[i] != SENTRY) {
+    for (uint32_t i = 0; i < 10; ++i)
+    {
+        if (blackjack_player_deck[i] != SENTRY)
+        {
             total += blackjack_get_card_value(blackjack_player_deck[i]);
         }
     }
     return total;
 }
-void blackjack_randomize_deck() {
+void blackjack_randomize_deck()
+{
     uint32_t deck_index = 0;
-    for (uint32_t i = 0; i < 52; ++i) {
+    for (uint32_t i = 0; i < 52; ++i)
+    {
         // Skip JACK cards
-        if (i % 13 != 10) {
+        if (i % 13 != 10)
+        {
             blackjack_deck[deck_index] = i;
             deck_index += 1;
         }
     }
-    for (uint32_t i = 47; i > 0; --i) {
+    for (uint32_t i = 47; i > 0; --i)
+    {
         uint32_t random_index = get_random_number(0, i + 1);
         uint32_t temp = blackjack_deck[i];
         blackjack_deck[i] = blackjack_deck[random_index];
@@ -3465,22 +3938,26 @@ void blackjack_randomize_deck() {
     blackjack_dealer_standing = SENTRY;
     blackjack_player_hitting = SENTRY;
     blackjack_dealer_hitting = SENTRY;
-    for (uint32_t i = 0; i < 10; ++i) {
+    for (uint32_t i = 0; i < 10; ++i)
+    {
         blackjack_player_deck[i] = SENTRY;
         blackjack_dealer_deck[i] = SENTRY;
     }
 }
-void blackjack_add_card_to_players_deck() {
+void blackjack_add_card_to_players_deck()
+{
     blackjack_player_deck[blackjack_player_deck_iterator] = blackjack_deck[blackjack_deck_index];
     blackjack_deck_index += 1;
     blackjack_player_deck_iterator += 1;
 }
-void blackjack_add_card_to_dealer_deck() {
+void blackjack_add_card_to_dealer_deck()
+{
     blackjack_dealer_deck[blackjack_dealer_deck_iterator] = blackjack_deck[blackjack_deck_index];
     blackjack_deck_index += 1;
     blackjack_dealer_deck_iterator += 1;
 }
-void blackjack_start_game() {
+void blackjack_start_game()
+{
     blackjack_randomize_deck();
     blackjack_player_standing = SENTRY;
     blackjack_dealer_standing = SENTRY;
@@ -3491,14 +3968,17 @@ void blackjack_start_game() {
     blackjack_add_card_to_players_deck();
     blackjack_add_card_to_dealer_deck();
 }
-void blackjack_dealer_turn() {
+void blackjack_dealer_turn()
+{
     uint32_t dealer_total = blackjack_get_dealers_deck_value();
     console_log_format("dealer total %d", dealer_total);
-    if (dealer_total >= 17) {
+    if (dealer_total >= 17)
+    {
         blackjack_dealer_standing = true;
     }
 }
-uint32_t blackjack_check_winner() {
+uint32_t blackjack_check_winner()
+{
     uint32_t player_total = blackjack_get_players_deck_value();
     uint32_t dealer_total = blackjack_get_dealers_deck_value();
     // return 1 = player won
@@ -3506,46 +3986,66 @@ uint32_t blackjack_check_winner() {
     // return 3 = nobody won
 
     // If either player is over 21, other player wins
-    if (dealer_total > 21) {
+    if (dealer_total > 21)
+    {
         console_log("Dealer over 21");
         return 1;
     }
-    if (player_total > 21) {
+    if (player_total > 21)
+    {
         console_log("Player over 21");
         return 2;
     }
     // If neither player is standing, just skip
-    if (blackjack_player_standing != true && blackjack_dealer_standing != true) {
+    if (blackjack_player_standing != true && blackjack_dealer_standing != true)
+    {
         console_log("Nobody is standing");
         return 3;
     }
     // If both players are standing, whoever is closest to 21
-    if (blackjack_player_standing == true && blackjack_dealer_standing == true) {
+    if (blackjack_player_standing == true && blackjack_dealer_standing == true)
+    {
         console_log("Both are standing");
         // Double check for either one being over
-        if (dealer_total > 21) {
+        if (dealer_total > 21)
+        {
             console_log("Dealer over 21 [b]");
             return 1;
-        } else if (player_total > 21) {
+        }
+        else if (player_total > 21)
+        {
             console_log("Player over 21 [b]");
             return 2;
-        } else if (dealer_total > player_total) {
+        }
+        else if (dealer_total > player_total)
+        {
             console_log("dealer more than player");
             return 2;
-        } else if (player_total > dealer_total) {
+        }
+        else if (player_total > dealer_total)
+        {
             console_log("player more than dealer");
             return 1;
-        } else if (dealer_total == player_total) {
+        }
+        else if (dealer_total == player_total)
+        {
             console_log("Samesies");
             // Samesies = house wins
-            return 2;
-        } else if (dealer_total == 21) {
+         
+           return 2;
+        }
+        else if (dealer_total == 21)
+        {
             console_log("dealer 21");
             return 2;
-        } else if (player_total == 21) {
+        }
+        else if (player_total == 21)
+        {
             console_log("player 21");
             return 1;
-        } else {
+        }
+        else
+        {
             console_log("House always wins");
             // Default to house wins (since both are standing)
             return 2;
@@ -3558,11 +4058,13 @@ uint32_t blackjack_check_winner() {
 
 // TODO: Immediate bust out if anybody goes over 21
 // TODO: Immediate bust out if dealer gets 21 right out the gate (but NOT player)
-uint32_t scene_blackjack(uint32_t action) {
+uint32_t scene_blackjack(uint32_t action)
+{
     // TODO: Consider putting all strings in a scene array so you
     // don't have to thrash the entire string pool to find the
     // strings you want every time
-    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT) {
+    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
+    {
         clear_current_scene();
         set_current_scene(SCENE_BLACKJACK);
         set_current_scene_string_id(get_string_id_by_machine_name("scene_blackjack"));
@@ -3571,34 +4073,41 @@ uint32_t scene_blackjack(uint32_t action) {
         scene_blackjack(SCENE_ACTION_INIT);
         return SENTRY;
     }
-    switch (get_current_scene_state()) {
+    switch (get_current_scene_state())
+    {
         // Note: Curly brackets here is REQUIRED to scope the "choices" variable otherwise it doesn't work
-        case SCENE_BLACKJACK_STATE_HELLO: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_BLACKJACK_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_BLACKJACK_CHOICE_BACK),
-                get_string_id_by_machine_name("exit")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_BLACKJACK_STATE_HELLO:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_BLACKJACK_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_BLACKJACK_CHOICE_BACK),
+                        get_string_id_by_machine_name("exit")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("welcome_to_blackjack");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
+                    {
                         set_current_scene_state(SCENE_BLACKJACK_STATE_ASK_FOR_BET_AMOUNT);
                         scene_blackjack(SCENE_ACTION_INIT);
                         break;
                     }
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK) {
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK)
+                    {
                         clear_current_scene();
                         // TODO: Go back to previous_game_mode
                         current_game_mode = GAME_MODE_IN_PORT;
@@ -3610,11 +4119,13 @@ uint32_t scene_blackjack(uint32_t action) {
             }
             break;
         }
-        case SCENE_BLACKJACK_STATE_ASK_FOR_BET_AMOUNT: {
+        case SCENE_BLACKJACK_STATE_ASK_FOR_BET_AMOUNT:
+        {
             // Note: Keeping the same choices as "hello" for now
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
                     uint32_t string_id = get_string_id_by_machine_name("blackjack_ask_for_bet_amount");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
@@ -3623,31 +4134,43 @@ uint32_t scene_blackjack(uint32_t action) {
                     break;
                 }
                 case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM) {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
+                    {
                         // TODO: Can you NOT duplicate break calls?
-                        if (current_user_input_number == SENTRY) {
+                        if (current_user_input_number == SENTRY)
+                        {
                             console_log("No user input number!");
                             break;
-                        } else if (current_user_input_number < blackjack_bet_minimum) {
+                        }
+                        else if (current_user_input_number < blackjack_bet_minimum)
+                        {
                             set_current_scene_state(SCENE_BLACKJACK_STATE_BET_AMOUNT_NOT_MINIMUM);
                             scene_blackjack(SCENE_ACTION_INIT);
                             break;
-                        } else if (current_user_input_number > blackjack_bet_maximum) {
+                        }
+                        else if (current_user_input_number > blackjack_bet_maximum)
+                        {
                             set_current_scene_state(SCENE_BLACKJACK_STATE_BET_AMOUNT_OVER_MAXIMUM);
                             scene_blackjack(SCENE_ACTION_INIT);
                             break;
-                        } else if (current_user_input_number > get_player_gold(0)) {
+                        }
+                        else if (current_user_input_number > get_player_gold(0))
+                        {
                             set_current_scene_state(SCENE_BLACKJACK_STATE_BET_AMOUNT_NOT_ENOUGH_GOLD);
                             scene_blackjack(SCENE_ACTION_INIT);
                             break;
-                        } else {
+                        }
+                        else
+                        {
                             set_current_scene_state(SCENE_BLACKJACK_STATE_CONFIRM_BET_AMOUNT);
                             scene_blackjack(SCENE_ACTION_INIT);
                             should_redraw_everything();
                             break;
                         }
                     }
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK) {
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK)
+                    {
                         clear_current_scene();
                         // TODO: Go back to previous_game_mode
                         current_game_mode = GAME_MODE_IN_PORT;
@@ -3659,15 +4182,17 @@ uint32_t scene_blackjack(uint32_t action) {
             }
             break;
         }
-        case SCENE_BLACKJACK_STATE_BET_AMOUNT_NOT_MINIMUM: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_BLACKJACK_CHOICE_BACK),
-                get_string_id_by_machine_name("exit")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_BLACKJACK_STATE_BET_AMOUNT_NOT_MINIMUM:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_BLACKJACK_CHOICE_BACK),
+                        get_string_id_by_machine_name("exit")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("blackjack_not_minimum_bet");
                     set_current_scene_needs_numerical_input(false);
                     set_current_scene_state_string_id(string_id);
@@ -3675,8 +4200,11 @@ uint32_t scene_blackjack(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK)
+                    {
                         // Go back to bet amount
                         set_current_scene_state(SCENE_BLACKJACK_STATE_ASK_FOR_BET_AMOUNT);
                         scene_blackjack(SCENE_ACTION_INIT);
@@ -3687,15 +4215,17 @@ uint32_t scene_blackjack(uint32_t action) {
             }
             break;
         }
-        case SCENE_BLACKJACK_STATE_BET_AMOUNT_OVER_MAXIMUM: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_BLACKJACK_CHOICE_BACK),
-                get_string_id_by_machine_name("exit")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_BLACKJACK_STATE_BET_AMOUNT_OVER_MAXIMUM:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_BLACKJACK_CHOICE_BACK),
+                        get_string_id_by_machine_name("exit")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("blackjack_bet_too_much");
                     set_current_scene_needs_numerical_input(false);
                     set_current_scene_state_string_id(string_id);
@@ -3703,8 +4233,11 @@ uint32_t scene_blackjack(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK)
+                    {
                         // Go back to bet amount
                         set_current_scene_state(SCENE_BLACKJACK_STATE_ASK_FOR_BET_AMOUNT);
                         scene_blackjack(SCENE_ACTION_INIT);
@@ -3715,15 +4248,17 @@ uint32_t scene_blackjack(uint32_t action) {
             }
             break;
         }
-        case SCENE_BLACKJACK_STATE_BET_AMOUNT_NOT_ENOUGH_GOLD: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_BLACKJACK_CHOICE_BACK),
-                get_string_id_by_machine_name("exit")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_BLACKJACK_STATE_BET_AMOUNT_NOT_ENOUGH_GOLD:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_BLACKJACK_CHOICE_BACK),
+                        get_string_id_by_machine_name("exit")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("blackjack_not_enough_gold");
                     set_current_scene_needs_numerical_input(false);
                     set_current_scene_state_string_id(string_id);
@@ -3731,8 +4266,11 @@ uint32_t scene_blackjack(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK)
+                    {
                         clear_current_scene();
                         // TODO: Go back to previous_game_mode
                         current_game_mode = GAME_MODE_IN_PORT;
@@ -3744,19 +4282,22 @@ uint32_t scene_blackjack(uint32_t action) {
             }
             break;
         }
-        case SCENE_BLACKJACK_STATE_CONFIRM_BET_AMOUNT: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_BLACKJACK_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_BLACKJACK_CHOICE_BACK),
-                get_string_id_by_machine_name("exit")
-            );
+        case SCENE_BLACKJACK_STATE_CONFIRM_BET_AMOUNT:
+        {
             uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_BLACKJACK_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_BLACKJACK_CHOICE_BACK),
+                        get_string_id_by_machine_name("exit")
+                    );
                     // TODO: Formatted string with
                     // current_user_input_number as %d
                     uint32_t string_id = get_string_id_by_machine_name("blackjack_confirm_bet");
@@ -3766,13 +4307,16 @@ uint32_t scene_blackjack(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
+                    {
                         set_current_scene_state(SCENE_BLACKJACK_STATE_DEAL_CARDS);
                         scene_blackjack(SCENE_ACTION_INIT);
                         break;
                     }
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK) {
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK)
+                    {
                         set_current_scene_state(SCENE_BLACKJACK_STATE_ASK_FOR_BET_AMOUNT);
                         scene_blackjack(SCENE_ACTION_INIT);
                         break;
@@ -3783,15 +4327,17 @@ uint32_t scene_blackjack(uint32_t action) {
             }
             break;
         }
-        case SCENE_BLACKJACK_STATE_DEAL_CARDS: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_BLACKJACK_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_BLACKJACK_STATE_DEAL_CARDS:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_BLACKJACK_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     blackjack_start_game();
                     blackjack_bet_amount = current_user_input_number;
                     // TODO: Formatted string with
@@ -3803,8 +4349,11 @@ uint32_t scene_blackjack(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
+                    {
                         set_current_scene_state(SCENE_BLACKJACK_STATE_PLAYER_HIT_OR_STAND);
                         scene_blackjack(SCENE_ACTION_INIT);
                         break;
@@ -3814,32 +4363,39 @@ uint32_t scene_blackjack(uint32_t action) {
             }
             break;
         }
-        case SCENE_BLACKJACK_STATE_PLAYER_HIT_OR_STAND: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_BLACKJACK_CHOICE_HIT),
-                get_string_id_by_machine_name("blackjack_hit")
-            );
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_BLACKJACK_CHOICE_STAND),
-                get_string_id_by_machine_name("blackjack_stay")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_BLACKJACK_STATE_PLAYER_HIT_OR_STAND:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_BLACKJACK_CHOICE_HIT),
+                        get_string_id_by_machine_name("blackjack_hit")
+                    );
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_BLACKJACK_CHOICE_STAND),
+                        get_string_id_by_machine_name("blackjack_stay")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("blackjack_player_turn");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_HIT) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_HIT)
+                    {
                         blackjack_add_card_to_players_deck();
                         set_current_scene_state(SCENE_BLACKJACK_STATE_PLAYER_DEAL_CARD);
                         scene_blackjack(SCENE_ACTION_INIT);
                         break;
-                    } else if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_STAND) {
+                    }
+                    else if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_STAND)
+                    {
                         blackjack_player_standing = true;
                         set_current_scene_state(SCENE_BLACKJACK_STATE_DEALER_HIT_OR_STAND);
                         scene_blackjack(SCENE_ACTION_INIT);
@@ -3850,23 +4406,28 @@ uint32_t scene_blackjack(uint32_t action) {
             }
             break;
         }
-        case SCENE_BLACKJACK_STATE_PLAYER_DEAL_CARD: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_BLACKJACK_STATE_PLAYER_DEAL_CARD:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("blackjack_deal_player_card");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
+                    {
                         set_current_scene_state(SCENE_BLACKJACK_STATE_DEALER_HIT_OR_STAND);
                         scene_blackjack(SCENE_ACTION_INIT);
                         break;
@@ -3876,15 +4437,17 @@ uint32_t scene_blackjack(uint32_t action) {
             }
             break;
         }
-        case SCENE_BLACKJACK_STATE_DEALER_HIT_OR_STAND: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_BLACKJACK_STATE_DEALER_HIT_OR_STAND:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     blackjack_dealer_turn();
                     uint32_t string_id = get_string_id_by_machine_name("blackjack_dealer_turn");
                     set_current_scene_state_string_id(string_id);
@@ -3892,8 +4455,11 @@ uint32_t scene_blackjack(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
+                    {
                         // if (blackjack_dealer_standing == true) {
                         //     // TODO: Another dialogue
                         //     console_log("{B}Dealer Standing");
@@ -3902,11 +4468,14 @@ uint32_t scene_blackjack(uint32_t action) {
                         //     blackjack_add_card_to_dealer_deck();
                         //     console_log("{B}Dealer hitting");
                         // }
-                        if (blackjack_dealer_standing == true) {
+                        if (blackjack_dealer_standing == true)
+                        {
                             set_current_scene_state(SCENE_BLACKJACK_STATE_CHECK_WINNER);
                             scene_blackjack(SCENE_ACTION_INIT);
                             break;
-                        } else {
+                        }
+                        else
+                        {
                             set_current_scene_state(SCENE_BLACKJACK_STATE_DEALER_DEAL_CARD);
                             scene_blackjack(SCENE_ACTION_INIT);
                             break;
@@ -3917,15 +4486,17 @@ uint32_t scene_blackjack(uint32_t action) {
             }
             break;
         }
-        case SCENE_BLACKJACK_STATE_DEALER_DEAL_CARD: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_BLACKJACK_STATE_DEALER_DEAL_CARD:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     blackjack_add_card_to_dealer_deck();
                     uint32_t string_id = get_string_id_by_machine_name("blackjack_deal_dealer_card");
                     set_current_scene_state_string_id(string_id);
@@ -3933,8 +4504,11 @@ uint32_t scene_blackjack(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
+                    {
                         set_current_scene_state(SCENE_BLACKJACK_STATE_CHECK_WINNER);
                         scene_blackjack(SCENE_ACTION_INIT);
                         break;
@@ -3944,46 +4518,61 @@ uint32_t scene_blackjack(uint32_t action) {
             }
             break;
         }
-        case SCENE_BLACKJACK_STATE_CHECK_WINNER: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_BLACKJACK_STATE_CHECK_WINNER:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("blackjack_check_winner");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
+                    {
                         uint32_t winner = blackjack_check_winner();
-                        if (winner == 1) {
+                        if (winner == 1)
+                        {
                             // If player won, show player won state
                             set_current_scene_state(SCENE_BLACKJACK_STATE_PLAYER_WON);
                             scene_blackjack(SCENE_ACTION_INIT);
                             break;
-                        } else if (winner == 2) {
+                        }
+                        else if (winner == 2)
+                        {
                             // If dealer won, show dealer won state
                             set_current_scene_state(SCENE_BLACKJACK_STATE_DEALER_WON);
                             scene_blackjack(SCENE_ACTION_INIT);
                             break;
-                        } else if (winner == 3) {
+                        }
+                        else if (winner == 3)
+                        {
                             // If nobody won, confirm at least player OR dealer is not standing
-                            if (blackjack_player_standing != true) {
+                            if (blackjack_player_standing != true)
+                            {
                                 set_current_scene_state(SCENE_BLACKJACK_STATE_PLAYER_HIT_OR_STAND);
                                 scene_blackjack(SCENE_ACTION_INIT);
                                 break;
-                            } else if (blackjack_dealer_standing != true) {
+                            }
+                            else if (blackjack_dealer_standing != true)
+                            {
                                 set_current_scene_state(SCENE_BLACKJACK_STATE_DEALER_HIT_OR_STAND);
                                 scene_blackjack(SCENE_ACTION_INIT);
                                 break;
                             }
-                        } else {
+                        }
+                        else
+                        {
                             console_log("Hopefully we never get here");
                         }
                     }
@@ -3992,23 +4581,28 @@ uint32_t scene_blackjack(uint32_t action) {
             }
             break;
         }
-        case SCENE_BLACKJACK_STATE_PLAYER_WON: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_BLACKJACK_STATE_PLAYER_WON:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("blackjack_player_won");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
+                    {
                         add_player_gold(0, blackjack_bet_amount);
                         blackjack_bet_amount = 0;
                         set_current_scene_state(SCENE_BLACKJACK_STATE_HELLO);
@@ -4019,23 +4613,28 @@ uint32_t scene_blackjack(uint32_t action) {
             }
             break;
         }
-        case SCENE_BLACKJACK_STATE_DEALER_WON: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
+        case SCENE_BLACKJACK_STATE_DEALER_WON:
+        {
             uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("blackjack_dealer_won");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
+                    {
                         subtract_player_gold(0, blackjack_bet_amount);
                         blackjack_bet_amount = 0;
                         set_current_scene_state(SCENE_BLACKJACK_STATE_HELLO);
@@ -4068,9 +4667,11 @@ uint32_t scene_blackjack(uint32_t action) {
 // ------------------------------------------------------------------------------------------------ //
 // GENERAL SHOP SCENE
 // ------------------------------------------------------------------------------------------------ //
-uint32_t scene_general_shop(uint32_t action) {
+uint32_t scene_general_shop(uint32_t action)
+{
     // TODO: When the scene exits, we need to clear g_inventory_item_data where INVENTORY_ID == scenes inventory id
-    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT) {
+    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
+    {
         clear_current_scene();
         set_current_scene(SCENE_GENERAL_SHOP);
         set_current_scene_string_id(get_string_id_by_machine_name("scene_general_shop"));
@@ -4081,43 +4682,51 @@ uint32_t scene_general_shop(uint32_t action) {
         map_current_scene_inventory_items();
         return SENTRY;
     }
-    switch (get_current_scene_state()) {
-        case SCENE_GENERAL_SHOP_STATE_WELCOME: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BUY),
-                get_string_id_by_machine_name("buy")
-            );
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_SELL),
-                get_string_id_by_machine_name("sell")
-            );
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
-                get_string_id_by_machine_name("exit")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+    switch (get_current_scene_state())
+    {
+        case SCENE_GENERAL_SHOP_STATE_WELCOME:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BUY),
+                        get_string_id_by_machine_name("buy")
+                    );
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_SELL),
+                        get_string_id_by_machine_name("sell")
+                    );
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
+                        get_string_id_by_machine_name("exit")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("welcome_to_general_shop");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }   
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BUY) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BUY)
+                    {
                         set_current_scene_state(SCENE_GENERAL_SHOP_STATE_BUYING);
                         scene_general_shop(SCENE_ACTION_INIT);
                         break;
                     }
-                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_SELL) {
+                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_SELL)
+                    {
                         // TODO: This
                         // set_current_scene_state(SCENE_BLACKJACK_STATE_ASK_FOR_BET_AMOUNT);
                         // scene_blackjack(SCENE_ACTION_INIT);
                         break;
                     }
-                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BACK) {
+                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BACK)
+                    {
                         clear_current_scene();
                         // TODO: Go back to previous_game_mode
                         current_game_mode = GAME_MODE_IN_PORT;
@@ -4129,27 +4738,32 @@ uint32_t scene_general_shop(uint32_t action) {
             }
             break;
         }
-        case SCENE_GENERAL_SHOP_STATE_BUYING: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BUY),
-                get_string_id_by_machine_name("buy")
-            );
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
-                get_string_id_by_machine_name("exit")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_GENERAL_SHOP_STATE_BUYING:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BUY),
+                        get_string_id_by_machine_name("buy")
+                    );
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
+                        get_string_id_by_machine_name("exit")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("general_shop_buy");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BUY) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BUY)
+                    {
                         uint32_t item_id = input_array_buffer[0];
                         uint32_t qty = input_array_buffer[1];
                         uint32_t player_gold = get_player_gold(0);
@@ -4157,17 +4771,21 @@ uint32_t scene_general_shop(uint32_t action) {
                         uint32_t real_item_offset = real_item_id * INVENTORY_ITEM_DATA_SIZE;
                         uint32_t base_price = g_inventory_item_data[real_item_offset + INVENTORY_ITEM_ADJUSTED_PRICE];
                         uint32_t total_price = base_price * qty;
-                        if (player_gold >= total_price) {
+                        if (player_gold >= total_price)
+                        {
                             set_current_scene_state(SCENE_GENERAL_SHOP_STATE_BUYING_CONFIRM);
                             scene_general_shop(SCENE_ACTION_INIT);
                             break;
-                        } else {
+                        }
+                        else
+                        {
                             set_current_scene_state(SCENE_GENERAL_SHOP_STATE_BUYING_NOT_ENOUGH_GOLD);
                             scene_general_shop(SCENE_ACTION_INIT);
                             break;
                         }
                     }
-                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BACK) {
+                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BACK)
+                    {
                         set_current_scene_state(SCENE_GENERAL_SHOP_STATE_WELCOME);
                         scene_general_shop(SCENE_ACTION_INIT);
                         break;
@@ -4177,32 +4795,38 @@ uint32_t scene_general_shop(uint32_t action) {
             }
             break;
         }
-        case SCENE_GENERAL_SHOP_STATE_BUYING_CONFIRM: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
-                get_string_id_by_machine_name("exit")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_GENERAL_SHOP_STATE_BUYING_CONFIRM:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
+                        get_string_id_by_machine_name("exit")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("confirm_buy");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_CONFIRM)
+                    {
                         set_current_scene_state(SCENE_GENERAL_SHOP_STATE_BUYING_COMPLETE);
                         scene_general_shop(SCENE_ACTION_INIT);
                         break;
                     }
-                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BACK) {   
+                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BACK)
+                    {
                         set_current_scene(SCENE_GENERAL_SHOP_STATE_BUYING);
                         scene_general_shop(SCENE_ACTION_INIT);
                         break;
@@ -4212,23 +4836,28 @@ uint32_t scene_general_shop(uint32_t action) {
             }
             break;
         }
-        case SCENE_GENERAL_SHOP_STATE_BUYING_NOT_ENOUGH_GOLD: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
-                get_string_id_by_machine_name("exit")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_GENERAL_SHOP_STATE_BUYING_NOT_ENOUGH_GOLD:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
+                        get_string_id_by_machine_name("exit")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("not_enough_gold");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BACK) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BACK)
+                    {
                         set_current_scene_state(SCENE_GENERAL_SHOP_STATE_BUYING);
                         scene_general_shop(SCENE_ACTION_INIT);
                         break;
@@ -4238,15 +4867,18 @@ uint32_t scene_general_shop(uint32_t action) {
             }
             break;
         }
-        case SCENE_GENERAL_SHOP_STATE_BUYING_COMPLETE: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
-                get_string_id_by_machine_name("exit")
-            );
+        case SCENE_GENERAL_SHOP_STATE_BUYING_COMPLETE:
+        {
             uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
+                        get_string_id_by_machine_name("exit")
+                    );
                     uint32_t item_id = input_array_buffer[0];
                     uint32_t qty = input_array_buffer[1];
                     uint32_t player_gold = get_player_gold(0);
@@ -4269,8 +4901,10 @@ uint32_t scene_general_shop(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BACK) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BACK)
+                    {
                         set_current_scene_state(SCENE_GENERAL_SHOP_STATE_BUYING);
                         scene_general_shop(SCENE_ACTION_INIT);
                         break;
@@ -4293,24 +4927,32 @@ uint32_t scene_general_shop(uint32_t action) {
 #define MAX_OCEAN_BATTLE_FLEETS 10
 static uint32_t ocean_battle_fleets[MAX_OCEAN_BATTLE_FLEETS];
 static uint32_t ocean_battle_turn_order[MAX_OCEAN_BATTLE_FLEETS * MAX_FLEET_SHIPS];
-void clear_ocean_battle_data(uint32_t data[OCEAN_BATTLE_DATA_SIZE]) {
-    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_SIZE; ++i) {
+void clear_ocean_battle_data(uint32_t data[OCEAN_BATTLE_DATA_SIZE])
+{
+    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_SIZE; ++i)
+    {
         data[i] = SENTRY;
     }
 }
-void clear_ocean_battle_fleets() {
-    for (uint32_t i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i) {
+void clear_ocean_battle_fleets()
+{
+    for (uint32_t i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
+    {
         ocean_battle_fleets[i] = SENTRY;
     }
 }
-void add_fleet_to_battle(uint32_t fleet_id) {
-    for (uint32_t i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i) {
-        if (ocean_battle_fleets[i] == SENTRY) {
+void add_fleet_to_battle(uint32_t fleet_id)
+{
+    for (uint32_t i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
+    {
+        if (ocean_battle_fleets[i] == SENTRY)
+        {
             ocean_battle_fleets[i] = fleet_id;
         }
     }
 }
-uint32_t ocean_battle_total_targets_within_cannon_range() {
+uint32_t ocean_battle_total_targets_within_cannon_range()
+{
     uint32_t world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
     uint32_t attacker_ship_id = get_world_npc_entity_id(world_npc_id);
     uint32_t attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
@@ -4318,30 +4960,36 @@ uint32_t ocean_battle_total_targets_within_cannon_range() {
     uint32_t total = SENTRY;
     // TODO: Properly get cannon range
     uint32_t cannon_range = 8;
-    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i) {
-        if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id) {
+    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    {
+        if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
+        {
             uint32_t target_npc_id = ocean_battle_turn_order[i];
             uint32_t target_ship_id = get_world_npc_entity_id(target_npc_id);
             uint32_t target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
             uint32_t target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
-            if (target_fleet_id == attacker_fleet_id) {
+            if (target_fleet_id == attacker_fleet_id)
+            {
                 continue;
             }
-            if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0) {
+            if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0)
+            {
                 continue;
             }
             uint32_t a_x = get_world_npc_x(target_npc_id);
             uint32_t a_y = get_world_npc_y(target_npc_id);
             uint32_t b_x = get_world_npc_x(world_npc_id);
             uint32_t b_y = get_world_npc_y(world_npc_id);
-            if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, cannon_range)) {
+            if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, cannon_range))
+            {
                 ++total;
             }
         }
     }
     return total;
 }
-uint32_t ocean_battle_total_targets_within_boarding_range() {
+uint32_t ocean_battle_total_targets_within_boarding_range()
+{
     uint32_t world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
     uint32_t attacker_ship_id = get_world_npc_entity_id(world_npc_id);
     uint32_t attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
@@ -4349,16 +4997,20 @@ uint32_t ocean_battle_total_targets_within_boarding_range() {
     uint32_t total = 0;
     // TODO: Properly get cannon range
     uint32_t boarding_range = 2;
-    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i) {
-        if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id) {
+    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    {
+        if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
+        {
             uint32_t target_npc_id = ocean_battle_turn_order[i];
             uint32_t target_ship_id = get_world_npc_entity_id(target_npc_id);
             uint32_t target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
             uint32_t target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
-            if (target_fleet_id == attacker_fleet_id) {
+            if (target_fleet_id == attacker_fleet_id)
+            {
                 continue;
             }
-            if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0) {
+            if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0)
+            {
                 continue;
             }
             uint32_t a_x = get_world_npc_x(target_npc_id);
@@ -4368,31 +5020,39 @@ uint32_t ocean_battle_total_targets_within_boarding_range() {
             console_log("ocean battle targets within boarding range");
             console_log_format("target_npc_id:%d %d %d", target_npc_id, a_x, a_y);
             console_log_format("world_npc_id:%d %d %d", world_npc_id, b_x, b_y);
-            if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, boarding_range)) {
+            if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, boarding_range))
+            {
                 ++total;
             }
         }
     }
     return total;
 }
-uint32_t get_current_ocean_battle_turn_npc_id() {
+uint32_t get_current_ocean_battle_turn_npc_id()
+{
     return ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
 }
-uint32_t get_current_ocean_battle_turn_npc_x() {
+uint32_t get_current_ocean_battle_turn_npc_x()
+{
     uint32_t world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
     return get_world_npc_x(world_npc_id);
 }
-uint32_t get_current_ocean_battle_turn_npc_y() {
+uint32_t get_current_ocean_battle_turn_npc_y()
+{
     uint32_t world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
     return get_world_npc_y(world_npc_id);
 }
-uint32_t ocean_battle_find_world_npc_id_by_coordinates(uint32_t x, uint32_t y) {
-    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i) {
-        if (ocean_battle_turn_order[i] != SENTRY) {
+uint32_t ocean_battle_find_world_npc_id_by_coordinates(uint32_t x, uint32_t y)
+{
+    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    {
+        if (ocean_battle_turn_order[i] != SENTRY)
+        {
             uint32_t target_npc_id = ocean_battle_turn_order[i];
             uint32_t a_x = get_world_npc_x(target_npc_id);
             uint32_t a_y = get_world_npc_y(target_npc_id);
-            if (a_x == x && a_y == y) {
+            if (a_x == x && a_y == y)
+            {
                 return target_npc_id;
             }
         }
@@ -4402,18 +5062,22 @@ uint32_t ocean_battle_find_world_npc_id_by_coordinates(uint32_t x, uint32_t y) {
 #define MAX_VALID_MOVEMENT_COORDINATES 100
 uint32_t ocean_battle_valid_movement_coordinates[MAX_VALID_MOVEMENT_COORDINATES];
 uint32_t ocean_battle_total_valid_movement_coordinates = 0;
-uint32_t ocean_battle_get_total_valid_movement_coordinates() {
+uint32_t ocean_battle_get_total_valid_movement_coordinates()
+{
     return ocean_battle_total_valid_movement_coordinates;
 }
-uint32_t ocean_battle_get_valid_movement_coordinate_x(uint32_t index) {
+uint32_t ocean_battle_get_valid_movement_coordinate_x(uint32_t index)
+{
     uint32_t offset = index * 2;
     return ocean_battle_valid_movement_coordinates[offset];
 }
-uint32_t ocean_battle_get_valid_movement_coordinate_y(uint32_t index) {
+uint32_t ocean_battle_get_valid_movement_coordinate_y(uint32_t index)
+{
     uint32_t offset = index * 2;
     return ocean_battle_valid_movement_coordinates[offset + 1];
 }
-void ocean_battle_build_valid_move_coordinates() {
+void ocean_battle_build_valid_move_coordinates()
+{
     uint32_t x = get_current_ocean_battle_turn_npc_x();
     uint32_t y = get_current_ocean_battle_turn_npc_y();
     console_log_format("current turn npc y %d", y);
@@ -4421,35 +5085,51 @@ void ocean_battle_build_valid_move_coordinates() {
     uint32_t movement_range = 5;
     uint32_t x_diff = 0;
     uint32_t y_diff = 0;
-    if (x -= movement_range < 0) {
-        if (x > movement_range) {
+    if (x -= movement_range < 0)
+    {
+        if (x > movement_range)
+        {
             x_diff = x - movement_range;
-        } else {
+        }
+        else
+        {
             x_diff = movement_range - x;
         }
         x = 0;
-    } else {
+    }
+    else
+    {
         x -= movement_range;
     }
-    if (y -= movement_range < 0) {
-        if (y > movement_range) {
+    if (y -= movement_range < 0)
+    {
+        if (y > movement_range)
+        {
             y_diff = y - movement_range;
-        } else {
+        }
+        else
+        {
             y_diff = movement_range - y;
         }
         y = 0;
-    } else {
+    }
+    else
+    {
         y -= movement_range;
     }
-    for (uint32_t i = 0; i < MAX_VALID_MOVEMENT_COORDINATES; ++i) {
+    for (uint32_t i = 0; i < MAX_VALID_MOVEMENT_COORDINATES; ++i)
+    {
         ocean_battle_valid_movement_coordinates[i] = SENTRY;
     }
     ocean_battle_total_valid_movement_coordinates = 0;
     uint32_t iterator = 0;
     uint32_t full_range = movement_range * 2;
-    while (x < (full_range + x_diff)) {
-        for (uint32_t inner_y = y; inner_y < ((movement_range * 2) + y_diff); ++inner_y) {
-            if (ocean_battle_is_world_coordinate_in_ship_movement_range(x, inner_y)) {
+    while (x < (full_range + x_diff))
+    {
+        for (uint32_t inner_y = y; inner_y < ((movement_range * 2) + y_diff); ++inner_y)
+        {
+            if (ocean_battle_is_world_coordinate_in_ship_movement_range(x, inner_y))
+            {
                 ocean_battle_valid_movement_coordinates[iterator] = x;
                 ++iterator;
                 ocean_battle_valid_movement_coordinates[iterator] = inner_y;
@@ -4464,15 +5144,19 @@ void ocean_battle_build_valid_move_coordinates() {
 uint32_t ocean_battle_valid_boarding_coordinates[MAX_VALID_BOARDING_COORDINATES];
 uint32_t ocean_battle_total_valid_boarding_coordinates = 0;
 uint32_t ocean_battle_intended_boarding_coordinates[2];
-void ocean_battle_set_intended_boarding_coordinates(uint32_t x, uint32_t y) {
+void ocean_battle_set_intended_boarding_coordinates(uint32_t x, uint32_t y)
+{
     ocean_battle_intended_boarding_coordinates[0] = x;
     ocean_battle_intended_boarding_coordinates[1] = y;
 }
-uint32_t get_total_valid_boarding_coordinates() {
+uint32_t get_total_valid_boarding_coordinates()
+{
     return ocean_battle_total_valid_boarding_coordinates;
 }
-void ocean_battle_build_valid_boarding_coordinates() {
-    for (uint32_t i = 0; i < MAX_VALID_BOARDING_COORDINATES; ++i) {
+void ocean_battle_build_valid_boarding_coordinates()
+{
+    for (uint32_t i = 0; i < MAX_VALID_BOARDING_COORDINATES; ++i)
+    {
         ocean_battle_valid_boarding_coordinates[i] = SENTRY;
     }
     uint32_t world_npc_id = get_current_ocean_battle_turn_npc_id();
@@ -4483,23 +5167,28 @@ void ocean_battle_build_valid_boarding_coordinates() {
     uint32_t total = 0;
     // TODO: Properly get boarding range
     uint32_t boarding_range = 1;
-    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i) {
-        if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id) {
+    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    {
+        if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
+        {
             uint32_t target_npc_id = ocean_battle_turn_order[i];
             uint32_t target_ship_id = get_world_npc_entity_id(target_npc_id);
             uint32_t target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
             uint32_t target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
-            if (target_fleet_id == attacker_fleet_id) {
+            if (target_fleet_id == attacker_fleet_id)
+            {
                 continue;
             }
-            if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0) {
+            if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0)
+            {
                 continue;
             }
             uint32_t a_x = get_world_npc_x(target_npc_id);
             uint32_t a_y = get_world_npc_y(target_npc_id);
             uint32_t b_x = get_world_npc_x(world_npc_id);
             uint32_t b_y = get_world_npc_y(world_npc_id);
-            if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, boarding_range)) {
+            if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, boarding_range))
+            {
                 ocean_battle_valid_boarding_coordinates[total] = a_x;
                 ++total;
                 ocean_battle_valid_boarding_coordinates[total] = a_y;
@@ -4509,16 +5198,20 @@ void ocean_battle_build_valid_boarding_coordinates() {
         }
     }
 }
-uint32_t ocean_battle_get_valid_boarding_coordinates_x(uint32_t which) {
+uint32_t ocean_battle_get_valid_boarding_coordinates_x(uint32_t which)
+{
     uint32_t offset = which * 2;
     return ocean_battle_valid_boarding_coordinates[offset];
 }
-uint32_t ocean_battle_get_valid_boarding_coordinates_y(uint32_t which) {
+uint32_t ocean_battle_get_valid_boarding_coordinates_y(uint32_t which)
+{
     uint32_t offset = which * 2;
     return ocean_battle_valid_boarding_coordinates[offset + 1];
 }
-uint32_t ocean_battle_is_valid_boarding_coordinates(uint32_t x, uint32_t y) {
-    for (uint32_t i = 0; i < MAX_VALID_BOARDING_COORDINATES; i += 2) {
+uint32_t ocean_battle_is_valid_boarding_coordinates(uint32_t x, uint32_t y)
+{
+    for (uint32_t i = 0; i < MAX_VALID_BOARDING_COORDINATES; i += 2)
+    {
         if (
             ocean_battle_valid_boarding_coordinates[i] != SENTRY &&
             ocean_battle_valid_boarding_coordinates[i] == x &&
@@ -4533,15 +5226,19 @@ uint32_t ocean_battle_is_valid_boarding_coordinates(uint32_t x, uint32_t y) {
 uint32_t ocean_battle_valid_cannon_coordinates[MAX_VALID_CANNON_COORDINATES];
 uint32_t ocean_battle_total_valid_cannon_coordinates = 0;
 uint32_t ocean_battle_intended_cannon_coordinates[2];
-void ocean_battle_set_intended_cannon_coordinates(uint32_t x, uint32_t y) {
+void ocean_battle_set_intended_cannon_coordinates(uint32_t x, uint32_t y)
+{
     ocean_battle_intended_cannon_coordinates[0] = x;
     ocean_battle_intended_cannon_coordinates[1] = y;
 }
-uint32_t get_total_valid_cannon_coordinates() {
+uint32_t get_total_valid_cannon_coordinates()
+{
     return ocean_battle_total_valid_cannon_coordinates;
 }
-void ocean_battle_build_valid_cannon_coordinates() {
-    for (uint32_t i = 0; i < MAX_VALID_CANNON_COORDINATES; ++i) {
+void ocean_battle_build_valid_cannon_coordinates()
+{
+    for (uint32_t i = 0; i < MAX_VALID_CANNON_COORDINATES; ++i)
+    {
         ocean_battle_valid_cannon_coordinates[i] = SENTRY;
     }
     uint32_t world_npc_id = get_current_ocean_battle_turn_npc_id();
@@ -4552,23 +5249,28 @@ void ocean_battle_build_valid_cannon_coordinates() {
     uint32_t total = 0;
     // TODO: Properly get cannon range
     uint32_t cannon_range = 8;
-    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i) {
-        if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id) {
+    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    {
+        if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
+        {
             uint32_t target_npc_id = ocean_battle_turn_order[i];
             uint32_t target_ship_id = get_world_npc_entity_id(target_npc_id);
             uint32_t target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
             uint32_t target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
-            if (target_fleet_id == attacker_fleet_id) {
+            if (target_fleet_id == attacker_fleet_id)
+            {
                 continue;
             }
-            if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0) {
+            if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0)
+            {
                 continue;
             }
             uint32_t a_x = get_world_npc_x(target_npc_id);
             uint32_t a_y = get_world_npc_y(target_npc_id);
             uint32_t b_x = get_world_npc_x(world_npc_id);
             uint32_t b_y = get_world_npc_y(world_npc_id);
-            if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, cannon_range)) {
+            if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, cannon_range))
+            {
                 ocean_battle_valid_cannon_coordinates[total] = a_x;
                 ++total;
                 ocean_battle_valid_cannon_coordinates[total] = a_y;
@@ -4578,16 +5280,20 @@ void ocean_battle_build_valid_cannon_coordinates() {
         }
     }
 }
-uint32_t ocean_battle_get_valid_cannon_coordinates_x(uint32_t which) {
+uint32_t ocean_battle_get_valid_cannon_coordinates_x(uint32_t which)
+{
     uint32_t offset = which * 2;
     return ocean_battle_valid_cannon_coordinates[offset];
 }
-uint32_t ocean_battle_get_valid_cannon_coordinates_y(uint32_t which) {
+uint32_t ocean_battle_get_valid_cannon_coordinates_y(uint32_t which)
+{
     uint32_t offset = which * 2;
     return ocean_battle_valid_cannon_coordinates[offset + 1];
 }
-uint32_t ocean_battle_is_valid_cannon_coordinates(uint32_t x, uint32_t y) {
-    for (uint32_t i = 0; i < MAX_VALID_CANNON_COORDINATES; i += 2) {
+uint32_t ocean_battle_is_valid_cannon_coordinates(uint32_t x, uint32_t y)
+{
+    for (uint32_t i = 0; i < MAX_VALID_CANNON_COORDINATES; i += 2)
+    {
         if (
             ocean_battle_valid_cannon_coordinates[i] != SENTRY &&
             ocean_battle_valid_cannon_coordinates[i] == x &&
@@ -4598,16 +5304,20 @@ uint32_t ocean_battle_is_valid_cannon_coordinates(uint32_t x, uint32_t y) {
     }
     return SENTRY;
 }
-void scene_ocean_battle_increment_turn_order() {
+void scene_ocean_battle_increment_turn_order()
+{
     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] = false;
     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] = false;
     ++ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX];
-    if (ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX] >= ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY]) {
+    if (ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX] >= ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY])
+    {
         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX] = 0;
     }
 }
-uint32_t scene_ocean_battle(uint32_t action) {
-    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT) {
+uint32_t scene_ocean_battle(uint32_t action)
+{
+    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
+    {
         clear_ocean_battle_data(ocean_battle_data);
         clear_ocean_battle_fleets();
         clear_current_scene();
@@ -4618,16 +5328,19 @@ uint32_t scene_ocean_battle(uint32_t action) {
         scene_ocean_battle(SCENE_ACTION_INIT);
         return SENTRY;
     }
-    switch (get_current_scene_state()) {
-        case SCENE_OCEAN_BATTLE_STATE_SETUP: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+    switch (get_current_scene_state())
+    {
+        case SCENE_OCEAN_BATTLE_STATE_SETUP:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("setting_up_ocean_battle");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
@@ -4636,21 +5349,26 @@ uint32_t scene_ocean_battle(uint32_t action) {
                     // TODO: add_fleet_to_battle
                     // players fleet
                     // two captain fleets
-                    for (uint32_t i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i) {
-                        if (ocean_battle_fleets[i] != SENTRY) {
+                    for (uint32_t i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
+                    {
+                        if (ocean_battle_fleets[i] != SENTRY)
+                        {
                             ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_FLEET_ORDER_ID] = i;
                             break;
                         }
                     }
                     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_SHIP_NTH_ORDER] = 0;
-                    for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i) {
+                    for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i)
+                    {
                         uint32_t offset = i * FLEET_SHIP_DATA_SIZE;
-                        if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] == ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_FLEET_ORDER_ID]) {
+                        if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] == ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_FLEET_ORDER_ID])
+                        {
                             ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_SHIP_ID] = i;
                             break;
                         }
                     }
-                    for (uint32_t i = 0; i < MAX_OCEAN_BATTLE_FLEETS * MAX_FLEET_SHIPS; ++i) {
+                    for (uint32_t i = 0; i < MAX_OCEAN_BATTLE_FLEETS * MAX_FLEET_SHIPS; ++i)
+                    {
                         ocean_battle_turn_order[i] = SENTRY;
                     }
                     console_log("PLACEMENT PHASE");
@@ -4660,9 +5378,11 @@ uint32_t scene_ocean_battle(uint32_t action) {
                     uint32_t world_npc_id;
                     uint32_t obto = 0;
                     // TODO: Update this so only the active fleets in the battle are placed
-                    for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i) {
+                    for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i)
+                    {
                         uint32_t offset = i * FLEET_SHIP_DATA_SIZE;
-                        if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] != SENTRY) {
+                        if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] != SENTRY)
+                        {
                             // [BATTLE SHIP CLEAR]
                             npc_id = get_npc_id_by_machine_name("ship");
                             world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
@@ -4685,8 +5405,11 @@ uint32_t scene_ocean_battle(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
+                    {
                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
                         scene_ocean_battle(SCENE_ACTION_INIT);
                         break;
@@ -4696,28 +5419,33 @@ uint32_t scene_ocean_battle(uint32_t action) {
             }
             break;
         }
-        case SCENE_OCEAN_BATTLE_STATE_TAKE_TURN: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_OCEAN_BATTLE_STATE_TAKE_TURN:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     uint32_t players_fleet_id = get_fleet_id_by_general_id(players[0]);
                     uint32_t world_npc_id = get_current_ocean_battle_turn_npc_id();
                     uint32_t attacker_ship_id = get_world_npc_entity_id(world_npc_id);
                     uint32_t attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
                     uint32_t attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
                     bool npcs_turn = true;
-                    if (attacker_fleet_id == players_fleet_id) {
+                    if (attacker_fleet_id == players_fleet_id)
+                    {
                         npcs_turn = false;
                         uint32_t moved_and_attacked = SENTRY;
-                        if (ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] == true && ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] == true) {
+                        if (ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] == true && ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] == true)
+                        {
                             moved_and_attacked = 1;
                         }
-                        if (moved_and_attacked != SENTRY) {
+                        if (moved_and_attacked != SENTRY)
+                        {
                             console_log("PLAYERS TURN ENDS");
                             scene_ocean_battle_increment_turn_order();
                             npcs_turn = true;
@@ -4725,33 +5453,44 @@ uint32_t scene_ocean_battle(uint32_t action) {
                             attacker_ship_id = get_world_npc_entity_id(world_npc_id);
                             attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
                             attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
-                            if (attacker_fleet_id == players_fleet_id) {
+                            if (attacker_fleet_id == players_fleet_id)
+                            {
                                 console_log("NPCS TRUN FALSE");
                                 npcs_turn = false;
                             }
                         }
-                        if (npcs_turn == false) {
+                        if (npcs_turn == false)
+                        {
                             set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_PLAYER_TAKE_TURN);
                             scene_ocean_battle(SCENE_ACTION_INIT);
                             should_redraw_everything();
                         }
                     }
-                    if (npcs_turn == true) {
+                    if (npcs_turn == true)
+                    {
                         // TODO: SCENE_OCEAN_BATTLE_STATE_NPC_TAKE_TURN
                         // TODO: Break out NPC actions (move & attack) so we can animate them in renderer
                         // TODO: Board ship attack for npcs as a random choice (between fire cannon and board ship)
                         // TODO: Have NPC ships capable of running away when health is low
                         console_log("NPC TAKES ACTION");
                         world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
-                        if (get_ship_hull(attacker_ship_id) > 0 && get_ship_crew(attacker_ship_id) > 0) {
+                        if (get_ship_hull(attacker_ship_id) > 0 && get_ship_crew(attacker_ship_id) > 0)
+                        {
                             uint32_t rando = get_random_number(1, 4);
-                            if (rando == 1) {
+                            if (rando == 1)
+                            {
                                 move_world_npc_down(world_npc_id);
-                            } else if (rando == 2) {
+                            }
+                            else if (rando == 2)
+                            {
                                 move_world_npc_up(world_npc_id);
-                            } else if (rando == 3) {
+                            }
+                            else if (rando == 3)
+                            {
                                 move_world_npc_left(world_npc_id);
-                            } else if (rando == 4) {
+                            }
+                            else if (rando == 4)
+                            {
                                 move_world_npc_right(world_npc_id);
                             }
                             ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] = true;
@@ -4761,24 +5500,30 @@ uint32_t scene_ocean_battle(uint32_t action) {
                         uint32_t movement_range = 2;
                         uint32_t cannon_range = 6;
                         bool attacking = false;
-                        if (get_ship_hull(attacker_ship_id) > 0 && get_ship_crew(attacker_ship_id) > 0) {
-                            for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i) {
-                                if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id) {
+                        if (get_ship_hull(attacker_ship_id) > 0 && get_ship_crew(attacker_ship_id) > 0)
+                        {
+                            for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+                            {
+                                if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
+                                {
                                     uint32_t target_npc_id = ocean_battle_turn_order[i];
                                     uint32_t target_ship_id = get_world_npc_entity_id(target_npc_id);
                                     uint32_t target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
                                     uint32_t target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
-                                    if (target_fleet_id == attacker_fleet_id) {
+                                    if (target_fleet_id == attacker_fleet_id)
+                                    {
                                         continue;
                                     }
-                                    if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0) {
+                                    if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0)
+                                    {
                                         continue;
                                     }
                                     uint32_t a_x = get_world_npc_x(target_npc_id);
                                     uint32_t a_y = get_world_npc_y(target_npc_id);
                                     uint32_t b_x = get_world_npc_x(world_npc_id);
                                     uint32_t b_y = get_world_npc_y(world_npc_id);
-                                    if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, cannon_range)) {
+                                    if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, cannon_range))
+                                    {
                                         ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = world_npc_id;
                                         ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID] = target_npc_id;
                                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_CANNON_ATTACK);
@@ -4792,18 +5537,25 @@ uint32_t scene_ocean_battle(uint32_t action) {
                         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] = true;
 
                         uint32_t moved_and_attacked = SENTRY;
-                        if (ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] && ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED]) {
+                        if (
+                            ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] &&
+                            ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED]
+                        ) {
                             moved_and_attacked = 1;
                         }
-                        if (!attacking || moved_and_attacked != SENTRY) {
+                        if (!attacking || moved_and_attacked != SENTRY)
+                        {
                             scene_ocean_battle_increment_turn_order();
                             should_redraw_everything();
                         }
                     }
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
+                    {
                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
                         scene_ocean_battle(SCENE_ACTION_INIT);
                         break;
@@ -4813,9 +5565,12 @@ uint32_t scene_ocean_battle(uint32_t action) {
             }
             break;
         }
-        case SCENE_OCEAN_BATTLE_STATE_CANNON_ATTACK: {
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_OCEAN_BATTLE_STATE_CANNON_ATTACK:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
                     clear_current_scene_choices();
                     current_scene_set_choice_string_id(
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
@@ -4827,16 +5582,20 @@ uint32_t scene_ocean_battle(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
+                case SCENE_MAKE_CHOICE:
+                {
                     uint32_t cc = current_scene_get_current_choice();
-                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM) {
+                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
+                    {
                         // TODO: Why are we running the damage actions in confirm here?
                         uint32_t damage = get_random_number(1, 33);
                         uint32_t ship_id = get_world_npc_entity_id(ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID]);
                         reduce_ship_hull(ship_id, damage);
-                        if (get_ship_hull(ship_id) <= 0) {
+                        if (get_ship_hull(ship_id) <= 0)
+                        {
                             ++ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_DESTROYED];
-                            if (ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_DESTROYED] >= 3) {
+                            if (ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_DESTROYED] >= 3)
+                            {
                                 // TODO: This is an arbitrary victory condition until
                                 set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_VICTORY);
                                 scene_ocean_battle(SCENE_ACTION_INIT);
@@ -4856,9 +5615,12 @@ uint32_t scene_ocean_battle(uint32_t action) {
             }
             break;
         }
-        case SCENE_OCEAN_BATTLE_STATE_BOARD_ATTACK: {
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_OCEAN_BATTLE_STATE_BOARD_ATTACK:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
                     clear_current_scene_choices();
                     current_scene_set_choice_string_id(
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
@@ -4870,16 +5632,20 @@ uint32_t scene_ocean_battle(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
+                case SCENE_MAKE_CHOICE:
+                {
                     uint32_t cc = current_scene_get_current_choice();
-                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM) {
+                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
+                    {
                         // TODO: Why are we running the damage actions in confirm here?
                         uint32_t damage = get_random_number(1, 33);
                         uint32_t ship_id = get_world_npc_entity_id(ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID]);
                         reduce_ship_crew(ship_id, damage);
-                        if (get_ship_crew(ship_id) <= 0) {
+                        if (get_ship_crew(ship_id) <= 0)
+                        {
                             ++ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_DESTROYED];
-                            if (ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_DESTROYED] >= 3) {
+                            if (ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_DESTROYED] >= 3)
+                            {
                                 // TODO: This is an arbitrary victory condition until
                                 set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_VICTORY);
                                 scene_ocean_battle(SCENE_ACTION_INIT);
@@ -4899,9 +5665,12 @@ uint32_t scene_ocean_battle(uint32_t action) {
             }
             break;
         }
-        case SCENE_OCEAN_BATTLE_STATE_CANNON_ATTACK_CHOOSE_TARGET: {
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_OCEAN_BATTLE_STATE_CANNON_ATTACK_CHOOSE_TARGET:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
                     clear_current_scene_choices();
                     current_scene_set_choice_string_id(
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
@@ -4919,24 +5688,30 @@ uint32_t scene_ocean_battle(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
+                case SCENE_MAKE_CHOICE:
+                {
                     uint32_t cc = current_scene_get_current_choice();
-                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM) {
+                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
+                    {
                         uint32_t x = ocean_battle_intended_cannon_coordinates[0];
                         uint32_t y = ocean_battle_intended_cannon_coordinates[1];
-                        if (ocean_battle_is_valid_cannon_coordinates(x, y) != SENTRY) {
+                        if (ocean_battle_is_valid_cannon_coordinates(x, y) != SENTRY)
+                        {
                             ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = get_current_ocean_battle_turn_npc_id();
                             ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID] = ocean_battle_find_world_npc_id_by_coordinates(x, y);
                             ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] = true;
                             set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_CANNON_ATTACK);
                             scene_ocean_battle(SCENE_ACTION_INIT);
                             should_redraw_everything();
-                        } else {
+                        }
+                        else
+                        {
                             console_log("Invalid cannon attack coordinates");
                         }
                         break;
                     }
-                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_BACK) {
+                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_BACK)
+                    {
                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
                         scene_ocean_battle(SCENE_ACTION_INIT);
                         should_redraw_everything();
@@ -4948,9 +5723,12 @@ uint32_t scene_ocean_battle(uint32_t action) {
             }
             break;
         }
-        case SCENE_OCEAN_BATTLE_STATE_BOARD_ATTACK_CHOOSE_TARGET: {
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_OCEAN_BATTLE_STATE_BOARD_ATTACK_CHOOSE_TARGET:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
                     clear_current_scene_choices();
                     current_scene_set_choice_string_id(
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
@@ -4968,24 +5746,30 @@ uint32_t scene_ocean_battle(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
+                case SCENE_MAKE_CHOICE:
+                {
                     uint32_t cc = current_scene_get_current_choice();
-                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM) {
+                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
+                    {
                         uint32_t x = ocean_battle_intended_boarding_coordinates[0];
                         uint32_t y = ocean_battle_intended_boarding_coordinates[1];
-                        if (ocean_battle_is_valid_boarding_coordinates(x, y) != SENTRY) {
+                        if (ocean_battle_is_valid_boarding_coordinates(x, y) != SENTRY)
+                        {
                             ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = get_current_ocean_battle_turn_npc_id();
                             ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID] = ocean_battle_find_world_npc_id_by_coordinates(x, y);
                             ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] = true;
                             set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_BOARD_ATTACK);
                             scene_ocean_battle(SCENE_ACTION_INIT);
                             should_redraw_everything();
-                        } else {
+                        }
+                        else
+                        {
                             console_log("Invalid boarding attack coordinates");
                         }
                         break;
                     }
-                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_BACK) {
+                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_BACK)
+                    {
                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
                         scene_ocean_battle(SCENE_ACTION_INIT);
                         should_redraw_everything();
@@ -4997,9 +5781,12 @@ uint32_t scene_ocean_battle(uint32_t action) {
             }
             break;
         }
-        case SCENE_OCEAN_BATTLE_STATE_PLAYER_TAKE_TURN: {
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_OCEAN_BATTLE_STATE_PLAYER_TAKE_TURN:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
                     clear_current_scene_choices();
                     current_scene_set_choice_string_id(
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_MOVE),
@@ -5027,10 +5814,12 @@ uint32_t scene_ocean_battle(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
+                case SCENE_MAKE_CHOICE:
+                {
                     uint32_t cc = current_scene_get_current_choice();
                     uint32_t choice = current_scene_get_choice(cc);
-                    if (choice == SCENE_OCEAN_BATTLE_CHOICE_FIRE_CANNONS) {
+                    if (choice == SCENE_OCEAN_BATTLE_CHOICE_FIRE_CANNONS)
+                    {
                         if (
                             ocean_battle_total_targets_within_cannon_range() > 0 &&
                             ocean_battle_total_targets_within_cannon_range() != SENTRY &&
@@ -5042,7 +5831,8 @@ uint32_t scene_ocean_battle(uint32_t action) {
                             break;
                         }
                     }
-                    if (choice == SCENE_OCEAN_BATTLE_CHOICE_BOARD_SHIP) {
+                    if (choice == SCENE_OCEAN_BATTLE_CHOICE_BOARD_SHIP)
+                    {
                         if (
                             ocean_battle_total_targets_within_boarding_range() > 0 &&
                             ocean_battle_total_targets_within_boarding_range() != SENTRY &&
@@ -5063,22 +5853,26 @@ uint32_t scene_ocean_battle(uint32_t action) {
                             }
                         }
                     }
-                    if (choice == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM) {
+                    if (choice == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
+                    {
                         scene_ocean_battle_increment_turn_order();
                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
                         scene_ocean_battle(SCENE_ACTION_INIT);
                         should_redraw_everything();
                         break;
                     }
-                    if (choice == SCENE_OCEAN_BATTLE_CHOICE_MOVE) {
-                        if (ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] != true) {
+                    if (choice == SCENE_OCEAN_BATTLE_CHOICE_MOVE)
+                    {
+                        if (ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] != true)
+                        {
                             set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_MOVING);
                             scene_ocean_battle(SCENE_ACTION_INIT);
                             should_redraw_everything();
                         }
                         break;
                     }
-                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_ORDER) {
+                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_ORDER)
+                    {
                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_ORDER);
                         scene_ocean_battle(SCENE_ACTION_INIT);
                         should_redraw_everything();
@@ -5089,9 +5883,12 @@ uint32_t scene_ocean_battle(uint32_t action) {
             }
             break;
         }
-        case SCENE_OCEAN_BATTLE_STATE_ORDER: {
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_OCEAN_BATTLE_STATE_ORDER:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
                     clear_current_scene_choices();
                     current_scene_set_choice_string_id(
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_ORDER_FOCUS_ON_SHIP),
@@ -5131,9 +5928,11 @@ uint32_t scene_ocean_battle(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
+                case SCENE_MAKE_CHOICE:
+                {
                     uint32_t cc = current_scene_get_current_choice();
-                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_BACK) {
+                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_BACK)
+                    {
                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_PLAYER_TAKE_TURN);
                         scene_ocean_battle(SCENE_ACTION_INIT);
                         should_redraw_everything();
@@ -5144,9 +5943,12 @@ uint32_t scene_ocean_battle(uint32_t action) {
             }
             break;
         }
-        case SCENE_OCEAN_BATTLE_STATE_MOVING: {
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_OCEAN_BATTLE_STATE_MOVING:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
                     clear_current_scene_choices();
                     current_scene_set_choice_string_id(
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
@@ -5159,7 +5961,8 @@ uint32_t scene_ocean_battle(uint32_t action) {
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
+                case SCENE_MAKE_CHOICE:
+                {
                     uint32_t cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM) {
                         // console_log_format("intended x %d and y %d", ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_X], ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_Y]);
@@ -5176,23 +5979,28 @@ uint32_t scene_ocean_battle(uint32_t action) {
             }
             break;
         }
-        case SCENE_OCEAN_BATTLE_STATE_VICTORY: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+        case SCENE_OCEAN_BATTLE_STATE_VICTORY:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("ocean_battle_victory");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
+                    {
                         // If you confirm a victory then just go back to normal game mode
                         clear_current_scene();
                         current_game_mode = GAME_MODE_IN_PORT;
@@ -5200,12 +6008,16 @@ uint32_t scene_ocean_battle(uint32_t action) {
                         // TODO: You have to clear the world npcs that are ships
                         // [BATTLE SHIP CLEAR]
                         // TODO: Update this so only the active fleets in the battle are placed
-                        for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i) {
+                        for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i)
+                        {
                             uint32_t offset = i * FLEET_SHIP_DATA_SIZE;
-                            if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] != SENTRY) {
-                                for (uint32_t wn = 0; wn < MAX_WORLD_NPCS; ++wn) {
+                            if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] != SENTRY)
+                            {
+                                for (uint32_t wn = 0; wn < MAX_WORLD_NPCS; ++wn)
+                                {
                                     uint32_t wn_offset = wn * WORLD_NPC_DATA_SIZE;
-                                    if (g_world_npc_data[wn_offset + WORLD_NPC_ENTITY_ID] == i) {
+                                    if (g_world_npc_data[wn_offset + WORLD_NPC_ENTITY_ID] == i)
+                                    {
                                         // TODO: THIS IS TEMPORARY
                                         // we reset the ships stats so we can
                                         // start a new fresh battle down the road
@@ -5227,44 +6039,54 @@ uint32_t scene_ocean_battle(uint32_t action) {
     }
     return SENTRY;
 }
-void set_ocean_battle_data_intended_move_x(uint32_t x) {
+void set_ocean_battle_data_intended_move_x(uint32_t x)
+{
     ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_X] = x;
 }
-void set_ocean_battle_data_intended_move_y(uint32_t y) {
+void set_ocean_battle_data_intended_move_y(uint32_t y)
+{
     ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_Y] = y;
 }
-uint32_t get_ocean_battle_attacker_world_npc_id() {
+uint32_t get_ocean_battle_attacker_world_npc_id()
+{
     return ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID];
 }
-uint32_t get_ocean_battle_target_world_npc_id() {
+uint32_t get_ocean_battle_target_world_npc_id()
+{
     return ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID];
 }
-uint32_t ocean_battle_is_world_coordinate_in_ship_movement_range(uint32_t world_x, uint32_t world_y) {
+uint32_t ocean_battle_is_world_coordinate_in_ship_movement_range(uint32_t world_x, uint32_t world_y)
+{
     uint32_t world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
     uint32_t current_ship_id = get_world_npc_entity_id(world_npc_id);
     // TODO: Setup an actual movement range
     uint32_t movement_range = 2;
     uint32_t b_x = SENTRY;
     uint32_t b_y = SENTRY;
-    for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i) {
+    for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
+    {
         uint32_t offset = i * WORLD_NPC_DATA_SIZE;
-        if (g_world_npc_data[offset + WORLD_NPC_ENTITY_ID] == current_ship_id) {
+        if (g_world_npc_data[offset + WORLD_NPC_ENTITY_ID] == current_ship_id)
+        {
             b_x = g_world_npc_data[offset + WORLD_NPC_POSITION_X];
             b_y = g_world_npc_data[offset + WORLD_NPC_POSITION_Y];
             break;
         }
     }
-    if (b_x == SENTRY || b_y == SENTRY) {
+    if (b_x == SENTRY || b_y == SENTRY)
+    {
         console_log("Could not find ship in world");
         return SENTRY;
     }
     return is_coordinate_in_range_of_coordinate(world_x, world_y, b_x, b_y, movement_range);
 }
-uint32_t get_ocean_battle_current_turn_ship_x() {
+uint32_t get_ocean_battle_current_turn_ship_x()
+{
     uint32_t world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
     return get_world_npc_x(world_npc_id);
 }
-uint32_t get_ocean_battle_current_turn_ship_y() {
+uint32_t get_ocean_battle_current_turn_ship_y()
+{
     uint32_t world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
     return get_world_npc_y(world_npc_id);
 }
@@ -5273,8 +6095,10 @@ uint32_t get_ocean_battle_current_turn_ship_y() {
 // TODO: Software renderer. Blit pixels out. Load on initalize game. Ask for pixels for a *thing*, get pixels out, render to *other thing*
 
 
-uint32_t scene_npc_rvice(uint32_t action) {
-    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT) {
+uint32_t scene_npc_rvice(uint32_t action)
+{
+    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
+    {
         clear_current_scene();
         set_current_scene(SCENE_NPC_RVICE);
         set_current_scene_string_id(get_string_id_by_machine_name("scene_npc_rvice"));
@@ -5283,24 +6107,29 @@ uint32_t scene_npc_rvice(uint32_t action) {
         scene_npc_rvice(SCENE_ACTION_INIT);
         return SENTRY;
     }
-    switch (get_current_scene_state()) {
-        case SCENE_NPC_STATES_RVICE_TRASH_TALK: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
+    switch (get_current_scene_state())
+    {
+        case SCENE_NPC_STATES_RVICE_TRASH_TALK:
+        {
+            switch (action)
+            {
                 case SCENE_ACTION_INIT: {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("scene_state_npc_rvice_trash_talk");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM)
+                    {
                         current_game_mode = GAME_MODE_IN_PORT;
                         clear_current_scene();
                         should_redraw_everything();
@@ -5315,8 +6144,10 @@ uint32_t scene_npc_rvice(uint32_t action) {
     }
     return SENTRY;
 }
-uint32_t scene_npc_lafolie(uint32_t action) {
-    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT) {
+uint32_t scene_npc_lafolie(uint32_t action)
+{
+    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
+    {
         clear_current_scene();
         set_current_scene(SCENE_NPC_LAFOLIE);
         set_current_scene_string_id(get_string_id_by_machine_name("scene_npc_lafolie"));
@@ -5325,24 +6156,30 @@ uint32_t scene_npc_lafolie(uint32_t action) {
         scene_npc_lafolie(SCENE_ACTION_INIT);
         return SENTRY;
     }
-    switch (get_current_scene_state()) {
-        case SCENE_NPC_STATES_LAFOLIE_TRASH_TALK: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+    switch (get_current_scene_state())
+    {
+        case SCENE_NPC_STATES_LAFOLIE_TRASH_TALK:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("scene_state_npc_lafolie_trash_talk");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM)
+                    {
                         current_game_mode = GAME_MODE_IN_PORT;
                         clear_current_scene();
                         should_redraw_everything();
@@ -5357,8 +6194,10 @@ uint32_t scene_npc_lafolie(uint32_t action) {
     }
     return SENTRY;
 }
-uint32_t scene_npc_nakor(uint32_t action) {
-    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT) {
+uint32_t scene_npc_nakor(uint32_t action)
+{
+    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
+    {
         clear_current_scene();
         set_current_scene(SCENE_NPC_NAKOR);
         set_current_scene_string_id(get_string_id_by_machine_name("scene_npc_nakor"));
@@ -5367,24 +6206,30 @@ uint32_t scene_npc_nakor(uint32_t action) {
         scene_npc_nakor(SCENE_ACTION_INIT);
         return SENTRY;
     }
-    switch (get_current_scene_state()) {
-        case SCENE_NPC_STATES_NAKOR_TRASH_TALK: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+    switch (get_current_scene_state())
+    {
+        case SCENE_NPC_STATES_NAKOR_TRASH_TALK:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("scene_state_npc_nakor_trash_talk");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM)
+                    {
                         current_game_mode = GAME_MODE_IN_PORT;
                         clear_current_scene();
                         should_redraw_everything();
@@ -5399,7 +6244,8 @@ uint32_t scene_npc_nakor(uint32_t action) {
     }
     return SENTRY;
 }
-uint32_t scene_npc_travis(uint32_t action) {
+uint32_t scene_npc_travis(uint32_t action)
+{
     //
     // THERE IS AN ISSUE WITH TOP DOWN AUTOMATA (OR LAST IN FIRST OUT)
     //
@@ -5408,7 +6254,8 @@ uint32_t scene_npc_travis(uint32_t action) {
     // set_current_scene_state()
     // set_game_mode_to_IN_SCENE
     // [[initialize_first_state]]
-    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT) {
+    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
+    {
         clear_current_scene();
         set_current_scene(SCENE_NPC_TRAVIS);
         set_current_scene_string_id(get_string_id_by_machine_name("scene_npc_travis"));
@@ -5417,24 +6264,30 @@ uint32_t scene_npc_travis(uint32_t action) {
         scene_npc_travis(SCENE_ACTION_INIT);
         return SENTRY;
     }
-    switch (get_current_scene_state()) {
-        case SCENE_NPC_STATES_TRAVIS_TRASH_TALK: {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            uint32_t cc = current_scene_get_current_choice();
-            switch (action) {
-                case SCENE_ACTION_INIT: {
+    switch (get_current_scene_state())
+    {
+        case SCENE_NPC_STATES_TRAVIS_TRASH_TALK:
+        {
+            switch (action)
+            {
+                case SCENE_ACTION_INIT:
+                {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("scene_state_npc_travis_trash_talk");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM)
+                    {
                         current_game_mode = GAME_MODE_IN_PORT;
                         clear_current_scene();
                         should_redraw_everything();
@@ -5465,15 +6318,14 @@ uint32_t scene_npc_loller(uint32_t action)
     {
         case SCENE_NPC_STATES_LOLLER_TRASH_TALK:
         {
-            clear_current_scene_choices();
-            current_scene_set_choice_string_id(
-                current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                get_string_id_by_machine_name("confirm")
-            );
-            uint32_t cc = current_scene_get_current_choice();
             switch (action) {
                 case SCENE_ACTION_INIT:
                 {
+                    clear_current_scene_choices();
+                    current_scene_set_choice_string_id(
+                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        get_string_id_by_machine_name("confirm")
+                    );
                     uint32_t string_id = get_string_id_by_machine_name("scene_state_npc_loller_trash_talk");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
@@ -5482,6 +6334,7 @@ uint32_t scene_npc_loller(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
+                    uint32_t cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM)
                     {
                         current_game_mode = GAME_MODE_IN_PORT;

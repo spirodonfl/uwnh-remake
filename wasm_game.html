@@ -251,7 +251,9 @@
             var LAYER_ATLAS_MAP = {
                 // Note: array values are "layer_value", "atlas-x", "atlas-y"
                 "athens": {
-                    "layer_one":[]
+                    "layer_one":[],
+                    "layer_two":[],
+                    "npc_layer":{},
                 },
             };
             LAYER_ATLAS_MAP["athens"]["layer_one"][33] = [3, 1];
@@ -263,6 +265,16 @@
             LAYER_ATLAS_MAP["athens"]["layer_one"][39] = [8, 1];
             LAYER_ATLAS_MAP["athens"]["layer_one"][40] = [46, 0];
             LAYER_ATLAS_MAP["athens"]["layer_one"][41] = [44, 0];
+            LAYER_ATLAS_MAP["athens"]["layer_two"][69] = [12, 0];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"]["bank_teller"] = [34, 1];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"]["general_shop_owner"] = [35, 2];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"]["blackjack_player"] = [36, 2];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_ocean_battle"] = [37, 2];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_rvice"] = [40, 2];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_lafolie"] = [41, 2];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_nakor"] = [42, 2];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_travis"] = [43, 2];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_loller"] = [44, 2];
             var LAYER_COORDINATES_VALUE_HISTORY = [];
             var LAYER_COORDINATES_VALUE_UNDO_COUNTER = 0;
             var LAYER_COORDINATES_VALUE_REDO_COUNTER = 0;
@@ -382,10 +394,23 @@
                 },
                 editorSetLayerCoordinatesValueUndo: function () {
                     --LAYER_COORDINATES_VALUE_UNDO_COUNTER;
-                    var undo_data = LAYER_COORDINATES_VALUE_HISTORY[LAYER_COORDINATES_VALUE_UNDO_COUNTER];
-                    wasm.exports.add_value_to_global_world_data(undo_data[0], undo_data[1], undo_data[2], undo_data[3]);
+                    if (LAYER_COORDINATES_VALUE_UNDO_COUNTER < 0)
+                    {
+                        LAYER_COORDINATES_VALUE_UNDO_COUNTER = 0;
+                    }
+                    var data = LAYER_COORDINATES_VALUE_HISTORY[LAYER_COORDINATES_VALUE_UNDO_COUNTER];
+                    wasm.exports.add_value_to_global_world_data(data[0], data[1], data[2], data[3]);
                     wasm.exports.should_redraw_everything();
                     force_redraw = true;
+                },
+                editorSetLayerCoordinatesValueRedo: function () {
+                    if (LAYER_COORDINATES_VALUE_UNDO_COUNTER < LAYER_COORDINATES_VALUE_HISTORY.length) {
+                        var data = LAYER_COORDINATES_VALUE_HISTORY[LAYER_COORDINATES_VALUE_UNDO_COUNTER];
+                        wasm.exports.add_value_to_global_world_data(data[0], data[1], data[2], data[4]);
+                        wasm.exports.should_redraw_everything();
+                        force_redraw = true;
+                        --LAYER_COORDINATES_VALUE_UNDO_COUNTER;
+                    }
                 },
             }
 
@@ -1441,9 +1466,13 @@
                                                 layer_element.style.height = '32px';
                                                 layer_element.style.setProperty('--atlas-x', 0);
                                                 layer_element.style.setProperty('--atlas-y', 0);
-                                                if (layer_value == 69) {
-                                                    layer_element.style.setProperty('--atlas-x', 12);
-                                                    layer_element.style.setProperty('--atlas-y', 0);
+                                                for (var k = 0; k < LAYER_ATLAS_MAP["athens"]["layer_two"].length; ++k) {
+                                                    var lam_value = LAYER_ATLAS_MAP["athens"]["layer_two"][k];
+                                                    if (k === layer_value) {
+                                                        layer_element.style.setProperty('--atlas-x', lam_value[0]);
+                                                        layer_element.style.setProperty('--atlas-y', lam_value[1]);
+                                                        break;
+                                                    }
                                                 }
                                                 layer_element.style.backgroundPosition = "calc(-1 * calc(32px * var(--atlas-x))) calc(-1 * calc(32px * var(--atlas-y)))";
                                                 layer_element.style.position = 'absolute';
@@ -1453,15 +1482,18 @@
                                             }
                                         }
                                         var layer_id = gh.getCurrentLayerIDByString("npc_layer")
-                                        if (layer_id !== wasm.exports.get_sentry()) {
+                                        if (layer_id !== wasm.exports.get_sentry())
+                                        {
                                             var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y)
-                                            if (layer_value !== wasm.exports.get_sentry()) {
+                                            if (layer_value !== wasm.exports.get_sentry())
+                                            {
                                                 // TODO: One approach: Check the machine name of the player and see if it's a player
                                                 // tile.style.backgroundColor = 'green'
                                                 var world_npc_name_id = wasm.exports.get_world_npc_name_id(layer_value);
                                                 var name = "";
                                                 var type = 0;
-                                                if (world_npc_name_id !== wasm.exports.get_sentry()) {
+                                                if (world_npc_name_id !== wasm.exports.get_sentry())
+                                                {
                                                     name = readDbStringFromWasm(world_npc_name_id, true);
                                                 }
                                                 type = wasm.exports.get_world_npc_type(layer_value);
@@ -1473,37 +1505,17 @@
                                                 npc_element.style.setProperty('--atlas-x', 21);
                                                 npc_element.style.setProperty('--atlas-y', 2);
                                                 npc_element.style.backgroundPosition = 'calc(-1 * calc(32px * 16)) calc(-1 * calc(32px * 2))';
-                                                if (world_npc_name_id !== wasm.exports.get_sentry() && name == "bank_teller") {
-                                                    npc_element.style.setProperty('--atlas-x', 34);
-                                                    npc_element.style.setProperty('--atlas-y', 1);
-                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "general_shop_owner") {
-                                                    npc_element.style.setProperty('--atlas-x', 35);
-                                                    npc_element.style.setProperty('--atlas-y', 2);
-                                                    npc_element.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
-                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "blackjack_player") {
-                                                    npc_element.style.setProperty('--atlas-x', 36);
-                                                    npc_element.style.setProperty('--atlas-y', 2);
-                                                    npc_element.style.backgroundColor = 'rgba(0, 0, 255, 0.5)';
-                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "npc_ocean_battle") {
-                                                    npc_element.style.setProperty('--atlas-x', 37);
-                                                    npc_element.style.setProperty('--atlas-y', 2);
-                                                    npc_element.style.backgroundColor = 'rgba(0, 255, 0, 0.5)';
-                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "npc_rvice") {
-                                                    npc_element.style.setProperty('--atlas-x', 40);
-                                                    npc_element.style.setProperty('--atlas-y', 2);
-                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "npc_lafolie") {
-                                                    npc_element.style.setProperty('--atlas-x', 41);
-                                                    npc_element.style.setProperty('--atlas-y', 2);
-                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "npc_nakor") {
-                                                    npc_element.style.setProperty('--atlas-x', 42);
-                                                    npc_element.style.setProperty('--atlas-y', 2);
-                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "npc_travis") {
-                                                    npc_element.style.setProperty('--atlas-x', 43);
-                                                    npc_element.style.setProperty('--atlas-y', 2);
-                                                } else if (world_npc_name_id !== wasm.exports.get_sentry() && name == "npc_loller") {
-                                                    npc_element.style.setProperty('--atlas-x', 44);
-                                                    npc_element.style.setProperty('--atlas-y', 2);
-                                                } else if (type !== wasm.exports.get_sentry() && type === 3) {
+                                                for (var k in LAYER_ATLAS_MAP["athens"]["npc_layer"])
+                                                {
+                                                    var lam_value = LAYER_ATLAS_MAP["athens"]["npc_layer"][k];
+                                                    if (k === name)
+                                                    {
+                                                        npc_element.style.setProperty('--atlas-x', lam_value[0]);
+                                                        npc_element.style.setProperty('--atlas-y', lam_value[1]);
+                                                        break;
+                                                    }
+                                                }
+                                                if (type !== wasm.exports.get_sentry() && type === 3) {
                                                     npc_element.style.setProperty('--atlas-x', 19);
                                                     npc_element.style.setProperty('--atlas-y', 0);
                                                     var ship_id = wasm.exports.get_world_npc_entity_id(layer_value);
