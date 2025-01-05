@@ -263,7 +263,9 @@
             LAYER_ATLAS_MAP["athens"]["layer_one"][39] = [8, 1];
             LAYER_ATLAS_MAP["athens"]["layer_one"][40] = [46, 0];
             LAYER_ATLAS_MAP["athens"]["layer_one"][41] = [44, 0];
-
+            var LAYER_COORDINATES_VALUE_HISTORY = [];
+            var LAYER_COORDINATES_VALUE_UNDO_COUNTER = 0;
+            var LAYER_COORDINATES_VALUE_REDO_COUNTER = 0;
 
             // gh = GameHelper
             var gh = {
@@ -362,11 +364,29 @@
                 editorSetLayerCoordinatesValue: function(layer_id, x, y, value)
                 {
                     var original_value = wasm.exports.get_layer_data_by_coordinates(layer_id, x, y);
+                    // UNDO_COUNTER = 0 (actually equal to undo array.length - 1)
+                    // [layer_id, x, y, original_value, updated_value]
+                    // If you go backwards into the undo array and then make a NEW change, release everything in undo array from current UNDO_COUNTER to end of array
+                    // REDO_COUNTER = UNDO_COUNTER + 1 -> reapply updated_value
                     // TODO: store original value in an array of changes so we can undo and redo
+                    LAYER_COORDINATES_VALUE_HISTORY[LAYER_COORDINATES_VALUE_UNDO_COUNTER] = [
+                        layer_id,
+                        x, y,
+                        original_value,
+                        value
+                    ];
+                    ++LAYER_COORDINATES_VALUE_UNDO_COUNTER;
                     wasm.exports.add_value_to_global_world_data(layer_id, x, y, value);
                     wasm.exports.should_redraw_everything();
                     force_redraw = true;
-                }
+                },
+                editorSetLayerCoordinatesValueUndo: function () {
+                    --LAYER_COORDINATES_VALUE_UNDO_COUNTER;
+                    var undo_data = LAYER_COORDINATES_VALUE_HISTORY[LAYER_COORDINATES_VALUE_UNDO_COUNTER];
+                    wasm.exports.add_value_to_global_world_data(undo_data[0], undo_data[1], undo_data[2], undo_data[3]);
+                    wasm.exports.should_redraw_everything();
+                    force_redraw = true;
+                },
             }
 
             // uih = UIHelper
