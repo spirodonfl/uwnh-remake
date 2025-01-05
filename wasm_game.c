@@ -3,6 +3,13 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
+#include "rvice_sucks.h"
+uint32_t test_world_data_out(uint32_t t) {
+    // uint32_t offset = t * 4;
+    // return rvice_sucks_bin[offset];
+    return rvice_sucks[t];
+}
+
 #define BUFFER_SIZE 1024
 
 void console_log(const char* message);
@@ -406,6 +413,10 @@ enum BankData {
 enum SceneBank {
     SCENE_BANK_WELCOME,
     SCENE_BANK_DATA_SIZE,
+};
+enum SceneBankChoices {
+    SCENE_BANK_CHOICE_CONFIRM,
+    SCENE_BANK_CHOICES_DATA_SIZE,
 };
 enum InventoryData {
     INVENTORY_NAME_ID,
@@ -1099,6 +1110,10 @@ void current_scene_make_choice(uint32_t choice) {
         scene_npc_nakor(SCENE_MAKE_CHOICE);
     } else if (get_current_scene() == SCENE_NPC_TRAVIS) {
         scene_npc_travis(SCENE_MAKE_CHOICE);
+    } else if (get_current_scene() == SCENE_NPC_LOLLER) {
+        scene_npc_loller(SCENE_MAKE_CHOICE);
+    } else if (get_current_scene() == SCENE_BANK) {
+        scene_bank(SCENE_MAKE_CHOICE);
     }
 }
 uint32_t current_scene_get_current_choice() {
@@ -2163,21 +2178,25 @@ void generate_world(char* world_name) {
         layer_id = create_layer(layer_data, true);
         // console_log_format("layer one is %d", layer_id);
         g_world_data[current_world * WORLD_DATA_SIZE + WORLD_TOTAL_LAYERS] += 1;
-        add_value_to_global_world_data(layer_id, 4, 2, 36);
-        add_value_to_global_world_data(layer_id, 5, 2, 37);
-        add_value_to_global_world_data(layer_id, 6, 2, 37);
+        add_value_to_global_world_data(layer_id, 0, 2, 36);
         add_value_to_global_world_data(layer_id, 7, 2, 38);
-        add_value_to_global_world_data(layer_id, 4, 3, 33);
-        add_value_to_global_world_data(layer_id, 4, 4, 33);
+        add_value_to_global_world_data(layer_id, 0, 3, 33);
+        add_value_to_global_world_data(layer_id, 0, 4, 33);
         add_value_to_global_world_data(layer_id, 5, 3, 34);
         add_value_to_global_world_data(layer_id, 5, 4, 34);
-        add_value_to_global_world_data(layer_id, 6, 3, 34);
-        add_value_to_global_world_data(layer_id, 6, 4, 34);
+        for (uint32_t column = 1; column < 7; ++column) {
+            add_value_to_global_world_data(layer_id, column, 2, 37);
+        }
+        for (uint32_t column = 1; column < 7; ++column) {
+            add_value_to_global_world_data(layer_id, column, 3, 34);
+            add_value_to_global_world_data(layer_id, column, 4, 34);
+        }
         add_value_to_global_world_data(layer_id, 7, 3, 35);
         add_value_to_global_world_data(layer_id, 7, 4, 35);
-        add_value_to_global_world_data(layer_id, 4, 5, 39);
-        add_value_to_global_world_data(layer_id, 5, 5, 40);
-        add_value_to_global_world_data(layer_id, 6, 5, 40);
+        add_value_to_global_world_data(layer_id, 0, 5, 39);
+        for (uint32_t column = 1; column < 7; ++column) {
+            add_value_to_global_world_data(layer_id, column, 5, 40);
+        }
         add_value_to_global_world_data(layer_id, 7, 5, 41);
 
         CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
@@ -5538,7 +5557,7 @@ uint32_t scene_bank(uint32_t action)
                 {
                     clear_current_scene_choices();
                     current_scene_set_choice_string_id(
-                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                        current_scene_add_choice(SCENE_BANK_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
                     uint32_t string_id = get_string_id_by_machine_name("welcome_to_digi_tal_bank");
@@ -5546,9 +5565,34 @@ uint32_t scene_bank(uint32_t action)
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                 }
+                case SCENE_MAKE_CHOICE: {
+                    uint32_t cc = current_scene_get_current_choice();
+                    if (current_scene_get_choice(cc) == SCENE_BANK_CHOICE_CONFIRM) {
+                        current_game_mode = GAME_MODE_IN_PORT;
+                        clear_current_scene();
+                        should_redraw_everything();
+                        break;
+                    }
+                    break;
+                }
             }
         }
     }
 
     return SENTRY;
 }
+
+// TODO: Dockyard/shipyard
+// TODO: Inn -> sleep, set alarm for a specific time
+// TODO: Weapon/Armor shop
+// TODO: Trade shop -> heuristics on economic factors that influence price
+// TODO: Guilds? Tasks with reputation and guild memberships?
+// TODO: Library? What even is this? Read books and gain info or something?
+// TODO: Cafe -> buy drinks, flirt with waitress, hire crew, hire captains, get gossip
+// TODO: Duels -> recycle card based system from original game???
+// TODO: Autopilot captains -> they can auto sail your fleet to a port (pathfinding)
+// TODO: Jail -> world/map, houses React pirates. Maybe React pirates are their own faction
+// TODO: Houses to buy (pre-furnished to start, later on, furniture microtransactions w/ crypto mining for each furniture purchased so Spiro makes boatloads of cash)
+// TODO: Bulletin boards with messages to other players (post office??)
+// TODO: "Send" your ships to other players which become AI controlled and help other players
+// TODO: "Item in a bottle" -> send out an item and random player receives it later

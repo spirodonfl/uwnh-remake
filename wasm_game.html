@@ -51,6 +51,25 @@
         <script type="text/javascript">
             const wasmBase64 = "<!-- WASM_FILE_HERE -->";
             // NOTE: Confirmed that if you open this file as file:// path, you CAN connect to a local websocket without security!
+
+            var testArrayToBinDumper = function() {
+                var data = [1, 2, 3, 4, 5, 69, 69420, 420, 666];
+                var test_blob = new Blob([new Uint32Array(data)], {type: 'application/octet-stream'});
+                var editorDownload = function (data, file_name) {
+                    const link = document.createElement('a');
+                    const url = window.URL.createObjectURL(data);
+
+                    link.href = url;
+                    link.download = file_name;
+                    document.body.appendChild(link);
+                    link.click();
+
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                };
+                editorDownload(test_blob, "rvice_sucks.bin");
+            }
+
             class FSM {
                 constructor () {
                     this.states = {};
