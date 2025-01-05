@@ -2109,9 +2109,11 @@ uint32_t are_coordinates_blocked(uint32_t x, uint32_t y) {
     return 0;
 }
 
-void generate_world(char* world_name) {
+void generate_world(char* world_name)
+{
     console_log_format("Generating world %s", world_name);
-    if (strcmp(world_name, "athens") == 0) {
+    if (strcmp(world_name, "athens") == 0)
+    {
         previous_game_mode = current_game_mode;
         current_game_mode = GAME_MODE_IN_PORT;
 
@@ -2126,7 +2128,6 @@ void generate_world(char* world_name) {
         if (current_world == SENTRY) {
             console_log_format("Could not find world %s", world_name);
         }
-        console_log("GENERATING WORLD");
 
         // TODO: Clear all layers. No need to keep old ones.
         clear_global_world_data();

@@ -248,6 +248,23 @@
                 return readStringFromWasm(start, length)
             }
 
+            var LAYER_ATLAS_MAP = {
+                // Note: array values are "layer_value", "atlas-x", "atlas-y"
+                "athens": {
+                    "layer_one":[]
+                },
+            };
+            LAYER_ATLAS_MAP["athens"]["layer_one"][33] = [3, 1];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][34] = [33, 0];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][35] = [41, 0];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][36] = [28, 1];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][37] = [7, 1];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][38] = [32, 1];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][39] = [8, 1];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][40] = [46, 0];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][41] = [44, 0];
+
+
             // gh = GameHelper
             var gh = {
                 oceanBattleCurrentTurn: {
@@ -341,6 +358,15 @@
                 getCurrentOceanBattleTurnNpcId: function () {
                     return wasm.exports.get_current_ocean_battle_turn_npc_id();
                 },
+
+                editorSetLayerCoordinatesValue: function(layer_id, x, y, value)
+                {
+                    var original_value = wasm.exports.get_layer_data_by_coordinates(layer_id, x, y);
+                    // TODO: store original value in an array of changes so we can undo and redo
+                    wasm.exports.add_value_to_global_world_data(layer_id, x, y, value);
+                    wasm.exports.should_redraw_everything();
+                    force_redraw = true;
+                }
             }
 
             // uih = UIHelper
@@ -1367,34 +1393,16 @@
                                                 layer_one_element.style.height = '32px';
                                                 layer_one_element.style.setProperty('--atlas-x', 0);
                                                 layer_one_element.style.setProperty('--atlas-y', 0);
-                                                if (layer_value == 33) {
-                                                    layer_one_element.style.setProperty('--atlas-x', 3);
-                                                    layer_one_element.style.setProperty('--atlas-y', 1);
-                                                } else if (layer_value == 34) {
-                                                    layer_one_element.style.setProperty('--atlas-x', 33);
-                                                    layer_one_element.style.setProperty('--atlas-y', 0);
-                                                } else if (layer_value == 35) {
-                                                    layer_one_element.style.setProperty('--atlas-x', 41);
-                                                    layer_one_element.style.setProperty('--atlas-y', 0);
-                                                } else if (layer_value == 36) {
-                                                    layer_one_element.style.setProperty('--atlas-x', 28);
-                                                    layer_one_element.style.setProperty('--atlas-y', 1);
-                                                } else if (layer_value == 37) {
-                                                    layer_one_element.style.setProperty('--atlas-x', 7);
-                                                    layer_one_element.style.setProperty('--atlas-y', 1);
-                                                } else if (layer_value == 38) {
-                                                    layer_one_element.style.setProperty('--atlas-x', 32);
-                                                    layer_one_element.style.setProperty('--atlas-y', 1);
-                                                } else if (layer_value == 39) {
-                                                    layer_one_element.style.setProperty('--atlas-x', 8);
-                                                    layer_one_element.style.setProperty('--atlas-y', 1);
-                                                } else if (layer_value == 40) {
-                                                    layer_one_element.style.setProperty('--atlas-x', 46);
-                                                    layer_one_element.style.setProperty('--atlas-y', 0);
-                                                } else if (layer_value == 41) {
-                                                    layer_one_element.style.setProperty('--atlas-x', 44);
-                                                    layer_one_element.style.setProperty('--atlas-y', 0);
+                                                
+                                                for (var k = 0; k < LAYER_ATLAS_MAP["athens"]["layer_one"].length; ++k) {
+                                                    var lam_value = LAYER_ATLAS_MAP["athens"]["layer_one"][k];
+                                                    if (k === layer_value) {
+                                                        layer_one_element.style.setProperty('--atlas-x', lam_value[0]);
+                                                        layer_one_element.style.setProperty('--atlas-y', lam_value[1]);
+                                                        break;
+                                                    }
                                                 }
+
                                                 layer_one_element.style.backgroundPosition = "calc(-1 * calc(32px * var(--atlas-x))) calc(-1 * calc(32px * var(--atlas-y)))";
                                                 layer_one_element.style.position = 'absolute';
                                                 tile.appendChild(layer_one_element);
