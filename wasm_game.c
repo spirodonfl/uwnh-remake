@@ -1198,6 +1198,7 @@ uint32_t current_scene_get_string(uint32_t which) {
 // Global World Data
 // ------------------------------------------------------------------------------------------------
 #define G_GLOBAL_WORLD_DATA_SIZE 20000
+// MAXIMUM_WORLD_WIDTH * MAXIMUM_WORLD_HEIGHT * MAXIMUM_WORLD_LAYERS
 uint32_t GLOBAL_WORLD_DATA[G_GLOBAL_WORLD_DATA_SIZE];
 uint32_t GLOBAL_WORLD_DATA_ITERATOR;
 void add_value_to_global_world_data(uint32_t layer_id, uint32_t x, uint32_t y, uint32_t value) {
@@ -2125,6 +2126,7 @@ void generate_world(char* world_name) {
         if (current_world == SENTRY) {
             console_log_format("Could not find world %s", world_name);
         }
+        console_log("GENERATING WORLD");
 
         // TODO: Clear all layers. No need to keep old ones.
         clear_global_world_data();
@@ -5446,8 +5448,10 @@ uint32_t scene_npc_travis(uint32_t action) {
     }
     return SENTRY;
 }
-uint32_t scene_npc_loller(uint32_t action) {
-    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT) {
+uint32_t scene_npc_loller(uint32_t action)
+{
+    if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
+    {
         clear_current_scene();
         set_current_scene(SCENE_NPC_LOLLER);
         set_current_scene_string_id(get_string_id_by_machine_name("scene_npc_loller"));
@@ -5456,8 +5460,10 @@ uint32_t scene_npc_loller(uint32_t action) {
         scene_npc_loller(SCENE_ACTION_INIT);
         return SENTRY;
     }
-    switch (get_current_scene_state()) {
-        case SCENE_NPC_STATES_LOLLER_TRASH_TALK: {
+    switch (get_current_scene_state())
+    {
+        case SCENE_NPC_STATES_LOLLER_TRASH_TALK:
+        {
             clear_current_scene_choices();
             current_scene_set_choice_string_id(
                 current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
@@ -5465,15 +5471,18 @@ uint32_t scene_npc_loller(uint32_t action) {
             );
             uint32_t cc = current_scene_get_current_choice();
             switch (action) {
-                case SCENE_ACTION_INIT: {
+                case SCENE_ACTION_INIT:
+                {
                     uint32_t string_id = get_string_id_by_machine_name("scene_state_npc_loller_trash_talk");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                     break;
                 }
-                case SCENE_MAKE_CHOICE: {
-                    if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM) {
+                case SCENE_MAKE_CHOICE:
+                {
+                    if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM)
+                    {
                         current_game_mode = GAME_MODE_IN_PORT;
                         clear_current_scene();
                         should_redraw_everything();
@@ -5565,9 +5574,11 @@ uint32_t scene_bank(uint32_t action)
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
                 }
-                case SCENE_MAKE_CHOICE: {
+                case SCENE_MAKE_CHOICE:
+                {
                     uint32_t cc = current_scene_get_current_choice();
-                    if (current_scene_get_choice(cc) == SCENE_BANK_CHOICE_CONFIRM) {
+                    if (current_scene_get_choice(cc) == SCENE_BANK_CHOICE_CONFIRM)
+                    {
                         current_game_mode = GAME_MODE_IN_PORT;
                         clear_current_scene();
                         should_redraw_everything();
