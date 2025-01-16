@@ -2,23 +2,28 @@
     <head>
         <title>The Game</title>
         <style type="text/css">
-            body {
+            body
+            {
                 background-color: rgb(20, 20, 20);
                 color: white;
                 font-family: monospace, fangsong;
                 font-size: 24px;
             }
-            * {
+            *
+            {
                 box-sizing: border-box;
             }
 
-            #scene_text_wrapper {
+            #scene_text_wrapper
+            {
                 z-index: 99;
             }
-            #player_menu {
+            #player_menu
+            {
                 z-index: 100;
             }
-            #scene_text_wrapper, #player_menu, #blackjack_table {
+            #scene_text_wrapper, #player_menu, #blackjack_table
+            {
                 position: absolute;
                 width: 384px;
                 background-color: rgba(20, 20, 20, 0.8);
@@ -26,26 +31,202 @@
                 font-size: 16px;
                 z-index: 10;
             }
-            #player_menu {
+            #player_menu
+            {
                 height: 384px;
             }
 
-            .scene_choice.current {
+            .scene_choice.current
+            {
                 background-color: rgba(117, 116, 116, 0.8);
             }
-            .scene_choice.disabled {
+            .scene_choice.disabled
+            {
                 color: rgb(137, 137, 137);
             }
-            .inventory_item_name.current {
+            .inventory_item_name.current
+            {
                 background-color: rgba(117, 116, 116, 0.8);
             }
-            .inventory_item_name.will_buy {
+            .inventory_item_name.will_buy
+            {
                 background-color: rgb(100, 150, 100);
             }
 
-            .atlas {
+            .atlas
+            {
                 background-image: url("data:image/png;base64, <!-- ATLAS FILE HERE -->");
                 background-size: calc(3008px/2) calc(2304px/2);
+            }
+
+            .should_3d .tile_element
+            {
+                transform-style: preserve-3d;
+            }
+            .should_3d .layer-npc_layer
+            {
+                transform: rotateX(90deg) rotateZ(180deg) translate3d(0px, -16px, 0px);
+                transform-style: preserve-3d;
+            }
+            #viewport {
+                --rotate-x: 10deg;
+                --rotate-y: 10deg;
+                --rotate-z: 0deg;
+                --perspective: 1000px;
+            }
+            .should_3d #viewport {
+                transform: perspective(var(--perspective)) rotateX(var(--rotate-x)) rotateY(var(--rotate-y)) rotateZ(var(--rotate-z));
+                transform-style: preserve-3d;
+            }
+
+            .debug_entity {
+                border-top: 2px solid purple;
+            }
+            .debug_block {
+                border-top: 2px solid red;
+            }
+
+            .world-athens.layer-layer_one.value-33
+            {
+                --atlas-x: 3;
+                --atlas-y: 1;
+            }
+            .world-athens.layer-layer_one.value-34
+            {
+                --atlas-x: 33;
+                --atlas-y: 0;
+            }
+            .world-athens.layer-layer_one.value-35
+            {
+                --atlas-x: 41;
+                --atlas-y: 0;
+            }
+            .world-athens.layer-layer_one.value-36
+            {
+                --atlas-x: 28;
+                --atlas-y: 1;
+            }
+            .world-athens.layer-layer_one.value-37
+            {
+                --atlas-x: 7;
+                --atlas-y: 1;
+            }
+            .world-athens.layer-layer_one.value-38
+            {
+                --atlas-x: 32;
+                --atlas-y: 1;
+            }
+            .world-athens.layer-layer_one.value-39
+            {
+                --atlas-x: 8;
+                --atlas-y: 1;
+            }
+            .world-athens.layer-layer_one.value-40
+            {
+                --atlas-x: 46;
+                --atlas-y: 0;
+            }
+            .world-athens.layer-layer_one.value-41
+            {
+                --atlas-x: 44;
+                --atlas-y: 0;
+            }
+            .world-athens.layer-layer_two.value-69
+            {
+                --atlas-x: 12;
+                --atlas-y: 0;
+            }
+            .world-athens.layer-layer_two.value-70
+            {
+                --atlas-x: 12;
+                --atlas-y: 0;
+            }
+            .world-athens.layer-layer_two.value-71
+            {
+                --atlas-x: 18;
+                --atlas-y: 3;
+            }
+            .world-athens.layer-layer_two.value-72
+            {
+                --atlas-x: 18;
+                --atlas-y: 4;
+            }
+            .world-athens.layer-npc_layer.npc_name-bank_teller
+            {
+                --atlas-x: 34;
+                --atlas-y: 1;
+            }
+            .world-athens.layer-npc_layer.npc_name-general_shop_owner
+            {
+                --atlas-x: 35;
+                --atlas-y: 2;
+            }
+            .world-athens.layer-npc_layer.npc_name-blackjack_player
+            {
+                --atlas-x: 36;
+                --atlas-y: 2;
+            }
+            .world-athens.layer-npc_layer.npc_name-npc_ocean_battle
+            {
+                --atlas-x: 37;
+                --atlas-y: 2;
+            }
+            .world-athens.layer-npc_layer.npc_name-npc_rvice
+            {
+                --atlas-x: 40;
+                --atlas-y: 2;
+            }
+            .world-athens.layer-npc_layer.npc_name-npc_lafolie
+            {
+                --atlas-x: 41;
+                --atlas-y: 2;
+            }
+            .world-athens.layer-npc_layer.npc_name-npc_nakor
+            {
+                --atlas-x: 42;
+                --atlas-y: 2;
+            }
+            .world-athens.layer-npc_layer.npc_name-npc_travis
+            {
+                --atlas-x: 43;
+                --atlas-y: 2;
+            }
+            .world-athens.layer-npc_layer.npc_name-npc_loller
+            {
+                --atlas-x: 44;
+                --atlas-y: 2;
+            }
+            .world-athens.layer-npc_layer.value-3
+            {
+                --atlas-x: 19;
+                --atlas-y: 0;
+            }
+            .world-athens.layer-entity.value-0
+            {
+                --atlas-x: 12;
+                --atlas-y: 1;
+            }
+            .world-dingus_land.layer-layer_one.value-36
+            {
+                --atlas-x: 36;
+                --atlas-y: 1;
+            }
+            .world-dingus_land.layer-background_layer.value-1
+            {
+                --atlas-x: 33;
+                --atlas-y: 0;
+                background-position: calc(-1 * calc(32px * var(--atlas-x))) calc(-1 * calc(32px * var(--atlas-y)));
+            }
+            .world-dingus_land.layer-npc_layer.value-1
+            {
+                --atlas-x: 20;
+                --atlas-y: 0;
+                background-position: calc(-1 * calc(32px * var(--atlas-x))) calc(-1 * calc(32px * var(--atlas-y)));
+            }
+            .world-dingus_land.layer-npc_layer.npc_name-bank_teller
+            {
+                --atlas-x: 34;
+                --atlas-y: 1;
             }
         </style>
         <script type="text/javascript">
@@ -291,27 +472,27 @@
                     "npc_layer":{},
                 },
             };
-            LAYER_ATLAS_MAP["athens"]["layer_one"][33] = [3, 1];
-            LAYER_ATLAS_MAP["athens"]["layer_one"][34] = [33, 0];
-            LAYER_ATLAS_MAP["athens"]["layer_one"][35] = [41, 0];
-            LAYER_ATLAS_MAP["athens"]["layer_one"][36] = [28, 1];
-            LAYER_ATLAS_MAP["athens"]["layer_one"][37] = [7, 1];
-            LAYER_ATLAS_MAP["athens"]["layer_one"][38] = [32, 1];
-            LAYER_ATLAS_MAP["athens"]["layer_one"][39] = [8, 1];
-            LAYER_ATLAS_MAP["athens"]["layer_one"][40] = [46, 0];
-            LAYER_ATLAS_MAP["athens"]["layer_one"][41] = [44, 0];
-            LAYER_ATLAS_MAP["athens"]["layer_two"][69] = [12, 0];
-            LAYER_ATLAS_MAP["athens"]["layer_two"][70] = [12, 0];
-            LAYER_ATLAS_MAP["athens"]["npc_layer"]["bank_teller"] = [34, 1];
-            LAYER_ATLAS_MAP["athens"]["npc_layer"]["general_shop_owner"] = [35, 2];
-            LAYER_ATLAS_MAP["athens"]["npc_layer"]["blackjack_player"] = [36, 2];
-            LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_ocean_battle"] = [37, 2];
-            LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_rvice"] = [40, 2];
-            LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_lafolie"] = [41, 2];
-            LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_nakor"] = [42, 2];
-            LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_travis"] = [43, 2];
-            LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_loller"] = [44, 2];
-            LAYER_ATLAS_MAP["athens"]["npc_layer"][3] = [19, 0];
+            // LAYER_ATLAS_MAP["athens"]["layer_one"][33] = [3, 1];
+            // LAYER_ATLAS_MAP["athens"]["layer_one"][34] = [33, 0];
+            // LAYER_ATLAS_MAP["athens"]["layer_one"][35] = [41, 0];
+            // LAYER_ATLAS_MAP["athens"]["layer_one"][36] = [28, 1];
+            // LAYER_ATLAS_MAP["athens"]["layer_one"][37] = [7, 1];
+            // LAYER_ATLAS_MAP["athens"]["layer_one"][38] = [32, 1];
+            // LAYER_ATLAS_MAP["athens"]["layer_one"][39] = [8, 1];
+            // LAYER_ATLAS_MAP["athens"]["layer_one"][40] = [46, 0];
+            // LAYER_ATLAS_MAP["athens"]["layer_one"][41] = [44, 0];
+            // LAYER_ATLAS_MAP["athens"]["layer_two"][69] = [12, 0];
+            // LAYER_ATLAS_MAP["athens"]["layer_two"][70] = [12, 0];
+            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["bank_teller"] = [34, 1];
+            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["general_shop_owner"] = [35, 2];
+            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["blackjack_player"] = [36, 2];
+            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_ocean_battle"] = [37, 2];
+            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_rvice"] = [40, 2];
+            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_lafolie"] = [41, 2];
+            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_nakor"] = [42, 2];
+            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_travis"] = [43, 2];
+            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_loller"] = [44, 2];
+            // LAYER_ATLAS_MAP["athens"]["npc_layer"][3] = [19, 0];
             var LAYER_COORDINATES_VALUE_HISTORY = [];
             var LAYER_COORDINATES_VALUE_UNDO_COUNTER = 0;
             var LAYER_COORDINATES_VALUE_REDO_COUNTER = 0;
@@ -354,6 +535,20 @@
                     var string_id = wasm.exports.find_string_id_by_machine_name_from_input();
                     // console.log("getCurrentLayerIDByString:", string_id)
                     return wasm.exports.find_layer_id_by_string_id(string_id);
+                },
+
+                getCurrentWorldNameID: function ()
+                {
+                    var name_id = wasm.exports.get_current_world_name_id();
+                    if (name_id == wasm.exports.get_sentry())
+                    {
+                        console.log("ERROR: Tried to get current world name but got sentry value instead");
+                    }
+                    return name_id;
+                },
+                getCurrentWorldName: function ()
+                {
+                    return readDbStringFromWasm(gh.getCurrentWorldNameID(), true);
                 },
 
                 getCurrentSceneInventoryId: function ()
@@ -449,7 +644,7 @@
                     ++LAYER_COORDINATES_VALUE_UNDO_COUNTER;
                     wasm.exports.add_value_to_global_world_data(layer_id, x, y, value);
                     wasm.exports.should_redraw_everything();
-                    force_redraw = true;
+                    // force_redraw = true;
                 },
                 editorSetLayerCoordinatesValueUndo: function ()
                 {
@@ -461,7 +656,7 @@
                     var data = LAYER_COORDINATES_VALUE_HISTORY[LAYER_COORDINATES_VALUE_UNDO_COUNTER];
                     wasm.exports.add_value_to_global_world_data(data[0], data[1], data[2], data[3]);
                     wasm.exports.should_redraw_everything();
-                    force_redraw = true;
+                    // force_redraw = true;
                 },
                 editorSetLayerCoordinatesValueRedo: function ()
                 {
@@ -524,6 +719,15 @@
                     // create a dom element for player inside of viewport element
                     // --> use image blending (mix-blend-mode) technique for multiple sprite images in the viewport parent dom element
                     // --> remap keybinds to move only player dom element, not change background color of viewport dom element
+                },
+                getViewportTile: function (x, y)
+                {
+                    var tile = document.querySelector('[viewport_x="' + x + '"][viewport_y="' + y + '"]');
+                    if (tile instanceof HTMLElement)
+                    {
+                        return tile;
+                    }
+                    return wasm.exports.get_sentry();
                 },
                 getTile: function (x, y)
                 {
@@ -1145,6 +1349,63 @@
                                 }
                                 uih.initializeSceneChoices();
                             }
+                            else if (scene_name === "scene_bank")
+                            {
+                                uih.scene.name = scene_name;
+                                uih.scene.state_name = scene_state_name;
+                                uih.showSceneTextWrapper();
+                                if (gh.getCurrentSceneHasDialogue())
+                                {
+                                    uih.showSceneDialogue(gh.getCurrentSceneDialogue());
+                                }
+
+                                uih.clearSceneChoices();
+                                clear_scene_inputs();
+                                if (gh.getCurrentSceneChoicesCount() > 0)
+                                {
+                                    var total_choices = gh.getCurrentSceneChoicesCount();
+                                    uih.scene.total_scene_choices = total_choices;
+                                    scene_total_choices += total_choices;
+                                    // console.log("Scene total choices", scene_total_choices);
+                                    for (var t = 0; t < scene_total_choices; ++t)
+                                    {
+                                        if (!gh.getCurrentSceneChoiceEnabled(t))
+                                        {
+                                            continue;
+                                        }
+                                        var choice = gh.getCurrentSceneChoiceText(t);
+                                        var machine_name = gh.getCurrentSceneChoiceMachineName(t);
+                                        var choice_el;
+                                        if (machine_name === "number_input")
+                                        {
+                                            choice_el = document.createElement('div');
+                                            choice_el.classList.add('scene_choice');
+                                            choice_el.innerHTML = gh.getCurrentSceneInputNumber();
+                                            choice_el.id = t;
+                                        }
+                                        else
+                                        {
+                                            choice_el = document.createElement('div');
+                                            choice_el.classList.add('scene_choice');
+                                            choice_el.innerHTML = choice;
+                                            choice_el.id = t;
+                                        }
+                                        uih.el.scene_text_wrapper.choices.appendChild(choice_el);
+                                    }
+                                    uih.showSceneChoices();
+                                }
+
+                                if (gh.getCurrentSceneNeedsNumericalInput() !== wasm.exports.get_sentry())
+                                {
+                                    document.getElementById('scene_user_numerical_input').value = 0;
+                                    document.getElementById('scene_numerical_input').style.display = 'block';
+                                }
+                                else
+                                {
+                                    document.getElementById('scene_numerical_input').style.display = 'none';
+                                }
+                                uih.initializeSceneChoices();
+                            }
                             else if (scene_name === "scene_general_shop")
                             {
                                 uih.scene.name = scene_name;
@@ -1603,36 +1864,12 @@
                         {
                             if (gh.shouldRedraw() || force_redraw)
                             {
-                                var bg_elements = document.querySelectorAll('.bg_element');
-                                for (var be = 0; be < bg_elements.length; ++be)
+                                var layer_elements = document.querySelectorAll('.layer_element');
+                                for (var le = 0; le < layer_elements.length; ++le)
                                 {
-                                    if (bg_elements[be] instanceof HTMLElement)
+                                    if (layer_elements[le] instanceof HTMLElement)
                                     {
-                                        bg_elements[be].remove();
-                                    }
-                                }
-                                var npc_elements = document.querySelectorAll('.npc_element');
-                                for (var npc = 0; npc < npc_elements.length; ++npc)
-                                {
-                                    if (npc_elements[npc] instanceof HTMLElement)
-                                    {
-                                        npc_elements[npc].remove();
-                                    }
-                                }
-                                var lo_elements = document.querySelectorAll('.layer_one_element');
-                                for (var lo = 0; lo < lo_elements.length; ++lo)
-                                {
-                                    if (lo_elements[lo] instanceof HTMLElement)
-                                    {
-                                        lo_elements[lo].remove();
-                                    }
-                                }
-                                var lt_elements = document.querySelectorAll('.layer_two_element');
-                                for (var lt = 0; lt < lt_elements.length; ++lt)
-                                {
-                                    if (lt_elements[lt] instanceof HTMLElement)
-                                    {
-                                        lt_elements[lt].remove();
+                                        layer_elements[le].remove();
                                     }
                                 }
                                 // console.log('Should redraw')
@@ -1642,10 +1879,6 @@
                                     for (var j = 0; j < wasm.exports.get_viewport_height(); ++j)
                                     {
                                         var tile = document.querySelector('[world_x="' + x + '"][world_y="' + j + '"]');
-                                        if (should3d)
-                                        {
-                                            tile.style.transformStyle = 'preserve-3d';
-                                        }
                                         // var world_x = wasm.exports.get_world_coordinate_x_from_viewport_coordinate(i, j);
                                         // var world_y = wasm.exports.get_world_coordinate_y_from_viewport_coordinate(i, j);
                                         world_x = x;
@@ -1704,9 +1937,14 @@
                                                 // tile.style.backgroundColor = 'rgba(0, 0, 100, 0.8)'
                                                 var bg_element = document.createElement('div');
                                                 bg_element.classList.add('atlas');
-                                                bg_element.classList.add('bg_element');
+                                                bg_element.classList.add('layer_element');
                                                 bg_element.style.width = '32px';
                                                 bg_element.style.height = '32px';
+
+                                                bg_element.classList.add("world-" + gh.getCurrentWorldName());
+                                                bg_element.classList.add("layer-background_layer");
+                                                bg_element.classList.add("value-" + layer_value);
+
                                                 bg_element.style.position = 'absolute';
                                                 tile.appendChild(bg_element);
                                                 tile.style.mixBlendMode = 'normal';
@@ -1717,28 +1955,19 @@
                                             var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y);
                                             if (layer_value !== wasm.exports.get_sentry())
                                             {
-                                                var layer_one_element = document.createElement('div');
-                                                layer_one_element.classList.add('atlas');
-                                                layer_one_element.classList.add('layer_one_element');
-                                                layer_one_element.style.width = '32px';
-                                                layer_one_element.style.height = '32px';
-                                                layer_one_element.style.setProperty('--atlas-x', 0);
-                                                layer_one_element.style.setProperty('--atlas-y', 0);
+                                                var layer_element = document.createElement('div');
+                                                layer_element.classList.add('atlas');
+                                                layer_element.classList.add('layer_element');
+                                                layer_element.style.width = '32px';
+                                                layer_element.style.height = '32px';
                                                 
-                                                for (var k = 0; k < LAYER_ATLAS_MAP["athens"]["layer_one"].length; ++k)
-                                                {
-                                                    var lam_value = LAYER_ATLAS_MAP["athens"]["layer_one"][k];
-                                                    if (k === layer_value)
-                                                    {
-                                                        layer_one_element.style.setProperty('--atlas-x', lam_value[0]);
-                                                        layer_one_element.style.setProperty('--atlas-y', lam_value[1]);
-                                                        break;
-                                                    }
-                                                }
-
-                                                layer_one_element.style.backgroundPosition = "calc(-1 * calc(32px * var(--atlas-x))) calc(-1 * calc(32px * var(--atlas-y)))";
-                                                layer_one_element.style.position = 'absolute';
-                                                tile.appendChild(layer_one_element);
+                                                layer_element.classList.add("world-" + gh.getCurrentWorldName());
+                                                layer_element.classList.add("layer-layer_one");
+                                                layer_element.classList.add("value-" + layer_value);
+                                                
+                                                layer_element.style.backgroundPosition = "calc(-1 * calc(32px * var(--atlas-x))) calc(-1 * calc(32px * var(--atlas-y)))";
+                                                layer_element.style.position = 'absolute';
+                                                tile.appendChild(layer_element);
                                                 tile.style.mixBlendMode = 'normal';
                                                 // tile.style.backgroundColor = 'purple'
                                             }
@@ -1751,21 +1980,14 @@
                                             {
                                                 var layer_element = document.createElement('div');
                                                 layer_element.classList.add('atlas');
-                                                layer_element.classList.add('layer_two_element');
+                                                layer_element.classList.add('layer_element');
                                                 layer_element.style.width = '32px';
                                                 layer_element.style.height = '32px';
-                                                layer_element.style.setProperty('--atlas-x', 0);
-                                                layer_element.style.setProperty('--atlas-y', 0);
-                                                for (var k = 0; k < LAYER_ATLAS_MAP["athens"]["layer_two"].length; ++k)
-                                                {
-                                                    var lam_value = LAYER_ATLAS_MAP["athens"]["layer_two"][k];
-                                                    if (k === layer_value)
-                                                    {
-                                                        layer_element.style.setProperty('--atlas-x', lam_value[0]);
-                                                        layer_element.style.setProperty('--atlas-y', lam_value[1]);
-                                                        break;
-                                                    }
-                                                }
+
+                                                layer_element.classList.add("world-" + gh.getCurrentWorldName());
+                                                layer_element.classList.add("layer-layer_two");
+                                                layer_element.classList.add("value-" + layer_value);
+
                                                 layer_element.style.backgroundPosition = "calc(-1 * calc(32px * var(--atlas-x))) calc(-1 * calc(32px * var(--atlas-y)))";
                                                 layer_element.style.position = 'absolute';
                                                 tile.appendChild(layer_element);
@@ -1791,22 +2013,16 @@
                                                 type = wasm.exports.get_world_npc_type(layer_value);
                                                 var npc_element = document.createElement('div');
                                                 npc_element.classList.add('atlas');
-                                                npc_element.classList.add('npc_element');
+                                                npc_element.classList.add('layer_element');
                                                 npc_element.style.width = '32px';
                                                 npc_element.style.height = '32px';
-                                                npc_element.style.setProperty('--atlas-x', 21);
-                                                npc_element.style.setProperty('--atlas-y', 2);
                                                 npc_element.style.backgroundPosition = 'calc(-1 * calc(32px * 16)) calc(-1 * calc(32px * 2))';
-                                                for (var k in LAYER_ATLAS_MAP["athens"]["npc_layer"])
-                                                {
-                                                    var lam_value = LAYER_ATLAS_MAP["athens"]["npc_layer"][k];
-                                                    if (k === name)
-                                                    {
-                                                        npc_element.style.setProperty('--atlas-x', lam_value[0]);
-                                                        npc_element.style.setProperty('--atlas-y', lam_value[1]);
-                                                        break;
-                                                    }
-                                                }
+
+                                                npc_element.classList.add("world-" + gh.getCurrentWorldName());
+                                                npc_element.classList.add("layer-npc_layer");
+                                                npc_element.classList.add("value-" + layer_value);
+                                                npc_element.classList.add("npc_name-" + name);
+
                                                 if (type !== wasm.exports.get_sentry() && type === 3)
                                                 {
                                                     npc_element.style.setProperty('--atlas-x', 19);
@@ -1836,11 +2052,6 @@
                                                 }
                                                 npc_element.style.backgroundPosition = "calc(-1 * calc(32px * var(--atlas-x))) calc(-1 * calc(32px * var(--atlas-y)))";
                                                 npc_element.style.position = 'absolute';
-                                                if (should3d)
-                                                {
-                                                    npc_element.style.transform = 'rotate3d(1, 1, 1, 52deg)';
-                                                    npc_element.style.transformStyle = 'preserve-3d';
-                                                }
                                                 tile.appendChild(npc_element);
                                                 tile.style.mixBlendMode = 'normal';
                                             }
@@ -1849,9 +2060,25 @@
                                         if (layer_id !== wasm.exports.get_sentry())
                                         {
                                             var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y);
-                                            if (layer_value !== wasm.exports.get_sentry())
+                                            if (layer_value !== wasm.exports.get_sentry() && debug_blocks)
                                             {
-                                                tile.style.backgroundColor = 'yellow';
+                                                tile.classList.add("debug_block");
+                                            }
+                                            else
+                                            {
+                                                tile.classList.remove("debug_block")
+                                            }
+                                        }
+                                        var layer_id = gh.getCurrentLayerIDByString("entity_layer");
+                                        if (layer_id !== wasm.exports.get_sentry()) {
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y);
+                                            if (layer_value !== wasm.exports.get_sentry() && debug_entities)
+                                            {
+                                                tile.classList.add("debug_entity");
+                                            }
+                                            else
+                                            {
+                                                tile.classList.remove("debug_entity")
                                             }
                                         }
                                     }
@@ -1943,6 +2170,12 @@
             });
 
             var should3d = false;
+            function toggleShouldThreeD()
+            {
+                document.body.classList.toggle("should_3d");
+                should3d = !should3d;
+            }
+
             var game_mode;
             var TILE_SIZE = 16;
             var TILE_SCALE = 2;
@@ -1967,6 +2200,7 @@
                         tile.setAttribute('viewport_y', vty);
                         tile.setAttribute('world_x', vtx);
                         tile.setAttribute('world_y', vty);
+                        tile.classList.add('tile_element');
                         tile.bgTick = 0;
                         document.getElementById('viewport').appendChild(tile);
                     }
@@ -1983,27 +2217,62 @@
 
                 var degx = 85;
                 var degy = 0;
+                var ctrl_down = false;
                 document.addEventListener('mousemove', function (e)
                 {
-                    if (should3d)
+                    if (should3d && ctrl_down)
                     {
                         degx += e.movementX;
                         degy += e.movementY;
-                        document.getElementById('viewport').style.transform = "perspective(1000px) rotateX(" + degx + "deg) rotateY(" + degy + "deg)";
-                        document.getElementById('viewport').style.transformStyle = "preserve-3d";
+                        // Note: Yes, it's backwards
+                        document
+                            .getElementById("viewport")
+                            .style
+                            .setProperty("--rotate-x", degy + "deg");
+                        document
+                            .getElementById("viewport")
+                            .style
+                            .setProperty("--rotate-y", degx + "deg");
                     }
                 });
-                if (should3d)
+
+                document.getElementById('viewport').addEventListener('mousemove', function (e) {
+                    var offsetX = Math.floor(e.clientX / TILE_SIZE_SCALED);
+                    var offsetY = Math.floor(e.clientY / TILE_SIZE_SCALED);
+                    var tile_element = uih.getViewportTile(offsetX, offsetY);
+                    if (tile_element !== wasm.exports.get_sentry())
+                    {
+                        var world_x = parseInt(tile_element.getAttribute("world_x"));
+                        var world_y = parseInt(tile_element.getAttribute("world_y"));
+                        // TODO: Why are the tiles not updating their world coordinates based on camera offset
+                        // and by tiles I mean the actual div tiles that contain coordinates for viewport and world
+                        world_x += wasm.exports.get_camera_offset_x();
+                        world_y += wasm.exports.get_camera_offset_y();
+                        document.getElementById("debug_viewport_x").innerHTML = "Viewport X: " + offsetX;
+                        document.getElementById("debug_viewport_y").innerHTML = "Viewport Y: " + offsetY;
+                        document.getElementById("debug_world_x").innerHTML = "World X: " + world_x;
+                        document.getElementById("debug_world_y").innerHTML = "World Y: " + world_y;
+                    }
+                });
+
+                document.addEventListener('keydown', function (e)
                 {
-                    document.getElementById('viewport').style.transform = "perspective(1000px) rotate3d(0, 1, 0, 85deg)";
-                    document.getElementById('viewport').style.transformStyle = "preserve-3d";
-                }
+                    switch (e.code)
+                    {
+                    case "ControlLeft":
+                        ctrl_down = true;
+                        break;
+                    }
+                });
 
                 document.addEventListener('keyup', function (e)
                 {
                     game_mode = gh.getGameMode();
                     switch (e.code)
                     {
+                        case "ControlLeft":
+                            ctrl_down = false;
+                            break;
                         case "KeyZ":
                             if (game_mode === "In Scene")
                             {
@@ -2400,6 +2669,17 @@
                     }
                 })
             }
+
+            var debug_blocks = false;
+            function toggleBlocks()
+            {
+                debug_blocks = !debug_blocks;
+            }
+            var debug_entities = false;
+            function toggleEntities()
+            {
+                debug_entities = !debug_entities;
+            }
         </script>
     </head>
     <body>
@@ -2447,5 +2727,14 @@
         </div>
         <div id="viewport" style="display: none;"></div>
         <button id="debug" onclick="wasm.exports.test();">DEBUG</button>
+        <button id="should3d" onclick="toggleShouldThreeD();">3D</button>
+        <button id="toggle_blocks" onclick="toggleBlocks();">Toggle Blocks</button>
+        <button id="toggle_entities" onclick="toggleEntities();">Toggle Entities</button>
+        <div style="font-size: 12px;">
+            <div id="debug_viewport_x">Viewport X: 0</div>
+            <div id="debug_viewport_y">Viewport Y: 0</div>
+            <div id="debug_world_x">World X: 0</div>
+            <div id="debug_world_y">World Y: 0</div>
+        </div>
     </body>
 </html>
