@@ -167,10 +167,8 @@ uint32_t max(uint32_t a, uint32_t b)
 // Constants
 // ------------------------------------------------------------------------------------------------
 #define MAX_NPCS 100
-#define MAX_WEAPONS 100
-#define MAX_ARMORS 100
+#define MAX_ITEMS 1000
 #define MAX_GENERAL_ITEMS 100
-#define MAX_SPECIAL_ITEMS 100
 #define MAX_WORLD_NPCS 1000
 #define MAX_STRINGS 1000
 #define MAX_STRING_LENGTH 2048
@@ -223,33 +221,57 @@ uint32_t get_player_in_world_x(uint32_t player_id);
 uint32_t get_player_in_world_y(uint32_t player_id);
 uint32_t get_world_npc_x(uint32_t world_npc_id);
 uint32_t get_world_npc_y(uint32_t world_npc_id);
-uint32_t is_world_coordinate_halfway_of_viewport_more_than_x(uint32_t x);
-uint32_t is_world_coordinate_halfway_of_viewport_more_than_y(uint32_t y);
-uint32_t is_world_coordinate_halfway_of_viewport_less_than_x(uint32_t x);
-uint32_t is_world_coordinate_halfway_of_viewport_less_than_y(uint32_t y);
+u32 get_world_npc_direction(u32 id);
+u32 get_world_npc_interaction_scene(u32 id);
+u32 get_world_npc_is_player(u32 id);
+u32 get_world_npc_npc_id(u32 id);
+void set_world_npc_x(u32 id, u32 x);
+void set_world_npc_y(u32 id, u32 y);
+void set_world_npc_direction(u32 id, u32 direction);
+void set_world_npc_is_interactable(u32 world_npc_id, u32 is_or_not);
+void set_world_npc_interaction_scene(u32 world_npc_id, u32 scene_id);
+void set_world_npc_inventory_id(u32 id, u32 value);
+void set_world_npc_is_player(u32 world_npc_id, u32 is_or_not);
+void set_world_npc_is_captain(u32 world_npc_id, u32 is_or_not);
+void set_world_npc_npc_id(u32 world_npc_id, u32 npc_id);
+void set_world_npc_captain_id(u32 world_npc_id, u32 captain_id);
+void clear_global_world_npcs();
+u32 is_world_coordinate_halfway_of_viewport_more_than_x(u32 x);
+u32 is_world_coordinate_halfway_of_viewport_more_than_y(u32 y);
+u32 is_world_coordinate_halfway_of_viewport_less_than_x(u32 x);
+u32 is_world_coordinate_halfway_of_viewport_less_than_y(u32 y);
 void update_camera();
-uint32_t get_current_world_height();
-uint32_t get_current_world_width();
-uint32_t scene_blackjack(uint32_t action);
+u32 get_current_world_height();
+u32 get_current_world_width();
+u32 scene_blackjack(u32 action);
 void clear_current_scene_strings();
 void clear_current_scene_states();
 void clear_current_scene_choices();
-uint32_t scene_general_shop(uint32_t action);
-uint32_t get_inventory_item_string_id(uint32_t inventory_item_id);
-uint32_t get_inventory_item_inventory_id(uint32_t inventory_item_id);
-uint32_t get_world_npc_inventory_id(uint32_t world_npc_id);
-uint32_t get_current_scene_inventory_id();
-void increment_inventory_total_items(uint32_t inventory_id);
-uint32_t get_inventory_item_adjusted_price(uint32_t inventory_item_id);
-uint32_t scene_ocean_battle(uint32_t action);
-uint32_t scene_npc_rvice(uint32_t action);
-uint32_t scene_npc_lafolie(uint32_t action);
-uint32_t scene_npc_nakor(uint32_t action);
-uint32_t scene_npc_travis(uint32_t action);
-uint32_t scene_npc_loller(uint32_t action);
+u32 scene_general_shop(u32 action);
+u32 get_inventory_item_string_id(u32 inventory_item_id);
+u32 get_inventory_item_inventory_id(u32 inventory_item_id);
+u32 get_world_npc_inventory_id(u32 world_npc_id);
+u32 get_current_scene_inventory_id();
+void set_inventory_name_id_by_string(u32 id, char* name);
+void set_inventory_total_items(u32 id, u32 value);
+void set_inventory_item_inventory_id(u32 id, u32 value);
+void set_inventory_item_number_held(u32 id, u32 value);
+void set_inventory_item_type_reference_by_string(u32 id, char* name);
+void set_inventory_item_inventory_id(u32 id, u32 value);
+void set_inventory_item_adjusted_price(u32 id, u32 value);
+void set_inventory_item_name_id_by_string(u32 id, char* name);
+void set_inventory_item_name_id(u32 id, u32 value);
+void inventory_increment_total_items(u32 id);
+u32 get_inventory_item_adjusted_price(u32 inventory_item_id);
+u32 scene_ocean_battle(u32 action);
+u32 scene_npc_rvice(u32 action);
+u32 scene_npc_lafolie(u32 action);
+u32 scene_npc_nakor(u32 action);
+u32 scene_npc_travis(u32 action);
+u32 scene_npc_loller(u32 action);
 void current_scene_clear_choice_strings();
-uint32_t ocean_battle_is_world_coordinate_in_ship_movement_range(uint32_t world_x, uint32_t world_y);
-uint32_t scene_bank(uint32_t action);
+u32 ocean_battle_is_world_coordinate_in_ship_movement_range(u32 world_x, u32 world_y);
+u32 scene_bank(u32 action);
 void generate_world(char* world_name);
 void test();
 
@@ -304,10 +326,23 @@ struct NPC
     u32 name_id;
     u32 type;
 };
-struct GeneralItem
+enum ItemType
+{
+    ITEM_TYPE_GOOD,
+    ITEM_TYPE_ARMOR,
+    ITEM_TYPE_WEAPON,
+    ITEM_TYPE_GENERAL_ITEM,
+    ITEM_TYPE_CANNON,
+    ITEM_TYPE_BASE_SHIP,
+    ITEM_TYPE_SHIP,
+};
+struct Item
 {
     u32 name_id;
+    u32 type; // ItemType
     u32 base_price;
+    u32 defense;
+    u32 power;
 };
 enum StringData
 {
@@ -346,87 +381,48 @@ struct Ship
     u32 crew;
     u32 hull;
 };
-enum ShipMaterialData
+struct ShipMaterial
 {
-    SHIP_MATERIAL_NAME_ID,
-    SHIP_MATERIAL_BASE_PRICE,
-    SHIP_MATERIAL_MOD_POWER,
-    SHIP_MATERIAL_MOD_CAPACITY,
-    SHIP_MATERIAL_MOD_TACKING,
-    SHIP_MATERIAL_MOD_SPEED,
-    SHIP_MATERIAL_DATA_SIZE,
+    u32 name_id;
+    u32 base_price;
+    u32 mod_power;
+    u32 mod_capacity;
+    u32 mod_tacking;
+    u32 mod_speed;
 };
-enum GoodData
+struct WorldNPC
 {
-    GOOD_NAME_ID,
-    GOOD_BASE_PRICE,
-    GOOD_DATA_SIZE,
+    u32 npc_id;
+    u32 captain_id;
+    u32 position_x;
+    u32 position_y;
+    u32 direction;
+    u32 is_interactable;
+    u32 is_captain;
+    u32 interaction_scene;
+    u32 is_player;
+    u32 inventory_id;
+    u32 entity_id;
 };
-enum WeaponData
+struct Captain
 {
-    WEAPON_NAME_ID,
-    WEAPON_BASE_PRICE,
-    WEAPON_POWER,
-    WEAPON_DATA_SIZE,
-};
-enum ArmorData
-{
-    ARMOR_NAME_ID,
-    ARMOR_BASE_PRICE,
-    ARMOR_DEFENSE,
-    ARMOR_DATA_SIZE,
-};
-enum SpecialItemData
-{
-    SPECIAL_ITEM_NAME_ID,
-    SPECIAL_ITEM_BASE_PRICE,
-    SPECIAL_ITEM_DATA_SIZE,
-};
-enum WorldNPCData
-{
-    WORLD_NPC_NPC_ID,
-    WORLD_NPC_CAPTAIN_ID,
-    WORLD_NPC_POSITION_X,
-    WORLD_NPC_POSITION_Y,
-    WORLD_NPC_DIRECTION,
-    WORLD_NPC_IS_INTERACTABLE,
-    WORLD_NPC_IS_CAPTAIN,
-    WORLD_NPC_INTERACTION_SCENE,
-    WORLD_NPC_IS_PLAYER,
-    WORLD_NPC_INVENTORY_ID,
-    WORLD_NPC_ENTITY_ID,
-    WORLD_NPC_DATA_SIZE,
-};
-enum CaptainData
-{
-    CAPTAIN_NPC_ID,
-    CAPTAIN_WORLD_NPC_ID,
-    CAPTAIN_IN_WORLD,
-    CAPTAIN_GLOBAL_POSITION_X,
-    CAPTAIN_GLOBAL_POSITION_Y,
-    CAPTAIN_IN_PORT,
-    CAPTAIN_ON_LAND,
-    CAPTAIN_IN_OCEAN,
-    CAPTAIN_SAILING,
-    CAPTAIN_SKILLS_ID,
-    CAPTAIN_STATS_ID,
-    CAPTAIN_INVENTORY_ID,
-    CAPTAIN_PLAYER_ID,
-    CAPTAIN_GOLD,
-    CAPTAIN_FLEET_ID,
-    CAPTAIN_EQUIPPED_WEAPON_ID,
-    CAPTAIN_EQUIPPED_ARMOR_ID,
-    CAPTAIN_DATA_SIZE,
-};
-enum WorldData
-{
-    WORLD_NAME_ID,
-    WORLD_WIDTH,
-    WORLD_HEIGHT,
-    WORLD_TOTAL_NPCS,
-    WORLD_TOTAL_CAPTAINS,
-    WORLD_TOTAL_LAYERS,
-    WORLD_DATA_SIZE,
+    u32 npc_id;
+    u32 world_npc_id;
+    u32 in_world;
+    u32 global_position_x;
+    u32 global_position_y;
+    u32 in_port;
+    u32 on_land;
+    u32 in_ocean;
+    u32 sailing;
+    u32 skills_id;
+    u32 stats_id;
+    u32 inventory_id;
+    u32 player_id;
+    u32 gold;
+    u32 fleet_id;
+    u32 equipped_weapon_id;
+    u32 equipped_armor_id;
 };
 struct World
 {
@@ -436,7 +432,19 @@ struct World
     u32 total_npcs;
     u32 total_captains;
     u32 total_layers;
-};  
+};
+struct Figurehead
+{
+    u32 name_id;
+    u32 base_price;
+};
+struct Cannon
+{
+    u32 name_id;
+    u32 range;
+    u32 power;
+    u32 base_price;
+};
 enum LayerType
 {
     LAYER_TYPE_MATCHES_WORLD_SIZE,
@@ -445,96 +453,51 @@ enum LayerType
     LAYER_TYPE_IS_SAME_VALUE,
     LAYER_TYPE_HAS_FUNCTION,
 };
-enum LayerData
+struct Layer
 {
-    LAYER_NAME_ID,
+    u32 name_id;
     // The idea is that you store into the global world data
-    LAYER_GLOBAL_WORLD_DATA_OFFSET,
+    u32 global_world_data_offset;
     // Length of data is just width * height
-    LAYER_WIDTH,
-    LAYER_HEIGHT,
-    LAYER_TYPE,
+    u32 width;
+    u32 height;
+    u32 type;
     // Just a simple value, doesn't need global world data storage
-    LAYER_SAME_VALUE,
+    u32 same_value;
     // This will be used if type = specific_coordinates and you will it will be (x,y)*entries
-    LAYER_SPECIFIC_COORDINATES_SIZE,
+    u32 specific_coordinates_size;
     // If true, then the layer contains block information so NPCS & player cannot pass
-    LAYER_IS_BLOCK,
-    LAYER_DATA_SIZE,
+    u32 is_block;
 };
-// TODO: Turn layer data into a struct
-enum BankData
+struct Bank
 {
-    BANK_DEPOSIT,
-    BANK_LOAN,
-    BANK_DEPOSIT_ORIGINAL_AMOUNT,
-    BANK_DEPOSIT_INTEREST_RATE,
-    BANK_DEPOSIT_INTEREST,
-    BANK_LOAN_ORIGINAL_AMOUNT,
-    BANK_LOAN_INTEREST_RATE,
-    BANK_LOAN_INTEREST,
-    BANK_FDIC_INSURED,
-    BANK_MAX_DEPOSIT_AMOUNT,
-    BANK_MAX_LOAN_AMOUNT,
-    BANK_DATA_SIZE,
+    u32 deposit;
+    u32 loan;
+    u32 deposit_original_amount;
+    u32 deposit_interest_rate;
+    u32 deposit_interest;
+    u32 loan_original_amount;
+    u32 loan_interest_rate;
+    u32 loan_interest;
+    u32 fdic_insured;
+    u32 max_deposit_amount;
+    u32 max_loan_amount;
 };
-enum SceneBank
+struct Inventory
 {
-    SCENE_BANK_WELCOME,
-    SCENE_BANK_DEPOSIT,
-    SCENE_BANK_DEPOSIT_AMOUNT,
-    SCENE_BANK_DEPOSIT_CONFIRM,
-    SCENE_BANK_DEPOSIT_NOT_ENOUGH_GOLD,
-    SCENE_BANK_DEPOSIT_CONFIRMED,
-    SCENE_BANK_LOAN,
-    SCENE_BANK_LOAN_TAKE_AMOUNT,
-    SCENE_BANK_LOAD_PAY_AMOUNT,
-    SCENE_BANK_LOAN_TAKE_AMOUNT_CONFIRM,
-    SCENE_BANK_LOAN_PAY_AMOUNT_CONFIRM,
-    SCENE_BANK_LOAN_PAY_AMOUNT_NOT_ENOUGH_GOLD,
-    SCENE_BANK_WITHDRAW,
-    SCENE_BANK_WITHDRAW_AMOUNT,
-    SCENE_BANK_WITHDRAW_NO_ACCOUNT,
-    SCENE_BANK_WITHDRAW_NOT_ENOUGH_GOLD, // IN ACCOUNT
-    SCENE_BANK_WITHDRAW_CONFIRM,
-    SCENE_BANK_DATA_SIZE,
+    u32 name_id;
+    u32 total_items;
 };
-enum SceneBankChoices
+struct InventoryItem
 {
-    SCENE_BANK_CHOICE_CONFIRM,
-    SCENE_BANK_CHOICE_BACK,
-    SCENE_BANK_CHOICE_DEPOSIT,
-    SCENE_BANK_CHOICE_LOAN,
-    SCENE_BANK_CHOICE_WITHDRAW,
-    SCENE_BANK_CHOICES_DATA_SIZE,
-};
-enum InventoryData
-{
-    INVENTORY_NAME_ID,
-    INVENTORY_TOTAL_ITEMS,
-    INVENTORY_DATA_SIZE,
-};
-enum InventoryType
-{
-    INVENTORY_TYPE_GOOD,
-    INVENTORY_TYPE_ARMOR,
-    INVENTORY_TYPE_WEAPON,
-    INVENTORY_TYPE_GENERAL_ITEM,
-    INVENTORY_TYPE_CANNON,
-    INVENTORY_TYPE_BASE_SHIP,
-    INVENTORY_TYPE_SHIP,
-};
-enum InventoryItemData
-{
-    INVENTORY_ITEM_NAME_ID,
-    INVENTORY_ITEM_NUMBER_HELD,
-    INVENTORY_ITEM_ADJUSTED_PRICE,
-    INVENTORY_ITEM_TYPE, // InventoryType
-    INVENTORY_ITEM_TYPE_NAME_ID,
-    INVENTORY_ITEM_TYPE_REFERENCE, // Reference to specific item
-    INVENTORY_ITEM_INVENTORY_ID, // The inventory that holds this item
-    INVENTORY_ITEM_NUMBER_CHOSEN,
-    INVENTORY_ITEM_DATA_SIZE,
+    u32 name_id;
+    u32 number_held;
+    u32 adjusted_price;
+    u32 type;
+    u32 type_name_id;
+    u32 type_reference;
+    u32 inventory_id;
+    u32 number_chosen;
 };
 enum PortData
 {
@@ -598,20 +561,6 @@ enum FleetCaptainData
     FLEET_CAPTAIN_FLEET_ID,
     FLEET_CAPTAIN_DATA_SIZE,
 };
-enum CannonData
-{
-    CANNON_NAME_ID,
-    CANNON_RANGE,
-    CANNON_POWER,
-    CANNON_BASE_PRICE,
-    CANNON_DATA_SIZE,
-};
-enum FigureheadData
-{
-    FIGUREHEAD_NAME_ID,
-    FIGUREHEAD_BASE_PRICE,
-    FIGUREHEAD_DATA_SIZE,
-};
 enum UserInput
 {
     USER_INPUT_A,
@@ -628,6 +577,40 @@ enum UserInput
     USER_INPUT_RIGHT_BUMPER,
     USER_INPUT_CUSTOM_NUMBER,
     USER_INPUT_CUSTOM_STRING,
+};
+
+// ------------------------------------------------------------------------------------------------
+// SCENES
+// ------------------------------------------------------------------------------------------------
+enum SceneBank
+{
+    SCENE_BANK_WELCOME,
+    SCENE_BANK_DEPOSIT,
+    SCENE_BANK_DEPOSIT_AMOUNT,
+    SCENE_BANK_DEPOSIT_CONFIRM,
+    SCENE_BANK_DEPOSIT_NOT_ENOUGH_GOLD,
+    SCENE_BANK_DEPOSIT_CONFIRMED,
+    SCENE_BANK_LOAN,
+    SCENE_BANK_LOAN_TAKE_AMOUNT,
+    SCENE_BANK_LOAD_PAY_AMOUNT,
+    SCENE_BANK_LOAN_TAKE_AMOUNT_CONFIRM,
+    SCENE_BANK_LOAN_PAY_AMOUNT_CONFIRM,
+    SCENE_BANK_LOAN_PAY_AMOUNT_NOT_ENOUGH_GOLD,
+    SCENE_BANK_WITHDRAW,
+    SCENE_BANK_WITHDRAW_AMOUNT,
+    SCENE_BANK_WITHDRAW_NO_ACCOUNT,
+    SCENE_BANK_WITHDRAW_NOT_ENOUGH_GOLD, // IN ACCOUNT
+    SCENE_BANK_WITHDRAW_CONFIRM,
+    SCENE_BANK_DATA_SIZE,
+};
+enum SceneBankChoices
+{
+    SCENE_BANK_CHOICE_CONFIRM,
+    SCENE_BANK_CHOICE_BACK,
+    SCENE_BANK_CHOICE_DEPOSIT,
+    SCENE_BANK_CHOICE_LOAN,
+    SCENE_BANK_CHOICE_WITHDRAW,
+    SCENE_BANK_CHOICES_DATA_SIZE,
 };
 enum Scene
 {
@@ -806,6 +789,10 @@ enum SceneOceanBattleChoices
 
     SCENE_OCEAN_BATTLE_CHOICE_DATA_SIZE,
 };
+
+// ------------------------------------------------------------------------------------------------
+// OCEAN BATTLE
+// ------------------------------------------------------------------------------------------------
 enum OceanBattleData
 {
     OCEAN_BATTLE_DATA_INITIALIZED,
@@ -843,58 +830,40 @@ enum OceanBattleData
 #define G_STRING_DATA_SIZE (MAX_STRINGS * MAX_STRING_LENGTH * 2)
 static char g_string_data[G_STRING_DATA_SIZE];  // *2 for both machine_name and text
 #define G_STRING_INFO_SIZE (MAX_STRINGS * STRING_DATA_SIZE)
-static uint32_t g_string_info[G_STRING_INFO_SIZE];
-static uint32_t g_string_count = 0;
+u32 g_string_info[G_STRING_INFO_SIZE];
+u32 g_string_count = 0;
 
 struct NPC g_npc_structs[MAX_NPCS];
 
-struct GeneralItem g_general_item_structs[MAX_GENERAL_ITEMS];
+struct Item g_item_structs[MAX_ITEMS];
+// Note: This is a reference map. All general items INSIDE OF g_item_structs
+u32 g_general_items[MAX_GENERAL_ITEMS];
 
 struct BaseShip g_base_ship_structs[MAX_BASE_SHIPS];
 
 struct Ship g_ship_structs[MAX_SHIPS];
 
-#define G_SHIP_MATERIAL_DATA_SIZE (MAX_SHIP_MATERIALS * SHIP_MATERIAL_DATA_SIZE)
-static uint32_t g_ship_material_data[G_SHIP_MATERIAL_DATA_SIZE];
-static uint32_t g_ship_material_count = 0;
+struct ShipMaterial g_ship_material_structs[MAX_SHIP_MATERIALS];
 
-#define G_WEAPON_DATA_SIZE (MAX_WEAPONS * WEAPON_DATA_SIZE)
-static uint32_t g_weapon_data[G_WEAPON_DATA_SIZE];
-static uint32_t g_weapon_count = 0;
+u32 g_captain_count = 0;
+struct Captain g_captain_structs[MAX_CAPTAINS];
 
-#define G_ARMOR_DATA_SIZE (MAX_ARMORS * ARMOR_DATA_SIZE)
-static uint32_t g_armor_data[G_ARMOR_DATA_SIZE];
-static uint32_t g_armor_count = 0;
+u32 g_figurehead_count = 0;
+struct Figurehead g_figurehead_structs[MAX_FIGUREHEADS];
 
-#define G_SPECIAL_ITEM_DATA_SIZE (MAX_SPECIAL_ITEMS * SPECIAL_ITEM_DATA_SIZE)
-static uint32_t g_special_item_data[G_SPECIAL_ITEM_DATA_SIZE];
-static uint32_t g_special_item_count = 0;
-
-#define G_FIGUREHEAD_DATA_SIZE (MAX_FIGUREHEADS * FIGUREHEAD_DATA_SIZE)
-static uint32_t g_figurehead_data[G_FIGUREHEAD_DATA_SIZE];
-static uint32_t g_figurehead_count = 0;
-
-#define G_CANNON_DATA_SIZE (MAX_CANNONS * CANNON_DATA_SIZE)
-static uint32_t g_cannon_data[G_CANNON_DATA_SIZE];
-static uint32_t g_cannon_count = 0;
-
-#define G_CAPTAIN_DATA_SIZE (MAX_CAPTAINS * CAPTAIN_DATA_SIZE)
-static uint32_t g_captain_data[G_CAPTAIN_DATA_SIZE];
-static uint32_t g_captain_count = 0;
+u32 g_cannon_count = 0;
+struct Cannon g_cannon_structs[MAX_CANNONS];
 
 struct World g_world_structs[MAX_WORLDS];
 
-#define G_LAYER_DATA_SIZE (MAX_LAYERS * (uint32_t)LAYER_DATA_SIZE)
-static uint32_t g_layer_data[G_LAYER_DATA_SIZE];
-static uint32_t g_layer_count = 0;
+u32 g_layer_count = 0;
+struct Layer g_layer_structs[MAX_LAYERS];
 
-#define G_INVENTORY_DATA_SIZE (MAX_INVENTORIES * (uint32_t)INVENTORY_DATA_SIZE)
-static uint32_t g_inventory_data[G_INVENTORY_DATA_SIZE];
-static uint32_t g_inventory_count = 0;
+u32 g_inventory_count = 0;
+struct Inventory g_inventory_structs[MAX_INVENTORIES];
 
-#define G_INVENTORY_ITEM_DATA_SIZE (MAX_INVENTORY_ITEMS * (uint32_t)INVENTORY_ITEM_DATA_SIZE)
-static uint32_t g_inventory_item_data[G_INVENTORY_ITEM_DATA_SIZE];
-static uint32_t g_inventory_item_count = 0;
+u32 g_inventory_item_count = 0;
+struct InventoryItem g_inventory_item_structs[MAX_INVENTORY_ITEMS * MAX_INVENTORIES];
 
 #define G_PORT_DATA_SIZE (MAX_PORTS * (uint32_t)PORT_DATA_SIZE)
 static uint32_t g_port_data[G_PORT_DATA_SIZE];
@@ -922,13 +891,11 @@ static uint32_t g_fleet_ship_count = 0;
 static uint32_t g_fleet_captain_data[G_FLEET_CAPTAIN_DATA_SIZE];
 static uint32_t g_fleet_captain_count = 0;
 
-#define G_WORLD_NPC_DATA_SIZE (MAX_WORLD_NPCS * (uint32_t)WORLD_NPC_DATA_SIZE)
-static uint32_t g_world_npc_data[G_WORLD_NPC_DATA_SIZE];
-static uint32_t g_world_npc_count = 0;
+u32 g_world_npc_count = 0;
+struct WorldNPC g_world_npc_structs[MAX_WORLD_NPCS];
 
 // Note: Bank does not need a resource. It's a single entity that is always present.
-#define G_BANK_DATA_SIZE (MAX_BANKS * (uint32_t)BANK_DATA_SIZE)
-static uint32_t g_bank_data[G_BANK_DATA_SIZE];
+struct Bank g_bank;
 
 // The "current_world" global variable is just a resource handler to a world data array
 uint32_t current_world;
@@ -1010,24 +977,12 @@ void init_data_##name() \
     } \
 }
 
-CREATE_INIT_DATA_FUNC(ship_material, G_SHIP_MATERIAL_DATA_SIZE, g_ship_material_data);
-CREATE_INIT_DATA_FUNC(weapon, G_WEAPON_DATA_SIZE, g_weapon_data);
-CREATE_INIT_DATA_FUNC(armor, G_ARMOR_DATA_SIZE, g_armor_data);
-CREATE_INIT_DATA_FUNC(special_item, G_SPECIAL_ITEM_DATA_SIZE, g_special_item_data);
-CREATE_INIT_DATA_FUNC(figurehead, G_FIGUREHEAD_DATA_SIZE, g_figurehead_data);
-CREATE_INIT_DATA_FUNC(cannon, G_CANNON_DATA_SIZE, g_cannon_data);
-CREATE_INIT_DATA_FUNC(layer, G_LAYER_DATA_SIZE, g_layer_data);
-CREATE_INIT_DATA_FUNC(inventory, G_INVENTORY_DATA_SIZE, g_inventory_data);
-CREATE_INIT_DATA_FUNC(inventory_item, G_INVENTORY_ITEM_DATA_SIZE, g_inventory_item_data);
 CREATE_INIT_DATA_FUNC(port, G_PORT_DATA_SIZE, g_port_data);
 CREATE_INIT_DATA_FUNC(stats, G_STATS_DATA_SIZE, g_stats_data);
 CREATE_INIT_DATA_FUNC(skill, G_SKILL_DATA_SIZE, g_skill_data);
 CREATE_INIT_DATA_FUNC(fleet, G_FLEET_DATA_SIZE, g_fleet_data);
 CREATE_INIT_DATA_FUNC(fleet_ship, G_FLEET_SHIP_DATA_SIZE, g_fleet_ship_data);
 CREATE_INIT_DATA_FUNC(fleet_captain, G_FLEET_CAPTAIN_DATA_SIZE, g_fleet_captain_data);
-CREATE_INIT_DATA_FUNC(world_npc, G_WORLD_NPC_DATA_SIZE, g_world_npc_data);
-CREATE_INIT_DATA_FUNC(bank, G_BANK_DATA_SIZE, g_bank_data);
-CREATE_INIT_DATA_FUNC(captain, G_CAPTAIN_DATA_SIZE, g_captain_data);
 
 void init_string_data(void)
 {
@@ -1383,9 +1338,9 @@ uint32_t GLOBAL_WORLD_DATA[G_GLOBAL_WORLD_DATA_SIZE];
 uint32_t GLOBAL_WORLD_DATA_ITERATOR;
 void add_value_to_global_world_data(uint32_t layer_id, uint32_t x, uint32_t y, uint32_t value)
 {
-    uint32_t layer_width = g_layer_data[layer_id * LAYER_DATA_SIZE + LAYER_WIDTH];
+    uint32_t layer_width = get_layer_width(layer_id);
     uint32_t offset = x + y * layer_width;
-    offset += g_layer_data[layer_id * LAYER_DATA_SIZE + LAYER_GLOBAL_WORLD_DATA_OFFSET];
+    offset += get_layer_global_world_data_offset(layer_id);
     if (offset >= G_GLOBAL_WORLD_DATA_SIZE)
     {
         console_log("ERROR: Global world data not big enough for layer data");
@@ -1402,9 +1357,9 @@ void clear_global_world_data()
 }
 uint32_t get_layer_data_by_coordinates(uint32_t layer_id, uint32_t x, uint32_t y)
 {
-    uint32_t layer_width = g_layer_data[layer_id * LAYER_DATA_SIZE + LAYER_WIDTH];
+    uint32_t layer_width = get_layer_width(layer_id);
     uint32_t offset = x + y * layer_width;
-    offset += g_layer_data[layer_id * LAYER_DATA_SIZE + LAYER_GLOBAL_WORLD_DATA_OFFSET];
+    offset += get_layer_global_world_data_offset(layer_id);
     return GLOBAL_WORLD_DATA[offset];
 }
 
@@ -1524,23 +1479,12 @@ void free_##entity_type(uint32_t data_index) \
 // USAGE: FREE_ENTITY(npc, g_npc_data, NPC_DATA_SIZE, MAX_NPCS, g_npc_count);
 
 // Create creation functions based on Macro usage
-CREATE_ENTITY_FUNC(ship_material, uint32_t, SHIP_MATERIAL_DATA_SIZE, MAX_SHIP_MATERIALS, SHIP_MATERIAL_NAME_ID, g_ship_material_count, g_ship_material_data);
-CREATE_ENTITY_FUNC(weapon, uint32_t, WEAPON_DATA_SIZE, MAX_WEAPONS, WEAPON_NAME_ID, g_weapon_count, g_weapon_data);
-CREATE_ENTITY_FUNC(armor, uint32_t, ARMOR_DATA_SIZE, MAX_ARMORS, ARMOR_NAME_ID, g_armor_count, g_armor_data);
-CREATE_ENTITY_FUNC(special_item, uint32_t, SPECIAL_ITEM_DATA_SIZE, MAX_SPECIAL_ITEMS, SPECIAL_ITEM_NAME_ID, g_special_item_count, g_special_item_data);
-CREATE_ENTITY_FUNC(world_npc, uint32_t, WORLD_NPC_DATA_SIZE, MAX_WORLD_NPCS, WORLD_NPC_NPC_ID, g_world_npc_count, g_world_npc_data);
-CREATE_ENTITY_FUNC(captain, uint32_t, CAPTAIN_DATA_SIZE, MAX_CAPTAINS, CAPTAIN_NPC_ID, g_captain_count, g_captain_data);
-CREATE_ENTITY_FUNC(layer, uint32_t, LAYER_DATA_SIZE, MAX_LAYERS, LAYER_NAME_ID, g_layer_count, g_layer_data);
-CREATE_ENTITY_FUNC(inventory, uint32_t, INVENTORY_DATA_SIZE, MAX_INVENTORIES, INVENTORY_NAME_ID, g_inventory_count, g_inventory_data);
-CREATE_ENTITY_FUNC(inventory_item, uint32_t, INVENTORY_ITEM_DATA_SIZE, MAX_INVENTORY_ITEMS, INVENTORY_ITEM_NAME_ID, g_inventory_item_count, g_inventory_item_data);
 CREATE_ENTITY_FUNC(port, uint32_t, PORT_DATA_SIZE, MAX_PORTS, PORT_NAME_ID, g_port_count, g_port_data);
 CREATE_ENTITY_FUNC(stats, uint32_t, STATS_DATA_SIZE, MAX_STATS, STATS_BATTLE_LEVEL, g_stats_count, g_stats_data);
 CREATE_ENTITY_FUNC(skill, uint32_t, SKILL_DATA_SIZE, MAX_SKILLS, SKILL_NAME_ID, g_skill_count, g_skill_data);
 CREATE_ENTITY_FUNC(fleet, uint32_t, FLEET_DATA_SIZE, MAX_FLEETS, FLEET_GENERAL_ID, g_fleet_count, g_fleet_data);
 CREATE_ENTITY_FUNC(fleet_ship, uint32_t, FLEET_SHIP_DATA_SIZE, MAX_FLEET_SHIPS, FLEET_SHIP_SHIP_ID, g_fleet_ship_count, g_fleet_ship_data);
 CREATE_ENTITY_FUNC(fleet_captain, uint32_t, FLEET_CAPTAIN_DATA_SIZE, MAX_FLEET_CAPTAINS, FLEET_CAPTAIN_CAPTAIN_ID, g_fleet_captain_count, g_fleet_captain_data);
-CREATE_ENTITY_FUNC(cannon, uint32_t, CANNON_DATA_SIZE, MAX_CANNONS, CANNON_NAME_ID, g_cannon_count, g_cannon_data);
-CREATE_ENTITY_FUNC(figurehead, uint32_t, FIGUREHEAD_DATA_SIZE, MAX_FIGUREHEADS, FIGUREHEAD_NAME_ID, g_figurehead_count, g_figurehead_data);
 
 
 int32_t create_string(const char* machine_name, const char* text)
@@ -1705,12 +1649,12 @@ void set_cannon_name_id(uint32_t index, uint32_t name_id)
 {
     if (index >= MAX_CANNONS) return;
     if (name_id >= MAX_STRINGS) return;
-    g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_NAME_ID] = name_id;
+    g_cannon_structs[index].name_id = name_id;
 }
 uint32_t get_cannon_name_id(uint32_t index)
 {
     if (index >= MAX_CANNONS) return SENTRY;
-    return g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_NAME_ID];
+    return g_cannon_structs[index].name_id;
 }
 const char* get_cannon_machine_name(uint32_t index)
 {
@@ -1727,56 +1671,32 @@ const char* get_cannon_text(uint32_t index)
 void set_cannon_range(uint32_t index, uint32_t range)
 {
     if (index >= MAX_CANNONS) return;
-    g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_RANGE] = range;
+    g_cannon_structs[index].range = range;
 }
 uint32_t get_cannon_range(uint32_t index)
 {
     if (index >= MAX_CANNONS) return SENTRY;
-    return g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_RANGE];
+    return g_cannon_structs[index].range;
 }
 void set_cannon_power(uint32_t index, uint32_t power)
 {
     if (index >= MAX_CANNONS) return;
-    g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_POWER] = power;
+    g_cannon_structs[index].power = power;
 }
 uint32_t get_cannon_power(uint32_t index)
 {
     if (index >= MAX_CANNONS) return SENTRY;
-    return g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_POWER];
+    return g_cannon_structs[index].power;
 }
 void set_cannon_base_price(uint32_t index, uint32_t base_price)
 {
     if (index >= MAX_CANNONS) return;
-    g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_BASE_PRICE] = base_price;
+    g_cannon_structs[index].base_price = base_price;
 }
 uint32_t get_cannon_base_price(uint32_t index)
 {
     if (index >= MAX_CANNONS) return SENTRY;
-    return g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_BASE_PRICE];
-}
-uint32_t get_cannon_pointer(uint32_t index)
-{
-    if (index >= MAX_CANNONS) return SENTRY;
-    return (uint32_t)&g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE];
-}
-uint32_t get_cannon_length(void)
-{
-    return CANNON_DATA_SIZE;
-}
-
-// ------------------------------------------------------------------------------------------------
-// GENERAL ITEMS
-// ------------------------------------------------------------------------------------------------
-uint32_t get_general_item_id_by_string_id(uint32_t string_id)
-{
-    for (uint32_t i = 0; i < MAX_GENERAL_ITEMS; ++i)
-    {
-        if (g_general_item_structs[i].name_id == string_id)
-        {
-            return i;
-        }
-    }
-    return SENTRY;
+    return g_cannon_structs[index].base_price;
 }
 
 // ------------------------------------------------------------------------------------------------ //
@@ -1921,7 +1841,7 @@ void handle_input(uint32_t input)
         uint32_t world_npc_id = get_player_in_world(0);
         uint32_t current_world_x = get_world_npc_x(world_npc_id);
         uint32_t current_world_y = get_world_npc_y(world_npc_id);
-        uint32_t current_world_direction = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_DIRECTION];
+        uint32_t current_world_direction = get_world_npc_direction(world_npc_id);
         switch (input)
         {
             case USER_INPUT_A:
@@ -1940,7 +1860,7 @@ void handle_input(uint32_t input)
                             uint32_t other_world_y = get_world_npc_y(i);
                             if (other_world_x == current_world_x && other_world_y == intended_y)
                             {
-                                uint32_t interaction_scene = g_world_npc_data[i * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_INTERACTION_SCENE];
+                                uint32_t interaction_scene = get_world_npc_interaction_scene(i);
                                 handle_interaction_scene(interaction_scene, i);
                             }
                         }
@@ -1961,7 +1881,7 @@ void handle_input(uint32_t input)
                             uint32_t other_world_y = get_world_npc_y(i);
                             if (other_world_x == current_world_x && other_world_y == intended_y)
                             {
-                                uint32_t interaction_scene = g_world_npc_data[i * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_INTERACTION_SCENE];
+                                uint32_t interaction_scene = get_world_npc_interaction_scene(i);
                                 handle_interaction_scene(interaction_scene, i);
                             }
                         }
@@ -1982,7 +1902,7 @@ void handle_input(uint32_t input)
                             uint32_t other_world_y = get_world_npc_y(i);
                             if (other_world_x == intended_x && other_world_y == current_world_y)
                             {
-                                uint32_t interaction_scene = g_world_npc_data[i * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_INTERACTION_SCENE];
+                                uint32_t interaction_scene = get_world_npc_interaction_scene(i);
                                 handle_interaction_scene(interaction_scene, i);
                             }
                         }
@@ -2003,7 +1923,7 @@ void handle_input(uint32_t input)
                             uint32_t other_world_y = get_world_npc_y(i);
                             if (other_world_x == intended_x && other_world_y == current_world_y)
                             {
-                                uint32_t interaction_scene = g_world_npc_data[i * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_INTERACTION_SCENE];
+                                uint32_t interaction_scene = get_world_npc_interaction_scene(i);
                                 handle_interaction_scene(interaction_scene, i);
                             }
                         }
@@ -2267,8 +2187,8 @@ void move_camera_left()
 void update_camera()
 {
     uint32_t world_npc_id = get_player_in_world(0);
-    uint32_t player_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t player_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
+    uint32_t player_x = get_world_npc_x(world_npc_id);
+    uint32_t player_y = get_world_npc_y(world_npc_id);
     if (is_world_coordinate_halfway_of_viewport_more_than_x(player_x))
     {
         move_camera_right();
@@ -2346,11 +2266,10 @@ uint32_t get_viewport_value_at_coordinates(uint32_t layer_index, uint32_t x, uin
         for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
         {
             if (
-                g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] == x_offset &&
-                g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] == y_offset
+                get_world_npc_x(i) == x_offset &&
+                get_world_npc_y(i) == y_offset
             )
             {
-                // return g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_NPC_ID];
                 return i;
             }
         }
@@ -2501,31 +2420,31 @@ uint32_t get_current_world_name_id()
 }
 uint32_t get_layer_width(uint32_t layer_index)
 {
-    return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_WIDTH];
+    return g_layer_structs[layer_index].width;
 }
 uint32_t get_layer_height(uint32_t layer_index)
 {
-    return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_HEIGHT];
+    return g_layer_structs[layer_index].height;
 }
 uint32_t get_layer_global_world_data_offset(uint32_t layer_index)
 {
-    return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_GLOBAL_WORLD_DATA_OFFSET];
+    return g_layer_structs[layer_index].global_world_data_offset;
 }
 uint32_t get_layer_is_block(uint32_t layer_index)
 {
-    return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_IS_BLOCK];
+    return g_layer_structs[layer_index].is_block;
 }
 uint32_t get_layer_name_id(uint32_t layer_index)
 {
-    return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_NAME_ID];
+    return g_layer_structs[layer_index].name_id;
 }
 uint32_t get_layer_type(uint32_t layer_index)
 {
-    return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_TYPE];
+    return g_layer_structs[layer_index].type;
 }
 uint32_t get_layer_same_value(uint32_t layer_index)
 {
-    return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_SAME_VALUE];
+    return g_layer_structs[layer_index].same_value;
 }
 const char* get_layer_machine_name(uint32_t layer_index)
 {
@@ -2536,7 +2455,7 @@ uint32_t find_layer_id_by_string_id(uint32_t string_id)
 {
     for (uint32_t i = 0; i < MAX_LAYERS; ++i)
     {
-        if (g_layer_data[i * LAYER_DATA_SIZE + LAYER_NAME_ID] == string_id)
+        if (get_layer_name_id(i) == string_id)
         {
             return i;
         }
@@ -2546,8 +2465,7 @@ uint32_t find_layer_id_by_string_id(uint32_t string_id)
 uint32_t get_layer_id_by_machine_name(char* machine_name)
 {
     for (uint32_t i = 0; i < MAX_LAYERS; ++i) {
-        uint32_t offset = i * LAYER_DATA_SIZE;
-        uint32_t name_id = g_layer_data[offset + LAYER_NAME_ID];
+        uint32_t name_id = get_layer_name_id(i);
         const char* grabbed_machine_name = get_string_machine_name(name_id);
         if (strcmp(machine_name, grabbed_machine_name) == 0)
         {
@@ -2559,12 +2477,11 @@ uint32_t get_layer_id_by_machine_name(char* machine_name)
 uint32_t are_coordinates_blocked(uint32_t x, uint32_t y)
 {
     for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i) {
-        uint32_t offset = i * WORLD_NPC_DATA_SIZE;
-        if (g_world_npc_data[offset + WORLD_NPC_IS_PLAYER] == true)
+        if (get_world_npc_is_player(i) == true)
         {
             continue;
         }
-        if (g_world_npc_data[offset + WORLD_NPC_POSITION_X] == x && g_world_npc_data[offset + WORLD_NPC_POSITION_Y] == y)
+        if (get_world_npc_x(i) == x && get_world_npc_y(i) == y)
         {
             return 1;
         }
@@ -2581,14 +2498,56 @@ uint32_t are_coordinates_blocked(uint32_t x, uint32_t y)
     }
     return 0;
 }
+void set_layer_name_id(u32 id, u32 value)
+{
+    g_layer_structs[id].name_id = value;
+}
+void set_layer_type(u32 id, u32 value)
+{
+    g_layer_structs[id].type = value;
+}
+void set_layer_width(u32 id, u32 value)
+{
+    g_layer_structs[id].width = value;
+}
+void set_layer_height(u32 id, u32 value)
+{
+    g_layer_structs[id].height = value;
+}
+void set_layer_same_value(u32 id, u32 value)
+{
+    g_layer_structs[id].same_value = value;
+}
+void set_layer_global_world_data_offset(u32 id, u32 value)
+{
+    g_layer_structs[id].global_world_data_offset = value;
+}
+void set_layer_is_block(u32 id, u32 value)
+{
+    g_layer_structs[id].is_block = value;
+}
+void clear_layer(u32 id)
+{
+    CLEAR_STRUCT(&g_layer_structs[id], SENTRY);
+    --g_layer_count;
+}
+void clear_global_layers()
+{
+    for (u32 i = 0; i < MAX_LAYERS; ++i)
+    {
+        clear_layer(i);
+    }
+    g_layer_count = 0;
+}
 
+// GENERATE WORLDS
 void generate_world(char* world_name)
 {
     console_log_format("Generating world %s", world_name);
 
     reset_camera();
-    CLEAR_DATA(g_layer_data, G_LAYER_DATA_SIZE);
-    CLEAR_DATA(g_world_npc_data, G_WORLD_NPC_DATA_SIZE);
+    clear_global_layers();
+    clear_global_world_npcs();
     clear_global_world_data();
     init_structs_entities();
 
@@ -2603,71 +2562,59 @@ void generate_world(char* world_name)
         }
         u32 world_width = get_current_world_width();
         u32 world_height = get_current_world_height();
-        uint32_t layer_id;
-        uint32_t layer_data[LAYER_DATA_SIZE];
-        CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
-        layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("background_layer");
-        layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
-        layer_data[LAYER_WIDTH] = world_width;
-        layer_data[LAYER_HEIGHT] = world_height;
-        layer_data[LAYER_SAME_VALUE] = 1;
-        layer_data[LAYER_IS_BLOCK] = false;
-        //GLOBAL_WORLD_DATA_ITERATOR = 0;
-        layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
-        layer_id = create_layer(layer_data, true);
-        // console_log_format("bg layer is %d", layer_id);
+
+        u32 layer_id;
+        
+        set_layer_name_id(g_layer_count, get_string_id_by_machine_name("background_layer"));
+        set_layer_type(g_layer_count, LAYER_TYPE_MATCHES_WORLD_SIZE);
+        set_layer_width(g_layer_count, world_width);
+        set_layer_height(g_layer_count, world_height);
+        set_layer_same_value(g_layer_count, 1);
+        set_layer_global_world_data_offset(g_layer_count, GLOBAL_WORLD_DATA_ITERATOR);
+        ++g_layer_count;
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
         ++g_world_structs[current_world].total_layers;
+
         // NPC LAYER
-        layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("npc_layer");
-        // TODO: Technically, we do not need to store this layer in the global data at all
-        layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
-        layer_data[LAYER_WIDTH] = world_width;
-        layer_data[LAYER_HEIGHT] = world_height;
-        layer_data[LAYER_IS_BLOCK] = false;
-        layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
-        layer_id = create_layer(layer_data, true);
-        // console_log_format("npc layer is %d", layer_id);
+        set_layer_name_id(g_layer_count, get_string_id_by_machine_name("npc_layer"));
+        set_layer_type(g_layer_count, LAYER_TYPE_MATCHES_WORLD_SIZE);
+        set_layer_width(g_layer_count, world_width);
+        set_layer_height(g_layer_count, world_height);
+        set_layer_global_world_data_offset(g_layer_count, GLOBAL_WORLD_DATA_ITERATOR);
+        ++g_layer_count;
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
         ++g_world_structs[current_world].total_layers;
-        CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
+
         // LAYER ONE
-        CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
-        layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("layer_one");
-        layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
-        layer_data[LAYER_WIDTH] = world_width;
-        layer_data[LAYER_HEIGHT] = world_height;
-        layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
+        set_layer_name_id(g_layer_count, get_string_id_by_machine_name("layer_one"));
+        set_layer_type(g_layer_count, LAYER_TYPE_MATCHES_WORLD_SIZE);
+        set_layer_width(g_layer_count, world_width);
+        set_layer_height(g_layer_count, world_height);
+        set_layer_global_world_data_offset(g_layer_count, GLOBAL_WORLD_DATA_ITERATOR);
+        layer_id = g_layer_count;
+        ++g_layer_count;
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
-        layer_id = create_layer(layer_data, true);
-        // console_log_format("layer one is %d", layer_id);
         ++g_world_structs[current_world].total_layers;
         add_value_to_global_world_data(layer_id, 2, 2, 36);
 
-        uint32_t world_npc_data[WORLD_NPC_DATA_SIZE];
         uint32_t npc_id;
-        uint32_t world_npc_id;
-
         npc_id = get_npc_id_by_machine_name("bank_teller");
-        CLEAR_DATA(world_npc_data, WORLD_NPC_DATA_SIZE);
-        world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
-        world_npc_data[WORLD_NPC_CAPTAIN_ID] = SENTRY;
-        world_npc_data[WORLD_NPC_POSITION_X] = 4;
-        world_npc_data[WORLD_NPC_POSITION_Y] = 0;
-        world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-        world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_BANK;
-        world_npc_data[WORLD_NPC_IS_INTERACTABLE] = true;
-        world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
-        world_npc_id = create_world_npc(world_npc_data, true);
+        set_world_npc_npc_id(g_world_npc_count, npc_id);
+        set_world_npc_x(g_world_npc_count, 4);
+        set_world_npc_y(g_world_npc_count, 0);
+        set_world_npc_direction(g_world_npc_count, DIRECTION_DOWN);
+        set_world_npc_interaction_scene(g_world_npc_count, SCENE_BANK);
+        set_world_npc_is_interactable(g_world_npc_count, true);
+        ++g_world_npc_count;
         npc_id = get_player_npc_id(0);
-        world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
-        world_npc_data[WORLD_NPC_CAPTAIN_ID] = players[0];
-        world_npc_data[WORLD_NPC_POSITION_X] = 0;
-        world_npc_data[WORLD_NPC_POSITION_Y] = 0;
-        world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-        world_npc_data[WORLD_NPC_IS_CAPTAIN] = true;
-        world_npc_data[WORLD_NPC_IS_PLAYER] = true;
-        create_world_npc(world_npc_data, true);
+        set_world_npc_npc_id(g_world_npc_count, npc_id);
+        set_world_npc_x(g_world_npc_count, 0);
+        set_world_npc_y(g_world_npc_count, 0);
+        set_world_npc_direction(g_world_npc_count, DIRECTION_DOWN);
+        set_world_npc_is_captain(g_world_npc_count, true);
+        set_world_npc_is_player(g_world_npc_count, true);
+        ++g_world_npc_count;
+
         should_redraw_everything();
     }
     else if (strcmp(world_name, "athens") == 0)
@@ -2686,52 +2633,48 @@ void generate_world(char* world_name)
 
         u32 world_width = get_current_world_width();
         u32 world_height = get_current_world_height();
-        uint32_t layer_id;
-        uint32_t layer_data[LAYER_DATA_SIZE];
-        CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
-        layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("background_layer");
-        layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
-        layer_data[LAYER_WIDTH] = world_width;
-        layer_data[LAYER_HEIGHT] = world_height;
-        layer_data[LAYER_SAME_VALUE] = 1;
-        layer_data[LAYER_IS_BLOCK] = false;
-        layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
-        layer_id = create_layer(layer_data, true);
-        // console_log_format("bg layer is %d", layer_id);
+        u32 layer_id;
+
+        set_layer_name_id(g_layer_count, get_string_id_by_machine_name("background_layer"));
+        set_layer_type(g_layer_count, LAYER_TYPE_MATCHES_WORLD_SIZE);
+        set_layer_width(g_layer_count, world_width);
+        set_layer_height(g_layer_count, world_height);
+        set_layer_same_value(g_layer_count, 1);
+        set_layer_global_world_data_offset(g_layer_count, GLOBAL_WORLD_DATA_ITERATOR);
+        ++g_layer_count;
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
         ++g_world_structs[current_world].total_layers;
-        layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("npc_layer");
-        // TODO: Technically, we do not need to store this layer in the global data at all
-        layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
-        layer_data[LAYER_WIDTH] = world_width;
-        layer_data[LAYER_HEIGHT] = world_height;
-        layer_data[LAYER_IS_BLOCK] = false;
-        layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
-        layer_id = create_layer(layer_data, true);
-        // console_log_format("npc layer is %d", layer_id);
+        
+        set_layer_name_id(g_layer_count, get_string_id_by_machine_name("npc_layer"));
+        set_layer_type(g_layer_count, LAYER_TYPE_MATCHES_WORLD_SIZE);
+        set_layer_width(g_layer_count, world_width);
+        set_layer_height(g_layer_count, world_height);
+        set_layer_same_value(g_layer_count, 1);
+        set_layer_global_world_data_offset(g_layer_count, GLOBAL_WORLD_DATA_ITERATOR);
+        ++g_layer_count;
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
         ++g_world_structs[current_world].total_layers;
-        CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
-        layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("block_layer");
-        layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
-        layer_data[LAYER_WIDTH] = world_width;
-        layer_data[LAYER_HEIGHT] = world_height;
-        layer_data[LAYER_IS_BLOCK] = true;
-        layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
+        
+        set_layer_name_id(g_layer_count, get_string_id_by_machine_name("block_layer"));
+        set_layer_type(g_layer_count, LAYER_TYPE_MATCHES_WORLD_SIZE);
+        set_layer_width(g_layer_count, world_width);
+        set_layer_height(g_layer_count, world_height);
+        set_layer_is_block(g_layer_count, true);
+        set_layer_global_world_data_offset(g_layer_count, GLOBAL_WORLD_DATA_ITERATOR);
+        layer_id = g_layer_count;
+        ++g_layer_count;
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
-        layer_id = create_layer(layer_data, true);
-        // console_log_format("block layer is %d", layer_id);
         ++g_world_structs[current_world].total_layers;
         add_value_to_global_world_data(layer_id, 2, 2, 1);
-        CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
-        layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("layer_one");
-        layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
-        layer_data[LAYER_WIDTH] = world_width;
-        layer_data[LAYER_HEIGHT] = world_height;
-        layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
+
+        set_layer_name_id(g_layer_count, get_string_id_by_machine_name("layer_one"));
+        set_layer_type(g_layer_count, LAYER_TYPE_MATCHES_WORLD_SIZE);
+        set_layer_width(g_layer_count, world_width);
+        set_layer_height(g_layer_count, world_height);
+        set_layer_global_world_data_offset(g_layer_count, GLOBAL_WORLD_DATA_ITERATOR);
+        layer_id = g_layer_count;
+        ++g_layer_count;
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
-        layer_id = create_layer(layer_data, true);
-        // console_log_format("layer one is %d", layer_id);
         ++g_world_structs[current_world].total_layers;
         add_value_to_global_world_data(layer_id, 0, 0, 36);
         add_value_to_global_world_data(layer_id, 7, 0, 38);
@@ -2761,195 +2704,160 @@ void generate_world(char* world_name)
         }
         add_value_to_global_world_data(layer_id, 7, 5, 41);
 
-        CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
-        layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("layer_two");
-        layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
-        layer_data[LAYER_WIDTH] = world_width;
-        layer_data[LAYER_HEIGHT] = world_height;
-        layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
+        set_layer_name_id(g_layer_count, get_string_id_by_machine_name("layer_two"));
+        set_layer_type(g_layer_count, LAYER_TYPE_MATCHES_WORLD_SIZE);
+        set_layer_width(g_layer_count, world_width);
+        set_layer_height(g_layer_count, world_height);
+        set_layer_global_world_data_offset(g_layer_count, GLOBAL_WORLD_DATA_ITERATOR);
+        ++g_layer_count;
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
-        layer_id = create_layer(layer_data, true);
-        // console_log_format("layer one is %d", layer_id);
         ++g_world_structs[current_world].total_layers;
         add_value_to_global_world_data(layer_id, 5, 3, 69);
         add_value_to_global_world_data(layer_id, 4, 3, 71);
         add_value_to_global_world_data(layer_id, 4, 4, 72);
 
-        uint32_t world_npc_data[WORLD_NPC_DATA_SIZE];
         uint32_t npc_id;
-        uint32_t world_npc_id;
 
         npc_id = get_npc_id_by_machine_name("bank_teller");
-        CLEAR_DATA(world_npc_data, WORLD_NPC_DATA_SIZE);
-        world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
-        world_npc_data[WORLD_NPC_CAPTAIN_ID] = SENTRY;
-        world_npc_data[WORLD_NPC_POSITION_X] = 4;
-        world_npc_data[WORLD_NPC_POSITION_Y] = 0;
-        world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-        world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_BANK;
-        world_npc_data[WORLD_NPC_IS_INTERACTABLE] = true;
-        world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
-        world_npc_id = create_world_npc(world_npc_data, true);
+        set_world_npc_npc_id(g_world_npc_count, npc_id);
+        set_world_npc_x(g_world_npc_count, 4);
+        set_world_npc_y(g_world_npc_count, 0);
+        set_world_npc_direction(g_world_npc_count, DIRECTION_DOWN);
+        set_world_npc_interaction_scene(g_world_npc_count, SCENE_BANK);
+        set_world_npc_is_interactable(g_world_npc_count, true);
+        ++g_world_npc_count;
 
-        uint32_t general_item_id;
-        uint32_t item_string_id;
-        uint32_t inventory_id;
-        uint32_t inventory_item_id;
-        uint32_t inventory_data[INVENTORY_DATA_SIZE];
-        CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
-        uint32_t inventory_item_data[INVENTORY_ITEM_DATA_SIZE];
-        CLEAR_DATA(inventory_item_data, INVENTORY_ITEM_DATA_SIZE);
-
-        item_string_id = get_string_id_by_machine_name("telescope");
-        general_item_id = get_general_item_id_by_string_id(item_string_id);
-        inventory_data[INVENTORY_NAME_ID] = get_string_id_by_machine_name("general_shop_inventory");
-        inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
-        inventory_id = create_inventory(inventory_data, true);
-        inventory_item_data[INVENTORY_ITEM_NAME_ID] = item_string_id;
-        // TODO: Change NUMBER_HELD/NUMBER_CHOSE to some kind of "quantity" term
-        inventory_item_data[INVENTORY_ITEM_NUMBER_HELD] = 22;
-        inventory_item_data[INVENTORY_ITEM_TYPE] = INVENTORY_TYPE_GENERAL_ITEM;
-        inventory_item_data[INVENTORY_ITEM_TYPE_REFERENCE] = general_item_id;
-        inventory_item_data[INVENTORY_ITEM_INVENTORY_ID] = inventory_id;
-        inventory_item_data[INVENTORY_ITEM_ADJUSTED_PRICE] = 400;
-        // TODO: Do we need to keep this anymore?
-        inventory_item_data[INVENTORY_ITEM_NUMBER_CHOSEN] = SENTRY;
-        create_inventory_item(inventory_item_data, true);
-        increment_inventory_total_items(inventory_id);
-        item_string_id = get_string_id_by_machine_name("quadrant");
-        general_item_id = get_general_item_id_by_string_id(item_string_id);
-        inventory_item_data[INVENTORY_ITEM_NAME_ID] = item_string_id;
-        inventory_item_data[INVENTORY_ITEM_NUMBER_HELD] = 2;
-        inventory_item_data[INVENTORY_ITEM_TYPE] = INVENTORY_TYPE_GENERAL_ITEM;
-        inventory_item_data[INVENTORY_ITEM_TYPE_REFERENCE] = general_item_id;
-        inventory_item_data[INVENTORY_ITEM_INVENTORY_ID] = inventory_id;
-        inventory_item_data[INVENTORY_ITEM_ADJUSTED_PRICE] = 430;
-        inventory_item_data[INVENTORY_ITEM_NUMBER_CHOSEN] = SENTRY;
-        create_inventory_item(inventory_item_data, true);
-        increment_inventory_total_items(inventory_id);
-        item_string_id = get_string_id_by_machine_name("theodolite");
-        general_item_id = get_general_item_id_by_string_id(item_string_id);
-        inventory_item_data[INVENTORY_ITEM_NAME_ID] = item_string_id;
-        inventory_item_data[INVENTORY_ITEM_NUMBER_HELD] = 1;
-        inventory_item_data[INVENTORY_ITEM_TYPE] = INVENTORY_TYPE_GENERAL_ITEM;
-        inventory_item_data[INVENTORY_ITEM_TYPE_REFERENCE] = general_item_id;
-        inventory_item_data[INVENTORY_ITEM_INVENTORY_ID] = inventory_id;
-        inventory_item_data[INVENTORY_ITEM_ADJUSTED_PRICE] = 222;
-        inventory_item_data[INVENTORY_ITEM_NUMBER_CHOSEN] = SENTRY;
-        create_inventory_item(inventory_item_data, true);
-        increment_inventory_total_items(inventory_id);
-        item_string_id = get_string_id_by_machine_name("sextant");
-        general_item_id = get_general_item_id_by_string_id(item_string_id);
-        inventory_item_data[INVENTORY_ITEM_NAME_ID] = item_string_id;
-        inventory_item_data[INVENTORY_ITEM_NUMBER_HELD] = 2;
-        inventory_item_data[INVENTORY_ITEM_TYPE] = INVENTORY_TYPE_GENERAL_ITEM;
-        inventory_item_data[INVENTORY_ITEM_TYPE_REFERENCE] = general_item_id;
-        inventory_item_data[INVENTORY_ITEM_INVENTORY_ID] = inventory_id;
-        inventory_item_data[INVENTORY_ITEM_ADJUSTED_PRICE] = 666;
-        inventory_item_data[INVENTORY_ITEM_NUMBER_CHOSEN] = SENTRY;
-        create_inventory_item(inventory_item_data, true);
-        increment_inventory_total_items(inventory_id);
+        // Inventory
+        set_inventory_name_id_by_string(g_inventory_count, "general_shop_inventory");
+        set_inventory_total_items(g_inventory_count, 0);
+        // Inventory Item
+        set_inventory_item_number_held(g_inventory_item_count, 22);
+        set_inventory_item_type_reference_by_string(g_inventory_item_count, "telescope");
+        set_inventory_item_inventory_id(g_inventory_item_count, g_inventory_count);
+        set_inventory_item_adjusted_price(g_inventory_item_count, 400);
+        inventory_increment_total_items(g_inventory_count);
+        ++g_inventory_count;
+        // Inventory Item
+        set_inventory_item_number_held(g_inventory_item_count, 23);
+        set_inventory_item_type_reference_by_string(g_inventory_item_count, "quadrant");
+        set_inventory_item_inventory_id(g_inventory_item_count, g_inventory_count);
+        set_inventory_item_adjusted_price(g_inventory_item_count, 430);
+        inventory_increment_total_items(g_inventory_count);
+        ++g_inventory_count;
+        // Inventory Item
+        set_inventory_item_number_held(g_inventory_item_count, 24);
+        set_inventory_item_type_reference_by_string(g_inventory_item_count, "theodolite");
+        set_inventory_item_inventory_id(g_inventory_item_count, g_inventory_count);
+        set_inventory_item_adjusted_price(g_inventory_item_count, 222);
+        inventory_increment_total_items(g_inventory_count);
+        ++g_inventory_count;
+        // Inventory Item
+        set_inventory_item_number_held(g_inventory_item_count, 99);
+        set_inventory_item_type_reference_by_string(g_inventory_item_count, "sextant");
+        set_inventory_item_inventory_id(g_inventory_item_count, g_inventory_count);
+        set_inventory_item_adjusted_price(g_inventory_item_count, 666);
+        inventory_increment_total_items(g_inventory_count);
+        ++g_inventory_count;
         npc_id = get_npc_id_by_machine_name("general_shop_owner");
-        world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
-        world_npc_data[WORLD_NPC_CAPTAIN_ID] = SENTRY;
-        world_npc_data[WORLD_NPC_POSITION_X] = 3;
-        world_npc_data[WORLD_NPC_POSITION_Y] = 0;
-        world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-        world_npc_data[WORLD_NPC_IS_INTERACTABLE] = true;
-        world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
-        world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_GENERAL_SHOP;
-        world_npc_data[WORLD_NPC_INVENTORY_ID] = inventory_id;
-        create_world_npc(world_npc_data, true);
+        set_world_npc_npc_id(g_world_npc_count, npc_id);
+        set_world_npc_x(g_world_npc_count, 3);
+        set_world_npc_y(g_world_npc_count, 0);
+        set_world_npc_direction(g_world_npc_count, DIRECTION_DOWN);
+        set_world_npc_is_interactable(g_world_npc_count, true);
+        set_world_npc_interaction_scene(g_world_npc_count, SCENE_GENERAL_SHOP);
+        set_world_npc_inventory_id(g_world_npc_count, g_inventory_count);
+        ++g_world_npc_count;
 
         npc_id = get_npc_id_by_machine_name("blackjack_player");
-        world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
-        world_npc_data[WORLD_NPC_CAPTAIN_ID] = SENTRY;
-        world_npc_data[WORLD_NPC_POSITION_X] = 5;
-        world_npc_data[WORLD_NPC_POSITION_Y] = 0;
-        world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-        world_npc_data[WORLD_NPC_IS_INTERACTABLE] = true;
-        world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
-        world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_BLACKJACK;
-        create_world_npc(world_npc_data, true);
+        set_world_npc_npc_id(g_world_npc_count, npc_id);
+        set_world_npc_x(g_world_npc_count, 5);
+        set_world_npc_y(g_world_npc_count, 0);
+        set_world_npc_direction(g_world_npc_count, DIRECTION_DOWN);
+        set_world_npc_is_interactable(g_world_npc_count, true);
+        set_world_npc_interaction_scene(g_world_npc_count, SCENE_BLACKJACK);
+        ++g_world_npc_count;
 
         npc_id = get_player_npc_id(0);
-        world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
-        world_npc_data[WORLD_NPC_CAPTAIN_ID] = players[0];
-        world_npc_data[WORLD_NPC_POSITION_X] = 0;
-        world_npc_data[WORLD_NPC_POSITION_Y] = 0;
-        world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-        world_npc_data[WORLD_NPC_IS_CAPTAIN] = true;
-        world_npc_data[WORLD_NPC_IS_PLAYER] = true;
-        create_world_npc(world_npc_data, true);
+        set_world_npc_npc_id(g_world_npc_count, npc_id);
+        set_world_npc_captain_id(g_world_npc_count, players[0]);
+        set_world_npc_x(g_world_npc_count, 0);
+        set_world_npc_y(g_world_npc_count, 0);
+        set_world_npc_direction(g_world_npc_count, DIRECTION_DOWN);
+        set_world_npc_is_captain(g_world_npc_count, true);
+        set_world_npc_is_player(g_world_npc_count, true);
+        ++g_world_npc_count;
 
         npc_id = get_npc_id_by_machine_name("npc_ocean_battle");
-        world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
-        world_npc_data[WORLD_NPC_POSITION_X] = 0;
-        world_npc_data[WORLD_NPC_POSITION_Y] = 1;
-        world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-        world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
-        world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_OCEAN_BATTLE;
-        create_world_npc(world_npc_data, true);
+        set_world_npc_npc_id(g_world_npc_count, npc_id);
+        set_world_npc_x(g_world_npc_count, 0);
+        set_world_npc_y(g_world_npc_count, 1);
+        set_world_npc_direction(g_world_npc_count, DIRECTION_DOWN);
+        set_world_npc_interaction_scene(g_world_npc_count, SCENE_OCEAN_BATTLE);
+        ++g_world_npc_count;
 
         npc_id = get_npc_id_by_machine_name("npc_rvice");
-        world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
-        world_npc_data[WORLD_NPC_CAPTAIN_ID] = 1;
-        world_npc_data[WORLD_NPC_POSITION_X] = 0;
-        world_npc_data[WORLD_NPC_POSITION_Y] = 2;
-        world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-        world_npc_data[WORLD_NPC_IS_CAPTAIN] = true;
-        world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_NPC_RVICE;
-        create_world_npc(world_npc_data, true);
+        set_world_npc_npc_id(g_world_npc_count, npc_id);
+        // TODO: Bad hard coded value?
+        set_world_npc_captain_id(g_world_npc_count, 1);
+        set_world_npc_x(g_world_npc_count, 0);
+        set_world_npc_y(g_world_npc_count, 2);
+        set_world_npc_direction(g_world_npc_count, DIRECTION_DOWN);
+        set_world_npc_is_captain(g_world_npc_count, true);
+        set_world_npc_interaction_scene(g_world_npc_count, SCENE_NPC_RVICE);
+        ++g_world_npc_count;
 
         npc_id = get_npc_id_by_machine_name("npc_lafolie");
-        world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
-        world_npc_data[WORLD_NPC_CAPTAIN_ID] = 2;
-        world_npc_data[WORLD_NPC_POSITION_X] = 0;
-        world_npc_data[WORLD_NPC_POSITION_Y] = 3;
-        world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-        world_npc_data[WORLD_NPC_IS_CAPTAIN] = true;
-        world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_NPC_LAFOLIE;
-        create_world_npc(world_npc_data, true);
+        set_world_npc_npc_id(g_world_npc_count, npc_id);
+        // TODO: Bad hard coded value?
+        set_world_npc_captain_id(g_world_npc_count, 2);
+        set_world_npc_x(g_world_npc_count, 0);
+        set_world_npc_y(g_world_npc_count, 3);
+        set_world_npc_direction(g_world_npc_count, DIRECTION_DOWN);
+        set_world_npc_is_captain(g_world_npc_count, true);
+        set_world_npc_interaction_scene(g_world_npc_count, SCENE_NPC_LAFOLIE);
+        ++g_world_npc_count;
 
         npc_id = get_npc_id_by_machine_name("npc_nakor");
-        world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
-        world_npc_data[WORLD_NPC_CAPTAIN_ID] = 3;
-        world_npc_data[WORLD_NPC_POSITION_X] = 0;
-        world_npc_data[WORLD_NPC_POSITION_Y] = 4;
-        world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-        world_npc_data[WORLD_NPC_IS_CAPTAIN] = true;
-        world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_NPC_NAKOR;
-        create_world_npc(world_npc_data, true);
+        set_world_npc_npc_id(g_world_npc_count, npc_id);
+        // TODO: Bad hard coded value?
+        set_world_npc_captain_id(g_world_npc_count, 3);
+        set_world_npc_x(g_world_npc_count, 0);
+        set_world_npc_y(g_world_npc_count, 4);
+        set_world_npc_direction(g_world_npc_count, DIRECTION_DOWN);
+        set_world_npc_is_captain(g_world_npc_count, true);
+        set_world_npc_interaction_scene(g_world_npc_count, SCENE_NPC_NAKOR);
+        ++g_world_npc_count;
 
         npc_id = get_npc_id_by_machine_name("npc_travis");
-        world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
-        world_npc_data[WORLD_NPC_CAPTAIN_ID] = 4;
-        world_npc_data[WORLD_NPC_POSITION_X] = 0;
-        world_npc_data[WORLD_NPC_POSITION_Y] = 5;
-        world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-        world_npc_data[WORLD_NPC_IS_CAPTAIN] = true;
-        world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_NPC_TRAVIS;
-        create_world_npc(world_npc_data, true);
+        set_world_npc_npc_id(g_world_npc_count, npc_id);
+        // TODO: Bad hard coded value?
+        set_world_npc_captain_id(g_world_npc_count, 4);
+        set_world_npc_x(g_world_npc_count, 0);
+        set_world_npc_y(g_world_npc_count, 5);
+        set_world_npc_direction(g_world_npc_count, DIRECTION_DOWN);
+        set_world_npc_is_captain(g_world_npc_count, true);
+        set_world_npc_interaction_scene(g_world_npc_count, SCENE_NPC_TRAVIS);
+        ++g_world_npc_count;
 
         npc_id = get_npc_id_by_machine_name("npc_loller");
-        world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
-        world_npc_data[WORLD_NPC_POSITION_X] = 0;
-        world_npc_data[WORLD_NPC_POSITION_Y] = 6;
-        world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-        world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
-        world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_NPC_LOLLER;
-        create_world_npc(world_npc_data, true);
+        set_world_npc_npc_id(g_world_npc_count, npc_id);
+        // TODO: Bad hard coded value?
+        set_world_npc_captain_id(g_world_npc_count, 4);
+        set_world_npc_x(g_world_npc_count, 0);
+        set_world_npc_y(g_world_npc_count, 5);
+        set_world_npc_direction(g_world_npc_count, DIRECTION_DOWN);
+        set_world_npc_is_captain(g_world_npc_count, true);
+        set_world_npc_interaction_scene(g_world_npc_count, SCENE_NPC_LOLLER);
+        ++g_world_npc_count;
 
-        layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("entity_layer");
-        layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
-        layer_data[LAYER_WIDTH] = world_width;
-        layer_data[LAYER_HEIGHT] = world_height;
-        layer_data[LAYER_IS_BLOCK] = false;
-        layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
-        layer_id = create_layer(layer_data, true);
+        set_layer_name_id(g_layer_count, get_string_id_by_machine_name("entity_layer"));
+        set_layer_type(g_layer_count, LAYER_TYPE_MATCHES_WORLD_SIZE);
+        set_layer_width(g_layer_count, world_width);
+        set_layer_height(g_layer_count, world_height);
+        set_layer_global_world_data_offset(g_layer_count, GLOBAL_WORLD_DATA_ITERATOR);
+        ++g_layer_count;
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
         ++g_world_structs[current_world].total_layers;
-        CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
 
         init_structs_entities();
         g_entity_structs[0].name_id = get_string_id_by_machine_name("load_test_world");
@@ -2962,7 +2870,7 @@ void generate_world(char* world_name)
 
         // TODO
         // When offloading existing world you must clear out
-        // g_world_npc_data
+        // world npcs
         // inventories per npc
         // layer_data ?
         // global_world_data
@@ -2998,129 +2906,305 @@ uint32_t get_npc_type(uint32_t npc_id)
 }
 
 // ------------------------------------------------------------------------------------------------
+// CAPTAINS
+// ------------------------------------------------------------------------------------------------
+void set_captain_npc_id(u32 id, u32 npc_id)
+{
+    g_captain_structs[id].npc_id = npc_id;
+}
+void set_captain_gold(u32 id, u32 amount)
+{
+    g_captain_structs[id].gold = amount;
+}
+void set_captain_player_id(u32 id, u32 player_id)
+{
+    g_captain_structs[id].player_id = player_id;
+}
+void set_captain_inventory_id(u32 id, u32 inventory_id)
+{
+    g_captain_structs[id].inventory_id = inventory_id;
+}
+u32 get_captain_gold(u32 id)
+{
+    return g_captain_structs[id].gold;
+}
+u32 get_captain_npc_id(u32 id)
+{
+    return g_captain_structs[id].npc_id;
+}
+u32 get_captain_inventory_id(u32 id)
+{
+    return g_captain_structs[id].inventory_id;
+}
+
+// ------------------------------------------------------------------------------------------------
 // WORLD NPCS
 // ------------------------------------------------------------------------------------------------
-uint32_t get_world_npc_x(uint32_t world_npc_id)
+void set_world_npc_entity_id(u32 world_npc_id, u32 entity_id)
 {
-    return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
+    g_world_npc_structs[world_npc_id].entity_id = entity_id;
 }
-uint32_t get_world_npc_y(uint32_t world_npc_id)
+void set_world_npc_captain_id(u32 world_npc_id, u32 captain_id)
 {
-    return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
+    g_world_npc_structs[world_npc_id].captain_id = captain_id;
 }
-uint32_t get_world_npc_inventory_id(uint32_t world_npc_id)
+void set_world_npc_npc_id(u32 world_npc_id, u32 npc_id)
 {
-    return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_INVENTORY_ID];
+    g_world_npc_structs[world_npc_id].npc_id = npc_id;
 }
-uint32_t get_world_npc_type(uint32_t world_npc_id)
+void set_world_npc_is_captain(u32 world_npc_id, u32 is_or_not)
 {
-    uint32_t npc_id = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_NPC_ID];
+    g_world_npc_structs[world_npc_id].is_captain = is_or_not;
+}
+void set_world_npc_is_player(u32 world_npc_id, u32 is_or_not)
+{
+    g_world_npc_structs[world_npc_id].is_player = is_or_not;
+}
+void set_world_npc_inventory_id(u32 id, u32 value)
+{
+    g_world_npc_structs[id].inventory_id = value;
+}
+void set_world_npc_is_interactable(u32 world_npc_id, u32 is_or_not)
+{
+    g_world_npc_structs[world_npc_id].is_interactable = is_or_not;
+}
+void set_world_npc_interaction_scene(u32 world_npc_id, u32 scene_id)
+{
+    g_world_npc_structs[world_npc_id].interaction_scene = scene_id;
+}
+u32 get_world_npc_direction(u32 id)
+{
+    return g_world_npc_structs[id].direction;
+}
+u32 get_world_npc_npc_id(u32 id)
+{
+    return g_world_npc_structs[id].npc_id;
+}
+u32 get_world_npc_interaction_scene(u32 id)
+{
+    return g_world_npc_structs[id].interaction_scene;
+}
+uint32_t get_world_npc_x(uint32_t id)
+{
+    return g_world_npc_structs[id].position_x;
+}
+uint32_t get_world_npc_y(uint32_t id)
+{
+    return g_world_npc_structs[id].position_y;
+}
+uint32_t get_world_npc_inventory_id(uint32_t id)
+{
+    return g_world_npc_structs[id].inventory_id;
+}
+u32 get_world_npc_is_player(u32 id)
+{
+    return g_world_npc_structs[id].is_player;
+}
+uint32_t get_world_npc_type(uint32_t id)
+{
+    uint32_t npc_id = get_world_npc_npc_id(id);
     if (npc_id != SENTRY)
     {
         return get_npc_type(npc_id);
     }
     return SENTRY;
 }
-uint32_t get_world_npc_name_id(uint32_t world_npc_id)
+uint32_t get_world_npc_name_id(uint32_t id)
 {
-    uint32_t npc_id = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_NPC_ID];
+    uint32_t npc_id = get_world_npc_npc_id(id);
     if (npc_id != SENTRY)
     {
         return get_npc_name_id(npc_id);
     }
     return SENTRY;
 }
-void clear_world_npc(uint32_t world_npc_id)
+void clear_world_npc(uint32_t id)
 {
-    uint32_t offset = world_npc_id * WORLD_NPC_DATA_SIZE;
-    for (uint32_t i = 0; i < WORLD_NPC_DATA_SIZE; ++i)
-    {
-        g_world_npc_data[offset + i] = SENTRY;
-    }
+    CLEAR_STRUCT(&g_world_npc_structs[id], SENTRY);
     --g_world_npc_count;
 }
-uint32_t get_world_npc_entity_id(uint32_t world_npc_id)
+void clear_global_world_npcs()
 {
-    return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_ENTITY_ID];
+    for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
+    {
+        clear_world_npc(i);
+    }
+    g_world_npc_count = 0;
 }
-void move_world_npc_to(uint32_t world_npc_id, uint32_t x, uint32_t y)
+uint32_t get_world_npc_entity_id(uint32_t id)
 {
-    console_log_format("Moving world npc id %d to x %d and y %d", world_npc_id, x, y);
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = x;
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = y;
+    return g_world_npc_structs[id].entity_id;
 }
-void move_world_npc_left(uint32_t world_npc_id)
+void move_world_npc_to(uint32_t id, uint32_t x, uint32_t y)
 {
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
+    g_world_npc_structs[id].position_x = x;
+    g_world_npc_structs[id].position_y = y;
+}
+void move_world_npc_left(uint32_t id)
+{
+    uint32_t current_x = get_world_npc_x(id);
+    uint32_t current_y = get_world_npc_y(id);
     uint32_t intended_x = current_x - 1;
     if (current_x > 0 && are_coordinates_blocked(intended_x, current_y) != 1)
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = intended_x;
+        set_world_npc_x(id, intended_x);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_LEFT;
+    set_world_npc_direction(id, DIRECTION_LEFT);
 }
-void move_world_npc_right(uint32_t world_npc_id)
+void move_world_npc_right(uint32_t id)
 {
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
+    uint32_t current_x = get_world_npc_x(id);
+    uint32_t current_y = get_world_npc_y(id);
     uint32_t intended_x = current_x + 1;
     if (intended_x < get_current_world_width() && are_coordinates_blocked(intended_x, current_y) != 1)
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = intended_x;
+        set_world_npc_x(id, intended_x);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_RIGHT;
+    set_world_npc_direction(id, DIRECTION_RIGHT);
 }
-void move_world_npc_up(uint32_t world_npc_id)
+void move_world_npc_up(uint32_t id)
 {
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
+    uint32_t current_x = get_world_npc_x(id);
+    uint32_t current_y = get_world_npc_y(id);
     uint32_t intended_y = current_y - 1;
     if (current_y > 0 && are_coordinates_blocked(current_x, intended_y) != 1)
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = intended_y;
+        set_world_npc_y(id, intended_y);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_UP;
+    set_world_npc_direction(id, DIRECTION_UP);
 }
-void move_world_npc_down(uint32_t world_npc_id)
+void move_world_npc_down(uint32_t id)
 {
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
+    uint32_t current_x = get_world_npc_x(id);
+    uint32_t current_y = get_world_npc_y(id);
     uint32_t intended_y = current_y + 1;
     if (intended_y < get_current_world_height() && are_coordinates_blocked(current_x, intended_y) != 1)
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = intended_y;
+        set_world_npc_y(id, intended_y);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
+    set_world_npc_direction(id, DIRECTION_DOWN);
+}
+void set_world_npc_direction(u32 id, u32 direction)
+{
+    g_world_npc_structs[id].direction = direction;
+}
+void set_world_npc_x(u32 id, u32 x)
+{
+    g_world_npc_structs[id].position_x = x;
+}
+void set_world_npc_y(u32 id, u32 y)
+{
+    g_world_npc_structs[id].position_y = y;
 }
 
 // ------------------------------------------------------------------------------------------------
 // INVENTORY
 // ------------------------------------------------------------------------------------------------
-uint32_t get_inventory_total_items(uint32_t inventory_id)
+u32 get_inventory_total_items(u32 id)
 {
-    uint32_t offset = inventory_id * INVENTORY_DATA_SIZE;
-    return g_inventory_data[offset + INVENTORY_TOTAL_ITEMS];
+    return g_inventory_structs[id].total_items;
 }
-uint32_t get_inventory_item_inventory_id(uint32_t inventory_item_id)
+void set_inventory_name_id(u32 id, u32 value)
 {
-    uint32_t offset = inventory_item_id * INVENTORY_ITEM_DATA_SIZE;
-    return g_inventory_item_data[offset + INVENTORY_ITEM_INVENTORY_ID];
+    g_inventory_structs[id].name_id = value;
 }
-uint32_t get_inventory_item_adjusted_price(uint32_t inventory_item_id)
+void set_inventory_name_id_by_string(u32 id, char* name)
 {
-    uint32_t offset = inventory_item_id * INVENTORY_ITEM_DATA_SIZE;
-    return g_inventory_item_data[offset + INVENTORY_ITEM_ADJUSTED_PRICE];
+    u32 string_id = get_string_id_by_machine_name(name);
+    if (string_id == SENTRY)
+    {
+        console_log("[E] Could not find string to set inventory name id");
+        return;
+    }
+
+    set_inventory_name_id(id, string_id);
 }
-uint32_t get_inventory_item_string_id(uint32_t inventory_item_id)
+void set_inventory_total_items(u32 id, u32 value)
 {
-    uint32_t offset = inventory_item_id * INVENTORY_ITEM_DATA_SIZE;
-    return g_inventory_item_data[offset + INVENTORY_ITEM_NAME_ID];
+    g_inventory_structs[id].total_items = value;
 }
-void increment_inventory_total_items(uint32_t inventory_id)
+void inventory_increment_total_items(u32 id)
 {
-    uint32_t offset = inventory_id * INVENTORY_DATA_SIZE;
-    ++g_inventory_data[offset + INVENTORY_TOTAL_ITEMS];
+    u32 intended_total = get_inventory_total_items(id);
+    ++intended_total;
+    if (intended_total > MAX_INVENTORY_ITEMS)
+    {
+        console_log("Cannot increment inventory total items beyond MAX_INVENTORY_ITEMS");
+        return;
+    }
+    ++g_inventory_structs[id].total_items;
+}
+
+u32 get_inventory_item_inventory_id(u32 id)
+{
+    return g_inventory_item_structs[id].inventory_id;
+}
+u32 get_inventory_item_adjusted_price(u32 id)
+{
+    return g_inventory_item_structs[id].adjusted_price;
+}
+u32 get_inventory_item_string_id(u32 id)
+{
+    return g_inventory_item_structs[id].name_id;
+}
+void set_inventory_item_inventory_id(u32 id, u32 value)
+{
+    g_inventory_item_structs[id].inventory_id = value;
+}
+void set_inventory_item_name_id_by_string(u32 id, char* name)
+{
+    u32 string_id = get_string_id_by_machine_name(name);
+    if (string_id == SENTRY)
+    {
+        console_log("[E] Could not find string to set inventory item name id");
+        return;
+    }
+
+    set_inventory_item_name_id(id, string_id);
+}
+void set_inventory_item_name_id(u32 id, u32 value)
+{
+    g_inventory_item_structs[id].name_id = value;
+}
+void set_inventory_item_number_held(u32 id, u32 value)
+{
+    g_inventory_item_structs[id].number_held = value;
+}
+void set_inventory_item_adjusted_price(u32 id, u32 value)
+{
+    g_inventory_item_structs[id].adjusted_price = value;
+}
+void set_inventory_item_type_reference(u32 id, u32 value)
+{
+    g_inventory_item_structs[id].type_reference = value;
+}
+void set_inventory_item_type_reference_by_string(u32 id, char* name)
+{
+    u32 item_id = SENTRY;
+    u32 name_id = get_string_id_by_machine_name(name);
+    if (name_id == SENTRY)
+    {
+        console_log("Tried to find a string for inventory type reference but could not");
+        return;
+    }
+    // Have to find the item we want by its name
+    for (u32 i = 0; i < MAX_ITEMS; ++i)
+    {
+        if (g_item_structs[i].name_id == name_id)
+        {
+            item_id = i;
+            break;
+        }
+    }
+    if (item_id == SENTRY)
+    {
+        console_log("Could not find an item by string id to add to inventory item reference");
+        return;
+    }
+    // TODO: Ok but... can we get the name from the type reference? Would we want to override the base name with a custom one here perhaps?
+    // Set the inventory name to the same name as the item we ended up finding for this
+    set_inventory_item_name_id(id, name_id);
+    set_inventory_item_type_reference(id, item_id);
 }
 
 // ------------------------------------------------------------------------------------------------ //
@@ -3128,56 +3212,52 @@ void increment_inventory_total_items(uint32_t inventory_id)
 // ------------------------------------------------------------------------------------------------ //
 uint32_t get_player_gold(uint32_t player_id)
 {
-    uint32_t captain_id = players[player_id];
-    return g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD];
+    u32 captain_id = players[player_id];
+    return get_captain_gold(captain_id);
 }
 void set_player_gold(uint32_t player_id, uint32_t value)
 {
-    uint32_t captain_id = players[player_id];
-    g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD] = value;
+    u32 captain_id = players[player_id];
+    set_captain_gold(captain_id, value);
 }
 void subtract_player_gold(uint32_t player_id, uint32_t value)
 {
-    uint32_t captain_id = players[player_id];
-    g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD] -= value;
+    u32 captain_id = players[player_id];
+    u32 current_gold = get_captain_gold(captain_id);
+    current_gold -= value;
+    set_captain_gold(captain_id, current_gold);
 }
 void add_player_gold(uint32_t player_id, uint32_t value)
 {
-    uint32_t captain_id = players[player_id];
-    g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD] -= value;
+    u32 captain_id = players[player_id];
+    u32 current_gold = get_captain_gold(captain_id);
+    current_gold += value;
+    set_captain_gold(captain_id, current_gold);
 }
 uint32_t get_player_npc_id(uint32_t player_id)
 {
-    uint32_t captain_id = players[player_id];
-    return g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_NPC_ID];
+    u32 captain_id = players[player_id];
+    return get_captain_npc_id(captain_id);
 }
 uint32_t get_player_inventory_id(uint32_t player_id)
 {
     uint32_t captain_id = players[player_id];
-    return g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_INVENTORY_ID];
+    return get_captain_inventory_id(captain_id);
 }
 uint32_t get_player_total_items(uint32_t player_id)
 {
     uint32_t inventory_id = get_player_inventory_id(player_id);
-    uint32_t offset = inventory_id * INVENTORY_DATA_SIZE;
-    return g_inventory_data[offset + INVENTORY_TOTAL_ITEMS];
+    return get_inventory_total_items(inventory_id);
 }
-uint32_t get_player_inventory_item_by_id(uint32_t item_id)
+u32 get_player_inventory_item_by_id(u32 item_id)
 {
-    uint32_t inventory_id = get_player_inventory_id(0);
-    for (uint32_t i = 0; i < MAX_INVENTORY_ITEMS; ++i)
-    {
-        uint32_t offset = i * INVENTORY_ITEM_DATA_SIZE;
-        if (i == item_id)
-        {
-            return i;
-        }
-    }
+    u32 inventory_id = get_player_inventory_id(0);
+    // TODO: What the hell is this function?
     return SENTRY;
 }
-uint32_t get_player_inventory_item_string_id(uint32_t item_id)
+u32 get_player_inventory_item_string_id(u32 item_id)
 {
-    uint32_t offset = get_player_inventory_item_by_id(item_id);
+    u32 offset = get_player_inventory_item_by_id(item_id);
     if (offset != SENTRY)
     {
         return g_inventory_item_data[offset + INVENTORY_ITEM_NAME_ID];
@@ -3189,7 +3269,7 @@ uint32_t get_player_in_world(uint32_t player_id)
     uint32_t npc_id = get_player_npc_id(player_id);
     for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
     {
-        if (g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_NPC_ID] == npc_id)
+        if (get_world_npc_npc_id(i) == npc_id)
         {
             return i;
         }
@@ -3199,66 +3279,66 @@ uint32_t get_player_in_world(uint32_t player_id)
 uint32_t get_player_in_world_x(uint32_t player_id)
 {
     uint32_t world_npc_id = get_player_in_world(player_id);
-    return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
+    return get_world_npc_x(world_npc_id);
 }
 uint32_t get_player_in_world_y(uint32_t player_id)
 {
     uint32_t world_npc_id = get_player_in_world(player_id);
-    return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
+    return get_world_npc_y(world_npc_id);
 }
 void move_player_to(uint32_t player_id, uint32_t x, uint32_t y)
 {
     uint32_t world_npc_id = get_player_in_world(player_id);
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = x;
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = y;
+    set_world_npc_x(world_npc_id, x);
+    set_world_npc_y(world_npc_id, y);
 }
 void move_player_left(uint32_t player_id)
 {
     uint32_t world_npc_id = get_player_in_world(player_id);
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
+    uint32_t current_x = get_world_npc_x(world_npc_id);
+    uint32_t current_y = get_world_npc_y(world_npc_id);
     uint32_t intended_x = current_x - 1;
     if (current_x > 0 && are_coordinates_blocked(intended_x, current_y) != 1)
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = intended_x;
+        set_world_npc_x(world_npc_id, intended_x);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_LEFT;
+    set_world_npc_direction(world_npc_id, DIRECTION_LEFT);
 }
 void move_player_right(uint32_t player_id)
 {
     uint32_t world_npc_id = get_player_in_world(player_id);
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
+    uint32_t current_x = get_world_npc_x(world_npc_id);
+    uint32_t current_y = get_world_npc_y(world_npc_id);
     uint32_t intended_x = current_x + 1;
     if (intended_x < get_current_world_width() && are_coordinates_blocked(intended_x, current_y) != 1) 
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = intended_x;
+        set_world_npc_x(world_npc_id, intended_x);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_RIGHT;
+    set_world_npc_direction(world_npc_id, DIRECTION_RIGHT);
 }
 void move_player_up(uint32_t player_id)
 {
     uint32_t world_npc_id = get_player_in_world(player_id);
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
+    uint32_t current_x = get_world_npc_x(world_npc_id);
+    uint32_t current_y = get_world_npc_y(world_npc_id);
     uint32_t intended_y = current_y - 1;
     if (current_y > 0 && are_coordinates_blocked(current_x, intended_y) != 1)
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = intended_y;
+        set_world_npc_y(world_npc_id, intended_y);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_UP;
+    set_world_npc_direction(world_npc_id, DIRECTION_UP);
 }
 void move_player_down(uint32_t player_id)
 {
     uint32_t world_npc_id = get_player_in_world(player_id);
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
+    uint32_t current_x = get_world_npc_x(world_npc_id);
+    uint32_t current_y = get_world_npc_y(world_npc_id);
     uint32_t intended_y = current_y + 1;
     if (intended_y < get_current_world_height() && are_coordinates_blocked(current_x, intended_y) != 1)
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = intended_y;
+        set_world_npc_y(world_npc_id, intended_y);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
+    set_world_npc_direction(world_npc_id, DIRECTION_DOWN);
 }
 
 // ------------------------------------------------------------------------------------------------ //
@@ -3495,13 +3575,6 @@ void initialize_game()
 
     init_string_data();
     init_string_info();
-    init_data_ship_material();
-    init_data_weapon();
-    init_data_armor();
-    init_data_special_item();
-    init_data_figurehead();
-    init_data_cannon();
-    init_data_layer();
     init_data_inventory();
     init_data_inventory_item();
     init_data_port();
@@ -3510,9 +3583,6 @@ void initialize_game()
     init_data_fleet();
     init_data_fleet_ship();
     init_data_fleet_captain();
-    init_data_world_npc();
-    init_data_bank();
-    init_data_captain();
     init_structs_entities();
 
     create_string("empty", "Empty");
@@ -3777,69 +3847,65 @@ void initialize_game()
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
     uint32_t inventory_id = create_inventory(inventory_data, true);
 
-    uint32_t captain_data[CAPTAIN_DATA_SIZE];
-    CLEAR_DATA(captain_data, CAPTAIN_DATA_SIZE);
-    captain_data[CAPTAIN_NPC_ID] = empty_npc_id;
-    captain_data[CAPTAIN_PLAYER_ID] = 0;
-    captain_data[CAPTAIN_GOLD] = 99;
-    captain_data[CAPTAIN_INVENTORY_ID] = inventory_id;
-    uint32_t captain_id = create_captain(captain_data, true);
-    players[0] = captain_id;
+    set_captain_npc_id(g_captain_count, empty_npc_id);
+    set_captain_player_id(g_captain_count, 0);
+    set_captain_gold(g_captain_count, 99);
+    set_captain_inventory_id(g_captain_count, inventory_id);
+    players[0] = g_captain_count;
+    ++g_captain_count;
 
     CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
     inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_rvice_id);
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
     inventory_id = create_inventory(inventory_data, true);
-    CLEAR_DATA(captain_data, CAPTAIN_DATA_SIZE);
-    captain_data[CAPTAIN_NPC_ID] = npc_rvice_id;
-    captain_data[CAPTAIN_PLAYER_ID] = 0;
-    captain_data[CAPTAIN_GOLD] = 100;
-    captain_data[CAPTAIN_INVENTORY_ID] = inventory_id;
-    create_captain(captain_data, true);
+    set_captain_npc_id(g_captain_count, npc_rvice_id);
+    set_captain_player_id(g_captain_count, 0);
+    set_captain_gold(g_captain_count, 100);
+    set_captain_inventory_id(g_captain_count, inventory_id);
+    ++g_captain_count;
     CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
     inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_lafolie_id);
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
     inventory_id = create_inventory(inventory_data, true);
-    CLEAR_DATA(captain_data, CAPTAIN_DATA_SIZE);
-    captain_data[CAPTAIN_NPC_ID] = npc_lafolie_id;
-    captain_data[CAPTAIN_PLAYER_ID] = 0;
-    captain_data[CAPTAIN_GOLD] = 100;
-    captain_data[CAPTAIN_INVENTORY_ID] = inventory_id;
-    create_captain(captain_data, true);
+    set_captain_npc_id(g_captain_count, npc_lafolie_id);
+    set_captain_player_id(g_captain_count, 0);
+    set_captain_gold(g_captain_count, 100);
+    set_captain_inventory_id(g_captain_count, inventory_id);
+    ++g_captain_count;
     CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
     inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_nakor_id);
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
     inventory_id = create_inventory(inventory_data, true);
-    CLEAR_DATA(captain_data, CAPTAIN_DATA_SIZE);
-    captain_data[CAPTAIN_NPC_ID] = npc_nakor_id;
-    captain_data[CAPTAIN_PLAYER_ID] = 0;
-    captain_data[CAPTAIN_GOLD] = 100;
-    captain_data[CAPTAIN_INVENTORY_ID] = inventory_id;
-    create_captain(captain_data, true);
+    set_captain_npc_id(g_captain_count, npc_nakor_id);
+    set_captain_player_id(g_captain_count, 0);
+    set_captain_gold(g_captain_count, 100);
+    set_captain_inventory_id(g_captain_count, inventory_id);
+    ++g_captain_count;
     CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
     inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_travis_id);
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
     inventory_id = create_inventory(inventory_data, true);
-    CLEAR_DATA(captain_data, CAPTAIN_DATA_SIZE);
-    captain_data[CAPTAIN_NPC_ID] = npc_travis_id;
-    captain_data[CAPTAIN_PLAYER_ID] = 0;
-    captain_data[CAPTAIN_GOLD] = 100;
-    captain_data[CAPTAIN_INVENTORY_ID] = inventory_id;
-    create_captain(captain_data, true);
+    set_captain_npc_id(g_captain_count, npc_travis_id);
+    set_captain_player_id(g_captain_count, 0);
+    set_captain_gold(g_captain_count, 100);
+    set_captain_inventory_id(g_captain_count, inventory_id);
+    ++g_captain_count;
 
-    struct GeneralItem general_item;
-    general_item.name_id = get_string_id_by_machine_name("telescope");
-    general_item.base_price = 200;
-    g_general_item_structs[0] = general_item;
-    general_item.name_id = get_string_id_by_machine_name("quadrant");
-    general_item.base_price = 201;
-    g_general_item_structs[1] = general_item;
-    general_item.name_id = get_string_id_by_machine_name("theodolite");
-    general_item.base_price = 203;
-    g_general_item_structs[2] = general_item;
-    general_item.name_id = get_string_id_by_machine_name("theodolite");
-    general_item.base_price = 222;
-    g_general_item_structs[3] = general_item;
+    g_item_structs[0].name_id = get_string_id_by_machine_name("telescope");
+    g_item_structs[0].base_price = 200;
+    g_item_structs[0].type = ITEM_TYPE_GENERAL_ITEM;
+    g_item_structs[1].name_id = get_string_id_by_machine_name("quadrant");
+    g_item_structs[1].base_price = 201;
+    g_item_structs[1].type = ITEM_TYPE_GENERAL_ITEM;
+    g_item_structs[2].name_id = get_string_id_by_machine_name("theodolite");
+    g_item_structs[2].base_price = 202;
+    g_item_structs[2].type = ITEM_TYPE_GENERAL_ITEM;
+    g_item_structs[3].name_id = get_string_id_by_machine_name("sextant");
+    g_item_structs[3].base_price = 203;
+    g_item_structs[3].type = ITEM_TYPE_GENERAL_ITEM;
+    // TODO: setup_general_item_reference_map
+    // A map so we can just figure out where general items are
+    // g_general_items[0] = 0;
 
     struct BaseShip base_ship;
     base_ship.name_id = get_string_id_by_machine_name("balsa");
@@ -3851,12 +3917,11 @@ void initialize_game()
     base_ship.base_speed = 100;
     g_base_ship_structs[0] = base_ship;
 
-    // TODO: Import from wells fargo
-    g_bank_data[BANK_DEPOSIT_INTEREST_RATE] = 33;
-    g_bank_data[BANK_LOAN_INTEREST_RATE] = 69;
-    g_bank_data[BANK_FDIC_INSURED] = false;
-    g_bank_data[BANK_MAX_DEPOSIT_AMOUNT] = 100000;
-    g_bank_data[BANK_MAX_LOAN_AMOUNT] = 10000;
+    g_bank.deposit_interest_rate = 33;
+    g_bank.loan_interest_rate = 69;
+    g_bank.fdic_insured = false;
+    g_bank.max_deposit_amount = 100000;
+    g_bank.max_loan_amount = 10000;
 
     test();
 }
@@ -5491,10 +5556,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                         ocean_battle_turn_order[i] = SENTRY;
                     }
                     console_log("PLACEMENT PHASE");
-                    uint32_t world_npc_data[WORLD_NPC_DATA_SIZE];
-                    CLEAR_DATA(world_npc_data, WORLD_NPC_DATA_SIZE);
                     uint32_t npc_id;
-                    uint32_t world_npc_id;
                     uint32_t obto = 0;
                     // TODO: Update this so only the active fleets in the battle are placed
                     for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i)
@@ -5504,20 +5566,18 @@ uint32_t scene_ocean_battle(uint32_t action)
                         {
                             // [BATTLE SHIP CLEAR]
                             npc_id = get_npc_id_by_machine_name("ship");
-                            world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
+                            set_world_npc_npc_id(g_world_npc_count, npc_id);
                             // Note: This is the RAW fleet ship id
-                            world_npc_data[WORLD_NPC_ENTITY_ID] = i;
+                            set_world_npc_entity_id(g_world_npc_count, i);
                             // TODO: Get actual captain ID
-                            world_npc_data[WORLD_NPC_CAPTAIN_ID] = 0;
-                            world_npc_data[WORLD_NPC_POSITION_X] = 2 + i;
-                            world_npc_data[WORLD_NPC_POSITION_Y] = 6;
-                            world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-                            world_npc_data[WORLD_NPC_IS_INTERACTABLE] = false;
-                            world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
-                            world_npc_id = create_world_npc(world_npc_data, true);
+                            set_world_npc_captain_id(g_world_npc_count, 0);
+                            set_world_npc_x(g_world_npc_count, 2 + i);
+                            set_world_npc_y(g_world_npc_count, 6);
+                            set_world_npc_direction(g_world_npc_count, DIRECTION_DOWN);
                             ++ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY];
-                            ocean_battle_turn_order[obto] = world_npc_id;
+                            ocean_battle_turn_order[obto] = g_world_npc_count;
                             ++obto;
+                            ++g_world_npc_count;
                         }
                     }
                     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX] = 0;
@@ -6134,8 +6194,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                             {
                                 for (uint32_t wn = 0; wn < MAX_WORLD_NPCS; ++wn)
                                 {
-                                    uint32_t wn_offset = wn * WORLD_NPC_DATA_SIZE;
-                                    if (g_world_npc_data[wn_offset + WORLD_NPC_ENTITY_ID] == i)
+                                    if (get_world_npc_entity_id(wn) == i)
                                     {
                                         // TODO: THIS IS TEMPORARY
                                         // we reset the ships stats so we can
@@ -6183,11 +6242,10 @@ uint32_t ocean_battle_is_world_coordinate_in_ship_movement_range(uint32_t world_
     uint32_t b_y = SENTRY;
     for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
     {
-        uint32_t offset = i * WORLD_NPC_DATA_SIZE;
-        if (g_world_npc_data[offset + WORLD_NPC_ENTITY_ID] == current_ship_id)
+        if (get_world_npc_entity_id(i) == current_ship_id)
         {
-            b_x = g_world_npc_data[offset + WORLD_NPC_POSITION_X];
-            b_y = g_world_npc_data[offset + WORLD_NPC_POSITION_Y];
+            b_x = get_world_npc_x(i);
+            b_y = get_world_npc_y(i);
             break;
         }
     }
@@ -6473,47 +6531,50 @@ uint32_t scene_npc_loller(uint32_t action)
 // ------------------------------------------------------------------------------------------------ //
 // BANK
 // ------------------------------------------------------------------------------------------------ //
-// g_bank_data
-// enum BankData
-uint32_t bank_add_deposit(uint32_t amount)
+u32 bank_add_deposit(u32 amount)
 {
-    // TODO: Check that we haven't deposited more than we can handle, unlike rvices ballz
-    g_bank_data[BANK_DEPOSIT_ORIGINAL_AMOUNT] += amount;
-    return g_bank_data[BANK_DEPOSIT_ORIGINAL_AMOUNT];
+    u32 intended_total = g_bank.deposit_original_amount + amount;
+    if (intended_total > g_bank.max_deposit_amount)
+    {
+        console_log("Tried to add more than the maximum deposit amount");
+        return SENTRY;
+    }
+    g_bank.deposit_original_amount += amount;
+    return g_bank.deposit_original_amount;
 }
-uint32_t bank_take_loan(uint32_t amount)
+u32 bank_take_loan(u32 amount)
 {
     // Never add. You can only take one load per time
-    g_bank_data[BANK_LOAN_ORIGINAL_AMOUNT] = amount;
-    return g_bank_data[BANK_LOAN_ORIGINAL_AMOUNT];
+    g_bank.loan_original_amount = amount;
+    return g_bank.loan_original_amount;
 }
 void bank_update_yearly()
 {
     // TODO: Every year, add interest rate amounts to deposit and loan original amounts
 }
-uint32_t get_bank_deposit_interest_rate()
+u32 get_bank_deposit_interest_rate()
 {
-    return g_bank_data[BANK_DEPOSIT_INTEREST_RATE];
+    return g_bank.deposit_interest_rate;
 }
-uint32_t get_bank_loan_interest_rate()
+u32 get_bank_loan_interest_rate()
 {
-    return g_bank_data[BANK_LOAN_INTEREST_RATE];
+    return g_bank.loan_interest_rate;
 }
-uint32_t get_bank_deposit_original_amount()
+u32 get_bank_deposit_original_amount()
 {
-    return g_bank_data[BANK_DEPOSIT_ORIGINAL_AMOUNT];
+    return g_bank.deposit_original_amount;
 }
-uint32_t get_bank_loan_original_amount()
+u32 get_bank_loan_original_amount()
 {
-    return g_bank_data[BANK_LOAN_ORIGINAL_AMOUNT];
+    return g_bank.loan_original_amount;
 }
-uint32_t get_bank_deposit_max_amount()
+u32 get_bank_deposit_max_amount()
 {
-    return g_bank_data[BANK_MAX_DEPOSIT_AMOUNT];
+    return g_bank.max_deposit_amount;
 }
-uint32_t get_bank_loan_max_amount()
+u32 get_bank_loan_max_amount()
 {
-    return g_bank_data[BANK_MAX_LOAN_AMOUNT];
+    return g_bank.max_loan_amount;
 }
 
 uint32_t scene_bank(uint32_t action)
@@ -7122,3 +7183,42 @@ uint32_t unpack_lower(uint32_t packed) {
 uint32_t unpack_upper(uint32_t packed) {
     return (packed >> 7) & 0x7F;  // Shift right by 7, then mask to get the upper 7 bits
 }
+
+
+
+// FOR THE FUTURE - BIT FLAGGING FOR MULTIPLE ACTIVE THINGS
+// typedef enum {
+//     SCENE_BANK_WELCOME                 = 1 << 0,
+//     SCENE_BANK_DEPOSIT                 = 1 << 1,
+//     SCENE_BANK_DEPOSIT_AMOUNT          = 1 << 2,
+//     SCENE_BANK_DEPOSIT_CONFIRM         = 1 << 3,
+//     SCENE_BANK_DEPOSIT_NOT_ENOUGH_GOLD = 1 << 4,
+//     SCENE_BANK_DEPOSIT_CONFIRMED       = 1 << 5,
+//     SCENE_BANK_LOAN                    = 1 << 6,
+//     SCENE_BANK_LOAN_TAKE_AMOUNT        = 1 << 7,
+//     SCENE_BANK_LOAN_PAY_AMOUNT         = 1 << 8,
+//     SCENE_BANK_LOAN_TAKE_AMOUNT_CONFIRM = 1 << 9,
+//     SCENE_BANK_LOAN_PAY_AMOUNT_CONFIRM = 1 << 10,
+//     SCENE_BANK_LOAN_PAY_AMOUNT_NOT_ENOUGH_GOLD = 1 << 11,
+//     SCENE_BANK_WITHDRAW                = 1 << 12,
+//     SCENE_BANK_WITHDRAW_AMOUNT         = 1 << 13,
+//     SCENE_BANK_WITHDRAW_NO_ACCOUNT     = 1 << 14,
+//     SCENE_BANK_WITHDRAW_NOT_ENOUGH_GOLD = 1 << 15,
+//     SCENE_BANK_WITHDRAW_CONFIRM        = 1 << 16,
+// } SceneBank;
+
+// // Use uint32_t for efficiency since we're using up to 16 bits here
+// typedef uint32_t SceneBankFlags;
+
+// // Setting flags
+// SceneBankFlags sceneStatus = 0;
+// sceneStatus |= SCENE_BANK_WELCOME;
+// sceneStatus |= SCENE_BANK_DEPOSIT;
+
+// // Checking if a flag is set
+// if (sceneStatus & SCENE_BANK_WELCOME) {
+//     // Welcome scene is active
+// }
+
+// // Clearing a flag
+// sceneStatus &= ~SCENE_BANK_WELCOME;
