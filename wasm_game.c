@@ -166,10 +166,10 @@ uint32_t max(uint32_t a, uint32_t b)
 // ------------------------------------------------------------------------------------------------
 // Constants
 // ------------------------------------------------------------------------------------------------
-#define MAX_NPCS 100
 #define MAX_ITEMS 1000
 #define MAX_GENERAL_ITEMS 100
 #define MAX_WORLD_NPCS 1000
+#define MAX_NPCS 100
 #define MAX_STRINGS 1000
 #define MAX_STRING_LENGTH 2048
 #define MAX_BANKS 100
@@ -201,82 +201,8 @@ uint32_t max(uint32_t a, uint32_t b)
 #define MAX_GLOBAL_ENTITIES 10
 
 // ------------------------------------------------------------------------------------------------
-// FORWARD DECLARATIONS
-// ------------------------------------------------------------------------------------------------
-uint32_t get_layer_same_value(uint32_t layer_index);
-uint32_t get_layer_width(uint32_t layer_index);
-uint32_t get_layer_global_world_data_offset(uint32_t layer_index);
-const char* get_layer_machine_name(uint32_t layer_index);
-uint32_t get_layer_name_id(uint32_t layer_index);
-uint32_t get_npc_id_by_machine_name(char* machine_name);
-uint32_t get_player_npc_id(uint32_t player_id);
-void move_player_left(uint32_t player_id);
-void move_player_right(uint32_t player_id);
-void move_player_up(uint32_t player_id);
-void move_player_down(uint32_t player_id);
-void handle_input(uint32_t input);
-void should_redraw_everything();
-uint32_t get_player_in_world(uint32_t player_id);
-uint32_t get_player_in_world_x(uint32_t player_id);
-uint32_t get_player_in_world_y(uint32_t player_id);
-uint32_t get_world_npc_x(uint32_t world_npc_id);
-uint32_t get_world_npc_y(uint32_t world_npc_id);
-u32 get_world_npc_direction(u32 id);
-u32 get_world_npc_interaction_scene(u32 id);
-u32 get_world_npc_is_player(u32 id);
-u32 get_world_npc_npc_id(u32 id);
-void set_world_npc_x(u32 id, u32 x);
-void set_world_npc_y(u32 id, u32 y);
-void set_world_npc_direction(u32 id, u32 direction);
-void set_world_npc_is_interactable(u32 world_npc_id, u32 is_or_not);
-void set_world_npc_interaction_scene(u32 world_npc_id, u32 scene_id);
-void set_world_npc_inventory_id(u32 id, u32 value);
-void set_world_npc_is_player(u32 world_npc_id, u32 is_or_not);
-void set_world_npc_is_captain(u32 world_npc_id, u32 is_or_not);
-void set_world_npc_npc_id(u32 world_npc_id, u32 npc_id);
-void set_world_npc_captain_id(u32 world_npc_id, u32 captain_id);
-void clear_global_world_npcs();
-u32 is_world_coordinate_halfway_of_viewport_more_than_x(u32 x);
-u32 is_world_coordinate_halfway_of_viewport_more_than_y(u32 y);
-u32 is_world_coordinate_halfway_of_viewport_less_than_x(u32 x);
-u32 is_world_coordinate_halfway_of_viewport_less_than_y(u32 y);
-void update_camera();
-u32 get_current_world_height();
-u32 get_current_world_width();
-u32 scene_blackjack(u32 action);
-void clear_current_scene_strings();
-void clear_current_scene_states();
-void clear_current_scene_choices();
-u32 scene_general_shop(u32 action);
-u32 get_inventory_item_string_id(u32 inventory_item_id);
-u32 get_inventory_item_inventory_id(u32 inventory_item_id);
-u32 get_world_npc_inventory_id(u32 world_npc_id);
-u32 get_current_scene_inventory_id();
-void set_inventory_name_id_by_string(u32 id, char* name);
-void set_inventory_total_items(u32 id, u32 value);
-void set_inventory_item_inventory_id(u32 id, u32 value);
-void set_inventory_item_number_held(u32 id, u32 value);
-void set_inventory_item_type_reference_by_string(u32 id, char* name);
-void set_inventory_item_inventory_id(u32 id, u32 value);
-void set_inventory_item_adjusted_price(u32 id, u32 value);
-void set_inventory_item_name_id_by_string(u32 id, char* name);
-void set_inventory_item_name_id(u32 id, u32 value);
-void inventory_increment_total_items(u32 id);
-u32 get_inventory_item_adjusted_price(u32 inventory_item_id);
-u32 scene_ocean_battle(u32 action);
-u32 scene_npc_rvice(u32 action);
-u32 scene_npc_lafolie(u32 action);
-u32 scene_npc_nakor(u32 action);
-u32 scene_npc_travis(u32 action);
-u32 scene_npc_loller(u32 action);
-void current_scene_clear_choice_strings();
-u32 ocean_battle_is_world_coordinate_in_ship_movement_range(u32 world_x, u32 world_y);
-u32 scene_bank(u32 action);
-void generate_world(char* world_name);
-void test();
-
-// ------------------------------------------------------------------------------------------------
 // Enums
+// Structs
 // ------------------------------------------------------------------------------------------------
 enum ShouldRedraw
 {
@@ -313,19 +239,7 @@ enum ResourceType
     RESOURCE_SPECIAL_ITEM,
     RESOURCE_TYPE_COUNT,
 };
-enum NPCType
-{
-    NPC_TYPE_EMPTY,
-    NPC_TYPE_HUMAN,
-    NPC_TYPE_ANIMAL,
-    NPC_TYPE_SHIP,
-    NPC_TYPE_OTHER,
-};
-struct NPC
-{
-    u32 name_id;
-    u32 type;
-};
+
 enum ItemType
 {
     ITEM_TYPE_GOOD,
@@ -404,6 +318,30 @@ struct WorldNPC
     u32 inventory_id;
     u32 entity_id;
 };
+
+// ENUM NPCS
+// STRUCT NPCS
+enum NPCType
+{
+    NPC_TYPE_EMPTY,
+    NPC_TYPE_HUMAN,
+    NPC_TYPE_ANIMAL,
+    NPC_TYPE_SHIP,
+    NPC_TYPE_OTHER,
+};
+struct NPC
+{
+    u32 name_id;
+    u32 type;
+};
+struct StorageNPCs
+{
+    struct NPC data[MAX_NPCS];
+    u32 count;
+    u32 next_open_slot;
+    bool used[MAX_NPCS];
+};
+
 struct Captain
 {
     u32 npc_id;
@@ -820,6 +758,92 @@ enum OceanBattleData
 // static uint32_t g_string_resources[STRING_RESOURCES_SIZE];
 
 // ------------------------------------------------------------------------------------------------
+// FORWARD DECLARATIONS
+// ------------------------------------------------------------------------------------------------
+uint32_t get_layer_same_value(uint32_t layer_index);
+uint32_t get_layer_width(uint32_t layer_index);
+uint32_t get_layer_global_world_data_offset(uint32_t layer_index);
+const char* get_layer_machine_name(uint32_t layer_index);
+uint32_t get_layer_name_id(uint32_t layer_index);
+uint32_t get_npc_id_by_machine_name(char* machine_name);
+uint32_t get_player_npc_id(uint32_t player_id);
+void move_player_left(uint32_t player_id);
+void move_player_right(uint32_t player_id);
+void move_player_up(uint32_t player_id);
+void move_player_down(uint32_t player_id);
+void handle_input(uint32_t input);
+void should_redraw_everything();
+uint32_t get_player_in_world(uint32_t player_id);
+uint32_t get_player_in_world_x(uint32_t player_id);
+uint32_t get_player_in_world_y(uint32_t player_id);
+uint32_t get_world_npc_x(uint32_t world_npc_id);
+uint32_t get_world_npc_y(uint32_t world_npc_id);
+u32 get_world_npc_direction(u32 id);
+u32 get_world_npc_interaction_scene(u32 id);
+u32 get_world_npc_is_player(u32 id);
+u32 get_world_npc_npc_id(u32 id);
+void set_world_npc_x(u32 id, u32 x);
+void set_world_npc_y(u32 id, u32 y);
+void set_world_npc_direction(u32 id, u32 direction);
+void set_world_npc_is_interactable(u32 world_npc_id, u32 is_or_not);
+void set_world_npc_interaction_scene(u32 world_npc_id, u32 scene_id);
+void set_world_npc_inventory_id(u32 id, u32 value);
+void set_world_npc_is_player(u32 world_npc_id, u32 is_or_not);
+void set_world_npc_is_captain(u32 world_npc_id, u32 is_or_not);
+void set_world_npc_npc_id(u32 world_npc_id, u32 npc_id);
+void set_world_npc_captain_id(u32 world_npc_id, u32 captain_id);
+void clear_global_world_npcs();
+u32 is_world_coordinate_halfway_of_viewport_more_than_x(u32 x);
+u32 is_world_coordinate_halfway_of_viewport_more_than_y(u32 y);
+u32 is_world_coordinate_halfway_of_viewport_less_than_x(u32 x);
+u32 is_world_coordinate_halfway_of_viewport_less_than_y(u32 y);
+void update_camera();
+u32 get_current_world_height();
+u32 get_current_world_width();
+u32 scene_blackjack(u32 action);
+void clear_current_scene_strings();
+void clear_current_scene_states();
+void clear_current_scene_choices();
+u32 scene_general_shop(u32 action);
+u32 get_inventory_item_string_id(u32 inventory_item_id);
+u32 get_inventory_item_inventory_id(u32 inventory_item_id);
+u32 get_world_npc_inventory_id(u32 world_npc_id);
+u32 get_current_scene_inventory_id();
+void set_inventory_name_id_by_string(u32 id, char* name);
+void set_inventory_total_items(u32 id, u32 value);
+void set_inventory_item_inventory_id(u32 id, u32 value);
+void set_inventory_item_number_held(u32 id, u32 value);
+void set_inventory_item_type_reference_by_string(u32 id, char* name);
+void set_inventory_item_inventory_id(u32 id, u32 value);
+void set_inventory_item_adjusted_price(u32 id, u32 value);
+void set_inventory_item_name_id_by_string(u32 id, char* name);
+void set_inventory_item_name_id(u32 id, u32 value);
+void inventory_increment_total_items(u32 id);
+u32 get_inventory_item_adjusted_price(u32 inventory_item_id);
+u32 scene_ocean_battle(u32 action);
+u32 scene_npc_rvice(u32 action);
+u32 scene_npc_lafolie(u32 action);
+u32 scene_npc_nakor(u32 action);
+u32 scene_npc_travis(u32 action);
+u32 scene_npc_loller(u32 action);
+void current_scene_clear_choice_strings();
+u32 ocean_battle_is_world_coordinate_in_ship_movement_range(u32 world_x, u32 world_y);
+u32 scene_bank(u32 action);
+void generate_world(char* world_name);
+void test();
+
+// Forward Declare NPCs
+u32 add_npc(struct NPC data);
+void find_npc_next_open_slot();
+void clear_all_npcs();
+void clear_npc(u32 id);
+void set_npc_name_id(u32 id, u32 value);
+void set_npc_type(u32 id, u32 value);
+u32 get_npc_id_by_machine_name(char* machine_name);
+u32 get_npc_name_id(u32 npc_id);
+u32 get_npc_type(u32 npc_id);
+
+// ------------------------------------------------------------------------------------------------
 // Resource Management
 // ------------------------------------------------------------------------------------------------
 #define G_STRING_DATA_SIZE (MAX_STRINGS * MAX_STRING_LENGTH * 2)
@@ -828,7 +852,7 @@ static char g_string_data[G_STRING_DATA_SIZE];  // *2 for both machine_name and 
 u32 g_string_info[G_STRING_INFO_SIZE];
 u32 g_string_count = 0;
 
-struct NPC g_npc_structs[MAX_NPCS];
+struct StorageNPCs storage_npcs;
 
 struct Item g_item_structs[MAX_ITEMS];
 // Note: This is a reference map. All general items INSIDE OF g_item_structs
@@ -2865,24 +2889,118 @@ void generate_world(char* world_name)
 // ------------------------------------------------------------------------------------------------
 // NPCS
 // ------------------------------------------------------------------------------------------------
-uint32_t get_npc_id_by_machine_name(char* machine_name)
+struct NPC generate_npc()
 {
-    for (uint32_t i = 0; i < MAX_NPCS; i++)
+    struct NPC empty_npc;
+    CLEAR_STRUCT(&empty_npc, SENTRY);
+    return empty_npc;
+}
+u32 add_npc(struct NPC data)
+{
+    if (storage_npcs.count >= MAX_NPCS)
     {
-        if (g_npc_structs[i].name_id == get_string_id_by_machine_name(machine_name))
+        console_log("[E] No more left in data for NPCs");
+        return SENTRY;
+    }
+    u32 id = storage_npcs.next_open_slot;
+    storage_npcs.data[id] = data;
+    storage_npcs.used[id] = true;
+    find_npc_next_open_slot();
+    ++storage_npcs.count;
+    return id;
+}
+void find_npc_next_open_slot()
+{
+    u32 found = SENTRY;
+    for (u32 i = 0; i < MAX_NPCS; ++i)
+    {
+        if (storage_npcs.used[i] == false)
+        {
+            storage_npcs.next_open_slot = i;
+            found = true;
+            break;
+        }
+    }
+    if (found == SENTRY)
+    {
+        console_log("[E] Could not find an open slot for npc data");
+    }
+}
+void clear_all_npcs()
+{
+    for (u32 i = 0; i < MAX_NPCS; ++i)
+    {
+        if (storage_npcs.used[i] == true)
+        {
+            CLEAR_STRUCT(&storage_npcs.data[i], SENTRY);
+        }
+    }
+    storage_npcs.count = 0;
+    storage_npcs.next_open_slot = 0;
+}
+void clear_npc(u32 id)
+{
+    if (storage_npcs.used[id] == true)
+    {
+        CLEAR_STRUCT(&storage_npcs.data[id], SENTRY);
+        --storage_npcs.count;
+        storage_npcs.next_open_slot = id;
+    }
+}
+void set_npc_name_id(u32 id, u32 value)
+{
+    if (storage_npcs.used[id] == false)
+    {
+        console_log("[E] Tried to set the name id of an npc with a bad id");
+        return;
+    }
+    storage_npcs.data[id].name_id = value;
+}
+void set_npc_type(u32 id, u32 value)
+{
+    if (storage_npcs.used[id] == false)
+    {
+        console_log("[E] Tried to set the type of an npc with a bad id");
+        return;
+    }
+    storage_npcs.data[id].type = value;
+}
+// TODO: You have to rename other "*_by_string" functions to use this
+// naming convention of "*_by_machine_name"
+u32 get_npc_id_by_machine_name(char* machine_name)
+{
+    u32 string_id = get_string_id_by_machine_name(machine_name);
+    if (string_id == SENTRY)
+    {
+        console_log("[E] Could not find string id for npc machine name");
+        return SENTRY;
+    }
+    for (u32 i = 0; i < MAX_NPCS; i++)
+    {
+        if (get_npc_name_id(i) == string_id)
         {
             return i;
         }
     }
     return SENTRY;
 }
-uint32_t get_npc_name_id(uint32_t npc_id)
+u32 get_npc_name_id(u32 npc_id)
 {
-    return g_npc_structs[npc_id].name_id;
+    if (storage_npcs.used[npc_id] == false)
+    {
+        console_log("[E] Tried to get the name id of an npc with a bad id");
+        return SENTRY;
+    }
+    return storage_npcs.data[npc_id].name_id;
 }
-uint32_t get_npc_type(uint32_t npc_id)
+u32 get_npc_type(u32 npc_id)
 {
-    return g_npc_structs[npc_id].type;
+    if (storage_npcs.used[npc_id] == false)
+    {
+        console_log("[E] Tried to get the type of an npc with a bad id");
+        return SENTRY;
+    }
+    return storage_npcs.data[npc_id].type;
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -3799,42 +3917,61 @@ void initialize_game()
     game_world.total_layers = 1;
     g_world_structs[1] = game_world;
 
-    struct NPC empty_npc;
-    u32 empty_npc_id = 0;
-    u32 npc_rvice_id = 6;
-    u32 npc_lafolie_id = 7;
-    u32 npc_nakor_id = 8;
-    u32 npc_travis_id = 9;
-    u32 npc_loller_id = 10;
-    empty_npc.name_id = get_string_id_by_machine_name("empty");
-    empty_npc.type = NPC_TYPE_HUMAN;
-    g_npc_structs[empty_npc_id] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("general_shop_owner");
-    g_npc_structs[1] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("bank_teller");
-    g_npc_structs[2] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("blackjack_player");
-    g_npc_structs[3] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("npc_ocean_battle");
-    g_npc_structs[4] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("ship");
-    empty_npc.type = NPC_TYPE_SHIP;
-    g_npc_structs[5] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("npc_rvice");
-    empty_npc.type = NPC_TYPE_HUMAN;
-    g_npc_structs[npc_rvice_id] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("npc_lafolie");
-    empty_npc.type = NPC_TYPE_HUMAN;
-    g_npc_structs[npc_lafolie_id] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("npc_nakor");
-    empty_npc.type = NPC_TYPE_HUMAN;
-    g_npc_structs[npc_nakor_id] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("npc_travis");
-    empty_npc.type = NPC_TYPE_HUMAN;
-    g_npc_structs[npc_travis_id] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("npc_loller");
-    empty_npc.type = NPC_TYPE_HUMAN;
-    g_npc_structs[npc_loller_id] = empty_npc;
+    clear_all_npcs();
+    struct NPC npc = generate_npc();
+    npc.name_id = get_string_id_by_machine_name("empty");
+    npc.type = NPC_TYPE_HUMAN;
+    u32 empty_npc_id = add_npc(npc);
+
+    npc = generate_npc();
+    npc.name_id = get_string_id_by_machine_name("general_shop_owner");
+    npc.type = NPC_TYPE_HUMAN;
+    u32 general_shop_owner_id = add_npc(npc);
+
+    npc = generate_npc();
+    npc.name_id = get_string_id_by_machine_name("bank_teller");
+    npc.type = NPC_TYPE_HUMAN;
+    u32 bank_teller_id = add_npc(npc);
+
+    npc = generate_npc();
+    npc.name_id = get_string_id_by_machine_name("blackjack_player");
+    u32 blackjack_player_id = add_npc(npc);
+
+    npc = generate_npc();
+    npc.name_id = get_string_id_by_machine_name("npc_ocean_battle");
+    u32 npc_ocean_battle_id = add_npc(npc);
+
+    // TODO: This is a weird way to reference a ship but I think we're doing this
+    // so that the ocean battle can pop an NPC out on the screen with a value
+    npc = generate_npc();
+    npc.name_id = get_string_id_by_machine_name("ship");
+    npc.type = NPC_TYPE_SHIP;
+    u32 ship_id = add_npc(npc);
+
+    npc = generate_npc();
+    npc.name_id = get_string_id_by_machine_name("npc_rvice");
+    npc.type = NPC_TYPE_HUMAN;
+    u32 npc_rvice_id = add_npc(npc);
+
+    npc = generate_npc();
+    npc.name_id = get_string_id_by_machine_name("npc_lafolie");
+    npc.type = NPC_TYPE_HUMAN;
+    u32 npc_lafolie_id = add_npc(npc);
+
+    npc = generate_npc();
+    npc.name_id = get_string_id_by_machine_name("npc_nakor");
+    npc.type = NPC_TYPE_HUMAN;
+    u32 npc_nakor_id = add_npc(npc);
+
+    npc = generate_npc();
+    npc.name_id = get_string_id_by_machine_name("npc_travis");
+    npc.type = NPC_TYPE_HUMAN;
+    u32 npc_travis_id = add_npc(npc);
+
+    npc = generate_npc();
+    npc.name_id = get_string_id_by_machine_name("npc_loller");
+    npc.type = NPC_TYPE_HUMAN;
+    u32 npc_loller_id = add_npc(npc);
 
     set_inventory_name_id_by_string(g_inventory_count, "player_ones_inventory");
     set_inventory_total_items(g_inventory_count, 0);
@@ -3876,6 +4013,15 @@ void initialize_game()
     set_inventory_name_id(g_inventory_count, get_npc_name_id(npc_travis_id));
     set_inventory_total_items(g_inventory_count, 0);
     set_captain_npc_id(g_captain_count, npc_travis_id);
+    set_captain_player_id(g_captain_count, 0);
+    set_captain_gold(g_captain_count, 100);
+    set_captain_inventory_id(g_captain_count, g_inventory_count);
+    ++g_captain_count;
+    ++g_inventory_count;
+
+    set_inventory_name_id(g_inventory_count, get_npc_name_id(npc_loller_id));
+    set_inventory_total_items(g_inventory_count, 0);
+    set_captain_npc_id(g_captain_count, npc_loller_id);
     set_captain_player_id(g_captain_count, 0);
     set_captain_gold(g_captain_count, 100);
     set_captain_inventory_id(g_captain_count, g_inventory_count);
