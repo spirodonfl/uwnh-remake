@@ -163,6 +163,108 @@ uint32_t max(uint32_t a, uint32_t b)
         } \
     } while (0)
 
+#define STORAGE_STRUCT(TYPE, STORAGE_STRUCT, MAX_COUNT, MAX_SIZE) \
+    struct Storage##TYPE { \
+        u32 data[MAX_COUNT * MAX_SIZE]; \
+        bool used[MAX_COUNT]; \
+        u32 count; \
+        u32 next_open_slot; \
+    }; \
+    struct Storage##TYPE g_storage_##STORAGE_STRUCT;
+
+#define FIND_NEXT_OPEN_SLOT(TYPE, STORAGE_STRUCT, MAX_COUNT) \
+    static inline u32 find_next_##TYPE##_open_slot() \
+    { \
+        for (u32 i = 0; i < MAX_COUNT; ++i) \
+        { \
+            if (g_storage_##STORAGE_STRUCT.used[i] == false || g_storage_##STORAGE_STRUCT.used[i] == 0) \
+            { \
+                g_storage_##STORAGE_STRUCT.next_open_slot = i; \
+                return i; \
+            } \
+        } \
+        return SENTRY; \
+    }
+
+#define STORAGE_CLEAR(FUNC_NAME, STORAGE_STRUCT, MAX_COUNT, MAX_SIZE) \
+    static inline void clear_storage_##FUNC_NAME() \
+    { \
+        u32 total = MAX_COUNT * MAX_SIZE; \
+        for (u32 i = 0; i < total; ++i) \
+        { \
+            g_storage_##STORAGE_STRUCT.data[i] = SENTRY; \
+        } \
+    }
+
+#define STORAGE_ADD(FUNC_NAME, STORAGE_STRUCT, MAX_COUNT, ENTITY_SIZE) \
+    static inline u32 add_##FUNC_NAME(u32 data[ENTITY_SIZE]) \
+    { \
+        u32 intended_count = g_storage_##STORAGE_STRUCT.count + 1; \
+        if (intended_count >= MAX_COUNT) \
+        { \
+            console_log("[E] No more room left in " #STORAGE_STRUCT " to add a new entry"); \
+            return SENTRY; \
+        } \
+        u32 id = g_storage_##STORAGE_STRUCT.next_open_slot; \
+        u32 offset = id * ENTITY_SIZE; \
+        for (u32 i = 0; i < ENTITY_SIZE; ++i) \
+        { \
+            g_storage_##STORAGE_STRUCT.data[offset + i] = data[i]; \
+        } \
+        g_storage_##STORAGE_STRUCT.used[id] = true; \
+        ++g_storage_##STORAGE_STRUCT.count; \
+        find_next_##FUNC_NAME##_open_slot(); \
+        return id; \
+    }
+
+#define STORAGE_REMOVE(FUNC_NAME, STORAGE_STRUCT, ENTITY_SIZE, MAX_COUNT) \
+    static inline void remove_##FUNC_NAME(u32 id) \
+    { \
+        if (id >= MAX_COUNT || g_storage_##STORAGE_STRUCT.used[id] == false) \
+        { \
+            console_log("[E] Tried to remove entry from " #STORAGE_STRUCT " with bad ID"); \
+            return; \
+        } \
+        u32 offset = id * ENTITY_SIZE; \
+        for (u32 i = 0; i < ENTITY_SIZE; ++i) \
+        { \
+            g_storage_##STORAGE_STRUCT.data[offset + i] = SENTRY; \
+        } \
+        g_storage_##STORAGE_STRUCT.used[id] = false; \
+        --g_storage_##STORAGE_STRUCT.count; \
+        g_storage_##STORAGE_STRUCT.next_open_slot = id; \
+    }
+
+#define GENERATE_FIELD_ACCESSORS(FUNC_NAME, FUNC_FIELD, STORAGE_STRUCT, ENTITY_SIZE, ENTITY_FIELD, MAX_COUNT) \
+    static inline u32 get_##FUNC_NAME##_##FUNC_FIELD(u32 id) \
+    { \
+        if (id >= MAX_COUNT) \
+        { \
+            console_log("[E] Tried to get " #FUNC_FIELD " for " #STORAGE_STRUCT " with ID greater than max"); \
+            return SENTRY; \
+        } \
+        if (g_storage_##STORAGE_STRUCT.used[id] == false) \
+        { \
+            console_log("[E] Tried to get " #FUNC_FIELD " for " #STORAGE_STRUCT " but it's not set"); \
+            return SENTRY; \
+        } \
+        return g_storage_##STORAGE_STRUCT.data[id * ENTITY_SIZE + ENTITY_FIELD]; \
+    } \
+    static inline void set_##FUNC_NAME##_##FUNC_FIELD(u32 id, u32 value) \
+    { \
+        if (id >= MAX_COUNT) \
+        { \
+            console_log("[E] Tried to get " #FUNC_FIELD " for " #STORAGE_STRUCT " with ID greater than max"); \
+            return; \
+        } \
+        if (g_storage_##STORAGE_STRUCT.used[id] == false) \
+        { \
+            console_log("[E] Tried to get " #FUNC_FIELD " for " #STORAGE_STRUCT " but it's not set"); \
+            return; \
+        } \
+        g_storage_##STORAGE_STRUCT.data[id * ENTITY_SIZE + ENTITY_FIELD] = value; \
+    }
+
 // ------------------------------------------------------------------------------------------------
 // Constants
 // ------------------------------------------------------------------------------------------------
@@ -291,6 +393,7 @@ enum ResourceType
     RESOURCE_SPECIAL_ITEM,
     RESOURCE_TYPE_COUNT,
 };
+
 enum NPCType
 {
     NPC_TYPE_EMPTY,
@@ -299,11 +402,20 @@ enum NPCType
     NPC_TYPE_SHIP,
     NPC_TYPE_OTHER,
 };
-struct NPC
+enum NPCData
 {
-    u32 name_id;
-    u32 type;
+    NPC_NAME_ID,
+    NPC_TYPE,
+    NPC_DATA_SIZE,
 };
+STORAGE_STRUCT(NPCs, npcs, MAX_NPCS, NPC_DATA_SIZE)
+FIND_NEXT_OPEN_SLOT(npc, npcs, MAX_NPCS)
+STORAGE_CLEAR(npcs, npcs, MAX_NPCS, NPC_DATA_SIZE)
+STORAGE_ADD(npc, npcs, MAX_NPCS, NPC_DATA_SIZE)
+STORAGE_REMOVE(npc, npcs, MAX_NPCS, NPC_DATA_SIZE)
+GENERATE_FIELD_ACCESSORS(npc, name_id, npcs, NPC_DATA_SIZE, NPC_NAME_ID, MAX_NPCS)
+GENERATE_FIELD_ACCESSORS(npc, type, npcs, NPC_DATA_SIZE, NPC_TYPE, MAX_NPCS)
+
 struct GeneralItem
 {
     u32 name_id;
@@ -314,12 +426,6 @@ enum StringData
     STRING_MACHINE_NAME_LENGTH, // Length of machine name
     STRING_TEXT_LENGTH,         // Length of display text
     STRING_DATA_SIZE,
-};
-// TODO: Gotta sort out string struct
-struct String
-{
-    u32 machine_name_length;
-    u32 text_length;
 };
 struct BaseShip
 {
@@ -428,6 +534,8 @@ enum WorldData
     WORLD_TOTAL_LAYERS,
     WORLD_DATA_SIZE,
 };
+STORAGE_STRUCT(Worlds, worlds, MAX_WORLDS, WORLD_DATA_SIZE);
+
 struct World
 {
     u32 name_id;
@@ -845,8 +953,6 @@ static char g_string_data[G_STRING_DATA_SIZE];  // *2 for both machine_name and 
 #define G_STRING_INFO_SIZE (MAX_STRINGS * STRING_DATA_SIZE)
 static uint32_t g_string_info[G_STRING_INFO_SIZE];
 static uint32_t g_string_count = 0;
-
-struct NPC g_npc_structs[MAX_NPCS];
 
 struct GeneralItem g_general_item_structs[MAX_GENERAL_ITEMS];
 
@@ -1470,7 +1576,7 @@ uint32_t create_##name(data_type data[data_size], ...) \
     do { \
         if (data[name_id] == SENTRY) \
         { \
-            console_log("Tried to create an entity with an empty name"); \
+            console_log("Tried to create an entity with an empty name using " #name_id); \
             value = SENTRY; \
             break; \
         } \
@@ -1487,14 +1593,6 @@ uint32_t create_##name(data_type data[data_size], ...) \
                 value = i; \
                 break; \
             } \
-        } \
-    } while (0)
-
-#define CLEAR_DATA(data, size) \
-    do { \
-        for (uint32_t i = 0; i < (size); ++i) \
-        { \
-            (data)[i] = SENTRY; \
         } \
     } while (0)
 
@@ -2977,24 +3075,17 @@ void generate_world(char* world_name)
 // ------------------------------------------------------------------------------------------------
 // NPCS
 // ------------------------------------------------------------------------------------------------
-uint32_t get_npc_id_by_machine_name(char* machine_name)
+u32 get_npc_id_by_machine_name(char* machine_name)
 {
-    for (uint32_t i = 0; i < MAX_NPCS; i++)
+    u32 string_id = get_string_id_by_machine_name(machine_name);
+    for (u32 i = 0; i < MAX_NPCS; i++)
     {
-        if (g_npc_structs[i].name_id == get_string_id_by_machine_name(machine_name))
+        if (get_npc_name_id(i) == string_id)
         {
             return i;
         }
     }
     return SENTRY;
-}
-uint32_t get_npc_name_id(uint32_t npc_id)
-{
-    return g_npc_structs[npc_id].name_id;
-}
-uint32_t get_npc_type(uint32_t npc_id)
-{
-    return g_npc_structs[npc_id].type;
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -3734,42 +3825,50 @@ void initialize_game()
     game_world.total_layers = 1;
     g_world_structs[1] = game_world;
 
-    struct NPC empty_npc;
-    u32 empty_npc_id = 0;
-    u32 npc_rvice_id = 6;
-    u32 npc_lafolie_id = 7;
-    u32 npc_nakor_id = 8;
-    u32 npc_travis_id = 9;
-    u32 npc_loller_id = 10;
-    empty_npc.name_id = get_string_id_by_machine_name("empty");
-    empty_npc.type = NPC_TYPE_HUMAN;
-    g_npc_structs[empty_npc_id] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("general_shop_owner");
-    g_npc_structs[1] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("bank_teller");
-    g_npc_structs[2] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("blackjack_player");
-    g_npc_structs[3] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("npc_ocean_battle");
-    g_npc_structs[4] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("ship");
-    empty_npc.type = NPC_TYPE_SHIP;
-    g_npc_structs[5] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("npc_rvice");
-    empty_npc.type = NPC_TYPE_HUMAN;
-    g_npc_structs[npc_rvice_id] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("npc_lafolie");
-    empty_npc.type = NPC_TYPE_HUMAN;
-    g_npc_structs[npc_lafolie_id] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("npc_nakor");
-    empty_npc.type = NPC_TYPE_HUMAN;
-    g_npc_structs[npc_nakor_id] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("npc_travis");
-    empty_npc.type = NPC_TYPE_HUMAN;
-    g_npc_structs[npc_travis_id] = empty_npc;
-    empty_npc.name_id = get_string_id_by_machine_name("npc_loller");
-    empty_npc.type = NPC_TYPE_HUMAN;
-    g_npc_structs[npc_loller_id] = empty_npc;
+    u32 empty_npc[NPC_DATA_SIZE];
+    empty_npc[NPC_NAME_ID] = get_string_id_by_machine_name("empty");
+    empty_npc[NPC_TYPE] = NPC_TYPE_HUMAN;
+    u32 empty_npc_id = add_npc(empty_npc);
+    
+    empty_npc[NPC_NAME_ID] = get_string_id_by_machine_name("general_shop_owner");
+    empty_npc[NPC_TYPE] = NPC_TYPE_HUMAN;
+    add_npc(empty_npc);
+
+    empty_npc[NPC_NAME_ID] = get_string_id_by_machine_name("bank_teller");
+    empty_npc[NPC_TYPE] = NPC_TYPE_HUMAN;
+    add_npc(empty_npc);
+
+    empty_npc[NPC_NAME_ID] = get_string_id_by_machine_name("blackjack_player");
+    empty_npc[NPC_TYPE] = NPC_TYPE_HUMAN;
+    add_npc(empty_npc);
+
+    empty_npc[NPC_NAME_ID] = get_string_id_by_machine_name("npc_ocean_battle");
+    empty_npc[NPC_TYPE] = NPC_TYPE_HUMAN;
+    add_npc(empty_npc);
+
+    empty_npc[NPC_NAME_ID] = get_string_id_by_machine_name("ship");
+    empty_npc[NPC_TYPE] = NPC_TYPE_SHIP;
+    add_npc(empty_npc);
+
+    empty_npc[NPC_NAME_ID] = get_string_id_by_machine_name("npc_rvice");
+    empty_npc[NPC_TYPE] = NPC_TYPE_HUMAN;
+    u32 npc_rvice_id  = add_npc(empty_npc);
+
+    empty_npc[NPC_NAME_ID] = get_string_id_by_machine_name("npc_lafolie");
+    empty_npc[NPC_TYPE] = NPC_TYPE_HUMAN;
+    u32 npc_lafolie_id = add_npc(empty_npc);
+
+    empty_npc[NPC_NAME_ID] = get_string_id_by_machine_name("npc_nakor");
+    empty_npc[NPC_TYPE] = NPC_TYPE_HUMAN;
+    u32 npc_nakor_id = add_npc(empty_npc);
+
+    empty_npc[NPC_NAME_ID] = get_string_id_by_machine_name("npc_travis");
+    empty_npc[NPC_TYPE] = NPC_TYPE_HUMAN;
+    u32 npc_travis_id = add_npc(empty_npc);
+
+    empty_npc[NPC_NAME_ID] = get_string_id_by_machine_name("npc_loller");
+    empty_npc[NPC_TYPE] = NPC_TYPE_HUMAN;
+    u32 npc_loller_id = add_npc(empty_npc);
 
     uint32_t inventory_data[INVENTORY_DATA_SIZE];
     CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
