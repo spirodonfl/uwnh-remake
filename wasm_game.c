@@ -297,15 +297,14 @@ struct String
     X(u32, crew, __VA_ARGS__) \
     X(u32, hull, __VA_ARGS__)
 
-struct ShipMaterial
-{
-    u32 name_id;
-    u32 base_price;
-    u32 mod_power;
-    u32 mod_capacity;
-    u32 mod_tacking;
-    u32 mod_speed;
-};
+#define SHIP_MATERIAL_FIELDS(X, ...) \
+    X(u32, name_id, __VA_ARGS__) \
+    X(u32, base_price, __VA_ARGS__) \
+    X(u32, mod_power, __VA_ARGS__) \
+    X(u32, mod_capacity, __VA_ARGS__) \
+    X(u32, mod_tacking, __VA_ARGS__) \
+    X(u32, mod_speed, __VA_ARGS__)
+
 struct WorldNPC
 {
     u32 npc_id;
@@ -836,8 +835,6 @@ static char g_string_data[G_STRING_DATA_SIZE];  // *2 for both machine_name and 
 u32 g_string_info[G_STRING_INFO_SIZE];
 u32 g_string_count = 0;
 
-struct ShipMaterial g_ship_material_structs[MAX_SHIP_MATERIALS];
-
 u32 g_captain_count = 0;
 struct Captain g_captain_structs[MAX_CAPTAINS];
 
@@ -967,15 +964,18 @@ DECLARE_STRUCT(BaseShip, BASESHIP_FIELDS, MAX_BASE_SHIPS)
 DECLARE_STRUCT(Ship, SHIP_FIELDS, MAX_SHIPS)
 DECLARE_STRUCT(NPC, NPC_FIELDS, MAX_NPCS)
 DECLARE_STRUCT(Item, ITEM_FIELDS, MAX_ITEMS)
+DECLARE_STRUCT(ShipMaterial, SHIP_MATERIAL_FIELDS, MAX_SHIP_MATERIALS)
 
 DEFINE_STORAGE_STRUCT(BaseShip, MAX_BASE_SHIPS);
 DEFINE_STORAGE_STRUCT(Ship, MAX_SHIPS);
 DEFINE_STORAGE_STRUCT(NPC, MAX_NPCS);
 DEFINE_STORAGE_STRUCT(Item, MAX_ITEMS);
+DEFINE_STORAGE_STRUCT(ShipMaterial, MAX_SHIP_MATERIALS);
 struct StorageBaseShip storage_BaseShip;
 struct StorageShip storage_Ship;
 struct StorageNPC storage_NPC;
 struct StorageItem storage_Item;
+struct StorageShipMaterial storage_ShipMaterial;
 // TODO: What about for Items?
 // u32 general_items[MAX_GENERAL_ITEMS];
 // u32 general_items_count;
@@ -984,6 +984,8 @@ DECLARE_STRUCT_WITH_ACCESSORS(BaseShip, BASESHIP_FIELDS, base_ship, MAX_BASE_SHI
 DECLARE_STRUCT_WITH_ACCESSORS(Ship, SHIP_FIELDS, ship, MAX_SHIPS)
 DECLARE_STRUCT_WITH_ACCESSORS(Item, ITEM_FIELDS, item, MAX_ITEMS)
 DECLARE_STRUCT_WITH_ACCESSORS(NPC, NPC_FIELDS, npc, MAX_NPCS)
+DECLARE_STRUCT_WITH_ACCESSORS(ShipMaterial, SHIP_MATERIAL_FIELDS, ship_material, MAX_SHIP_MATERIALS)
+
 // ------------------------------------------------------------------------------------------------
 // - MACRO STORAGE SYSTEM
 // ------------------------------------------------------------------------------------------------
@@ -998,6 +1000,7 @@ DEFINE_STORAGE_SYSTEM(base_ship, BaseShip)
 DEFINE_STORAGE_SYSTEM(ship, Ship)
 DEFINE_STORAGE_SYSTEM(npc, NPC)
 DEFINE_STORAGE_SYSTEM(item, Item)
+DEFINE_STORAGE_SYSTEM(ship_material, ShipMaterial)
 
 // ------------------------------------------------------------------------------------------------
 // - MACRO FIND NEXT OPEN SLOT
@@ -1021,6 +1024,7 @@ DEFINE_FIND_NEXT_OPEN_SLOT(base_ship, BaseShip, MAX_BASE_SHIPS)
 DEFINE_FIND_NEXT_OPEN_SLOT(ship, Ship, MAX_SHIPS)
 DEFINE_FIND_NEXT_OPEN_SLOT(npc, NPC, MAX_NPCS)
 DEFINE_FIND_NEXT_OPEN_SLOT(item, Item, MAX_ITEMS)
+DEFINE_FIND_NEXT_OPEN_SLOT(ship_material, ShipMaterial, MAX_SHIP_MATERIALS)
 
 // ------------------------------------------------------------------------------------------------
 // - MACRO ADD CLEAR FUNCTIONS
@@ -1060,6 +1064,7 @@ DEFINE_ADD_CLEAR_FUNCTIONS(base_ship, BaseShip, MAX_BASE_SHIPS)
 DEFINE_ADD_CLEAR_FUNCTIONS(ship, Ship, MAX_SHIPS)
 DEFINE_ADD_CLEAR_FUNCTIONS(npc, NPC, MAX_NPCS)
 DEFINE_ADD_CLEAR_FUNCTIONS(item, Item, MAX_ITEMS)
+DEFINE_ADD_CLEAR_FUNCTIONS(ship_material, ShipMaterial, MAX_SHIP_MATERIALS)
 // TODO: What about for Items?
 // if (data.type == ITEM_TYPE_GENERAL_ITEM)
 // {
@@ -1095,6 +1100,7 @@ DEFINE_FIND_BY_NAME(base_ship, BaseShip, MAX_BASE_SHIPS)
 DEFINE_FIND_BY_NAME(ship, Ship, MAX_SHIPS)
 DEFINE_FIND_BY_NAME(npc, NPC, MAX_NPCS)
 DEFINE_FIND_BY_NAME(item, Item, MAX_ITEMS)
+DEFINE_FIND_BY_NAME(ship_material, ShipMaterial, MAX_SHIP_MATERIALS)
 
 // ------------------------------------------------------------------------------------------------
 // - MACRO INCREMENT DECREMENT
