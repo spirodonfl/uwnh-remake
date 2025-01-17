@@ -334,26 +334,25 @@ enum NPCType
     X(u32, name_id, __VA_ARGS__) \
     X(u32, type, __VA_ARGS__)
 
-struct Captain
-{
-    u32 npc_id;
-    u32 world_npc_id;
-    u32 in_world;
-    u32 global_position_x;
-    u32 global_position_y;
-    u32 in_port;
-    u32 on_land;
-    u32 in_ocean;
-    u32 sailing;
-    u32 skills_id;
-    u32 stats_id;
-    u32 inventory_id;
-    u32 player_id;
-    u32 gold;
-    u32 fleet_id;
-    u32 equipped_weapon_id;
-    u32 equipped_armor_id;
-};
+#define CAPTAIN_FIELDS(X, ...) \
+    X(u32, npc_id, __VA_ARGS__) \
+    X(u32, world_npc_id, __VA_ARGS__) \
+    X(u32, in_world, __VA_ARGS__) \
+    X(u32, global_position_x, __VA_ARGS__) \
+    X(u32, global_position_y, __VA_ARGS__) \
+    X(u32, in_port, __VA_ARGS__) \
+    X(u32, on_land, __VA_ARGS__) \
+    X(u32, in_ocean, __VA_ARGS__) \
+    X(u32, sailing, __VA_ARGS__) \
+    X(u32, skills_id, __VA_ARGS__) \
+    X(u32, stats_id, __VA_ARGS__) \
+    X(u32, inventory_id, __VA_ARGS__) \
+    X(u32, player_id, __VA_ARGS__) \
+    X(u32, gold, __VA_ARGS__) \
+    X(u32, fleet_id, __VA_ARGS__) \
+    X(u32, equipped_weapon_id, __VA_ARGS__) \
+    X(u32, equipped_armor_id, __VA_ARGS__)
+
 struct World
 {
     u32 name_id;
@@ -835,9 +834,6 @@ static char g_string_data[G_STRING_DATA_SIZE];  // *2 for both machine_name and 
 u32 g_string_info[G_STRING_INFO_SIZE];
 u32 g_string_count = 0;
 
-u32 g_captain_count = 0;
-struct Captain g_captain_structs[MAX_CAPTAINS];
-
 u32 g_figurehead_count = 0;
 struct Figurehead g_figurehead_structs[MAX_FIGUREHEADS];
 
@@ -949,6 +945,13 @@ static uint32_t ocean_battle_data[OCEAN_BATTLE_DATA_SIZE];
 #define DECLARE_STRUCT_WITH_ACCESSORS(struct_name, fields_macro, name, max_count) \
     fields_macro(ACCESSOR_ENTRY, name, struct_name, max_count)
 
+DECLARE_STRUCT(BaseShip, BASESHIP_FIELDS, MAX_BASE_SHIPS)
+DECLARE_STRUCT(Ship, SHIP_FIELDS, MAX_SHIPS)
+DECLARE_STRUCT(NPC, NPC_FIELDS, MAX_NPCS)
+DECLARE_STRUCT(Item, ITEM_FIELDS, MAX_ITEMS)
+DECLARE_STRUCT(ShipMaterial, SHIP_MATERIAL_FIELDS, MAX_SHIP_MATERIALS)
+DECLARE_STRUCT(Captain, CAPTAIN_FIELDS, MAX_CAPTAINS)
+
 // ------------------------------------------------------------------------------------------------
 // MACRO - STORAGE STRUCT
 // ------------------------------------------------------------------------------------------------
@@ -960,22 +963,18 @@ static uint32_t ocean_battle_data[OCEAN_BATTLE_DATA_SIZE];
         u32 next_open_slot; \
     }
 
-DECLARE_STRUCT(BaseShip, BASESHIP_FIELDS, MAX_BASE_SHIPS)
-DECLARE_STRUCT(Ship, SHIP_FIELDS, MAX_SHIPS)
-DECLARE_STRUCT(NPC, NPC_FIELDS, MAX_NPCS)
-DECLARE_STRUCT(Item, ITEM_FIELDS, MAX_ITEMS)
-DECLARE_STRUCT(ShipMaterial, SHIP_MATERIAL_FIELDS, MAX_SHIP_MATERIALS)
-
 DEFINE_STORAGE_STRUCT(BaseShip, MAX_BASE_SHIPS);
 DEFINE_STORAGE_STRUCT(Ship, MAX_SHIPS);
 DEFINE_STORAGE_STRUCT(NPC, MAX_NPCS);
 DEFINE_STORAGE_STRUCT(Item, MAX_ITEMS);
 DEFINE_STORAGE_STRUCT(ShipMaterial, MAX_SHIP_MATERIALS);
+DEFINE_STORAGE_STRUCT(Captain, MAX_CAPTAINS);
 struct StorageBaseShip storage_BaseShip;
 struct StorageShip storage_Ship;
 struct StorageNPC storage_NPC;
 struct StorageItem storage_Item;
 struct StorageShipMaterial storage_ShipMaterial;
+struct StorageCaptain storage_Captain;
 // TODO: What about for Items?
 // u32 general_items[MAX_GENERAL_ITEMS];
 // u32 general_items_count;
@@ -985,6 +984,7 @@ DECLARE_STRUCT_WITH_ACCESSORS(Ship, SHIP_FIELDS, ship, MAX_SHIPS)
 DECLARE_STRUCT_WITH_ACCESSORS(Item, ITEM_FIELDS, item, MAX_ITEMS)
 DECLARE_STRUCT_WITH_ACCESSORS(NPC, NPC_FIELDS, npc, MAX_NPCS)
 DECLARE_STRUCT_WITH_ACCESSORS(ShipMaterial, SHIP_MATERIAL_FIELDS, ship_material, MAX_SHIP_MATERIALS)
+DECLARE_STRUCT_WITH_ACCESSORS(Captain, CAPTAIN_FIELDS, captain, MAX_CAPTAINS)
 
 // ------------------------------------------------------------------------------------------------
 // - MACRO STORAGE SYSTEM
@@ -1001,6 +1001,7 @@ DEFINE_STORAGE_SYSTEM(ship, Ship)
 DEFINE_STORAGE_SYSTEM(npc, NPC)
 DEFINE_STORAGE_SYSTEM(item, Item)
 DEFINE_STORAGE_SYSTEM(ship_material, ShipMaterial)
+DEFINE_STORAGE_SYSTEM(captain, Captain)
 
 // ------------------------------------------------------------------------------------------------
 // - MACRO FIND NEXT OPEN SLOT
@@ -1025,6 +1026,7 @@ DEFINE_FIND_NEXT_OPEN_SLOT(ship, Ship, MAX_SHIPS)
 DEFINE_FIND_NEXT_OPEN_SLOT(npc, NPC, MAX_NPCS)
 DEFINE_FIND_NEXT_OPEN_SLOT(item, Item, MAX_ITEMS)
 DEFINE_FIND_NEXT_OPEN_SLOT(ship_material, ShipMaterial, MAX_SHIP_MATERIALS)
+DEFINE_FIND_NEXT_OPEN_SLOT(captain, Captain, MAX_CAPTAINS)
 
 // ------------------------------------------------------------------------------------------------
 // - MACRO ADD CLEAR FUNCTIONS
@@ -1065,6 +1067,7 @@ DEFINE_ADD_CLEAR_FUNCTIONS(ship, Ship, MAX_SHIPS)
 DEFINE_ADD_CLEAR_FUNCTIONS(npc, NPC, MAX_NPCS)
 DEFINE_ADD_CLEAR_FUNCTIONS(item, Item, MAX_ITEMS)
 DEFINE_ADD_CLEAR_FUNCTIONS(ship_material, ShipMaterial, MAX_SHIP_MATERIALS)
+DEFINE_ADD_CLEAR_FUNCTIONS(captain, Captain, MAX_CAPTAINS)
 // TODO: What about for Items?
 // if (data.type == ITEM_TYPE_GENERAL_ITEM)
 // {
@@ -1125,11 +1128,12 @@ DEFINE_FIND_BY_NAME(ship_material, ShipMaterial, MAX_SHIP_MATERIALS)
 
 DEFINE_INCREMENT_DECREMENT(ship, Ship, hull, MAX_SHIPS)
 DEFINE_INCREMENT_DECREMENT(ship, Ship, crew, MAX_SHIPS)
+DEFINE_INCREMENT_DECREMENT(captain, Captain, gold, MAX_CAPTAINS)
 
 // ------------------------------------------------------------------------------------------------
 // - MACRO REDUCE INCREASE BY
 // ------------------------------------------------------------------------------------------------
-#define DEFINE_REDUCE(TYPE, STRUCT, FIELD, MAX_COUNT) \
+#define DEFINE_REDUCE_INCREASE_BY(TYPE, STRUCT, FIELD, MAX_COUNT) \
     void reduce_##TYPE##_##FIELD(u32 id, u32 amount) { \
         if (id >= MAX_COUNT || storage_##STRUCT.used[id] == false) { \
             console_log("[E] Tried to reduce " #FIELD " of " #STRUCT " with bad id"); \
@@ -1140,9 +1144,7 @@ DEFINE_INCREMENT_DECREMENT(ship, Ship, crew, MAX_SHIPS)
         } else { \
             storage_##STRUCT.data[id].FIELD = 0; \
         } \
-    }
-
-#define DEFINE_INCREASE(TYPE, STRUCT, FIELD, MAX_COUNT) \
+    } \
     void increase_##TYPE##_##FIELD(u32 id, u32 amount) { \
         if (id >= MAX_COUNT || storage_##STRUCT.used[id] == false) { \
             console_log("[E] Tried to increase " #FIELD " of " #STRUCT " with bad id"); \
@@ -1151,10 +1153,9 @@ DEFINE_INCREMENT_DECREMENT(ship, Ship, crew, MAX_SHIPS)
         storage_##STRUCT.data[id].FIELD += amount; \
     }
 
-DEFINE_REDUCE(ship, Ship, hull, MAX_SHIPS)
-DEFINE_REDUCE(ship, Ship, crew, MAX_SHIPS)
-DEFINE_INCREASE(ship, Ship, hull, MAX_SHIPS)
-DEFINE_INCREASE(ship, Ship, crew, MAX_SHIPS)
+DEFINE_REDUCE_INCREASE_BY(ship, Ship, hull, MAX_SHIPS)
+DEFINE_REDUCE_INCREASE_BY(ship, Ship, crew, MAX_SHIPS)
+DEFINE_REDUCE_INCREASE_BY(captain, Captain, gold, MAX_CAPTAINS)
 
 // ------------------------------------------------------------------------------------------------
 // GLOBAL FUNCTIONS
@@ -3093,38 +3094,6 @@ void generate_world(char* world_name)
 }
 
 // ------------------------------------------------------------------------------------------------
-// - CAPTAINS
-// ------------------------------------------------------------------------------------------------
-void set_captain_npc_id(u32 id, u32 npc_id)
-{
-    g_captain_structs[id].npc_id = npc_id;
-}
-void set_captain_gold(u32 id, u32 amount)
-{
-    g_captain_structs[id].gold = amount;
-}
-void set_captain_player_id(u32 id, u32 player_id)
-{
-    g_captain_structs[id].player_id = player_id;
-}
-void set_captain_inventory_id(u32 id, u32 inventory_id)
-{
-    g_captain_structs[id].inventory_id = inventory_id;
-}
-u32 get_captain_gold(u32 id)
-{
-    return g_captain_structs[id].gold;
-}
-u32 get_captain_npc_id(u32 id)
-{
-    return g_captain_structs[id].npc_id;
-}
-u32 get_captain_inventory_id(u32 id)
-{
-    return g_captain_structs[id].inventory_id;
-}
-
-// ------------------------------------------------------------------------------------------------
 // - WORLD NPCS
 // ------------------------------------------------------------------------------------------------
 void set_world_npc_entity_id(u32 world_npc_id, u32 entity_id)
@@ -3966,59 +3935,59 @@ void initialize_game()
     npc.type = NPC_TYPE_HUMAN;
     u32 npc_loller_id = add_npc(npc);
 
+    struct Captain captain = generate_captain();
+    captain.npc_id = empty_npc_id;
+    captain.player_id = 0;
+    captain.gold = 99;
+    captain.inventory_id = g_inventory_count;
+    add_captain(captain);
     set_inventory_name_id_by_string(g_inventory_count, "player_ones_inventory");
     set_inventory_total_items(g_inventory_count, 0);
-    set_captain_npc_id(g_captain_count, empty_npc_id);
-    set_captain_player_id(g_captain_count, 0);
-    set_captain_gold(g_captain_count, 99);
-    set_captain_inventory_id(g_captain_count, g_inventory_count);
-    players[0] = g_captain_count;
-    ++g_captain_count;
+    players[0] = storage_Captain.next_open_slot;
     ++g_inventory_count;
 
     set_inventory_name_id(g_inventory_count, get_npc_name_id(npc_rvice_id));
-    set_inventory_total_items(g_inventory_count, 0);
-    set_captain_npc_id(g_captain_count, npc_rvice_id);
-    set_captain_player_id(g_captain_count, 0);
-    set_captain_gold(g_captain_count, 100);
-    set_captain_inventory_id(g_captain_count, g_inventory_count);
-    ++g_captain_count;
+    captain.npc_id = npc_rvice_id;
+    captain.player_id = 0;
+    captain.gold = 100;
+    captain.inventory_id = g_inventory_count;
+    add_captain(captain);
     ++g_inventory_count;
 
     set_inventory_name_id(g_inventory_count, get_npc_name_id(npc_lafolie_id));
     set_inventory_total_items(g_inventory_count, 0);
-    set_captain_npc_id(g_captain_count, npc_lafolie_id);
-    set_captain_player_id(g_captain_count, 0);
-    set_captain_gold(g_captain_count, 100);
-    set_captain_inventory_id(g_captain_count, g_inventory_count);
-    ++g_captain_count;
+    captain.npc_id = npc_lafolie_id;
+    captain.player_id = 0;
+    captain.gold = 100;
+    captain.inventory_id = g_inventory_count;
+    add_captain(captain);
     ++g_inventory_count;
 
     set_inventory_name_id(g_inventory_count, get_npc_name_id(npc_nakor_id));
     set_inventory_total_items(g_inventory_count, 0);
-    set_captain_npc_id(g_captain_count, npc_nakor_id);
-    set_captain_player_id(g_captain_count, 0);
-    set_captain_gold(g_captain_count, 100);
-    set_captain_inventory_id(g_captain_count, g_inventory_count);
-    ++g_captain_count;
+    captain.npc_id = npc_nakor_id;
+    captain.player_id = 0;
+    captain.gold = 100;
+    captain.inventory_id = g_inventory_count;
+    add_captain(captain);
     ++g_inventory_count;
 
     set_inventory_name_id(g_inventory_count, get_npc_name_id(npc_travis_id));
     set_inventory_total_items(g_inventory_count, 0);
-    set_captain_npc_id(g_captain_count, npc_travis_id);
-    set_captain_player_id(g_captain_count, 0);
-    set_captain_gold(g_captain_count, 100);
-    set_captain_inventory_id(g_captain_count, g_inventory_count);
-    ++g_captain_count;
+    captain.npc_id = npc_travis_id;
+    captain.player_id = 0;
+    captain.gold = 100;
+    captain.inventory_id = g_inventory_count;
+    add_captain(captain);
     ++g_inventory_count;
 
     set_inventory_name_id(g_inventory_count, get_npc_name_id(npc_loller_id));
     set_inventory_total_items(g_inventory_count, 0);
-    set_captain_npc_id(g_captain_count, npc_loller_id);
-    set_captain_player_id(g_captain_count, 0);
-    set_captain_gold(g_captain_count, 100);
-    set_captain_inventory_id(g_captain_count, g_inventory_count);
-    ++g_captain_count;
+    captain.npc_id = npc_loller_id;
+    captain.player_id = 0;
+    captain.gold = 100;
+    captain.inventory_id = g_inventory_count;
+    add_captain(captain);
     ++g_inventory_count;
 
     struct Item item = generate_item();
