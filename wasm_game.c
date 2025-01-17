@@ -240,6 +240,8 @@ enum ResourceType
     RESOURCE_TYPE_COUNT,
 };
 
+// ENUM ITEM
+// STRUCT ITEM
 enum ItemType
 {
     ITEM_TYPE_GOOD,
@@ -250,14 +252,13 @@ enum ItemType
     ITEM_TYPE_BASE_SHIP,
     ITEM_TYPE_SHIP,
 };
-struct Item
-{
-    u32 name_id;
-    u32 type; // ItemType
-    u32 base_price;
-    u32 defense;
-    u32 power;
-};
+#define ITEM_FIELDS(X, ...) \
+    X(u32, name_id, __VA_ARGS__) \
+    X(u32, type, __VA_ARGS__) \
+    X(u32, base_price, __VA_ARGS__) \
+    X(u32, defense, __VA_ARGS__) \
+    X(u32, power, __VA_ARGS__)
+
 enum StringData
 {
     STRING_MACHINE_NAME_LENGTH, // Length of machine name
@@ -270,31 +271,32 @@ struct String
     u32 machine_name_length;
     u32 text_length;
 };
-struct BaseShip
-{
-    u32 name_id;
-    u32 top_material_id;
-    u32 base_price;
-    u32 max_capacity;
-    u32 base_tacking;
-    u32 base_power;
-    u32 base_speed;
-};
-struct Ship
-{
-    u32 name_id;
-    u32 base_ship_id;
-    u32 price;
-    u32 material_id;
-    u32 capacity;
-    u32 tacking;
-    u32 power;
-    u32 speed;
-    u32 max_crew;
-    u32 max_hull;
-    u32 crew;
-    u32 hull;
-};
+
+#define BASESHIP_FIELDS(X, ...) \
+    X(u32, name_id, __VA_ARGS__) \
+    X(u32, top_material_id, __VA_ARGS__) \
+    X(u32, price, __VA_ARGS__) \
+    X(u32, max_capacity, __VA_ARGS__) \
+    X(u32, tacking, __VA_ARGS__) \
+    X(u32, power, __VA_ARGS__) \
+    X(u32, speed, __VA_ARGS__) \
+    X(u32, hull, __VA_ARGS__)
+
+// STRUCT SHIP
+#define SHIP_FIELDS(X, ...) \
+    X(u32, name_id, __VA_ARGS__) \
+    X(u32, base_ship_id, __VA_ARGS__) \
+    X(u32, price, __VA_ARGS__) \
+    X(u32, material_id, __VA_ARGS__) \
+    X(u32, capacity, __VA_ARGS__) \
+    X(u32, tacking, __VA_ARGS__) \
+    X(u32, power, __VA_ARGS__) \
+    X(u32, speed, __VA_ARGS__) \
+    X(u32, max_crew, __VA_ARGS__) \
+    X(u32, max_hull, __VA_ARGS__) \
+    X(u32, crew, __VA_ARGS__) \
+    X(u32, hull, __VA_ARGS__)
+
 struct ShipMaterial
 {
     u32 name_id;
@@ -329,18 +331,9 @@ enum NPCType
     NPC_TYPE_SHIP,
     NPC_TYPE_OTHER,
 };
-struct NPC
-{
-    u32 name_id;
-    u32 type;
-};
-struct StorageNPCs
-{
-    struct NPC data[MAX_NPCS];
-    u32 count;
-    u32 next_open_slot;
-    bool used[MAX_NPCS];
-};
+#define NPC_FIELDS(X, ...) \
+    X(u32, name_id, __VA_ARGS__) \
+    X(u32, type, __VA_ARGS__)
 
 struct Captain
 {
@@ -754,8 +747,8 @@ enum OceanBattleData
 //     RESOURCE_REFERENCES,
 //     RESOURCE_SIZE,
 // }
-// #define STRING_RESOURCES_SIZE (MAX_STRINGS * (uint32_t)RESOURCE_SIZE)
-// static uint32_t g_string_resources[STRING_RESOURCES_SIZE];
+// #define STRING_RESOURCES_SIZE (MAX_STRINGS * RESOURCE_SIZE)
+// static u32 g_string_resources[STRING_RESOURCES_SIZE];
 
 // ------------------------------------------------------------------------------------------------
 // FORWARD DECLARATIONS
@@ -765,7 +758,6 @@ uint32_t get_layer_width(uint32_t layer_index);
 uint32_t get_layer_global_world_data_offset(uint32_t layer_index);
 const char* get_layer_machine_name(uint32_t layer_index);
 uint32_t get_layer_name_id(uint32_t layer_index);
-uint32_t get_npc_id_by_machine_name(char* machine_name);
 uint32_t get_player_npc_id(uint32_t player_id);
 void move_player_left(uint32_t player_id);
 void move_player_right(uint32_t player_id);
@@ -832,16 +824,8 @@ u32 scene_bank(u32 action);
 void generate_world(char* world_name);
 void test();
 
-// Forward Declare NPCs
-u32 add_npc(struct NPC data);
-void find_npc_next_open_slot();
-void clear_all_npcs();
-void clear_npc(u32 id);
-void set_npc_name_id(u32 id, u32 value);
-void set_npc_type(u32 id, u32 value);
-u32 get_npc_id_by_machine_name(char* machine_name);
-u32 get_npc_name_id(u32 npc_id);
-u32 get_npc_type(u32 npc_id);
+// Forward Declare Strings
+u32 get_string_id_by_machine_name(const char* machine_name);
 
 // ------------------------------------------------------------------------------------------------
 // Resource Management
@@ -851,16 +835,6 @@ static char g_string_data[G_STRING_DATA_SIZE];  // *2 for both machine_name and 
 #define G_STRING_INFO_SIZE (MAX_STRINGS * STRING_DATA_SIZE)
 u32 g_string_info[G_STRING_INFO_SIZE];
 u32 g_string_count = 0;
-
-struct StorageNPCs storage_npcs;
-
-struct Item g_item_structs[MAX_ITEMS];
-// Note: This is a reference map. All general items INSIDE OF g_item_structs
-u32 g_general_items[MAX_GENERAL_ITEMS];
-
-struct BaseShip g_base_ship_structs[MAX_BASE_SHIPS];
-
-struct Ship g_ship_structs[MAX_SHIPS];
 
 struct ShipMaterial g_ship_material_structs[MAX_SHIP_MATERIALS];
 
@@ -949,6 +923,232 @@ uint32_t CurrentSceneInventoryItems[MAX_INVENTORY_ITEMS];
 uint32_t current_user_input_number;
 
 static uint32_t ocean_battle_data[OCEAN_BATTLE_DATA_SIZE];
+
+// ------------------------------------------------------------------------------------------------
+// MACRO - BASE STRUCT STUFF
+// ------------------------------------------------------------------------------------------------
+#define FIELD_ENTRY(type, field, ...) type field;
+#define ACCESSOR_ENTRY(type, field, name, struct_name, max_count) \
+    type get_##name##_##field(u32 id) { \
+        if (id >= max_count || !storage_##struct_name.used[id]) { \
+            console_log("[E] Tried to get " #field " of " #struct_name " with bad id"); \
+            return SENTRY; \
+        } \
+        return storage_##struct_name.data[id].field; \
+    } \
+    void set_##name##_##field(u32 id, type value) { \
+        if (id >= max_count || !storage_##struct_name.used[id]) { \
+            console_log("[E] Tried to set " #field " of " #struct_name " with bad id"); \
+            return; \
+        } \
+        storage_##struct_name.data[id].field = value; \
+    }
+
+#define DECLARE_STRUCT(struct_name, fields_macro, max_count) \
+    struct struct_name { \
+        fields_macro(FIELD_ENTRY, struct_name, max_count) \
+    }; \
+
+#define DECLARE_STRUCT_WITH_ACCESSORS(struct_name, fields_macro, name, max_count) \
+    fields_macro(ACCESSOR_ENTRY, name, struct_name, max_count)
+
+// ------------------------------------------------------------------------------------------------
+// MACRO - STORAGE STRUCT
+// ------------------------------------------------------------------------------------------------
+#define DEFINE_STORAGE_STRUCT(TYPE, MAX_COUNT) \
+    struct Storage##TYPE { \
+        struct TYPE data[MAX_COUNT]; \
+        bool used[MAX_COUNT]; \
+        u32 count; \
+        u32 next_open_slot; \
+    }
+
+DECLARE_STRUCT(BaseShip, BASESHIP_FIELDS, MAX_BASE_SHIPS)
+DECLARE_STRUCT(Ship, SHIP_FIELDS, MAX_SHIPS)
+DECLARE_STRUCT(NPC, NPC_FIELDS, MAX_NPCS)
+DECLARE_STRUCT(Item, ITEM_FIELDS, MAX_ITEMS)
+
+DEFINE_STORAGE_STRUCT(BaseShip, MAX_BASE_SHIPS);
+DEFINE_STORAGE_STRUCT(Ship, MAX_SHIPS);
+DEFINE_STORAGE_STRUCT(NPC, MAX_NPCS);
+DEFINE_STORAGE_STRUCT(Item, MAX_ITEMS);
+struct StorageBaseShip storage_BaseShip;
+struct StorageShip storage_Ship;
+struct StorageNPC storage_NPC;
+struct StorageItem storage_Item;
+// TODO: What about for Items?
+// u32 general_items[MAX_GENERAL_ITEMS];
+// u32 general_items_count;
+
+DECLARE_STRUCT_WITH_ACCESSORS(BaseShip, BASESHIP_FIELDS, base_ship, MAX_BASE_SHIPS)
+DECLARE_STRUCT_WITH_ACCESSORS(Ship, SHIP_FIELDS, ship, MAX_SHIPS)
+DECLARE_STRUCT_WITH_ACCESSORS(Item, ITEM_FIELDS, item, MAX_ITEMS)
+DECLARE_STRUCT_WITH_ACCESSORS(NPC, NPC_FIELDS, npc, MAX_NPCS)
+// ------------------------------------------------------------------------------------------------
+// - MACRO STORAGE SYSTEM
+// ------------------------------------------------------------------------------------------------
+#define DEFINE_STORAGE_SYSTEM(TYPE, STRUCT) \
+    struct STRUCT generate_##TYPE() { \
+        struct STRUCT empty; \
+        CLEAR_STRUCT(&empty, SENTRY); \
+        return empty; \
+    }
+
+DEFINE_STORAGE_SYSTEM(base_ship, BaseShip)
+DEFINE_STORAGE_SYSTEM(ship, Ship)
+DEFINE_STORAGE_SYSTEM(npc, NPC)
+DEFINE_STORAGE_SYSTEM(item, Item)
+
+// ------------------------------------------------------------------------------------------------
+// - MACRO FIND NEXT OPEN SLOT
+// ------------------------------------------------------------------------------------------------
+#define DEFINE_FIND_NEXT_OPEN_SLOT(TYPE, STRUCT, MAX_COUNT) \
+    void find_##TYPE##_next_open_slot() { \
+        u32 found = SENTRY; \
+        for (u32 i = 0; i < MAX_COUNT; ++i) { \
+            if (storage_##STRUCT.used[i] == false) { \
+                storage_##STRUCT.next_open_slot = i; \
+                found = true; \
+                break; \
+            } \
+        } \
+        if (found == SENTRY) { \
+            console_log("[E] Could not find an open slot for " #STRUCT " data"); \
+        } \
+    }
+
+DEFINE_FIND_NEXT_OPEN_SLOT(base_ship, BaseShip, MAX_BASE_SHIPS)
+DEFINE_FIND_NEXT_OPEN_SLOT(ship, Ship, MAX_SHIPS)
+DEFINE_FIND_NEXT_OPEN_SLOT(npc, NPC, MAX_NPCS)
+DEFINE_FIND_NEXT_OPEN_SLOT(item, Item, MAX_ITEMS)
+
+// ------------------------------------------------------------------------------------------------
+// - MACRO ADD CLEAR FUNCTIONS
+// ------------------------------------------------------------------------------------------------
+#define DEFINE_ADD_CLEAR_FUNCTIONS(TYPE, STRUCT, MAX_COUNT) \
+    u32 add_##TYPE(struct STRUCT data) { \
+        if (storage_##STRUCT.count >= MAX_COUNT) { \
+            console_log("[E] No more left in data for " #STRUCT "s"); \
+            return SENTRY; \
+        } \
+        u32 id = storage_##STRUCT.next_open_slot; \
+        storage_##STRUCT.data[id] = data; \
+        storage_##STRUCT.used[id] = true; \
+        find_##TYPE##_next_open_slot(); \
+        ++storage_##STRUCT.count; \
+        return id; \
+    } \
+    \
+    void clear_##TYPE(u32 id) { \
+        if (storage_##STRUCT.used[id] == true) { \
+            CLEAR_STRUCT(&storage_##STRUCT.data[id], SENTRY); \
+            storage_##STRUCT.used[id] = false; \
+            --storage_##STRUCT.count; \
+            storage_##STRUCT.next_open_slot = id; \
+        } \
+    } \
+    \
+    void clear_all_##TYPE##s() { \
+        for (u32 i = 0; i < MAX_COUNT; ++i) { \
+            clear_##TYPE(i); \
+        } \
+        storage_##STRUCT.count = 0; \
+        storage_##STRUCT.next_open_slot = 0; \
+    }
+
+DEFINE_ADD_CLEAR_FUNCTIONS(base_ship, BaseShip, MAX_BASE_SHIPS)
+DEFINE_ADD_CLEAR_FUNCTIONS(ship, Ship, MAX_SHIPS)
+DEFINE_ADD_CLEAR_FUNCTIONS(npc, NPC, MAX_NPCS)
+DEFINE_ADD_CLEAR_FUNCTIONS(item, Item, MAX_ITEMS)
+// TODO: What about for Items?
+// if (data.type == ITEM_TYPE_GENERAL_ITEM)
+// {
+//     u32 intended_count = storage_items.general_items_count + 1;
+//     if (intended_count >= MAX_GENERAL_ITEMS)
+//     {
+//         console_log("[E] No more left in data for general items");
+//         return SENTRY;
+//     }
+//     storage_items.general_items[intended_count] = id;
+//     ++storage_items.general_items_count;
+// }
+
+// ------------------------------------------------------------------------------------------------
+// - MACRO FIND BY NAME
+// ------------------------------------------------------------------------------------------------
+#define DEFINE_FIND_BY_NAME(TYPE, STRUCT, MAX_COUNT) \
+    u32 get_##TYPE##_id_by_machine_name(char* machine_name) { \
+        u32 string_id = get_string_id_by_machine_name(machine_name); \
+        if (string_id == SENTRY) { \
+            return SENTRY; \
+        } \
+        for (u32 i = 0; i < MAX_COUNT; ++i) { \
+            if (storage_##STRUCT.used[i] && storage_##STRUCT.data[i].name_id == string_id) { \
+                return i; \
+            } \
+        } \
+        return SENTRY; \
+    }
+
+// Note: If you want a special override then just DONT use this macro and do it manually
+DEFINE_FIND_BY_NAME(base_ship, BaseShip, MAX_BASE_SHIPS)
+DEFINE_FIND_BY_NAME(ship, Ship, MAX_SHIPS)
+DEFINE_FIND_BY_NAME(npc, NPC, MAX_NPCS)
+DEFINE_FIND_BY_NAME(item, Item, MAX_ITEMS)
+
+// ------------------------------------------------------------------------------------------------
+// - MACRO INCREMENT DECREMENT
+// ------------------------------------------------------------------------------------------------
+#define DEFINE_INCREMENT_DECREMENT(TYPE, STRUCT, FIELD, MAX_COUNT) \
+    void increment_##TYPE##_##FIELD(u32 id) { \
+        if (id >= MAX_COUNT || storage_##STRUCT.used[id] == false) { \
+            console_log("[E] Tried to increment " #FIELD " of " #STRUCT " with bad id"); \
+            return; \
+        } \
+        ++storage_##STRUCT.data[id].FIELD; \
+    } \
+    void decrement_##TYPE##_##FIELD(u32 id) { \
+        if (id >= MAX_COUNT || storage_##STRUCT.used[id] == false) { \
+            console_log("[E] Tried to decrement " #FIELD " of " #STRUCT " with bad id"); \
+            return; \
+        } \
+        if (storage_##STRUCT.data[id].FIELD > 0) { \
+            --storage_##STRUCT.data[id].FIELD; \
+        } \
+    }
+
+DEFINE_INCREMENT_DECREMENT(ship, Ship, hull, MAX_SHIPS)
+DEFINE_INCREMENT_DECREMENT(ship, Ship, crew, MAX_SHIPS)
+
+// ------------------------------------------------------------------------------------------------
+// - MACRO REDUCE INCREASE BY
+// ------------------------------------------------------------------------------------------------
+#define DEFINE_REDUCE(TYPE, STRUCT, FIELD, MAX_COUNT) \
+    void reduce_##TYPE##_##FIELD(u32 id, u32 amount) { \
+        if (id >= MAX_COUNT || storage_##STRUCT.used[id] == false) { \
+            console_log("[E] Tried to reduce " #FIELD " of " #STRUCT " with bad id"); \
+            return; \
+        } \
+        if (storage_##STRUCT.data[id].FIELD > amount) { \
+            storage_##STRUCT.data[id].FIELD -= amount; \
+        } else { \
+            storage_##STRUCT.data[id].FIELD = 0; \
+        } \
+    }
+
+#define DEFINE_INCREASE(TYPE, STRUCT, FIELD, MAX_COUNT) \
+    void increase_##TYPE##_##FIELD(u32 id, u32 amount) { \
+        if (id >= MAX_COUNT || storage_##STRUCT.used[id] == false) { \
+            console_log("[E] Tried to increase " #FIELD " of " #STRUCT " with bad id"); \
+            return; \
+        } \
+        storage_##STRUCT.data[id].FIELD += amount; \
+    }
+
+DEFINE_REDUCE(ship, Ship, hull, MAX_SHIPS)
+DEFINE_REDUCE(ship, Ship, crew, MAX_SHIPS)
+DEFINE_INCREASE(ship, Ship, hull, MAX_SHIPS)
+DEFINE_INCREASE(ship, Ship, crew, MAX_SHIPS)
 
 // ------------------------------------------------------------------------------------------------
 // GLOBAL FUNCTIONS
@@ -1554,7 +1754,7 @@ int32_t create_string(const char* machine_name, const char* text)
 // ------------------------------------------------------------------------------------------------ //
 // STRING FUNCTIONS
 // ------------------------------------------------------------------------------------------------ //
-uint32_t get_string_id_by_machine_name(const char* machine_name)
+u32 get_string_id_by_machine_name(const char* machine_name)
 {
     for (uint32_t i = 0; i < MAX_STRINGS; ++i)
     {
@@ -1647,7 +1847,7 @@ uint32_t get_string_machine_name_len(uint32_t index)
 }
 
 // ------------------------------------------------------------------------------------------------ //
-// CANNON FUNCTIONS
+// - CANNONS
 // ------------------------------------------------------------------------------------------------ //
 void set_cannon_name_id(uint32_t index, uint32_t name_id)
 {
@@ -1704,7 +1904,7 @@ uint32_t get_cannon_base_price(uint32_t index)
 }
 
 // ------------------------------------------------------------------------------------------------ //
-// DISTANCES
+// - DISTANCES
 // ------------------------------------------------------------------------------------------------ //
 uint32_t distance_between_coordinates(uint32_t a_x, uint32_t a_y, uint32_t b_x, uint32_t b_y)
 {
@@ -1718,7 +1918,7 @@ bool is_coordinate_in_range_of_coordinate(uint32_t a_x, uint32_t a_y, uint32_t b
 }
 
 // ------------------------------------------------------------------------------------------------ //
-// RNG
+// - RNG
 // ------------------------------------------------------------------------------------------------ //
 uint32_t tick_counter = 1;
 uint32_t rng_state = 1;
@@ -1751,7 +1951,7 @@ uint32_t get_random_number(uint32_t min, uint32_t max)
 }
 
 // ------------------------------------------------------------------------------------------------ //
-// INPUT
+// - INPUT
 // ------------------------------------------------------------------------------------------------ //
 void user_input_right()
 {
@@ -1993,7 +2193,7 @@ void handle_input(uint32_t input)
 }
 
 // ------------------------------------------------------------------------------------------------ //
-// SHOULD REDRAW
+// - SHOULD REDRAW
 // ------------------------------------------------------------------------------------------------ //
 enum ShouldRedraw should_redraw = SHOULD_REDRAW_NOTHING;
 uint32_t renderer_should_redraw()
@@ -2013,7 +2213,7 @@ void should_redraw_everything()
 }
 
 // ------------------------------------------------------------------------------------------------
-// INPUT OUTPUT BUFFERS
+// - INPUT OUTPUT BUFFERS
 // ------------------------------------------------------------------------------------------------
 extern void js_output_string_buffer(void* ptr, uint32_t len);
 extern void js_output_array_buffer(void* ptr, uint32_t len);
@@ -2124,12 +2324,12 @@ uint32_t find_string_id_by_machine_name_from_input()
         return SENTRY;
     }
     // input_string_buffer_length
-    uint32_t string_id = get_string_id_by_machine_name(input);
+    u32 string_id = get_string_id_by_machine_name(input);
     return string_id;
 }
 
 // ------------------------------------------------------------------------------------------------
-// CAMERA
+// - CAMERA
 // ------------------------------------------------------------------------------------------------
 void reset_camera()
 {
@@ -2221,7 +2421,7 @@ u32 get_camera_offset_y()
 }
 
 // ------------------------------------------------------------------------------------------------
-// VIEWPORT
+// - VIEWPORT
 // ------------------------------------------------------------------------------------------------
 void set_viewport_size(uint32_t width, uint32_t height)
 {
@@ -2389,7 +2589,7 @@ uint32_t get_world_coordinate_y_from_viewport_coordinate(uint32_t x, uint32_t y)
 }
 
 // ------------------------------------------------------------------------------------------------ //
-// WORLDS & LAYERS
+// - WORLDS & LAYERS
 // ------------------------------------------------------------------------------------------------ //
 u32 get_world_id_by_machine_name(char* machine_name)
 {
@@ -2887,124 +3087,7 @@ void generate_world(char* world_name)
 }
 
 // ------------------------------------------------------------------------------------------------
-// NPCS
-// ------------------------------------------------------------------------------------------------
-struct NPC generate_npc()
-{
-    struct NPC empty_npc;
-    CLEAR_STRUCT(&empty_npc, SENTRY);
-    return empty_npc;
-}
-u32 add_npc(struct NPC data)
-{
-    if (storage_npcs.count >= MAX_NPCS)
-    {
-        console_log("[E] No more left in data for NPCs");
-        return SENTRY;
-    }
-    u32 id = storage_npcs.next_open_slot;
-    storage_npcs.data[id] = data;
-    storage_npcs.used[id] = true;
-    find_npc_next_open_slot();
-    ++storage_npcs.count;
-    return id;
-}
-void find_npc_next_open_slot()
-{
-    u32 found = SENTRY;
-    for (u32 i = 0; i < MAX_NPCS; ++i)
-    {
-        if (storage_npcs.used[i] == false)
-        {
-            storage_npcs.next_open_slot = i;
-            found = true;
-            break;
-        }
-    }
-    if (found == SENTRY)
-    {
-        console_log("[E] Could not find an open slot for npc data");
-    }
-}
-void clear_all_npcs()
-{
-    for (u32 i = 0; i < MAX_NPCS; ++i)
-    {
-        if (storage_npcs.used[i] == true)
-        {
-            CLEAR_STRUCT(&storage_npcs.data[i], SENTRY);
-        }
-    }
-    storage_npcs.count = 0;
-    storage_npcs.next_open_slot = 0;
-}
-void clear_npc(u32 id)
-{
-    if (storage_npcs.used[id] == true)
-    {
-        CLEAR_STRUCT(&storage_npcs.data[id], SENTRY);
-        --storage_npcs.count;
-        storage_npcs.next_open_slot = id;
-    }
-}
-void set_npc_name_id(u32 id, u32 value)
-{
-    if (storage_npcs.used[id] == false)
-    {
-        console_log("[E] Tried to set the name id of an npc with a bad id");
-        return;
-    }
-    storage_npcs.data[id].name_id = value;
-}
-void set_npc_type(u32 id, u32 value)
-{
-    if (storage_npcs.used[id] == false)
-    {
-        console_log("[E] Tried to set the type of an npc with a bad id");
-        return;
-    }
-    storage_npcs.data[id].type = value;
-}
-// TODO: You have to rename other "*_by_string" functions to use this
-// naming convention of "*_by_machine_name"
-u32 get_npc_id_by_machine_name(char* machine_name)
-{
-    u32 string_id = get_string_id_by_machine_name(machine_name);
-    if (string_id == SENTRY)
-    {
-        console_log("[E] Could not find string id for npc machine name");
-        return SENTRY;
-    }
-    for (u32 i = 0; i < MAX_NPCS; i++)
-    {
-        if (get_npc_name_id(i) == string_id)
-        {
-            return i;
-        }
-    }
-    return SENTRY;
-}
-u32 get_npc_name_id(u32 npc_id)
-{
-    if (storage_npcs.used[npc_id] == false)
-    {
-        console_log("[E] Tried to get the name id of an npc with a bad id");
-        return SENTRY;
-    }
-    return storage_npcs.data[npc_id].name_id;
-}
-u32 get_npc_type(u32 npc_id)
-{
-    if (storage_npcs.used[npc_id] == false)
-    {
-        console_log("[E] Tried to get the type of an npc with a bad id");
-        return SENTRY;
-    }
-    return storage_npcs.data[npc_id].type;
-}
-
-// ------------------------------------------------------------------------------------------------
-// CAPTAINS
+// - CAPTAINS
 // ------------------------------------------------------------------------------------------------
 void set_captain_npc_id(u32 id, u32 npc_id)
 {
@@ -3036,7 +3119,7 @@ u32 get_captain_inventory_id(u32 id)
 }
 
 // ------------------------------------------------------------------------------------------------
-// WORLD NPCS
+// - WORLD NPCS
 // ------------------------------------------------------------------------------------------------
 void set_world_npc_entity_id(u32 world_npc_id, u32 entity_id)
 {
@@ -3196,7 +3279,7 @@ void set_world_npc_y(u32 id, u32 y)
 }
 
 // ------------------------------------------------------------------------------------------------
-// INVENTORY
+// - INVENTORY
 // ------------------------------------------------------------------------------------------------
 u32 get_inventory_total_items(u32 id)
 {
@@ -3288,7 +3371,7 @@ void set_inventory_item_type_reference_by_string(u32 id, char* name)
     // Have to find the item we want by its name
     for (u32 i = 0; i < MAX_ITEMS; ++i)
     {
-        if (g_item_structs[i].name_id == name_id)
+        if (get_item_name_id(i) == name_id)
         {
             item_id = i;
             break;
@@ -3306,7 +3389,7 @@ void set_inventory_item_type_reference_by_string(u32 id, char* name)
 }
 
 // ------------------------------------------------------------------------------------------------ //
-// PLAYERS
+// - PLAYERS
 // ------------------------------------------------------------------------------------------------ //
 uint32_t get_player_gold(uint32_t player_id)
 {
@@ -3436,119 +3519,18 @@ void move_player_down(uint32_t player_id)
 }
 
 // ------------------------------------------------------------------------------------------------ //
-// BASE SHIPS
+// - BASE SHIPS
 // ------------------------------------------------------------------------------------------------ //
-uint32_t get_base_ship_id_by_machine_name(char* machine_name)
+u32 get_base_ship_id_by_name_id(u32 name_id)
 {
-    uint32_t string_id = get_string_id_by_machine_name(machine_name);
-    for (uint32_t i = 0; i < MAX_BASE_SHIPS; ++i)
+    for (u32 i = 0; i < MAX_BASE_SHIPS; ++i)
     {
-        if (g_base_ship_structs[i].name_id == string_id)
+        if (get_base_ship_name_id(i) == name_id)
         {
             return i;
         }
     }
     return SENTRY;
-}
-uint32_t get_base_ship_tacking(uint32_t base_ship_id)
-{
-    return g_base_ship_structs[base_ship_id].base_tacking;
-}
-uint32_t get_base_ship_power(uint32_t base_ship_id)
-{
-    return g_base_ship_structs[base_ship_id].base_power;
-}
-uint32_t get_base_ship_speed(uint32_t base_ship_id)
-{
-    return g_base_ship_structs[base_ship_id].base_speed;
-}
-uint32_t get_base_ship_max_capacity(uint32_t base_ship_id)
-{
-    return g_base_ship_structs[base_ship_id].max_capacity;
-}
-uint32_t get_base_ship_base_price(uint32_t base_ship_id)
-{
-    return g_base_ship_structs[base_ship_id].base_price;
-}
-uint32_t get_base_ship_top_material_id(uint32_t base_ship_id)
-{
-    return g_base_ship_structs[base_ship_id].top_material_id;
-}
-
-// ------------------------------------------------------------------------------------------------ //
-// SHIPS
-// ------------------------------------------------------------------------------------------------ //
-uint32_t get_ship_id_by_machine_name(char* machine_name)
-{
-    uint32_t string_id = get_string_id_by_machine_name(machine_name);
-    for (uint32_t i = 0; i < MAX_SHIPS; ++i)
-    {
-        if (g_ship_structs[i].name_id == string_id)
-        {
-            return i;
-        }
-    }
-    return SENTRY;
-}
-uint32_t get_ship_base_ship_id(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].base_ship_id;
-}
-uint32_t get_ship_tacking(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].tacking;
-}
-uint32_t get_ship_power(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].power;
-}
-uint32_t get_ship_speed(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].speed;
-}
-uint32_t get_ship_capacity(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].capacity;
-}
-uint32_t get_ship_max_crew(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].max_crew;
-}
-uint32_t get_ship_max_hull(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].max_hull;
-}
-uint32_t get_ship_crew(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].crew;
-}
-uint32_t get_ship_hull(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].hull;
-}
-void reduce_ship_hull(uint32_t ship_id, uint32_t damage)
-{
-    // Check if damage would cause underflow
-    if (damage > g_ship_structs[ship_id].hull)
-    {
-        g_ship_structs[ship_id].hull = 0;
-    }
-    else
-    {
-        g_ship_structs[ship_id].hull -= damage;
-    }
-}
-void reduce_ship_crew(uint32_t ship_id, uint32_t damage)
-{
-    // Check if damage would cause underflow
-    if (damage > g_ship_structs[ship_id].crew)
-    {
-        g_ship_structs[ship_id].crew = 0;
-    }
-    else
-    {
-        g_ship_structs[ship_id].crew -= damage;
-    }
 }
 
 // ------------------------------------------------------------------------------------------------ //
@@ -3636,7 +3618,7 @@ void set_fleet_general_id(u32 id, u32 value)
 // ------------------------------------------------------------------------------------------------ //
 // GENERAL GAME FUNCTIONS
 // ------------------------------------------------------------------------------------------------ //
-uint32_t get_current_game_mode()
+u32 get_current_game_mode()
 {
     switch (current_game_mode)
     {
@@ -3694,8 +3676,10 @@ void initialize_game()
     current_game_mode = (uint32_t)GAME_MODE_EMPTY;
     clear_current_scene();
 
+    clear_all_npcs();
     init_string_data();
     init_string_info();
+    // TODO: Remove this in favor of clear_all_entities()
     init_structs_entities();
 
     create_string("empty", "Empty");
@@ -3861,6 +3845,10 @@ void initialize_game()
     create_string("npc_nakor", "Nakor");
     create_string("npc_travis", "Travis");
     create_string("npc_loller", "Loller");
+    create_string("nakors_ship", "Nakors Ship");
+    create_string("lollers_ship", "Lollers Ship");
+    create_string("rvices_ship", "Rvices Ship");
+    create_string("lafolies_ship", "Lafolies Ship");
     create_string("setting_up_ocean_battle", "Setting up ocean battle");
     create_string("ship_is_attacking_with_cannon", "Ship is attaking with cannon");
     create_string("ship_is_attacking_with_boarding", "Ship is boarding!");
@@ -3917,7 +3905,6 @@ void initialize_game()
     game_world.total_layers = 1;
     g_world_structs[1] = game_world;
 
-    clear_all_npcs();
     struct NPC npc = generate_npc();
     npc.name_id = get_string_id_by_machine_name("empty");
     npc.type = NPC_TYPE_HUMAN;
@@ -4028,31 +4015,47 @@ void initialize_game()
     ++g_captain_count;
     ++g_inventory_count;
 
-    g_item_structs[0].name_id = get_string_id_by_machine_name("telescope");
-    g_item_structs[0].base_price = 200;
-    g_item_structs[0].type = ITEM_TYPE_GENERAL_ITEM;
-    g_item_structs[1].name_id = get_string_id_by_machine_name("quadrant");
-    g_item_structs[1].base_price = 201;
-    g_item_structs[1].type = ITEM_TYPE_GENERAL_ITEM;
-    g_item_structs[2].name_id = get_string_id_by_machine_name("theodolite");
-    g_item_structs[2].base_price = 202;
-    g_item_structs[2].type = ITEM_TYPE_GENERAL_ITEM;
-    g_item_structs[3].name_id = get_string_id_by_machine_name("sextant");
-    g_item_structs[3].base_price = 203;
-    g_item_structs[3].type = ITEM_TYPE_GENERAL_ITEM;
-    // TODO: setup_general_item_reference_map
-    // A map so we can just figure out where general items are
-    // g_general_items[0] = 0;
+    struct Item item = generate_item();
+    item.name_id = get_string_id_by_machine_name("telescope");
+    item.base_price = 200;
+    item.type = ITEM_TYPE_GENERAL_ITEM;
+    add_item(item);
+    item.name_id = get_string_id_by_machine_name("quadrant");
+    item.base_price = 201;
+    item.type = ITEM_TYPE_GENERAL_ITEM;
+    add_item(item);
+    item.name_id = get_string_id_by_machine_name("theodolite");
+    item.base_price = 202;
+    item.type = ITEM_TYPE_GENERAL_ITEM;
+    add_item(item);
+    item.name_id = get_string_id_by_machine_name("sextant");
+    item.base_price = 203;
+    item.type = ITEM_TYPE_GENERAL_ITEM;
+    add_item(item);
 
-    struct BaseShip base_ship;
+    struct BaseShip base_ship = generate_base_ship();
     base_ship.name_id = get_string_id_by_machine_name("balsa");
+    // TODO: Set actual material id
     base_ship.top_material_id = 0;
-    base_ship.base_price = 100;
+    base_ship.price = 100;
     base_ship.max_capacity = 100;
-    base_ship.base_tacking = 100;
-    base_ship.base_power = 100;
-    base_ship.base_speed = 100;
-    g_base_ship_structs[0] = base_ship;
+    base_ship.tacking = 100;
+    base_ship.power = 100;
+    base_ship.speed = 100;
+    base_ship.hull = 100;
+    add_base_ship(base_ship);
+
+    base_ship = generate_base_ship();
+    base_ship.name_id = get_string_id_by_machine_name("hansa_cog");
+    // TODO: Set actual material id
+    base_ship.top_material_id = 0;
+    base_ship.price = 100;
+    base_ship.max_capacity = 100;
+    base_ship.tacking = 100;
+    base_ship.power = 100;
+    base_ship.speed = 100;
+    base_ship.hull = 100;
+    add_base_ship(base_ship);
 
     g_bank.deposit_interest_rate = 33;
     g_bank.loan_interest_rate = 69;
@@ -4077,81 +4080,56 @@ void test()
     u32 fleet_id = g_fleet_count;
     ++g_fleet_count;
 
-    struct Ship ship;
-    uint32_t ship_id;
-    uint32_t second_ship_id;
+    struct Ship ship = generate_ship();
     ship.name_id = get_string_id_by_machine_name("player_ship");
     ship.base_ship_id = base_ship_id;
-    ship.price = 100;
+    ship.price = get_base_ship_price(base_ship_id) + 13;
+    // TODO: Set actual material id
     ship.material_id = 0;
-    ship.capacity = 100;
-    ship.tacking = 100;
-    ship.power = 100;
-    ship.speed = 100;
-    ship.crew = 100;
-    ship.hull = 99;
-    g_ship_structs[0] = ship;
-    ship_id = 0;
-    g_ship_structs[1] = ship;
-    second_ship_id = 1;
-    add_ship_to_fleet(fleet_id, ship_id);
-    add_ship_to_fleet(fleet_id, second_ship_id);
+    ship.capacity = get_base_ship_max_capacity(base_ship_id) / 2;
+    ship.tacking = get_base_ship_tacking(base_ship_id) + 10;
+    ship.power = get_base_ship_power(base_ship_id) + 10;
+    ship.speed = get_base_ship_speed(base_ship_id) + 10;
+    ship.crew = get_base_ship_max_capacity(base_ship_id) / 2;
+    ship.hull = get_base_ship_hull(base_ship_id) + 10;
+    add_ship_to_fleet(fleet_id, add_ship(ship));
+    add_ship_to_fleet(fleet_id, add_ship(ship));
 
     set_fleet_total_ships(g_fleet_count, 0);
     set_fleet_total_captains(g_fleet_count, 1);
     set_fleet_general_id(g_fleet_count, get_npc_id_by_machine_name("npc_rvice"));
     fleet_id = g_fleet_count;
     ++g_fleet_count;
-    // TODO: This is a weird way to reference ship data and stuff
     ship.name_id = get_string_id_by_machine_name("rvices_ship");
-    g_ship_structs[2] = ship;
-    ship_id = 2;
-    add_ship_to_fleet(fleet_id, ship_id);
-    g_ship_structs[3] = ship;
-    second_ship_id = 3;
-    add_ship_to_fleet(fleet_id, second_ship_id);
+    add_ship_to_fleet(fleet_id, add_ship(ship));
+    add_ship_to_fleet(fleet_id, add_ship(ship));
 
     set_fleet_total_ships(g_fleet_count, 0);
     set_fleet_total_captains(g_fleet_count, 1);
     set_fleet_general_id(g_fleet_count, get_npc_id_by_machine_name("npc_lafolie"));
     fleet_id = g_fleet_count;
     ++g_fleet_count;
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[4] = ship;
-    ship_id = 4;
-    add_ship_to_fleet(fleet_id, ship_id);
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[5] = ship;
-    second_ship_id = 5;
-    add_ship_to_fleet(fleet_id, second_ship_id);
+    ship.name_id = get_string_id_by_machine_name("lafolies_ship");
+    add_ship_to_fleet(fleet_id, add_ship(ship));
+    add_ship_to_fleet(fleet_id, add_ship(ship));
 
     set_fleet_total_ships(g_fleet_count, 0);
     set_fleet_total_captains(g_fleet_count, 1);
     set_fleet_general_id(g_fleet_count, get_npc_id_by_machine_name("npc_nakor"));
     fleet_id = g_fleet_count;
     ++g_fleet_count;
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[6] = ship;
-    ship_id = 6;
-    add_ship_to_fleet(fleet_id, ship_id);
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[7] = ship;
-    second_ship_id = 7;
-    add_ship_to_fleet(fleet_id, second_ship_id);
+    ship.name_id = get_string_id_by_machine_name("nakors_ship");
+    add_ship_to_fleet(fleet_id, add_ship(ship));
+    add_ship_to_fleet(fleet_id, add_ship(ship));
 
     set_fleet_total_ships(g_fleet_count, 0);
     set_fleet_total_captains(g_fleet_count, 1);
     set_fleet_general_id(g_fleet_count, get_npc_id_by_machine_name("npc_loller"));
     fleet_id = g_fleet_count;
     ++g_fleet_count;
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[8] = ship;
-    ship_id = 8;
-    add_ship_to_fleet(fleet_id, ship_id);
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[9] = ship;
-    second_ship_id = 9;
-    add_ship_to_fleet(fleet_id, second_ship_id);
+    ship.name_id = get_string_id_by_machine_name("lollers_ship");
+    add_ship_to_fleet(fleet_id, add_ship(ship));
+    add_ship_to_fleet(fleet_id, add_ship(ship));
 }
 
 // ------------------------------------------------------------------------------------------------ //
@@ -6314,7 +6292,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                                         // we reset the ships stats so we can
                                         // start a new fresh battle down the road
                                         uint32_t ship_id = get_world_npc_entity_id(wn);
-                                        g_ship_structs[ship_id].hull = 99;
+                                        set_ship_hull(ship_id, 99);
                                         clear_world_npc(wn);
                                     }
                                 }
