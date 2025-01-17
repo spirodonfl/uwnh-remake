@@ -499,35 +499,32 @@ struct InventoryItem
     u32 inventory_id;
     u32 number_chosen;
 };
-enum PortData
+struct Port
 {
-    PORT_NAME_ID,
-    PORT_GLOBAL_LOCATION_X,
-    PORT_GLOBAL_LOCATION_Y,
-    PORT_OVERALL_INVESTMENT_LEVEL,
-    PORT_MARKET_INVESTMENT_LEVEL,
-    PORT_SHIPYARD_INVESTMENT_LEVEL,
-    PORT_DATA_SIZE,
+    u32 name_id;
+    u32 global_location_x;
+    u32 global_location_y;
+    u32 overall_investment_level;
+    u32 market_investment_level;
+    u32 shipyard_investment_level;
 };
-enum StatsData
+struct Stats
 {
-    STATS_BATTLE_LEVEL,
-    STATS_NAVIGATION_LEVEL,
-    STATS_LEADERSHIP,
-    STATS_SEAMANSHIP,
-    STATS_KNOWLEDGE,
-    STATS_INTUITION,
-    STATS_COURAGE,
-    STATS_SWORDSMANSHIP,
-    STATS_CHARM,
-    STATS_LUCK,
-    STATS_DATA_SIZE,
+    u32 battle_level;
+    u32 navigation_level;
+    u32 leadership;
+    u32 seamanship;
+    u32 knowledge;
+    u32 intuition;
+    u32 courage;
+    u32 swordsmanship;
+    u32 charm;
+    u32 luck;
 };
-enum SkillData
+struct Skill
 {
-    SKILL_NAME_ID,
-    SKILL_STATS_REQUIREMENTS,
-    SKILL_DATA_SIZE,
+    u32 name_id;
+    u32 stats_requirements;
 };
 struct Entity
 {
@@ -539,27 +536,25 @@ struct Entity
     u32 world_position_x;
     u32 world_position_y;
 };
-enum FleetData
+struct Fleet
 {
-    FLEET_TOTAL_SHIPS,
-    FLEET_TOTAL_CAPTAINS,
-    FLEET_FIRST_MATE_ID,
-    FLEET_ACCOUNTANT_ID,
-    FLEET_NAVIGATOR_ID,
-    FLEET_GENERAL_ID,
-    FLEET_DATA_SIZE,
+    u32 total_ships;
+    u32 total_captains;
+    u32 first_mate_id;
+    u32 accountant_id;
+    u32 navigator_id;
+    // As in, the army general, not general general
+    u32 general_id;
 };
-enum FleetShipData
+struct FleetShip
 {
-    FLEET_SHIP_SHIP_ID,
-    FLEET_SHIP_FLEET_ID,
-    FLEET_SHIP_DATA_SIZE,
+    u32 ship_id;
+    u32 fleet_id;
 };
-enum FleetCaptainData
+struct FleetCaptain
 {
-    FLEET_CAPTAIN_CAPTAIN_ID,
-    FLEET_CAPTAIN_FLEET_ID,
-    FLEET_CAPTAIN_DATA_SIZE,
+    u32 captain_id; // Reference to Captain
+    u32 fleet_id;
 };
 enum UserInput
 {
@@ -865,31 +860,27 @@ struct Inventory g_inventory_structs[MAX_INVENTORIES];
 u32 g_inventory_item_count = 0;
 struct InventoryItem g_inventory_item_structs[MAX_INVENTORY_ITEMS * MAX_INVENTORIES];
 
-#define G_PORT_DATA_SIZE (MAX_PORTS * (uint32_t)PORT_DATA_SIZE)
-static uint32_t g_port_data[G_PORT_DATA_SIZE];
-static uint32_t g_port_count = 0;
+u32 g_port_count = 0;
+struct Port g_port_structs[MAX_PORTS];
 
-#define G_STATS_DATA_SIZE (MAX_STATS * (uint32_t)STATS_DATA_SIZE)
-static uint32_t g_stats_data[G_STATS_DATA_SIZE];
-static uint32_t g_stats_count = 0;
+u32 g_stats_count = 0;
+struct Stats g_stats_structs[MAX_STATS];
 
-#define G_SKILL_DATA_SIZE (MAX_SKILLS * (uint32_t)SKILL_DATA_SIZE)
-static uint32_t g_skill_data[G_SKILL_DATA_SIZE];
-static uint32_t g_skill_count = 0;
+u32 g_skills_count = 0;
+struct Stats g_skills_structs[MAX_STATS];
 
+u32 g_entity_count = 0;
+// TODO: Wait... should we rename other things to MAX_GLOBAL_ ????
 struct Entity g_entity_structs[MAX_GLOBAL_ENTITIES];
 
-#define G_FLEET_DATA_SIZE (MAX_FLEETS * (uint32_t)FLEET_DATA_SIZE)
-static uint32_t g_fleet_data[G_FLEET_DATA_SIZE];
-static uint32_t g_fleet_count = 0;
+u32 g_fleet_count = 0;
+struct Fleet g_fleet_structs[MAX_FLEETS];
 
-#define G_FLEET_SHIP_DATA_SIZE (MAX_FLEET_SHIPS * (uint32_t)FLEET_SHIP_DATA_SIZE)
-static uint32_t g_fleet_ship_data[G_FLEET_SHIP_DATA_SIZE];
-static uint32_t g_fleet_ship_count = 0;
+u32 g_fleet_ship_count = 0;
+struct FleetShip g_fleet_ship_structs[MAX_FLEET_SHIPS];
 
-#define G_FLEET_CAPTAIN_DATA_SIZE (MAX_FLEET_CAPTAINS * (uint32_t)FLEET_CAPTAIN_DATA_SIZE)
-static uint32_t g_fleet_captain_data[G_FLEET_CAPTAIN_DATA_SIZE];
-static uint32_t g_fleet_captain_count = 0;
+u32 g_fleet_captain_count = 0;
+struct FleetCaptain g_fleet_captain_structs[MAX_FLEET_CAPTAINS];
 
 u32 g_world_npc_count = 0;
 struct WorldNPC g_world_npc_structs[MAX_WORLD_NPCS];
@@ -976,13 +967,7 @@ void init_data_##name() \
         (data)[i] = SENTRY; \
     } \
 }
-
-CREATE_INIT_DATA_FUNC(port, G_PORT_DATA_SIZE, g_port_data);
-CREATE_INIT_DATA_FUNC(stats, G_STATS_DATA_SIZE, g_stats_data);
-CREATE_INIT_DATA_FUNC(skill, G_SKILL_DATA_SIZE, g_skill_data);
-CREATE_INIT_DATA_FUNC(fleet, G_FLEET_DATA_SIZE, g_fleet_data);
-CREATE_INIT_DATA_FUNC(fleet_ship, G_FLEET_SHIP_DATA_SIZE, g_fleet_ship_data);
-CREATE_INIT_DATA_FUNC(fleet_captain, G_FLEET_CAPTAIN_DATA_SIZE, g_fleet_captain_data);
+// CREATE_INIT_DATA_FUNC(fleet_ship, G_FLEET_SHIP_DATA_SIZE, g_fleet_ship_data);
 
 void init_string_data(void)
 {
@@ -1479,12 +1464,7 @@ void free_##entity_type(uint32_t data_index) \
 // USAGE: FREE_ENTITY(npc, g_npc_data, NPC_DATA_SIZE, MAX_NPCS, g_npc_count);
 
 // Create creation functions based on Macro usage
-CREATE_ENTITY_FUNC(port, uint32_t, PORT_DATA_SIZE, MAX_PORTS, PORT_NAME_ID, g_port_count, g_port_data);
-CREATE_ENTITY_FUNC(stats, uint32_t, STATS_DATA_SIZE, MAX_STATS, STATS_BATTLE_LEVEL, g_stats_count, g_stats_data);
-CREATE_ENTITY_FUNC(skill, uint32_t, SKILL_DATA_SIZE, MAX_SKILLS, SKILL_NAME_ID, g_skill_count, g_skill_data);
-CREATE_ENTITY_FUNC(fleet, uint32_t, FLEET_DATA_SIZE, MAX_FLEETS, FLEET_GENERAL_ID, g_fleet_count, g_fleet_data);
-CREATE_ENTITY_FUNC(fleet_ship, uint32_t, FLEET_SHIP_DATA_SIZE, MAX_FLEET_SHIPS, FLEET_SHIP_SHIP_ID, g_fleet_ship_count, g_fleet_ship_data);
-CREATE_ENTITY_FUNC(fleet_captain, uint32_t, FLEET_CAPTAIN_DATA_SIZE, MAX_FLEET_CAPTAINS, FLEET_CAPTAIN_CAPTAIN_ID, g_fleet_captain_count, g_fleet_captain_data);
+// CREATE_ENTITY_FUNC(fleet_ship, uint32_t, FLEET_SHIP_DATA_SIZE, MAX_FLEET_SHIPS, FLEET_SHIP_SHIP_ID, g_fleet_ship_count, g_fleet_ship_data);
 
 
 int32_t create_string(const char* machine_name, const char* text)
@@ -3257,12 +3237,8 @@ u32 get_player_inventory_item_by_id(u32 item_id)
 }
 u32 get_player_inventory_item_string_id(u32 item_id)
 {
-    u32 offset = get_player_inventory_item_by_id(item_id);
-    if (offset != SENTRY)
-    {
-        return g_inventory_item_data[offset + INVENTORY_ITEM_NAME_ID];
-    }
-    return SENTRY;
+    //u32 offset = get_player_inventory_item_by_id(item_id);
+    return g_inventory_item_structs[item_id].name_id;
 }
 uint32_t get_player_in_world(uint32_t player_id)
 {
@@ -3460,57 +3436,84 @@ void reduce_ship_crew(uint32_t ship_id, uint32_t damage)
 // ------------------------------------------------------------------------------------------------ //
 // FLEETS
 // ------------------------------------------------------------------------------------------------ //
-void add_ship_to_fleet(uint32_t fleet_id, uint32_t ship_id)
+void set_fleet_ship_fleet_id(u32 id, u32 value)
 {
-    uint32_t offset = fleet_id * FLEET_DATA_SIZE;
-    g_fleet_data[offset + FLEET_TOTAL_SHIPS] += 1;
+    g_fleet_ship_structs[id].fleet_id = value;
+}
+void set_fleet_ship_ship_id(u32 id, u32 value)
+{
+    g_fleet_ship_structs[id].ship_id = value;
+}
+void add_ship_to_fleet(u32 fleet_id, u32 ship_id)
+{
+    g_fleet_structs[fleet_id].total_ships += 1;
     // TODO: Only need this if the captain of a ship is NOT the same as the fleets general (also a captain)
     // g_fleet_data[offset + FLEET_TOTAL_CAPTAINS] += 1;
-    uint32_t fleet_ship_data[FLEET_SHIP_DATA_SIZE];
-    CLEAR_DATA(fleet_ship_data, FLEET_SHIP_DATA_SIZE);
-    fleet_ship_data[FLEET_SHIP_FLEET_ID] = fleet_id;
-    fleet_ship_data[FLEET_SHIP_SHIP_ID] = ship_id;
-    create_fleet_ship(fleet_ship_data, true);
+    set_fleet_ship_fleet_id(g_fleet_ship_count, fleet_id);
+    set_fleet_ship_ship_id(g_fleet_ship_count, ship_id);
+    ++g_fleet_ship_count;
 }
-uint32_t get_fleet_ship_fleet_id(uint32_t fleet_ship_id)
+u32 get_fleet_ship_fleet_id(u32 fleet_ship_id)
 {
-    uint32_t offset = fleet_ship_id * FLEET_SHIP_DATA_SIZE;
-    return g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID];
+    return g_fleet_ship_structs[fleet_ship_id].fleet_id;
 }
-uint32_t get_fleet_ship_ship_id(uint32_t fleet_ship_id)
+u32 get_fleet_ship_ship_id(u32 fleet_ship_id)
 {
-    uint32_t offset = fleet_ship_id * FLEET_SHIP_DATA_SIZE;
-    return g_fleet_ship_data[offset + FLEET_SHIP_SHIP_ID];
+    return g_fleet_ship_structs[fleet_ship_id].ship_id;
 }
 uint32_t get_fleet_total_ships(uint32_t fleet_id)
 {
-    uint32_t offset = fleet_id * FLEET_DATA_SIZE;
-    return g_fleet_data[offset + FLEET_TOTAL_SHIPS];
+    return g_fleet_structs[fleet_id].total_ships;
 }
 uint32_t get_ship_id_by_fleet_ship_id(uint32_t ship_id)
 {
     for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i)
     {
-        uint32_t offset = i * FLEET_SHIP_DATA_SIZE;
-        if (g_fleet_ship_data[offset + FLEET_SHIP_SHIP_ID] == ship_id)
+        if (get_fleet_ship_ship_id(i) == ship_id)
         {
             return i;
         }
     }
     return SENTRY;
 }
-uint32_t get_fleet_id_by_general_id(uint32_t general_id)
+u32 get_fleet_general_id(u32 id)
 {
-    for (uint32_t i = 0; i < MAX_FLEETS; ++i)
+    return g_fleet_structs[id].general_id;
+}
+u32 get_fleet_id_by_general_id(u32 general_id)
+{
+    for (u32 i = 0; i < MAX_FLEETS; ++i)
     {
-        uint32_t offset = i * FLEET_DATA_SIZE;
-        if (g_fleet_data[offset + FLEET_GENERAL_ID] == general_id)
+        if (get_fleet_general_id(i) == general_id)
         {
             return i;
         }
     }
     return SENTRY;
 }
+void set_fleet_total_ships(u32 id, u32 value)
+{
+    if (value > MAX_FLEET_SHIPS)
+    {
+        console_log("Setting too many total ships in fleet");
+        return;
+    }
+    g_fleet_structs[id].total_ships = value;
+}
+void set_fleet_total_captains(u32 id, u32 value)
+{
+    if (value > MAX_FLEET_CAPTAINS)
+    {
+        console_log("Setting too many total captains in fleet");
+        return;
+    }
+    g_fleet_structs[id].total_captains = value;
+}
+void set_fleet_general_id(u32 id, u32 value)
+{
+    g_fleet_structs[id].general_id = value;
+}
+// TODO: void set_fleet_general_id_by_string(u32 id, char* name)
 
 // ------------------------------------------------------------------------------------------------ //
 // GENERAL GAME FUNCTIONS
@@ -3575,14 +3578,6 @@ void initialize_game()
 
     init_string_data();
     init_string_info();
-    init_data_inventory();
-    init_data_inventory_item();
-    init_data_port();
-    init_data_stats();
-    init_data_skill();
-    init_data_fleet();
-    init_data_fleet_ship();
-    init_data_fleet_captain();
     init_structs_entities();
 
     create_string("empty", "Empty");
@@ -3841,55 +3836,51 @@ void initialize_game()
     empty_npc.type = NPC_TYPE_HUMAN;
     g_npc_structs[npc_loller_id] = empty_npc;
 
-    uint32_t inventory_data[INVENTORY_DATA_SIZE];
-    CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
-    inventory_data[INVENTORY_NAME_ID] = get_string_id_by_machine_name("player_ones_inventory");
-    inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
-    uint32_t inventory_id = create_inventory(inventory_data, true);
-
+    set_inventory_name_id_by_string(g_inventory_count, "player_ones_inventory");
+    set_inventory_total_items(g_inventory_count, 0);
     set_captain_npc_id(g_captain_count, empty_npc_id);
     set_captain_player_id(g_captain_count, 0);
     set_captain_gold(g_captain_count, 99);
-    set_captain_inventory_id(g_captain_count, inventory_id);
+    set_captain_inventory_id(g_captain_count, g_inventory_count);
     players[0] = g_captain_count;
     ++g_captain_count;
+    ++g_inventory_count;
 
-    CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
-    inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_rvice_id);
-    inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
-    inventory_id = create_inventory(inventory_data, true);
+    set_inventory_name_id(g_inventory_count, get_npc_name_id(npc_rvice_id));
+    set_inventory_total_items(g_inventory_count, 0);
     set_captain_npc_id(g_captain_count, npc_rvice_id);
     set_captain_player_id(g_captain_count, 0);
     set_captain_gold(g_captain_count, 100);
-    set_captain_inventory_id(g_captain_count, inventory_id);
+    set_captain_inventory_id(g_captain_count, g_inventory_count);
     ++g_captain_count;
-    CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
-    inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_lafolie_id);
-    inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
-    inventory_id = create_inventory(inventory_data, true);
+    ++g_inventory_count;
+
+    set_inventory_name_id(g_inventory_count, get_npc_name_id(npc_lafolie_id));
+    set_inventory_total_items(g_inventory_count, 0);
     set_captain_npc_id(g_captain_count, npc_lafolie_id);
     set_captain_player_id(g_captain_count, 0);
     set_captain_gold(g_captain_count, 100);
-    set_captain_inventory_id(g_captain_count, inventory_id);
+    set_captain_inventory_id(g_captain_count, g_inventory_count);
     ++g_captain_count;
-    CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
-    inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_nakor_id);
-    inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
-    inventory_id = create_inventory(inventory_data, true);
+    ++g_inventory_count;
+
+    set_inventory_name_id(g_inventory_count, get_npc_name_id(npc_nakor_id));
+    set_inventory_total_items(g_inventory_count, 0);
     set_captain_npc_id(g_captain_count, npc_nakor_id);
     set_captain_player_id(g_captain_count, 0);
     set_captain_gold(g_captain_count, 100);
-    set_captain_inventory_id(g_captain_count, inventory_id);
+    set_captain_inventory_id(g_captain_count, g_inventory_count);
     ++g_captain_count;
-    CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
-    inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_travis_id);
-    inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
-    inventory_id = create_inventory(inventory_data, true);
+    ++g_inventory_count;
+
+    set_inventory_name_id(g_inventory_count, get_npc_name_id(npc_travis_id));
+    set_inventory_total_items(g_inventory_count, 0);
     set_captain_npc_id(g_captain_count, npc_travis_id);
     set_captain_player_id(g_captain_count, 0);
     set_captain_gold(g_captain_count, 100);
-    set_captain_inventory_id(g_captain_count, inventory_id);
+    set_captain_inventory_id(g_captain_count, g_inventory_count);
     ++g_captain_count;
+    ++g_inventory_count;
 
     g_item_structs[0].name_id = get_string_id_by_machine_name("telescope");
     g_item_structs[0].base_price = 200;
@@ -3933,13 +3924,12 @@ void test()
 
     u32 base_ship_id = get_base_ship_id_by_machine_name("balsa");
 
-    uint32_t fleet_data[FLEET_DATA_SIZE];
-    CLEAR_DATA(fleet_data, FLEET_DATA_SIZE);
-    fleet_data[FLEET_TOTAL_SHIPS] = 0;
-    fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
+    set_fleet_total_ships(g_fleet_count, 0);
+    set_fleet_total_captains(g_fleet_count, 1);
     // TODO: This should be the player captain id. Right now, that happens to be manually set to 0 so we'll just use that for now
-    fleet_data[FLEET_GENERAL_ID] = players[0];
-    uint32_t fleet_id = create_fleet(fleet_data, true);
+    set_fleet_general_id(g_fleet_count, players[0]);
+    u32 fleet_id = g_fleet_count;
+    ++g_fleet_count;
 
     struct Ship ship;
     uint32_t ship_id;
@@ -3961,27 +3951,25 @@ void test()
     add_ship_to_fleet(fleet_id, ship_id);
     add_ship_to_fleet(fleet_id, second_ship_id);
 
-    uint32_t npc_id;
-    fleet_data[FLEET_TOTAL_SHIPS] = 0;
-    fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
-    npc_id = get_npc_id_by_machine_name("npc_rvice");
-    fleet_data[FLEET_GENERAL_ID] = npc_id;
-    fleet_id = create_fleet(fleet_data, true);
+    set_fleet_total_ships(g_fleet_count, 0);
+    set_fleet_total_captains(g_fleet_count, 1);
+    set_fleet_general_id(g_fleet_count, get_npc_id_by_machine_name("npc_rvice"));
+    fleet_id = g_fleet_count;
+    ++g_fleet_count;
     // TODO: This is a weird way to reference ship data and stuff
     ship.name_id = get_string_id_by_machine_name("rvices_ship");
     g_ship_structs[2] = ship;
     ship_id = 2;
     add_ship_to_fleet(fleet_id, ship_id);
-    npc_id = get_npc_id_by_machine_name("rvices_ship");
     g_ship_structs[3] = ship;
     second_ship_id = 3;
     add_ship_to_fleet(fleet_id, second_ship_id);
 
-    fleet_data[FLEET_TOTAL_SHIPS] = 0;
-    fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
-    npc_id = get_npc_id_by_machine_name("npc_rvice");
-    fleet_data[FLEET_GENERAL_ID] = npc_id;
-    fleet_id = create_fleet(fleet_data, true);
+    set_fleet_total_ships(g_fleet_count, 0);
+    set_fleet_total_captains(g_fleet_count, 1);
+    set_fleet_general_id(g_fleet_count, get_npc_id_by_machine_name("npc_lafolie"));
+    fleet_id = g_fleet_count;
+    ++g_fleet_count;
     ship.name_id = get_string_id_by_machine_name("player_ship");
     g_ship_structs[4] = ship;
     ship_id = 4;
@@ -3991,11 +3979,11 @@ void test()
     second_ship_id = 5;
     add_ship_to_fleet(fleet_id, second_ship_id);
 
-    fleet_data[FLEET_TOTAL_SHIPS] = 0;
-    fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
-    npc_id = get_npc_id_by_machine_name("npc_rvice");
-    fleet_data[FLEET_GENERAL_ID] = npc_id;
-    fleet_id = create_fleet(fleet_data, true);
+    set_fleet_total_ships(g_fleet_count, 0);
+    set_fleet_total_captains(g_fleet_count, 1);
+    set_fleet_general_id(g_fleet_count, get_npc_id_by_machine_name("npc_nakor"));
+    fleet_id = g_fleet_count;
+    ++g_fleet_count;
     ship.name_id = get_string_id_by_machine_name("player_ship");
     g_ship_structs[6] = ship;
     ship_id = 6;
@@ -4005,11 +3993,11 @@ void test()
     second_ship_id = 7;
     add_ship_to_fleet(fleet_id, second_ship_id);
 
-    fleet_data[FLEET_TOTAL_SHIPS] = 0;
-    fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
-    npc_id = get_npc_id_by_machine_name("npc_rvice");
-    fleet_data[FLEET_GENERAL_ID] = npc_id;
-    fleet_id = create_fleet(fleet_data, true);
+    set_fleet_total_ships(g_fleet_count, 0);
+    set_fleet_total_captains(g_fleet_count, 1);
+    set_fleet_general_id(g_fleet_count, get_npc_id_by_machine_name("npc_loller"));
+    fleet_id = g_fleet_count;
+    ++g_fleet_count;
     ship.name_id = get_string_id_by_machine_name("player_ship");
     g_ship_structs[8] = ship;
     ship_id = 8;
@@ -4017,20 +4005,6 @@ void test()
     ship.name_id = get_string_id_by_machine_name("player_ship");
     g_ship_structs[9] = ship;
     second_ship_id = 9;
-    add_ship_to_fleet(fleet_id, second_ship_id);
-
-    fleet_data[FLEET_TOTAL_SHIPS] = 0;
-    fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
-    npc_id = get_npc_id_by_machine_name("npc_rvice");
-    fleet_data[FLEET_GENERAL_ID] = npc_id;
-    fleet_id = create_fleet(fleet_data, true);
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[10] = ship;
-    ship_id = 10;
-    add_ship_to_fleet(fleet_id, ship_id);
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[11] = ship;
-    second_ship_id = 11;
     add_ship_to_fleet(fleet_id, second_ship_id);
 }
 
@@ -4952,8 +4926,7 @@ uint32_t scene_general_shop(uint32_t action)
                         uint32_t qty = input_array_buffer[1];
                         uint32_t player_gold = get_player_gold(0);
                         uint32_t real_item_id = CurrentSceneInventoryItems[item_id];
-                        uint32_t real_item_offset = real_item_id * INVENTORY_ITEM_DATA_SIZE;
-                        uint32_t base_price = g_inventory_item_data[real_item_offset + INVENTORY_ITEM_ADJUSTED_PRICE];
+                        uint32_t base_price = get_inventory_item_adjusted_price(real_item_id);
                         uint32_t total_price = base_price * qty;
                         if (player_gold >= total_price)
                         {
@@ -5053,7 +5026,7 @@ uint32_t scene_general_shop(uint32_t action)
         }
         case SCENE_GENERAL_SHOP_STATE_BUYING_COMPLETE:
         {
-            uint32_t cc = current_scene_get_current_choice();
+            u32 cc = current_scene_get_current_choice();
             switch (action)
             {
                 case SCENE_ACTION_INIT:
@@ -5063,23 +5036,21 @@ uint32_t scene_general_shop(uint32_t action)
                         current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t item_id = input_array_buffer[0];
-                    uint32_t qty = input_array_buffer[1];
-                    uint32_t player_gold = get_player_gold(0);
-                    uint32_t real_item_id = CurrentSceneInventoryItems[item_id];
-                    uint32_t real_item_offset = real_item_id * INVENTORY_ITEM_DATA_SIZE;
-                    uint32_t base_price = g_inventory_item_data[real_item_offset + INVENTORY_ITEM_ADJUSTED_PRICE];
-                    uint32_t total_price = base_price * qty;
+                    u32 item_id = input_array_buffer[0];
+                    u32 qty = input_array_buffer[1];
+                    u32 player_gold = get_player_gold(0);
+                    u32 real_item_id = CurrentSceneInventoryItems[item_id];
+                    u32 base_price = get_inventory_item_adjusted_price(real_item_id);
+                    u32 total_price = base_price * qty;
                     subtract_player_gold(0, total_price);
-                    uint32_t inventory_id = get_player_inventory_id(0);
-                    uint32_t inventory_item_data[INVENTORY_ITEM_DATA_SIZE];
-                    CLEAR_DATA(inventory_item_data, INVENTORY_ITEM_DATA_SIZE);
-                    inventory_item_data[INVENTORY_ITEM_NUMBER_HELD] = qty;
-                    inventory_item_data[INVENTORY_ITEM_INVENTORY_ID] = inventory_id;
-                    create_inventory_item(inventory_item_data, true);
-                    increment_inventory_total_items(inventory_id);
+                    u32 inventory_id = get_player_inventory_id(0);
+                    // TODO: This is bad. We're creating a new inventory item every time. Are we even freeing this after?
+                    set_inventory_item_number_held(g_inventory_item_count, qty);
+                    set_inventory_item_inventory_id(g_inventory_item_count, inventory_id);
+                    ++g_inventory_item_count;
+                    inventory_increment_total_items(inventory_id);
 
-                    uint32_t string_id = get_string_id_by_machine_name("buy_complete");
+                    u32 string_id = get_string_id_by_machine_name("buy_complete");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -5544,8 +5515,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_SHIP_NTH_ORDER] = 0;
                     for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i)
                     {
-                        uint32_t offset = i * FLEET_SHIP_DATA_SIZE;
-                        if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] == ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_FLEET_ORDER_ID])
+                        if (get_fleet_ship_fleet_id(i) == ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_FLEET_ORDER_ID])
                         {
                             ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_SHIP_ID] = i;
                             break;
@@ -5561,8 +5531,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                     // TODO: Update this so only the active fleets in the battle are placed
                     for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i)
                     {
-                        uint32_t offset = i * FLEET_SHIP_DATA_SIZE;
-                        if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] != SENTRY)
+                        if (get_fleet_ship_fleet_id(i) != SENTRY)
                         {
                             // [BATTLE SHIP CLEAR]
                             npc_id = get_npc_id_by_machine_name("ship");
@@ -6189,8 +6158,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                         // TODO: Update this so only the active fleets in the battle are placed
                         for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i)
                         {
-                            uint32_t offset = i * FLEET_SHIP_DATA_SIZE;
-                            if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] != SENTRY)
+                            if (get_fleet_ship_fleet_id(i) != SENTRY)
                             {
                                 for (uint32_t wn = 0; wn < MAX_WORLD_NPCS; ++wn)
                                 {
