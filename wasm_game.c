@@ -322,6 +322,14 @@ u32 max(u32 a, u32 b)
         return get_##LOWERSCORE##_id_by_string_id(string_id); \
     }
 
+#define CLEAR_DATA(data, size) \
+    do { \
+        for (u32 i = 0; i < (size); ++i) \
+        { \
+            (data)[i] = SENTRY; \
+        } \
+    } while (0)
+
 // ------------------------------------------------------------------------------------------------
 // Constants
 // ------------------------------------------------------------------------------------------------
@@ -422,6 +430,35 @@ void test();
 // ------------------------------------------------------------------------------------------------
 // - STRINGS
 // ------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------------------
+// GLOBAL FUNCTIONS
+// ------------------------------------------------------------------------------------------------
+char* my_strcpy(char* dest, const char* src)
+{
+    char* original_dest = dest;
+    while ((*dest++ = *src++) != '\0');
+    // Null terminate
+    *dest = '\0';
+    return original_dest;
+}
+u32 get_string_data_offset(u32 index)
+{
+    return index * MAX_STRING_LENGTH * 2;
+}
+unsigned long strlen(const char* str)
+{
+    unsigned long len = 0;
+    while (str[len] != '\0') len++;
+    return len;
+}
+int strcmp(const char* str1, const char* str2)
+{
+    while (*str1 && (*str1 == *str2)) {
+        str1++;
+        str2++;
+    }
+    return *(unsigned char*)str1 - *(unsigned char*)str2;
+}
 // We need to have strings up here so other things can reference strings without *having* to do forward declarations
 enum StringData
 {
@@ -466,7 +503,7 @@ const char* get_string_text(u32 index)
     if (index >= MAX_STRINGS) return "";
     u32 offset = index * MAX_STRING_LENGTH * 2;
     u32 info_offset = offset + STRING_DATA_SIZE;
-    u32 length = g_string_info[info_offset + (u32)STRING_TEXT_LENGTH];
+    u32 length = g_string_info[info_offset + STRING_TEXT_LENGTH];
     char slice[length + 1];
     for (u32 j = 0; j < length; j += 1)
     {
@@ -484,7 +521,7 @@ const char* get_string_machine_name(u32 index)
     }
     u32 offset = index * MAX_STRING_LENGTH * 2;
     u32 info_offset = index * STRING_DATA_SIZE;
-    u32 length = g_string_info[info_offset + (u32)STRING_MACHINE_NAME_LENGTH];
+    u32 length = g_string_info[info_offset + STRING_MACHINE_NAME_LENGTH];
     char slice[length + 1];
     for (u32 j = 0; j < length; j += 1)
     {
@@ -497,7 +534,7 @@ char* get_string_text_ptr(u32 index)
 {
     if (index >= MAX_STRINGS) return NULL;
     u32 offset = index * MAX_STRING_LENGTH * 2;
-    return &g_string_data[offset + (u32)MAX_STRING_LENGTH];
+    return &g_string_data[offset + MAX_STRING_LENGTH];
 }
 u32 get_string_text_len(u32 index)
 {
@@ -508,7 +545,7 @@ u32 get_string_text_len(u32 index)
         return SENTRY;
     }
     u32 offset = index * STRING_DATA_SIZE;
-    return g_string_info[offset + (u32)STRING_TEXT_LENGTH];
+    return g_string_info[offset + STRING_TEXT_LENGTH];
 }
 char* get_string_machine_name_ptr(u32 index)
 {
@@ -524,7 +561,65 @@ u32 get_string_machine_name_len(u32 index)
         return SENTRY;
     }
     u32 offset = index * STRING_DATA_SIZE;
-    return g_string_info[offset + (u32)STRING_MACHINE_NAME_LENGTH];
+    return g_string_info[offset + STRING_MACHINE_NAME_LENGTH];
+}
+void init_string_data(void)
+{
+    for (u32 i = 0; i < G_STRING_DATA_SIZE; ++i)
+    {
+        g_string_data[i] = '\0';
+    }
+}
+void init_string_info(void)
+{
+    for (u32 i = 0; i < G_STRING_INFO_SIZE; ++i)
+    {
+        g_string_info[i] = SENTRY;
+    }
+}
+u32 create_string(const char* machine_name, const char* text)
+{
+    u32 machine_name_len = 0;
+    u32 text_len = 0;
+    
+    // Calculate lengths
+    while (machine_name[machine_name_len] && machine_name_len < MAX_STRING_LENGTH) machine_name_len++;
+    while (text[text_len] && text_len < MAX_STRING_LENGTH) text_len++;
+
+    if (machine_name_len >= MAX_STRING_LENGTH || text_len >= MAX_STRING_LENGTH)
+    {
+        console_log("String is too long");
+        return SENTRY;
+    }
+
+    for (u32 i = 0; i < MAX_STRINGS; ++i)
+    {
+        u32 info_offset = i * STRING_DATA_SIZE;
+        if (g_string_info[info_offset + STRING_MACHINE_NAME_LENGTH] == SENTRY)
+        {
+            // Calculate the offset for string data
+            u32 string_offset = i * (MAX_STRING_LENGTH * 2);
+            
+            // Clear the memory first
+            for (u32 j = 0; j < MAX_STRING_LENGTH * 2; j++)
+            {
+                g_string_data[string_offset + j] = '\0';
+            }
+            
+            // Copy machine name
+            my_strcpy(&g_string_data[string_offset], machine_name);
+            // Copy text after machine name
+            my_strcpy(&g_string_data[string_offset + MAX_STRING_LENGTH], text);
+            
+            // Store lengths
+            g_string_info[info_offset + STRING_MACHINE_NAME_LENGTH] = machine_name_len;
+            g_string_info[info_offset + STRING_TEXT_LENGTH] = text_len;
+            
+            g_string_count += 1;
+            return i;
+        }
+    }
+    return SENTRY;
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -1056,6 +1151,21 @@ enum StatsData
     STATS_LUCK,
     STATS_DATA_SIZE,
 };
+STORAGE_STRUCT(Stats, stats, STATS, MAX_STATS)
+FIND_NEXT_OPEN_SLOT(Stats, stats, STATS, MAX_STATS)
+STORAGE_CLEAR(Stats, stats, STATS, MAX_STATS)
+STORAGE_ADD(Stats, stats, STATS, MAX_STATS)
+STORAGE_REMOVE(Stats, stats, STATS, MAX_STATS)
+GENERATE_FIELD_ACCESSORS(Stats, stats, STATS, MAX_STATS, battle_level, BATTLE_LEVEL)
+GENERATE_FIELD_ACCESSORS(Stats, stats, STATS, MAX_STATS, navigation_level, NAVIGATION_LEVEL)
+GENERATE_FIELD_ACCESSORS(Stats, stats, STATS, MAX_STATS, leadership, LEADERSHIP)
+GENERATE_FIELD_ACCESSORS(Stats, stats, STATS, MAX_STATS, seamanship, SEAMANSHIP)
+GENERATE_FIELD_ACCESSORS(Stats, stats, STATS, MAX_STATS, knowledge, KNOWLEDGE)
+GENERATE_FIELD_ACCESSORS(Stats, stats, STATS, MAX_STATS, intuition, INTUITION)
+GENERATE_FIELD_ACCESSORS(Stats, stats, STATS, MAX_STATS, courage, COURAGE)
+GENERATE_FIELD_ACCESSORS(Stats, stats, STATS, MAX_STATS, swordsmanship, SWORDSMANSHIP)
+GENERATE_FIELD_ACCESSORS(Stats, stats, STATS, MAX_STATS, charm, CHARM)
+GENERATE_FIELD_ACCESSORS(Stats, stats, STATS, MAX_STATS, luck, LUCK)
 
 enum SkillData
 {
@@ -1063,6 +1173,15 @@ enum SkillData
     SKILL_STATS_REQUIREMENTS,
     SKILL_DATA_SIZE,
 };
+STORAGE_STRUCT(Skill, skill, SKILL, MAX_SKILLS)
+FIND_NEXT_OPEN_SLOT(Skill, skill, SKILL, MAX_SKILLS)
+STORAGE_CLEAR(Skill, skill, SKILL, MAX_SKILLS)
+STORAGE_ADD(Skill, skill, SKILL, MAX_SKILLS)
+STORAGE_REMOVE(Skill, skill, SKILL, MAX_SKILLS)
+GENERATE_FIELD_ACCESSORS(Skill, skill, SKILL, MAX_SKILLS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(Skill, skill, SKILL, MAX_SKILLS, stats_requirements, STATS_REQUIREMENTS)
+GET_BY_STRING_ID(Skill, skill, SKILL, MAX_SKILLS)
+GET_BY_MACHINE_NAME(Skill, skill, SKILLS)
 
 enum EntityData
 {
@@ -1421,16 +1540,8 @@ enum OceanBattleData
 // ------------------------------------------------------------------------------------------------
 // Resource Management
 // ------------------------------------------------------------------------------------------------
-#define G_STATS_DATA_SIZE (MAX_STATS * (u32)STATS_DATA_SIZE)
-static u32 g_stats_data[G_STATS_DATA_SIZE];
-static u32 g_stats_count = 0;
-
-#define G_SKILL_DATA_SIZE (MAX_SKILLS * (u32)SKILL_DATA_SIZE)
-static u32 g_skill_data[G_SKILL_DATA_SIZE];
-static u32 g_skill_count = 0;
-
 // Note: Bank does not need a resource. It's a single entity that is always present.
-#define G_BANK_DATA_SIZE (MAX_BANKS * (u32)BANK_DATA_SIZE)
+#define G_BANK_DATA_SIZE (MAX_BANKS * BANK_DATA_SIZE)
 static u32 g_bank_data[G_BANK_DATA_SIZE];
 
 // The "current_world" global variable is just a resource handler to a world data array
@@ -1470,67 +1581,6 @@ u32 CurrentSceneInventoryItems[MAX_INVENTORY_ITEMS];
 u32 current_user_input_number;
 
 static u32 ocean_battle_data[OCEAN_BATTLE_DATA_SIZE];
-
-// ------------------------------------------------------------------------------------------------
-// GLOBAL FUNCTIONS
-// ------------------------------------------------------------------------------------------------
-char* my_strcpy(char* dest, const char* src)
-{
-    char* original_dest = dest;
-    while ((*dest++ = *src++) != '\0');
-    // Null terminate
-    *dest = '\0';
-    return original_dest;
-}
-u32 get_string_data_offset(u32 index)
-{
-    return index * MAX_STRING_LENGTH * 2;
-}
-unsigned long strlen(const char* str)
-{
-    unsigned long len = 0;
-    while (str[len] != '\0') len++;
-    return len;
-}
-int strcmp(const char* str1, const char* str2)
-{
-    while (*str1 && (*str1 == *str2)) {
-        str1++;
-        str2++;
-    }
-    return *(unsigned char*)str1 - *(unsigned char*)str2;
-}
-
-// ------------------------------------------------------------------------------------------------
-// Resource Initialization
-// ------------------------------------------------------------------------------------------------
-#define CREATE_INIT_DATA_FUNC(name, data_size, data) \
-void init_data_##name() \
-{ \
-    for (u32 i = 0; i < (data_size); ++i) \
-    { \
-        (data)[i] = SENTRY; \
-    } \
-}
-
-CREATE_INIT_DATA_FUNC(stats, G_STATS_DATA_SIZE, g_stats_data);
-CREATE_INIT_DATA_FUNC(skill, G_SKILL_DATA_SIZE, g_skill_data);
-CREATE_INIT_DATA_FUNC(bank, G_BANK_DATA_SIZE, g_bank_data);
-
-void init_string_data(void)
-{
-    for (u32 i = 0; i < G_STRING_DATA_SIZE; ++i)
-    {
-        g_string_data[i] = '\0';
-    }
-}
-void init_string_info(void)
-{
-    for (u32 i = 0; i < G_STRING_INFO_SIZE; ++i)
-    {
-        g_string_info[i] = SENTRY;
-    }
-}
 
 
 // ------------------------------------------------------------------------------------------------
@@ -1917,139 +1967,6 @@ u32 check_if_player_stepped_on_entity(u32 player_id)
     }
     return SENTRY;
 }
-
-// ------------------------------------------------------------------------------------------------
-// Resource Creation
-// ------------------------------------------------------------------------------------------------
-#define CREATE_ENTITY_FUNC(name, data_type, data_size, max_entities, name_id, count, entity_data) \
-u32 create_##name(data_type data[data_size], ...) \
-{ \
-    va_list args; \
-    va_start(args, data); \
-    u32 should_clear = va_arg(args, u32); \
-    u32 value = SENTRY; \
-    CREATE_ENTITY(data, entity_data, data_size, max_entities, name_id, count, value); \
-    if (should_clear == 1) \
-    { \
-        CLEAR_DATA(data, data_size); \
-    } \
-    va_end(args); \
-    return value; \
-}
-
-#define CREATE_ENTITY(data, entity_data, entity_size, max_entities, name_id, count, value) \
-    do { \
-        if (data[name_id] == SENTRY) \
-        { \
-            console_log("Tried to create an entity with an empty name using " #name_id); \
-            value = SENTRY; \
-            break; \
-        } \
-        for (u32 i = 0; i < max_entities; ++i) \
-        { \
-            u32 offset = i * entity_size; \
-            if (entity_data[offset + name_id] == SENTRY) \
-            { \
-                for (u32 j = 0; j < entity_size; j += 1) \
-                { \
-                    entity_data[offset + j] = data[j]; \
-                } \
-                count += 1; \
-                value = i; \
-                break; \
-            } \
-        } \
-    } while (0)
-
-#define CLEAR_DATA(data, size) \
-    do { \
-        for (u32 i = 0; i < (size); ++i) \
-        { \
-            (data)[i] = SENTRY; \
-        } \
-    } while (0)
-
-#define FREE_ENTITY(entity_type, entity_data, entity_size, max_entities, count) \
-void free_##entity_type(u32 data_index) \
-{ \
-    if (data_index >= max_entities) \
-    { \
-        console_log("Tried to free a " #entity_type " resource that doesn't exist"); \
-        return; \
-    } \
-    u32 offset = data_index * entity_size; \
-    for (u32 i = 0; i < entity_size; ++i) \
-    { \
-        entity_data[offset + i] = SENTRY; \
-    } \
-    count -= 1; \
-}
-// USAGE: FREE_ENTITY(npc, g_npc_data, NPC_DATA_SIZE, MAX_NPCS, g_npc_count);
-
-// Create creation functions based on Macro usage
-CREATE_ENTITY_FUNC(stats, u32, STATS_DATA_SIZE, MAX_STATS, STATS_BATTLE_LEVEL, g_stats_count, g_stats_data);
-CREATE_ENTITY_FUNC(skill, u32, SKILL_DATA_SIZE, MAX_SKILLS, SKILL_NAME_ID, g_skill_count, g_skill_data);
-
-
-int32_t create_string(const char* machine_name, const char* text)
-{
-    u32 machine_name_len = 0;
-    u32 text_len = 0;
-    
-    // Calculate lengths
-    while (machine_name[machine_name_len] && machine_name_len < MAX_STRING_LENGTH) machine_name_len++;
-    while (text[text_len] && text_len < MAX_STRING_LENGTH) text_len++;
-
-    if (machine_name_len >= MAX_STRING_LENGTH || text_len >= MAX_STRING_LENGTH)
-    {
-        console_log("String is too long");
-        return SENTRY;
-    }
-
-    for (u32 i = 0; i < MAX_STRINGS; ++i)
-    {
-        u32 info_offset = i * STRING_DATA_SIZE;
-        if (g_string_info[info_offset + (u32)STRING_MACHINE_NAME_LENGTH] == SENTRY)
-        {
-            // Calculate the offset for string data
-            u32 string_offset = i * (MAX_STRING_LENGTH * 2);
-            
-            // Clear the memory first
-            for (u32 j = 0; j < MAX_STRING_LENGTH * 2; j++)
-            {
-                g_string_data[string_offset + j] = '\0';
-            }
-            
-            // Copy machine name
-            my_strcpy(&g_string_data[string_offset], machine_name);
-            // Copy text after machine name
-            my_strcpy(&g_string_data[string_offset + MAX_STRING_LENGTH], text);
-            
-            // Store lengths
-            g_string_info[info_offset + (u32)STRING_MACHINE_NAME_LENGTH] = machine_name_len;
-            g_string_info[info_offset + (u32)STRING_TEXT_LENGTH] = text_len;
-            
-            g_string_count += 1;
-            return i;
-        }
-    }
-    return SENTRY;
-}
-// TODO: Update this for string
-// void free_string(u32 data_index) {
-//     if (data_index >= MAX_STRINGS) {
-//         console_log("Tried to free a string resource that doesn't exist");
-//         return;
-//     }
-//     u32 offset = data_index * STRING_DATA_SIZE;
-//     g_string_info[offset + (u32)STRING_MACHINE_NAME_LENGTH] = SENTRY;
-//     g_string_info[offset + (u32)STRING_TEXT_LENGTH] = SENTRY;
-//     offset = data_index * MAX_STRING_LENGTH * 2;
-//     for (u32 i = 0; i < MAX_STRING_LENGTH * 2; ++i) {
-//         g_string_data[offset + i] = '\0';
-//     }
-//     g_string_count -= 1;
-// }
 
 // ------------------------------------------------------------------------------------------------ //
 // DISTANCES
@@ -3466,14 +3383,12 @@ void tick()
 void initialize_game()
 {
     tick_counter = 1;
-    current_game_mode = (u32)GAME_MODE_EMPTY;
+    current_game_mode = GAME_MODE_EMPTY;
     clear_current_scene();
 
     init_string_data();
     init_string_info();
-    init_data_stats();
-    init_data_skill();
-    init_data_bank();
+    CLEAR_DATA(g_bank_data, BANK_DATA_SIZE);
 
     create_string("empty", "Empty");
     create_string("you_have_x_gold", "You have %d gold.");
