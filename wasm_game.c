@@ -4,8 +4,8 @@
 #include <stdbool.h>
 
 // #include "rvice_sucks.h"
-// uint32_t test_world_data_out(uint32_t t) {
-//     // uint32_t offset = t * 4;
+// u32 test_world_data_out(u32 t) {
+//     // u32 offset = t * 4;
 //     // return rvice_sucks_bin[offset];
 //     return rvice_sucks[t];
 // }
@@ -21,16 +21,16 @@ unsigned long strlen(const char* str);
 int strcmp(const char* str1, const char* str2);
 #define SENTRY UINT32_MAX
 __attribute__((visibility("default")))
-uint32_t get_sentry()
+u32 get_sentry()
 {
     return SENTRY;
 }
-extern void js_console_log(void* ptr, uint32_t len);
+extern void js_console_log(void* ptr, u32 len);
 void console_log(const char* message)
 {
     if (message != NULL)
     {
-        js_console_log((void*)message, (uint32_t)(sizeof(char) * strlen(message)));
+        js_console_log((void*)message, (u32)(sizeof(char) * strlen(message)));
     }
 }
 char* string_format(const char* format, ...)
@@ -148,7 +148,7 @@ void console_log_format(const char* format, ...)
     
     console_log(formatted);
 }
-uint32_t max(uint32_t a, uint32_t b)
+u32 max(u32 a, u32 b)
 {
     return a > b ? a : b;
 }
@@ -163,106 +163,163 @@ uint32_t max(uint32_t a, uint32_t b)
         } \
     } while (0)
 
-#define STORAGE_STRUCT(TYPE, STORAGE_STRUCT, MAX_COUNT, MAX_SIZE) \
-    struct Storage##TYPE { \
-        u32 data[MAX_COUNT * MAX_SIZE]; \
+#define STORAGE_STRUCT(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT) \
+    struct Storage##CAMEL##s { \
+        u32 data[MAX_COUNT * UPPERSCORE##_DATA_SIZE]; \
         bool used[MAX_COUNT]; \
         u32 count; \
         u32 next_open_slot; \
     }; \
-    struct Storage##TYPE g_storage_##STORAGE_STRUCT;
+    struct Storage##CAMEL##s g_storage_##LOWERSCORE##s;
 
-#define FIND_NEXT_OPEN_SLOT(TYPE, STORAGE_STRUCT, MAX_COUNT) \
-    static inline u32 find_next_##TYPE##_open_slot() \
+#define FIND_NEXT_OPEN_SLOT(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT) \
+    u32 find_next_##LOWERSCORE##_open_slot() \
     { \
         for (u32 i = 0; i < MAX_COUNT; ++i) \
         { \
-            if (g_storage_##STORAGE_STRUCT.used[i] == false || g_storage_##STORAGE_STRUCT.used[i] == 0) \
+            if (g_storage_##LOWERSCORE##s.used[i] == false || g_storage_##LOWERSCORE##s.used[i] == 0) \
             { \
-                g_storage_##STORAGE_STRUCT.next_open_slot = i; \
+                g_storage_##LOWERSCORE##s.next_open_slot = i; \
                 return i; \
             } \
         } \
         return SENTRY; \
     }
 
-#define STORAGE_CLEAR(FUNC_NAME, STORAGE_STRUCT, MAX_COUNT, MAX_SIZE) \
-    static inline void clear_storage_##FUNC_NAME() \
+#define STORAGE_CLEAR(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT) \
+    void clear_storage_##LOWERSCORE() \
     { \
-        u32 total = MAX_COUNT * MAX_SIZE; \
+        u32 total = MAX_COUNT * UPPERSCORE##_DATA_SIZE; \
         for (u32 i = 0; i < total; ++i) \
         { \
-            g_storage_##STORAGE_STRUCT.data[i] = SENTRY; \
+            g_storage_##LOWERSCORE##s.data[i] = SENTRY; \
         } \
     }
 
-#define STORAGE_ADD(FUNC_NAME, STORAGE_STRUCT, MAX_COUNT, ENTITY_SIZE) \
-    static inline u32 add_##FUNC_NAME(u32 data[ENTITY_SIZE]) \
+#define STORAGE_ADD(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT) \
+    u32 add_##LOWERSCORE(u32 data[UPPERSCORE##_DATA_SIZE]) \
     { \
-        u32 intended_count = g_storage_##STORAGE_STRUCT.count + 1; \
+        u32 intended_count = g_storage_##LOWERSCORE##s.count + 1; \
         if (intended_count >= MAX_COUNT) \
         { \
-            console_log("[E] No more room left in " #STORAGE_STRUCT " to add a new entry"); \
+            console_log("[E] No more room left in " #LOWERSCORE " to add a new entry"); \
             return SENTRY; \
         } \
-        u32 id = g_storage_##STORAGE_STRUCT.next_open_slot; \
-        u32 offset = id * ENTITY_SIZE; \
-        for (u32 i = 0; i < ENTITY_SIZE; ++i) \
+        u32 id = g_storage_##LOWERSCORE##s.next_open_slot; \
+        u32 offset = id * UPPERSCORE##_DATA_SIZE; \
+        for (u32 i = 0; i < UPPERSCORE##_DATA_SIZE; ++i) \
         { \
-            g_storage_##STORAGE_STRUCT.data[offset + i] = data[i]; \
+            g_storage_##LOWERSCORE##s.data[offset + i] = data[i]; \
         } \
-        g_storage_##STORAGE_STRUCT.used[id] = true; \
-        ++g_storage_##STORAGE_STRUCT.count; \
-        find_next_##FUNC_NAME##_open_slot(); \
+        g_storage_##LOWERSCORE##s.used[id] = true; \
+        ++g_storage_##LOWERSCORE##s.count; \
+        find_next_##LOWERSCORE##_open_slot(); \
         return id; \
     }
 
-#define STORAGE_REMOVE(FUNC_NAME, STORAGE_STRUCT, ENTITY_SIZE, MAX_COUNT) \
-    static inline void remove_##FUNC_NAME(u32 id) \
+#define STORAGE_REMOVE(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT) \
+    void remove_##LOWERSCORE(u32 id) \
     { \
-        if (id >= MAX_COUNT || g_storage_##STORAGE_STRUCT.used[id] == false) \
+        if (id >= MAX_COUNT || g_storage_##LOWERSCORE##s.used[id] == false) \
         { \
-            console_log("[E] Tried to remove entry from " #STORAGE_STRUCT " with bad ID"); \
+            console_log("[E] Tried to remove entry from " #LOWERSCORE " with bad ID"); \
             return; \
         } \
-        u32 offset = id * ENTITY_SIZE; \
-        for (u32 i = 0; i < ENTITY_SIZE; ++i) \
+        u32 offset = id * UPPERSCORE##_DATA_SIZE; \
+        for (u32 i = 0; i < UPPERSCORE##_DATA_SIZE; ++i) \
         { \
-            g_storage_##STORAGE_STRUCT.data[offset + i] = SENTRY; \
+            g_storage_##LOWERSCORE##s.data[offset + i] = SENTRY; \
         } \
-        g_storage_##STORAGE_STRUCT.used[id] = false; \
-        --g_storage_##STORAGE_STRUCT.count; \
-        g_storage_##STORAGE_STRUCT.next_open_slot = id; \
+        g_storage_##LOWERSCORE##s.used[id] = false; \
+        --g_storage_##LOWERSCORE##s.count; \
+        g_storage_##LOWERSCORE##s.next_open_slot = id; \
     }
 
-#define GENERATE_FIELD_ACCESSORS(FUNC_NAME, FUNC_FIELD, STORAGE_STRUCT, ENTITY_SIZE, ENTITY_FIELD, MAX_COUNT) \
-    static inline u32 get_##FUNC_NAME##_##FUNC_FIELD(u32 id) \
+#define GENERATE_FIELD_ACCESSORS(CAMEL, LOWERSCORE, UPPERSCORE, LOWERFIELD, UPPERFIELD, MAX_COUNT) \
+    u32 get_##LOWERSCORE##_##LOWERFIELD(u32 id) \
     { \
         if (id >= MAX_COUNT) \
         { \
-            console_log("[E] Tried to get " #FUNC_FIELD " for " #STORAGE_STRUCT " with ID greater than max"); \
+            console_log_format("[E] Tried to get " #LOWERFIELD " for " #LOWERSCORE " with ID greater than max (id:%d max:%d)", id, MAX_COUNT); \
             return SENTRY; \
         } \
-        if (g_storage_##STORAGE_STRUCT.used[id] == false) \
+        if (g_storage_##LOWERSCORE##s.used[id] == false) \
         { \
-            console_log("[E] Tried to get " #FUNC_FIELD " for " #STORAGE_STRUCT " but it's not set"); \
             return SENTRY; \
         } \
-        return g_storage_##STORAGE_STRUCT.data[id * ENTITY_SIZE + ENTITY_FIELD]; \
+        return g_storage_##LOWERSCORE##s.data[id * UPPERSCORE##_DATA_SIZE + UPPERSCORE##_##UPPERFIELD]; \
     } \
-    static inline void set_##FUNC_NAME##_##FUNC_FIELD(u32 id, u32 value) \
+    void set_##LOWERSCORE##_##LOWERFIELD(u32 id, u32 value) \
     { \
         if (id >= MAX_COUNT) \
         { \
-            console_log("[E] Tried to get " #FUNC_FIELD " for " #STORAGE_STRUCT " with ID greater than max"); \
+            console_log("[E] Tried to set " #LOWERFIELD " for " #LOWERSCORE " with ID greater than max"); \
             return; \
         } \
-        if (g_storage_##STORAGE_STRUCT.used[id] == false) \
+        if (g_storage_##LOWERSCORE##s.used[id] == false) \
         { \
-            console_log("[E] Tried to get " #FUNC_FIELD " for " #STORAGE_STRUCT " but it's not set"); \
+            console_log("[E] Tried to set " #LOWERFIELD " for " #LOWERSCORE " but it's not set"); \
             return; \
         } \
-        g_storage_##STORAGE_STRUCT.data[id * ENTITY_SIZE + ENTITY_FIELD] = value; \
+        g_storage_##LOWERSCORE##s.data[id * UPPERSCORE##_DATA_SIZE + UPPERSCORE##_##UPPERFIELD] = value; \
+    }
+
+#define FIELD_REDUCE_BY(CAMEL, LOWERSCORE, UPPERSCORE, LOWERFIELD, UPPERFIELD) \
+    void reduce_##LOWERSCORE##_##LOWERFIELD(u32 id, u32 value) \
+    { \
+        if (value > get_##LOWERSCORE##_##LOWERFIELD(id)) \
+        { \
+            set_##LOWERSCORE##_##LOWERFIELD(id, value); \
+        } \
+        else \
+        { \
+            set_##LOWERSCORE##_##LOWERFIELD(id, (get_##LOWERSCORE##_##LOWERFIELD(id) - value)); \
+        } \
+    }
+
+#define FIELD_DECREMENT(CAMEL, LOWERSCORE, UPPERSCORE, LOWERFIELD, UPPERFIELD) \
+    void decrement_##LOWERSCORE##_##LOWERFIELD(u32 id) \
+    { \
+        if (get_##LOWERSCORE##_##LOWERFIELD(id) > 0) \
+        { \
+            set_##LOWERSCORE##_##LOWERFIELD(id, (get_##LOWERSCORE##_##LOWERFIELD(id) - 1)); \
+        } \
+    }
+
+#define FIELD_INCREASE_BY(CAMEL, LOWERSCORE, UPPERSCORE, LOWERFIELD, UPPERFIELD) \
+    void increase_##LOWERSCORE##_##LOWERFIELD(u32 id, u32 value) \
+    { \
+        set_##LOWERSCORE##_##LOWERFIELD(id, (get_##LOWERSCORE##_##LOWERFIELD(id) + value)); \
+    }
+
+#define FIELD_INCREMENT(CAMEL, LOWERSCORE, UPPERSCORE, LOWERFIELD, UPPERFIELD) \
+    void increment_##LOWERSCORE##_##LOWERFIELD(u32 id) \
+    { \
+        set_##LOWERSCORE##_##LOWERFIELD(id, get_##LOWERSCORE##_##LOWERFIELD(id) + 1); \
+    }
+
+#define GET_BY_STRING_ID(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT) \
+    u32 get_##LOWERSCORE##_id_by_string_id(u32 string_id) \
+    { \
+        for (u32 i = 0; i < MAX_COUNT; ++i) \
+        { \
+            if (get_##LOWERSCORE##_name_id(i) == string_id) \
+            { \
+                return i; \
+            } \
+        } \
+        return SENTRY; \
+    }
+
+#define GET_BY_MACHINE_NAME(CAMEL, LOWERSCORE, UPPERSCORE) \
+    u32 get_##LOWERSCORE##_id_by_machine_name(const char* machine_name) \
+    { \
+        u32 string_id = get_string_id_by_machine_name(machine_name); \
+        if (string_id == SENTRY) \
+        { \
+            return SENTRY; \
+        } \
+        return get_##LOWERSCORE##_id_by_string_id(string_id); \
     }
 
 // ------------------------------------------------------------------------------------------------
@@ -273,7 +330,6 @@ uint32_t max(uint32_t a, uint32_t b)
 #define MAX_ARMORS 100
 #define MAX_GENERAL_ITEMS 100
 #define MAX_SPECIAL_ITEMS 100
-#define MAX_WORLD_NPCS 1000
 #define MAX_STRINGS 1000
 #define MAX_STRING_LENGTH 2048
 #define MAX_BANKS 100
@@ -299,61 +355,177 @@ uint32_t max(uint32_t a, uint32_t b)
 #define MAX_SCENE_CHOICES 10
 #define MAX_SCENE_STATES 100
 #define MAX_SCENE_STRINGS 100
-// TODO: #define fsibmn
-// TODO: #define this_is_a_function_that_calculates_the_purchase_price_of_a_known_shop_vendor_actor
-// TODO: #define this_function_announces_that_spiro_is_still_fourty_years_of_age(*twitchChat)
 #define MAX_GLOBAL_ENTITIES 10
+#define MAX_GOODS 100
 
 // ------------------------------------------------------------------------------------------------
 // FORWARD DECLARATIONS
 // ------------------------------------------------------------------------------------------------
-uint32_t get_layer_same_value(uint32_t layer_index);
-uint32_t get_layer_width(uint32_t layer_index);
-uint32_t get_layer_global_world_data_offset(uint32_t layer_index);
-const char* get_layer_machine_name(uint32_t layer_index);
-uint32_t get_layer_name_id(uint32_t layer_index);
-uint32_t get_npc_id_by_machine_name(char* machine_name);
-uint32_t get_player_npc_id(uint32_t player_id);
-void move_player_left(uint32_t player_id);
-void move_player_right(uint32_t player_id);
-void move_player_up(uint32_t player_id);
-void move_player_down(uint32_t player_id);
-void handle_input(uint32_t input);
+u32 get_layer_same_value(u32 layer_index);
+u32 get_layer_width(u32 layer_index);
+u32 get_layer_global_world_data_offset(u32 layer_index);
+const char* get_layer_machine_name(u32 layer_index);
+u32 get_layer_name_id(u32 layer_index);
+
+u32 get_player_npc_id(u32 player_id);
+
+void move_player_left(u32 player_id);
+void move_player_right(u32 player_id);
+void move_player_up(u32 player_id);
+void move_player_down(u32 player_id);
+
+void handle_input(u32 input);
+
 void should_redraw_everything();
-uint32_t get_player_in_world(uint32_t player_id);
-uint32_t get_player_in_world_x(uint32_t player_id);
-uint32_t get_player_in_world_y(uint32_t player_id);
-uint32_t get_world_npc_x(uint32_t world_npc_id);
-uint32_t get_world_npc_y(uint32_t world_npc_id);
-uint32_t is_world_coordinate_halfway_of_viewport_more_than_x(uint32_t x);
-uint32_t is_world_coordinate_halfway_of_viewport_more_than_y(uint32_t y);
-uint32_t is_world_coordinate_halfway_of_viewport_less_than_x(uint32_t x);
-uint32_t is_world_coordinate_halfway_of_viewport_less_than_y(uint32_t y);
+
+u32 get_player_in_world(u32 player_id);
+u32 get_player_in_world_x(u32 player_id);
+u32 get_player_in_world_y(u32 player_id);
+
+u32 is_world_coordinate_halfway_of_viewport_more_than_x(u32 x);
+u32 is_world_coordinate_halfway_of_viewport_more_than_y(u32 y);
+u32 is_world_coordinate_halfway_of_viewport_less_than_x(u32 x);
+u32 is_world_coordinate_halfway_of_viewport_less_than_y(u32 y);
+
 void update_camera();
-uint32_t get_current_world_height();
-uint32_t get_current_world_width();
-uint32_t scene_blackjack(uint32_t action);
+
+u32 get_current_world_height();
+u32 get_current_world_width();
+
+u32 scene_blackjack(u32 action);
+
 void clear_current_scene_strings();
 void clear_current_scene_states();
 void clear_current_scene_choices();
-uint32_t scene_general_shop(uint32_t action);
-uint32_t get_inventory_item_string_id(uint32_t inventory_item_id);
-uint32_t get_inventory_item_inventory_id(uint32_t inventory_item_id);
-uint32_t get_world_npc_inventory_id(uint32_t world_npc_id);
-uint32_t get_current_scene_inventory_id();
-void increment_inventory_total_items(uint32_t inventory_id);
-uint32_t get_inventory_item_adjusted_price(uint32_t inventory_item_id);
-uint32_t scene_ocean_battle(uint32_t action);
-uint32_t scene_npc_rvice(uint32_t action);
-uint32_t scene_npc_lafolie(uint32_t action);
-uint32_t scene_npc_nakor(uint32_t action);
-uint32_t scene_npc_travis(uint32_t action);
-uint32_t scene_npc_loller(uint32_t action);
+
+u32 scene_general_shop(u32 action);
+
+u32 get_current_scene_inventory_id();
+
+u32 scene_ocean_battle(u32 action);
+u32 scene_npc_rvice(u32 action);
+u32 scene_npc_lafolie(u32 action);
+u32 scene_npc_nakor(u32 action);
+u32 scene_npc_travis(u32 action);
+u32 scene_npc_loller(u32 action);
+
 void current_scene_clear_choice_strings();
-uint32_t ocean_battle_is_world_coordinate_in_ship_movement_range(uint32_t world_x, uint32_t world_y);
-uint32_t scene_bank(uint32_t action);
+
+u32 ocean_battle_is_world_coordinate_in_ship_movement_range(u32 world_x, u32 world_y);
+
+u32 scene_bank(u32 action);
+
 void generate_world(char* world_name);
+
 void test();
+
+// ------------------------------------------------------------------------------------------------
+// - STRINGS
+// ------------------------------------------------------------------------------------------------
+// We need to have strings up here so other things can reference strings without *having* to do forward declarations
+enum StringData
+{
+    STRING_MACHINE_NAME_LENGTH, // Length of machine name
+    STRING_TEXT_LENGTH,         // Length of display text
+    STRING_DATA_SIZE,
+};
+#define G_STRING_DATA_SIZE (MAX_STRINGS * MAX_STRING_LENGTH * 2)
+static char g_string_data[G_STRING_DATA_SIZE];  // *2 for both machine_name and text
+#define G_STRING_INFO_SIZE (MAX_STRINGS * STRING_DATA_SIZE)
+// TODO: Storage here
+static u32 g_string_info[G_STRING_INFO_SIZE];
+static u32 g_string_count = 0;
+u32 get_string_id_by_machine_name(const char* machine_name)
+{
+    for (u32 i = 0; i < MAX_STRINGS; ++i)
+    {
+        u32 info_offset = i * STRING_DATA_SIZE;
+        // Check if this slot is occupied first
+        if (g_string_info[info_offset + STRING_MACHINE_NAME_LENGTH] == SENTRY)
+        {
+            continue;
+        }
+        
+        // Get pointer to the start of this string's machine name
+        u32 string_offset = i * (MAX_STRING_LENGTH * 2);
+        // Note: Machine name is max_string_length + offset
+        const char* stored_name = &g_string_data[string_offset];
+        
+        // console_log_format("Comparing '%s' with '%s'", stored_name, machine_name);
+        
+        if (strcmp(stored_name, machine_name) == 0)
+        {
+            return i;
+        }
+    }
+    console_log_format("== could not find string id by machine name %s ==", machine_name);
+    return SENTRY;
+}
+const char* get_string_text(u32 index)
+{
+    if (index >= MAX_STRINGS) return "";
+    u32 offset = index * MAX_STRING_LENGTH * 2;
+    u32 info_offset = offset + STRING_DATA_SIZE;
+    u32 length = g_string_info[info_offset + (u32)STRING_TEXT_LENGTH];
+    char slice[length + 1];
+    for (u32 j = 0; j < length; j += 1)
+    {
+        slice[j] = g_string_data[offset + j];
+    }
+    slice[length] = '\0';
+    return slice;
+}
+const char* get_string_machine_name(u32 index)
+{
+    if (index >= MAX_STRINGS)
+    {
+        console_log("Tried to get a string beyond what the system holds");
+        return "";
+    }
+    u32 offset = index * MAX_STRING_LENGTH * 2;
+    u32 info_offset = index * STRING_DATA_SIZE;
+    u32 length = g_string_info[info_offset + (u32)STRING_MACHINE_NAME_LENGTH];
+    char slice[length + 1];
+    for (u32 j = 0; j < length; j += 1)
+    {
+        slice[j] = g_string_data[offset + j];
+    }
+    slice[length] = '\0';
+    return slice;
+}
+char* get_string_text_ptr(u32 index)
+{
+    if (index >= MAX_STRINGS) return NULL;
+    u32 offset = index * MAX_STRING_LENGTH * 2;
+    return &g_string_data[offset + (u32)MAX_STRING_LENGTH];
+}
+u32 get_string_text_len(u32 index)
+{
+    if (index >= MAX_STRINGS)
+    {
+        console_log("Tried to get the length of a string that doesn't exist");
+        console_log_format("Index: %d", index);
+        return SENTRY;
+    }
+    u32 offset = index * STRING_DATA_SIZE;
+    return g_string_info[offset + (u32)STRING_TEXT_LENGTH];
+}
+char* get_string_machine_name_ptr(u32 index)
+{
+    if (index >= MAX_STRINGS) return NULL;
+    u32 offset = index * MAX_STRING_LENGTH * 2;
+    return &g_string_data[offset];
+}
+u32 get_string_machine_name_len(u32 index)
+{
+    if (index >= MAX_STRINGS)
+    {
+        console_log("Tried to get the length of a string that doesn't exist");
+        return SENTRY;
+    }
+    u32 offset = index * STRING_DATA_SIZE;
+    return g_string_info[offset + (u32)STRING_MACHINE_NAME_LENGTH];
+}
 
 // ------------------------------------------------------------------------------------------------
 // Enums
@@ -393,6 +565,38 @@ enum ResourceType
     RESOURCE_SPECIAL_ITEM,
     RESOURCE_TYPE_COUNT,
 };
+enum UserInput
+{
+    USER_INPUT_A,
+    USER_INPUT_B,
+    USER_INPUT_X,
+    USER_INPUT_Y,
+    USER_INPUT_UP,
+    USER_INPUT_DOWN,
+    USER_INPUT_LEFT,
+    USER_INPUT_RIGHT,
+    USER_INPUT_START,
+    USER_INPUT_SELECT,
+    USER_INPUT_LEFT_BUMPER,
+    USER_INPUT_RIGHT_BUMPER,
+    USER_INPUT_CUSTOM_NUMBER,
+    USER_INPUT_CUSTOM_STRING,
+};
+enum BankData
+{
+    BANK_DEPOSIT,
+    BANK_LOAN,
+    BANK_DEPOSIT_ORIGINAL_AMOUNT,
+    BANK_DEPOSIT_INTEREST_RATE,
+    BANK_DEPOSIT_INTEREST,
+    BANK_LOAN_ORIGINAL_AMOUNT,
+    BANK_LOAN_INTEREST_RATE,
+    BANK_LOAN_INTEREST,
+    BANK_FDIC_INSURED,
+    BANK_MAX_DEPOSIT_AMOUNT,
+    BANK_MAX_LOAN_AMOUNT,
+    BANK_DATA_SIZE,
+};
 
 enum NPCType
 {
@@ -408,50 +612,96 @@ enum NPCData
     NPC_TYPE,
     NPC_DATA_SIZE,
 };
-STORAGE_STRUCT(NPCs, npcs, MAX_NPCS, NPC_DATA_SIZE)
-FIND_NEXT_OPEN_SLOT(npc, npcs, MAX_NPCS)
-STORAGE_CLEAR(npcs, npcs, MAX_NPCS, NPC_DATA_SIZE)
-STORAGE_ADD(npc, npcs, MAX_NPCS, NPC_DATA_SIZE)
-STORAGE_REMOVE(npc, npcs, MAX_NPCS, NPC_DATA_SIZE)
-GENERATE_FIELD_ACCESSORS(npc, name_id, npcs, NPC_DATA_SIZE, NPC_NAME_ID, MAX_NPCS)
-GENERATE_FIELD_ACCESSORS(npc, type, npcs, NPC_DATA_SIZE, NPC_TYPE, MAX_NPCS)
+STORAGE_STRUCT(NPC, npc, NPC, MAX_NPCS)
+FIND_NEXT_OPEN_SLOT(NPC, npc, NPC, MAX_NPCS)
+STORAGE_CLEAR(NPC, npc, NPC, MAX_NPCS)
+STORAGE_ADD(NPC, npc, NPC, MAX_NPCS)
+STORAGE_REMOVE(NPC, npc, NPC, MAX_NPCS)
+GENERATE_FIELD_ACCESSORS(NPC, npc, NPC, name_id, NAME_ID, MAX_NPCS)
+GENERATE_FIELD_ACCESSORS(NPC, npc, NPC, type, TYPE, MAX_NPCS)
+GET_BY_STRING_ID(NPC, npc, NPC, MAX_NPCS)
+GET_BY_MACHINE_NAME(NPC, npc, NPC)
 
-struct GeneralItem
+enum GeneralItemData
 {
-    u32 name_id;
-    u32 base_price;
+    GENERAL_ITEM_NAME_ID,
+    GENERAL_ITEM_BASE_PRICE,
+    GENERAL_ITEM_DATA_SIZE,
 };
-enum StringData
+STORAGE_STRUCT(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
+FIND_NEXT_OPEN_SLOT(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
+STORAGE_CLEAR(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
+STORAGE_ADD(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
+STORAGE_REMOVE(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
+GENERATE_FIELD_ACCESSORS(GeneralItem, general_item, GENERAL_ITEM, name_id, NAME_ID, MAX_GENERAL_ITEMS)
+GENERATE_FIELD_ACCESSORS(GeneralItem, general_item, GENERAL_ITEM, base_price, BASE_PRICE, MAX_GENERAL_ITEMS)
+GET_BY_STRING_ID(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
+GET_BY_MACHINE_NAME(GeneralItem, general_item, GENERAL_ITEM)
+
+enum BaseShipData
 {
-    STRING_MACHINE_NAME_LENGTH, // Length of machine name
-    STRING_TEXT_LENGTH,         // Length of display text
-    STRING_DATA_SIZE,
+    BASE_SHIP_NAME_ID,
+    BASE_SHIP_TOP_MATERIAL_ID,
+    BASE_SHIP_BASE_PRICE,
+    BASE_SHIP_MAX_CAPACITY,
+    BASE_SHIP_TACKING,
+    BASE_SHIP_POWER,
+    BASE_SHIP_SPEED,
+    BASE_SHIP_DATA_SIZE,
 };
-struct BaseShip
+STORAGE_STRUCT(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
+FIND_NEXT_OPEN_SLOT(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
+STORAGE_CLEAR(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
+STORAGE_ADD(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
+STORAGE_REMOVE(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
+GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, name_id, NAME_ID, MAX_BASE_SHIPS)
+GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, top_material_id, TOP_MATERIAL_ID, MAX_BASE_SHIPS)
+GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, base_price, BASE_PRICE, MAX_BASE_SHIPS)
+GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, max_capacity, MAX_CAPACITY, MAX_BASE_SHIPS)
+GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, tacking, TACKING, MAX_BASE_SHIPS)
+GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, power, POWER, MAX_BASE_SHIPS)
+GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, speed, SPEED, MAX_BASE_SHIPS)
+GET_BY_STRING_ID(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
+GET_BY_MACHINE_NAME(BaseShip, base_ship, BASE_SHIP)
+
+enum ShipData
 {
-    u32 name_id;
-    u32 top_material_id;
-    u32 base_price;
-    u32 max_capacity;
-    u32 base_tacking;
-    u32 base_power;
-    u32 base_speed;
+    SHIP_NAME_ID,
+    SHIP_BASE_SHIP_ID,
+    SHIP_PRICE,
+    SHIP_MATERIAL_ID,
+    SHIP_CAPACITY,
+    SHIP_TACKING,
+    SHIP_POWER,
+    SHIP_SPEED,
+    SHIP_MAX_CREW,
+    SHIP_MAX_HULL,
+    SHIP_CREW,
+    SHIP_HULL,
+    SHIP_DATA_SIZE,
 };
-struct Ship
-{
-    u32 name_id;
-    u32 base_ship_id;
-    u32 price;
-    u32 material_id;
-    u32 capacity;
-    u32 tacking;
-    u32 power;
-    u32 speed;
-    u32 max_crew;
-    u32 max_hull;
-    u32 crew;
-    u32 hull;
-};
+STORAGE_STRUCT(Ship, ship, SHIP, MAX_SHIPS)
+FIND_NEXT_OPEN_SLOT(Ship, ship, SHIP, MAX_SHIPS)
+STORAGE_CLEAR(Ship, ship, SHIP, MAX_SHIPS)
+STORAGE_ADD(Ship, ship, SHIP, MAX_SHIPS)
+STORAGE_REMOVE(Ship, ship, SHIP, MAX_SHIPS)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, name_id, NAME_ID, MAX_SHIPS)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, base_ship_id, BASE_SHIP_ID, MAX_SHIPS)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, price, PRICE, MAX_SHIPS)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, material_id, MATERIAL_ID, MAX_SHIPS)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, capacity, CAPACITY, MAX_SHIPS)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, tacking, TACKING, MAX_SHIPS)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, power, POWER, MAX_SHIPS)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, speed, SPEED, MAX_SHIPS)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, max_crew, MAX_CREW, MAX_SHIPS)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, max_hull, MAX_HULL, MAX_SHIPS)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, crew, CREW, MAX_SHIPS)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, hull, HULL, MAX_SHIPS)
+GET_BY_STRING_ID(Ship, ship, SHIP, MAX_SHIPS)
+GET_BY_MACHINE_NAME(Ship, ship, SHIP)
+FIELD_REDUCE_BY(Ship, ship, SHIP, hull, HULL)
+FIELD_REDUCE_BY(Ship, ship, SHIP, crew, CREW)
+
 enum ShipMaterialData
 {
     SHIP_MATERIAL_NAME_ID,
@@ -462,12 +712,36 @@ enum ShipMaterialData
     SHIP_MATERIAL_MOD_SPEED,
     SHIP_MATERIAL_DATA_SIZE,
 };
+STORAGE_STRUCT(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
+FIND_NEXT_OPEN_SLOT(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
+STORAGE_CLEAR(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
+STORAGE_ADD(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
+STORAGE_REMOVE(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
+GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, name_id, NAME_ID, MAX_SHIP_MATERIALS)
+GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, base_price, BASE_PRICE, MAX_SHIP_MATERIALS)
+GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, mod_power, MOD_POWER, MAX_SHIP_MATERIALS)
+GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, mod_capacity, MOD_CAPACITY, MAX_SHIP_MATERIALS)
+GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, mod_tacking, MOD_TACKING, MAX_SHIP_MATERIALS)
+GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, mod_speed, MOD_SPEED, MAX_SHIP_MATERIALS)
+GET_BY_STRING_ID(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
+GET_BY_MACHINE_NAME(ShipMaterial, ship_material, SHIP_MATERIAL)
+
 enum GoodData
 {
     GOOD_NAME_ID,
     GOOD_BASE_PRICE,
     GOOD_DATA_SIZE,
 };
+STORAGE_STRUCT(Good, good, GOOD, MAX_GOODS)
+FIND_NEXT_OPEN_SLOT(Good, good, GOOD, MAX_GOODS)
+STORAGE_CLEAR(Good, good, GOOD, MAX_GOODS)
+STORAGE_ADD(Good, good, GOOD, MAX_GOODS)
+STORAGE_REMOVE(Good, good, GOOD, MAX_GOODS)
+GENERATE_FIELD_ACCESSORS(Good, good, GOOD, name_id, NAME_ID, MAX_GOODS)
+GENERATE_FIELD_ACCESSORS(Good, good, GOOD, base_price, BASE_PRICE, MAX_GOODS)
+GET_BY_STRING_ID(Good, good, GOOD, MAX_GOODS)
+GET_BY_MACHINE_NAME(Good, good, GOOD)
+
 enum WeaponData
 {
     WEAPON_NAME_ID,
@@ -475,6 +749,17 @@ enum WeaponData
     WEAPON_POWER,
     WEAPON_DATA_SIZE,
 };
+STORAGE_STRUCT(Weapon, weapon, WEAPON, MAX_WEAPONS)
+FIND_NEXT_OPEN_SLOT(Weapon, weapon, WEAPON, MAX_WEAPONS)
+STORAGE_CLEAR(Weapon, weapon, WEAPON, MAX_WEAPONS)
+STORAGE_ADD(Weapon, weapon, WEAPON, MAX_WEAPONS)
+STORAGE_REMOVE(Weapon, weapon, WEAPON, MAX_WEAPONS)
+GENERATE_FIELD_ACCESSORS(Weapon, weapon, WEAPON, name_id, NAME_ID, MAX_WEAPONS)
+GENERATE_FIELD_ACCESSORS(Weapon, weapon, WEAPON, base_price, BASE_PRICE, MAX_WEAPONS)
+GENERATE_FIELD_ACCESSORS(Weapon, weapon, WEAPON, power, POWER, MAX_WEAPONS)
+GET_BY_STRING_ID(Weapon, weapon, WEAPON, MAX_WEAPONS)
+GET_BY_MACHINE_NAME(Weapon, weapon, WEAPON)
+
 enum ArmorData
 {
     ARMOR_NAME_ID,
@@ -482,12 +767,58 @@ enum ArmorData
     ARMOR_DEFENSE,
     ARMOR_DATA_SIZE,
 };
+STORAGE_STRUCT(Armor, armor, ARMOR, MAX_ARMORS)
+FIND_NEXT_OPEN_SLOT(Armor, armor, ARMOR, MAX_ARMORS)
+STORAGE_CLEAR(Armor, armor, ARMOR, MAX_ARMORS)
+STORAGE_ADD(Armor, armor, ARMOR, MAX_ARMORS)
+STORAGE_REMOVE(Armor, armor, ARMOR, MAX_ARMORS)
+GENERATE_FIELD_ACCESSORS(Armor, armor, ARMOR, name_id, NAME_ID, MAX_ARMORS)
+GENERATE_FIELD_ACCESSORS(Armor, armor, ARMOR, base_price, BASE_PRICE, MAX_ARMORS)
+GENERATE_FIELD_ACCESSORS(Armor, armor, ARMOR, defense, DEFENSE, MAX_ARMORS)
+GET_BY_STRING_ID(Armor, armor, ARMOR, MAX_ARMORS)
+GET_BY_MACHINE_NAME(Armor, armor, ARMOR)
+
 enum SpecialItemData
 {
     SPECIAL_ITEM_NAME_ID,
     SPECIAL_ITEM_BASE_PRICE,
     SPECIAL_ITEM_DATA_SIZE,
 };
+STORAGE_STRUCT(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
+FIND_NEXT_OPEN_SLOT(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
+STORAGE_CLEAR(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
+STORAGE_ADD(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
+STORAGE_REMOVE(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
+GENERATE_FIELD_ACCESSORS(SpecialItem, special_item, SPECIAL_ITEM, name_id, NAME_ID, MAX_SPECIAL_ITEMS)
+GENERATE_FIELD_ACCESSORS(SpecialItem, special_item, SPECIAL_ITEM, base_price, BASE_PRICE, MAX_SPECIAL_ITEMS)
+GET_BY_STRING_ID(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
+GET_BY_MACHINE_NAME(SpecialItem, special_item, SPECIAL_ITEM)
+
+enum WorldData
+{
+    WORLD_NAME_ID,
+    WORLD_WIDTH,
+    WORLD_HEIGHT,
+    WORLD_TOTAL_NPCS,
+    WORLD_TOTAL_CAPTAINS,
+    WORLD_TOTAL_LAYERS,
+    WORLD_DATA_SIZE,
+};
+STORAGE_STRUCT(World, world, WORLD, MAX_WORLDS)
+FIND_NEXT_OPEN_SLOT(World, world, WORLD, MAX_WORLDS)
+STORAGE_CLEAR(World, world, WORLD, MAX_WORLDS)
+STORAGE_ADD(World, world, WORLD, MAX_WORLDS)
+STORAGE_REMOVE(World, world, WORLD, MAX_WORLDS)
+GENERATE_FIELD_ACCESSORS(World, world, WORLD, name_id, NAME_ID, MAX_WORLDS)
+GENERATE_FIELD_ACCESSORS(World, world, WORLD, width, WIDTH, MAX_WORLDS)
+GENERATE_FIELD_ACCESSORS(World, world, WORLD, height, HEIGHT, MAX_WORLDS)
+GENERATE_FIELD_ACCESSORS(World, world, WORLD, total_npcs, TOTAL_NPCS, MAX_WORLDS)
+GENERATE_FIELD_ACCESSORS(World, world, WORLD, total_captains, TOTAL_CAPTAINS, MAX_WORLDS)
+GENERATE_FIELD_ACCESSORS(World, world, WORLD, total_layers, TOTAL_LAYERS, MAX_WORLDS)
+GET_BY_STRING_ID(World, world, WORLD, MAX_WORLDS)
+GET_BY_MACHINE_NAME(World, world, WORLD)
+FIELD_INCREMENT(World, world, WORLD, total_layers, TOTAL_LAYERS)
+
 enum WorldNPCData
 {
     WORLD_NPC_NPC_ID,
@@ -503,6 +834,35 @@ enum WorldNPCData
     WORLD_NPC_ENTITY_ID,
     WORLD_NPC_DATA_SIZE,
 };
+STORAGE_STRUCT(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
+FIND_NEXT_OPEN_SLOT(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
+STORAGE_CLEAR(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
+STORAGE_ADD(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
+STORAGE_REMOVE(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, npc_id, NPC_ID, MAX_WORLD_NPCS)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, captain_id, CAPTAIN_ID, MAX_WORLD_NPCS)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, position_x, POSITION_X, MAX_WORLD_NPCS)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, position_y, POSITION_Y, MAX_WORLD_NPCS)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, direction, DIRECTION, MAX_WORLD_NPCS)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, is_interactable, IS_INTERACTABLE, MAX_WORLD_NPCS)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, is_captain, IS_CAPTAIN, MAX_WORLD_NPCS)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, interaction_scene, INTERACTION_SCENE, MAX_WORLD_NPCS)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, is_player, IS_PLAYER, MAX_WORLD_NPCS)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, inventory_id, INVENTORY_ID, MAX_WORLD_NPCS)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, entity_id, ENTITY_ID, MAX_WORLD_NPCS)
+// TODO: get_world_npc_by_string_id but have to dig into NPC_ID
+// TODO: get_world_npc_by_machine_name but have to dig into NPC_ID
+u32 get_world_npc_name_id(u32 id)
+{
+    u32 npc_id = get_world_npc_npc_id(id);
+    return get_npc_name_id(npc_id);
+}
+u32 get_world_npc_type(u32 id)
+{
+    u32 npc_id = get_world_npc_npc_id(id);
+    return get_npc_type(npc_id);
+}
+
 enum CaptainData
 {
     CAPTAIN_NPC_ID,
@@ -524,27 +884,41 @@ enum CaptainData
     CAPTAIN_EQUIPPED_ARMOR_ID,
     CAPTAIN_DATA_SIZE,
 };
-enum WorldData
+STORAGE_STRUCT(Captain, captain, CAPTAIN, MAX_CAPTAINS)
+FIND_NEXT_OPEN_SLOT(Captain, captain, CAPTAIN, MAX_CAPTAINS)
+STORAGE_CLEAR(Captain, captain, CAPTAIN, MAX_CAPTAINS)
+STORAGE_ADD(Captain, captain, CAPTAIN, MAX_CAPTAINS)
+STORAGE_REMOVE(Captain, captain, CAPTAIN, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, npc_id, NPC_ID, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, world_npc_id, WORLD_NPC_ID, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, in_world, IN_WORLD, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, global_position_x, GLOBAL_POSITION_X, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, global_position_y, GLOBAL_POSITION_Y, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, in_port, IN_PORT, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, on_land, ON_LAND, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, in_ocean, IN_OCEAN, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, sailing, SAILING, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, skills_id, SKILLS_ID, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, stats_id, STATS_ID, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, inventory_id, INVENTORY_ID, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, player_id, PLAYER_ID, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, gold, GOLD, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, fleet_id, FLEET_ID, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, equipped_weapon_id, EQUIPPED_WEAPON_ID, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, equipped_armor_id, EQUIPPED_ARMOR_ID, MAX_CAPTAINS)
+// TODO: get_captain_by_string_id but have to dig into NPC_ID
+// TODO: get_captain_by_machine_name but have to dig into NPC_ID
+u32 get_captain_name_id(u32 id)
 {
-    WORLD_NAME_ID,
-    WORLD_WIDTH,
-    WORLD_HEIGHT,
-    WORLD_TOTAL_NPCS,
-    WORLD_TOTAL_CAPTAINS,
-    WORLD_TOTAL_LAYERS,
-    WORLD_DATA_SIZE,
-};
-STORAGE_STRUCT(Worlds, worlds, MAX_WORLDS, WORLD_DATA_SIZE);
+    u32 npc_id = get_captain_npc_id(id);
+    return get_npc_name_id(npc_id);
+}
+u32 get_captain_type(u32 id)
+{
+    u32 npc_id = get_captain_npc_id(id);
+    return get_npc_type(npc_id);
+}
 
-struct World
-{
-    u32 name_id;
-    u32 width;
-    u32 height;
-    u32 total_npcs;
-    u32 total_captains;
-    u32 total_layers;
-};  
 enum LayerType
 {
     LAYER_TYPE_MATCHES_WORLD_SIZE,
@@ -570,21 +944,221 @@ enum LayerData
     LAYER_IS_BLOCK,
     LAYER_DATA_SIZE,
 };
-// TODO: Turn layer data into a struct
-enum BankData
+STORAGE_STRUCT(Layer, layer, LAYER, MAX_LAYERS)
+FIND_NEXT_OPEN_SLOT(Layer, layer, LAYER, MAX_LAYERS)
+STORAGE_CLEAR(Layer, layer, LAYER, MAX_LAYERS)
+STORAGE_ADD(Layer, layer, LAYER, MAX_LAYERS)
+STORAGE_REMOVE(Layer, layer, LAYER, MAX_LAYERS)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, name_id, NAME_ID, MAX_LAYERS)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, global_world_data_offset, GLOBAL_WORLD_DATA_OFFSET, MAX_LAYERS)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, width, WIDTH, MAX_LAYERS)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, height, HEIGHT, MAX_LAYERS)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, type, TYPE, MAX_LAYERS)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, same_value, SAME_VALUE, MAX_LAYERS)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, specific_coordinates_size, SPECIFIC_COORDINATES_SIZE, MAX_LAYERS)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, is_block, IS_BLOCK, MAX_LAYERS)
+GET_BY_STRING_ID(Layer, layer, LAYER, MAX_LAYERS)
+GET_BY_MACHINE_NAME(Layer, layer, LAYER)
+
+enum InventoryType
 {
-    BANK_DEPOSIT,
-    BANK_LOAN,
-    BANK_DEPOSIT_ORIGINAL_AMOUNT,
-    BANK_DEPOSIT_INTEREST_RATE,
-    BANK_DEPOSIT_INTEREST,
-    BANK_LOAN_ORIGINAL_AMOUNT,
-    BANK_LOAN_INTEREST_RATE,
-    BANK_LOAN_INTEREST,
-    BANK_FDIC_INSURED,
-    BANK_MAX_DEPOSIT_AMOUNT,
-    BANK_MAX_LOAN_AMOUNT,
-    BANK_DATA_SIZE,
+    INVENTORY_TYPE_GOOD,
+    INVENTORY_TYPE_ARMOR,
+    INVENTORY_TYPE_WEAPON,
+    INVENTORY_TYPE_GENERAL_ITEM,
+    INVENTORY_TYPE_CANNON,
+    INVENTORY_TYPE_BASE_SHIP,
+    INVENTORY_TYPE_SHIP,
+};
+enum InventoryData
+{
+    INVENTORY_NAME_ID,
+    INVENTORY_TOTAL_ITEMS,
+    INVENTORY_DATA_SIZE,
+};
+STORAGE_STRUCT(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
+FIND_NEXT_OPEN_SLOT(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
+STORAGE_CLEAR(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
+STORAGE_ADD(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
+STORAGE_REMOVE(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
+GENERATE_FIELD_ACCESSORS(Inventory, inventory, INVENTORY, name_id, NAME_ID, MAX_INVENTORIES)
+GENERATE_FIELD_ACCESSORS(Inventory, inventory, INVENTORY, total_items, TOTAL_ITEMS, MAX_INVENTORIES)
+GET_BY_STRING_ID(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
+GET_BY_MACHINE_NAME(Inventory, inventory, INVENTORY)
+FIELD_INCREMENT(Inventory, inventory, INVENTORY, total_items, TOTAL_ITEMS)
+
+enum InventoryItemData
+{
+    INVENTORY_ITEM_NAME_ID,
+    INVENTORY_ITEM_NUMBER_HELD,
+    INVENTORY_ITEM_ADJUSTED_PRICE,
+    INVENTORY_ITEM_TYPE, // InventoryType
+    INVENTORY_ITEM_TYPE_NAME_ID,
+    INVENTORY_ITEM_TYPE_REFERENCE, // Reference to specific item
+    INVENTORY_ITEM_INVENTORY_ID, // The inventory that holds this item
+    INVENTORY_ITEM_NUMBER_CHOSEN,
+    INVENTORY_ITEM_DATA_SIZE,
+};
+STORAGE_STRUCT(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
+FIND_NEXT_OPEN_SLOT(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
+STORAGE_CLEAR(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
+STORAGE_ADD(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
+STORAGE_REMOVE(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, name_id, NAME_ID, MAX_INVENTORY_ITEMS)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, number_held, NUMBER_HELD, MAX_INVENTORY_ITEMS)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, adjusted_price, ADJUSTED_PRICE, MAX_INVENTORY_ITEMS)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, type, TYPE, MAX_INVENTORY_ITEMS)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, type_name_id, TYPE_NAME_ID, MAX_INVENTORY_ITEMS)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, type_reference, TYPE_REFERENCE, MAX_INVENTORY_ITEMS)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, inventory_id, INVENTORY_ID, MAX_INVENTORY_ITEMS)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, number_chosen, NUMBER_CHOSEN, MAX_INVENTORY_ITEMS)
+GET_BY_STRING_ID(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
+GET_BY_MACHINE_NAME(InventoryItem, inventory_item, INVENTORY_ITEM)
+FIELD_INCREMENT(InventoryItem, inventory_item, INVENTORY_ITEM, number_held, NUMBER_HELD)
+
+enum PortData
+{
+    PORT_NAME_ID,
+    PORT_GLOBAL_LOCATION_X,
+    PORT_GLOBAL_LOCATION_Y,
+    PORT_OVERALL_INVESTMENT_LEVEL,
+    PORT_MARKET_INVESTMENT_LEVEL,
+    PORT_SHIPYARD_INVESTMENT_LEVEL,
+    PORT_DATA_SIZE,
+};
+STORAGE_STRUCT(Port, port, PORT, MAX_PORTS)
+FIND_NEXT_OPEN_SLOT(Port, port, PORT, MAX_PORTS)
+STORAGE_CLEAR(Port, port, PORT, MAX_PORTS)
+STORAGE_ADD(Port, port, PORT, MAX_PORTS)
+STORAGE_REMOVE(Port, port, PORT, MAX_PORTS)
+GENERATE_FIELD_ACCESSORS(Port, port, PORT, name_id, NAME_ID, MAX_PORTS)
+GENERATE_FIELD_ACCESSORS(Port, port, PORT, global_location_x, GLOBAL_LOCATION_X, MAX_PORTS)
+GENERATE_FIELD_ACCESSORS(Port, port, PORT, global_location_y, GLOBAL_LOCATION_Y, MAX_PORTS)
+GENERATE_FIELD_ACCESSORS(Port, port, PORT, overall_investment_level, OVERALL_INVESTMENT_LEVEL, MAX_PORTS)
+GENERATE_FIELD_ACCESSORS(Port, port, PORT, market_investment_level, MARKET_INVESTMENT_LEVEL, MAX_PORTS)
+GENERATE_FIELD_ACCESSORS(Port, port, PORT, shipyard_investment_level, SHIPYARD_INVESTMENT_LEVEL, MAX_PORTS)
+GET_BY_STRING_ID(Port, port, PORT, MAX_PORTS)
+GET_BY_MACHINE_NAME(Port, port, PORT)
+
+enum StatsData
+{
+    STATS_BATTLE_LEVEL,
+    STATS_NAVIGATION_LEVEL,
+    STATS_LEADERSHIP,
+    STATS_SEAMANSHIP,
+    STATS_KNOWLEDGE,
+    STATS_INTUITION,
+    STATS_COURAGE,
+    STATS_SWORDSMANSHIP,
+    STATS_CHARM,
+    STATS_LUCK,
+    STATS_DATA_SIZE,
+};
+
+enum SkillData
+{
+    SKILL_NAME_ID,
+    SKILL_STATS_REQUIREMENTS,
+    SKILL_DATA_SIZE,
+};
+
+enum EntityData
+{
+    ENTITY_NAME_ID,
+    ENTITY_IS_INTERACTABLE,
+    ENTITY_IS_SOLID,
+    ENTITY_INTERACTION_ON_STEP_OVER,
+    ENTITY_INTERACTION_SCENE,
+    ENTITY_WORLD_POSITION_X,
+    ENTITY_WORLD_POSITION_Y,
+    ENTITY_DATA_SIZE,
+};
+STORAGE_STRUCT(Entity, entity, ENTITY, MAX_ENTITIES)
+FIND_NEXT_OPEN_SLOT(Entity, entity, ENTITY, MAX_ENTITIES)
+STORAGE_CLEAR(Entity, entity, ENTITY, MAX_ENTITIES)
+STORAGE_ADD(Entity, entity, ENTITY, MAX_ENTITIES)
+STORAGE_REMOVE(Entity, entity, ENTITY, MAX_ENTITIES)
+GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, name_id, NAME_ID, MAX_ENTITIES)
+GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, is_interactable, IS_INTERACTABLE, MAX_ENTITIES)
+GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, is_solid, IS_SOLID, MAX_ENTITIES)
+GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, interaction_on_step_over, INTERACTION_ON_STEP_OVER, MAX_ENTITIES)
+GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, interaction_scene, INTERACTION_SCENE, MAX_ENTITIES)
+GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, world_position_x, WORLD_POSITION_X, MAX_ENTITIES)
+GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, world_position_y, WORLD_POSITION_Y, MAX_ENTITIES)
+GET_BY_STRING_ID(Entity, entity, ENTITY, MAX_ENTITIES)
+GET_BY_MACHINE_NAME(Entity, entity, ENTITY)
+
+enum FleetData
+{
+    FLEET_TOTAL_SHIPS,
+    FLEET_TOTAL_CAPTAINS,
+    FLEET_FIRST_MATE_ID,
+    FLEET_ACCOUNTANT_ID,
+    FLEET_NAVIGATOR_ID,
+    FLEET_GENERAL_ID,
+    FLEET_DATA_SIZE,
+};
+STORAGE_STRUCT(Fleet, fleet, FLEET, MAX_FLEETS)
+FIND_NEXT_OPEN_SLOT(Fleet, fleet, FLEET, MAX_FLEETS)
+STORAGE_CLEAR(Fleet, fleet, FLEET, MAX_FLEETS)
+STORAGE_ADD(Fleet, fleet, FLEET, MAX_FLEETS)
+STORAGE_REMOVE(Fleet, fleet, FLEET, MAX_FLEETS)
+GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, total_ships, TOTAL_SHIPS, MAX_FLEETS)
+GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, total_captains, TOTAL_CAPTAINS, MAX_FLEETS)
+GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, first_mate_id, FIRST_MATE_ID, MAX_FLEETS)
+GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, accountant_id, ACCOUNTANT_ID, MAX_FLEETS)
+GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, navigator_id, NAVIGATOR_ID, MAX_FLEETS)
+GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, general_id, GENERAL_ID, MAX_FLEETS)
+
+enum FleetShipData
+{
+    FLEET_SHIP_SHIP_ID,
+    FLEET_SHIP_FLEET_ID,
+    FLEET_SHIP_DATA_SIZE,
+};
+
+enum FleetCaptainData
+{
+    FLEET_CAPTAIN_CAPTAIN_ID,
+    FLEET_CAPTAIN_FLEET_ID,
+    FLEET_CAPTAIN_DATA_SIZE,
+};
+
+enum CannonData
+{
+    CANNON_NAME_ID,
+    CANNON_RANGE,
+    CANNON_POWER,
+    CANNON_BASE_PRICE,
+    CANNON_DATA_SIZE,
+};
+
+enum FigureheadData
+{
+    FIGUREHEAD_NAME_ID,
+    FIGUREHEAD_BASE_PRICE,
+    FIGUREHEAD_DATA_SIZE,
+};
+
+// ------------------------------------------------------------------------------------------------
+// - ENUMS - SCENES
+// ------------------------------------------------------------------------------------------------
+enum Scene
+{
+    SCENE_BLACKJACK,
+    SCENE_GENERAL_SHOP,
+    SCENE_DOCKYARD,
+    SCENE_OCEAN_BATTLE,
+    SCENE_BANK,
+
+    // SPECIAL SCENES
+    SCENE_NPC_RVICE,
+    SCENE_NPC_LAFOLIE,
+    SCENE_NPC_NAKOR,
+    SCENE_NPC_TRAVIS,
+    SCENE_NPC_LOLLER,
+
+    SCENE_DATA_SIZE,
 };
 enum SceneBank
 {
@@ -615,144 +1189,6 @@ enum SceneBankChoices
     SCENE_BANK_CHOICE_LOAN,
     SCENE_BANK_CHOICE_WITHDRAW,
     SCENE_BANK_CHOICES_DATA_SIZE,
-};
-enum InventoryData
-{
-    INVENTORY_NAME_ID,
-    INVENTORY_TOTAL_ITEMS,
-    INVENTORY_DATA_SIZE,
-};
-enum InventoryType
-{
-    INVENTORY_TYPE_GOOD,
-    INVENTORY_TYPE_ARMOR,
-    INVENTORY_TYPE_WEAPON,
-    INVENTORY_TYPE_GENERAL_ITEM,
-    INVENTORY_TYPE_CANNON,
-    INVENTORY_TYPE_BASE_SHIP,
-    INVENTORY_TYPE_SHIP,
-};
-enum InventoryItemData
-{
-    INVENTORY_ITEM_NAME_ID,
-    INVENTORY_ITEM_NUMBER_HELD,
-    INVENTORY_ITEM_ADJUSTED_PRICE,
-    INVENTORY_ITEM_TYPE, // InventoryType
-    INVENTORY_ITEM_TYPE_NAME_ID,
-    INVENTORY_ITEM_TYPE_REFERENCE, // Reference to specific item
-    INVENTORY_ITEM_INVENTORY_ID, // The inventory that holds this item
-    INVENTORY_ITEM_NUMBER_CHOSEN,
-    INVENTORY_ITEM_DATA_SIZE,
-};
-enum PortData
-{
-    PORT_NAME_ID,
-    PORT_GLOBAL_LOCATION_X,
-    PORT_GLOBAL_LOCATION_Y,
-    PORT_OVERALL_INVESTMENT_LEVEL,
-    PORT_MARKET_INVESTMENT_LEVEL,
-    PORT_SHIPYARD_INVESTMENT_LEVEL,
-    PORT_DATA_SIZE,
-};
-enum StatsData
-{
-    STATS_BATTLE_LEVEL,
-    STATS_NAVIGATION_LEVEL,
-    STATS_LEADERSHIP,
-    STATS_SEAMANSHIP,
-    STATS_KNOWLEDGE,
-    STATS_INTUITION,
-    STATS_COURAGE,
-    STATS_SWORDSMANSHIP,
-    STATS_CHARM,
-    STATS_LUCK,
-    STATS_DATA_SIZE,
-};
-enum SkillData
-{
-    SKILL_NAME_ID,
-    SKILL_STATS_REQUIREMENTS,
-    SKILL_DATA_SIZE,
-};
-struct Entity
-{
-    u32 name_id;
-    u32 is_interactable;
-    u32 is_solid;
-    u32 interaction_on_step_over;
-    u32 interaction_scene;
-    u32 world_position_x;
-    u32 world_position_y;
-};
-enum FleetData
-{
-    FLEET_TOTAL_SHIPS,
-    FLEET_TOTAL_CAPTAINS,
-    FLEET_FIRST_MATE_ID,
-    FLEET_ACCOUNTANT_ID,
-    FLEET_NAVIGATOR_ID,
-    FLEET_GENERAL_ID,
-    FLEET_DATA_SIZE,
-};
-enum FleetShipData
-{
-    FLEET_SHIP_SHIP_ID,
-    FLEET_SHIP_FLEET_ID,
-    FLEET_SHIP_DATA_SIZE,
-};
-enum FleetCaptainData
-{
-    FLEET_CAPTAIN_CAPTAIN_ID,
-    FLEET_CAPTAIN_FLEET_ID,
-    FLEET_CAPTAIN_DATA_SIZE,
-};
-enum CannonData
-{
-    CANNON_NAME_ID,
-    CANNON_RANGE,
-    CANNON_POWER,
-    CANNON_BASE_PRICE,
-    CANNON_DATA_SIZE,
-};
-enum FigureheadData
-{
-    FIGUREHEAD_NAME_ID,
-    FIGUREHEAD_BASE_PRICE,
-    FIGUREHEAD_DATA_SIZE,
-};
-enum UserInput
-{
-    USER_INPUT_A,
-    USER_INPUT_B,
-    USER_INPUT_X,
-    USER_INPUT_Y,
-    USER_INPUT_UP,
-    USER_INPUT_DOWN,
-    USER_INPUT_LEFT,
-    USER_INPUT_RIGHT,
-    USER_INPUT_START,
-    USER_INPUT_SELECT,
-    USER_INPUT_LEFT_BUMPER,
-    USER_INPUT_RIGHT_BUMPER,
-    USER_INPUT_CUSTOM_NUMBER,
-    USER_INPUT_CUSTOM_STRING,
-};
-enum Scene
-{
-    SCENE_BLACKJACK,
-    SCENE_GENERAL_SHOP,
-    SCENE_DOCKYARD,
-    SCENE_OCEAN_BATTLE,
-    SCENE_BANK,
-
-    // SPECIAL SCENES
-    SCENE_NPC_RVICE,
-    SCENE_NPC_LAFOLIE,
-    SCENE_NPC_NAKOR,
-    SCENE_NPC_TRAVIS,
-    SCENE_NPC_LOLLER,
-
-    SCENE_DATA_SIZE,
 };
 enum SceneGeneralShop
 {
@@ -914,6 +1350,10 @@ enum SceneOceanBattleChoices
 
     SCENE_OCEAN_BATTLE_CHOICE_DATA_SIZE,
 };
+
+// ------------------------------------------------------------------------------------------------
+// - ENUM - OCEAN BATTLE DATA
+// ------------------------------------------------------------------------------------------------
 enum OceanBattleData
 {
     OCEAN_BATTLE_DATA_INITIALIZED,
@@ -942,137 +1382,85 @@ enum OceanBattleData
 //     RESOURCE_REFERENCES,
 //     RESOURCE_SIZE,
 // }
-// #define STRING_RESOURCES_SIZE (MAX_STRINGS * (uint32_t)RESOURCE_SIZE)
-// static uint32_t g_string_resources[STRING_RESOURCES_SIZE];
+// #define STRING_RESOURCES_SIZE (MAX_STRINGS * (u32)RESOURCE_SIZE)
+// static u32 g_string_resources[STRING_RESOURCES_SIZE];
 
 // ------------------------------------------------------------------------------------------------
 // Resource Management
 // ------------------------------------------------------------------------------------------------
-#define G_STRING_DATA_SIZE (MAX_STRINGS * MAX_STRING_LENGTH * 2)
-static char g_string_data[G_STRING_DATA_SIZE];  // *2 for both machine_name and text
-#define G_STRING_INFO_SIZE (MAX_STRINGS * STRING_DATA_SIZE)
-static uint32_t g_string_info[G_STRING_INFO_SIZE];
-static uint32_t g_string_count = 0;
-
-struct GeneralItem g_general_item_structs[MAX_GENERAL_ITEMS];
-
-struct BaseShip g_base_ship_structs[MAX_BASE_SHIPS];
-
-struct Ship g_ship_structs[MAX_SHIPS];
-
-#define G_SHIP_MATERIAL_DATA_SIZE (MAX_SHIP_MATERIALS * SHIP_MATERIAL_DATA_SIZE)
-static uint32_t g_ship_material_data[G_SHIP_MATERIAL_DATA_SIZE];
-static uint32_t g_ship_material_count = 0;
-
-#define G_WEAPON_DATA_SIZE (MAX_WEAPONS * WEAPON_DATA_SIZE)
-static uint32_t g_weapon_data[G_WEAPON_DATA_SIZE];
-static uint32_t g_weapon_count = 0;
-
-#define G_ARMOR_DATA_SIZE (MAX_ARMORS * ARMOR_DATA_SIZE)
-static uint32_t g_armor_data[G_ARMOR_DATA_SIZE];
-static uint32_t g_armor_count = 0;
-
-#define G_SPECIAL_ITEM_DATA_SIZE (MAX_SPECIAL_ITEMS * SPECIAL_ITEM_DATA_SIZE)
-static uint32_t g_special_item_data[G_SPECIAL_ITEM_DATA_SIZE];
-static uint32_t g_special_item_count = 0;
-
 #define G_FIGUREHEAD_DATA_SIZE (MAX_FIGUREHEADS * FIGUREHEAD_DATA_SIZE)
-static uint32_t g_figurehead_data[G_FIGUREHEAD_DATA_SIZE];
-static uint32_t g_figurehead_count = 0;
+static u32 g_figurehead_data[G_FIGUREHEAD_DATA_SIZE];
+static u32 g_figurehead_count = 0;
 
 #define G_CANNON_DATA_SIZE (MAX_CANNONS * CANNON_DATA_SIZE)
-static uint32_t g_cannon_data[G_CANNON_DATA_SIZE];
-static uint32_t g_cannon_count = 0;
+static u32 g_cannon_data[G_CANNON_DATA_SIZE];
+static u32 g_cannon_count = 0;
 
 #define G_CAPTAIN_DATA_SIZE (MAX_CAPTAINS * CAPTAIN_DATA_SIZE)
-static uint32_t g_captain_data[G_CAPTAIN_DATA_SIZE];
-static uint32_t g_captain_count = 0;
+static u32 g_captain_data[G_CAPTAIN_DATA_SIZE];
+static u32 g_captain_count = 0;
 
-struct World g_world_structs[MAX_WORLDS];
+#define G_STATS_DATA_SIZE (MAX_STATS * (u32)STATS_DATA_SIZE)
+static u32 g_stats_data[G_STATS_DATA_SIZE];
+static u32 g_stats_count = 0;
 
-#define G_LAYER_DATA_SIZE (MAX_LAYERS * (uint32_t)LAYER_DATA_SIZE)
-static uint32_t g_layer_data[G_LAYER_DATA_SIZE];
-static uint32_t g_layer_count = 0;
+#define G_SKILL_DATA_SIZE (MAX_SKILLS * (u32)SKILL_DATA_SIZE)
+static u32 g_skill_data[G_SKILL_DATA_SIZE];
+static u32 g_skill_count = 0;
 
-#define G_INVENTORY_DATA_SIZE (MAX_INVENTORIES * (uint32_t)INVENTORY_DATA_SIZE)
-static uint32_t g_inventory_data[G_INVENTORY_DATA_SIZE];
-static uint32_t g_inventory_count = 0;
+#define G_FLEET_DATA_SIZE (MAX_FLEETS * (u32)FLEET_DATA_SIZE)
+static u32 g_fleet_data[G_FLEET_DATA_SIZE];
+static u32 g_fleet_count = 0;
 
-#define G_INVENTORY_ITEM_DATA_SIZE (MAX_INVENTORY_ITEMS * (uint32_t)INVENTORY_ITEM_DATA_SIZE)
-static uint32_t g_inventory_item_data[G_INVENTORY_ITEM_DATA_SIZE];
-static uint32_t g_inventory_item_count = 0;
+#define G_FLEET_SHIP_DATA_SIZE (MAX_FLEET_SHIPS * (u32)FLEET_SHIP_DATA_SIZE)
+static u32 g_fleet_ship_data[G_FLEET_SHIP_DATA_SIZE];
+static u32 g_fleet_ship_count = 0;
 
-#define G_PORT_DATA_SIZE (MAX_PORTS * (uint32_t)PORT_DATA_SIZE)
-static uint32_t g_port_data[G_PORT_DATA_SIZE];
-static uint32_t g_port_count = 0;
-
-#define G_STATS_DATA_SIZE (MAX_STATS * (uint32_t)STATS_DATA_SIZE)
-static uint32_t g_stats_data[G_STATS_DATA_SIZE];
-static uint32_t g_stats_count = 0;
-
-#define G_SKILL_DATA_SIZE (MAX_SKILLS * (uint32_t)SKILL_DATA_SIZE)
-static uint32_t g_skill_data[G_SKILL_DATA_SIZE];
-static uint32_t g_skill_count = 0;
-
-struct Entity g_entity_structs[MAX_GLOBAL_ENTITIES];
-
-#define G_FLEET_DATA_SIZE (MAX_FLEETS * (uint32_t)FLEET_DATA_SIZE)
-static uint32_t g_fleet_data[G_FLEET_DATA_SIZE];
-static uint32_t g_fleet_count = 0;
-
-#define G_FLEET_SHIP_DATA_SIZE (MAX_FLEET_SHIPS * (uint32_t)FLEET_SHIP_DATA_SIZE)
-static uint32_t g_fleet_ship_data[G_FLEET_SHIP_DATA_SIZE];
-static uint32_t g_fleet_ship_count = 0;
-
-#define G_FLEET_CAPTAIN_DATA_SIZE (MAX_FLEET_CAPTAINS * (uint32_t)FLEET_CAPTAIN_DATA_SIZE)
-static uint32_t g_fleet_captain_data[G_FLEET_CAPTAIN_DATA_SIZE];
-static uint32_t g_fleet_captain_count = 0;
-
-#define G_WORLD_NPC_DATA_SIZE (MAX_WORLD_NPCS * (uint32_t)WORLD_NPC_DATA_SIZE)
-static uint32_t g_world_npc_data[G_WORLD_NPC_DATA_SIZE];
-static uint32_t g_world_npc_count = 0;
+#define G_FLEET_CAPTAIN_DATA_SIZE (MAX_FLEET_CAPTAINS * (u32)FLEET_CAPTAIN_DATA_SIZE)
+static u32 g_fleet_captain_data[G_FLEET_CAPTAIN_DATA_SIZE];
+static u32 g_fleet_captain_count = 0;
 
 // Note: Bank does not need a resource. It's a single entity that is always present.
-#define G_BANK_DATA_SIZE (MAX_BANKS * (uint32_t)BANK_DATA_SIZE)
-static uint32_t g_bank_data[G_BANK_DATA_SIZE];
+#define G_BANK_DATA_SIZE (MAX_BANKS * (u32)BANK_DATA_SIZE)
+static u32 g_bank_data[G_BANK_DATA_SIZE];
 
 // The "current_world" global variable is just a resource handler to a world data array
-uint32_t current_world;
+u32 current_world;
 
 // Viewport width & height are global variables
-uint32_t viewport_width = 0;
-uint32_t viewport_height = 0;
+u32 viewport_width = 0;
+u32 viewport_height = 0;
 
 // Camera offset is a global variable
-uint32_t camera_offset_x = 0;
-uint32_t camera_offset_y = 0;
+u32 camera_offset_x = 0;
+u32 camera_offset_y = 0;
 
 // Current world
-uint32_t current_world = SENTRY;
+u32 current_world = SENTRY;
 // Current scene
-uint32_t current_scene_enum = SENTRY;
+u32 current_scene_enum = SENTRY;
 // Current game mode
-uint32_t current_game_mode = SENTRY;
+u32 current_game_mode = SENTRY;
 
 // Has the game started?
-uint32_t has_game_started = false;
+u32 has_game_started = false;
 // Is the game accepting input?
-uint32_t accepting_input = false;
+u32 accepting_input = false;
 // Previous game mode
-uint32_t previous_game_mode = SENTRY;
+u32 previous_game_mode = SENTRY;
 
-uint32_t players[10];
+u32 players[10];
 
-uint32_t CurrentScene[MAX_SCENE_DATA_SIZE];
-uint32_t CurrentSceneChoices[MAX_SCENE_CHOICES];
-uint32_t CurrentSceneChoicesString[MAX_SCENE_CHOICES];
-uint32_t CurrentSceneStates[MAX_SCENE_STATES];
-uint32_t CurrentSceneStrings[MAX_SCENE_STRINGS];
-uint32_t CurrentSceneInventoryItems[MAX_INVENTORY_ITEMS];
+u32 CurrentScene[MAX_SCENE_DATA_SIZE];
+u32 CurrentSceneChoices[MAX_SCENE_CHOICES];
+u32 CurrentSceneChoicesString[MAX_SCENE_CHOICES];
+u32 CurrentSceneStates[MAX_SCENE_STATES];
+u32 CurrentSceneStrings[MAX_SCENE_STRINGS];
+u32 CurrentSceneInventoryItems[MAX_INVENTORY_ITEMS];
 
-uint32_t current_user_input_number;
+u32 current_user_input_number;
 
-static uint32_t ocean_battle_data[OCEAN_BATTLE_DATA_SIZE];
+static u32 ocean_battle_data[OCEAN_BATTLE_DATA_SIZE];
 
 // ------------------------------------------------------------------------------------------------
 // GLOBAL FUNCTIONS
@@ -1085,7 +1473,7 @@ char* my_strcpy(char* dest, const char* src)
     *dest = '\0';
     return original_dest;
 }
-uint32_t get_string_data_offset(uint32_t index)
+u32 get_string_data_offset(u32 index)
 {
     return index * MAX_STRING_LENGTH * 2;
 }
@@ -1110,41 +1498,32 @@ int strcmp(const char* str1, const char* str2)
 #define CREATE_INIT_DATA_FUNC(name, data_size, data) \
 void init_data_##name() \
 { \
-    for (uint32_t i = 0; i < (data_size); ++i) \
+    for (u32 i = 0; i < (data_size); ++i) \
     { \
         (data)[i] = SENTRY; \
     } \
 }
 
-CREATE_INIT_DATA_FUNC(ship_material, G_SHIP_MATERIAL_DATA_SIZE, g_ship_material_data);
-CREATE_INIT_DATA_FUNC(weapon, G_WEAPON_DATA_SIZE, g_weapon_data);
-CREATE_INIT_DATA_FUNC(armor, G_ARMOR_DATA_SIZE, g_armor_data);
-CREATE_INIT_DATA_FUNC(special_item, G_SPECIAL_ITEM_DATA_SIZE, g_special_item_data);
 CREATE_INIT_DATA_FUNC(figurehead, G_FIGUREHEAD_DATA_SIZE, g_figurehead_data);
 CREATE_INIT_DATA_FUNC(cannon, G_CANNON_DATA_SIZE, g_cannon_data);
-CREATE_INIT_DATA_FUNC(layer, G_LAYER_DATA_SIZE, g_layer_data);
-CREATE_INIT_DATA_FUNC(inventory, G_INVENTORY_DATA_SIZE, g_inventory_data);
-CREATE_INIT_DATA_FUNC(inventory_item, G_INVENTORY_ITEM_DATA_SIZE, g_inventory_item_data);
-CREATE_INIT_DATA_FUNC(port, G_PORT_DATA_SIZE, g_port_data);
 CREATE_INIT_DATA_FUNC(stats, G_STATS_DATA_SIZE, g_stats_data);
 CREATE_INIT_DATA_FUNC(skill, G_SKILL_DATA_SIZE, g_skill_data);
 CREATE_INIT_DATA_FUNC(fleet, G_FLEET_DATA_SIZE, g_fleet_data);
 CREATE_INIT_DATA_FUNC(fleet_ship, G_FLEET_SHIP_DATA_SIZE, g_fleet_ship_data);
 CREATE_INIT_DATA_FUNC(fleet_captain, G_FLEET_CAPTAIN_DATA_SIZE, g_fleet_captain_data);
-CREATE_INIT_DATA_FUNC(world_npc, G_WORLD_NPC_DATA_SIZE, g_world_npc_data);
 CREATE_INIT_DATA_FUNC(bank, G_BANK_DATA_SIZE, g_bank_data);
 CREATE_INIT_DATA_FUNC(captain, G_CAPTAIN_DATA_SIZE, g_captain_data);
 
 void init_string_data(void)
 {
-    for (uint32_t i = 0; i < G_STRING_DATA_SIZE; ++i)
+    for (u32 i = 0; i < G_STRING_DATA_SIZE; ++i)
     {
         g_string_data[i] = '\0';
     }
 }
 void init_string_info(void)
 {
-    for (uint32_t i = 0; i < G_STRING_INFO_SIZE; ++i)
+    for (u32 i = 0; i < G_STRING_INFO_SIZE; ++i)
     {
         g_string_info[i] = SENTRY;
     }
@@ -1182,10 +1561,10 @@ void init_string_info(void)
 // ------------------------------------------------------------------------------------------------
 // Global Scene Stuff
 // ------------------------------------------------------------------------------------------------
-uint32_t previous_scene_state;
+u32 previous_scene_state;
 void clear_current_scene()
 {
-    for (uint32_t i = 0; i < MAX_SCENE_DATA_SIZE; ++i)
+    for (u32 i = 0; i < MAX_SCENE_DATA_SIZE; ++i)
     {
         // TODO: This is hacky. We need a better function or a second function. One clears everything, one clears only critical
         if (i == SCENE_TRIGGERED_BY_WORLD_NPC_ID)
@@ -1202,7 +1581,7 @@ void clear_current_scene()
 
 void clear_current_scene_choices()
 {
-    for (uint32_t i = 0; i < MAX_SCENE_CHOICES; ++i)
+    for (u32 i = 0; i < MAX_SCENE_CHOICES; ++i)
     {
         CurrentSceneChoices[i] = SENTRY;
     }
@@ -1212,7 +1591,7 @@ void clear_current_scene_choices()
 
 void clear_current_scene_states()
 {
-    for (uint32_t i = 0; i < MAX_SCENE_STATES; ++i)
+    for (u32 i = 0; i < MAX_SCENE_STATES; ++i)
     {
         CurrentSceneStates[i] = SENTRY;
     }
@@ -1220,105 +1599,105 @@ void clear_current_scene_states()
 
 void clear_current_scene_strings()
 {
-    for (uint32_t i = 0; i < MAX_SCENE_STRINGS; ++i)
+    for (u32 i = 0; i < MAX_SCENE_STRINGS; ++i)
     {
         CurrentSceneStrings[i] = SENTRY;
     }
 }
 
 // TODO: Is this still needed now?
-void set_current_scene_data(uint32_t key, uint32_t value)
+void set_current_scene_data(u32 key, u32 value)
 {
     CurrentScene[SCENE_BASIC_DATA_SIZE + key] = value;
 }
 // TODO: Is this still needed now?
-uint32_t get_current_scene_data(uint32_t key)
+u32 get_current_scene_data(u32 key)
 {
     return CurrentScene[SCENE_BASIC_DATA_SIZE + key];
 }
 
-void set_current_scene_inventory_id(uint32_t value)
+void set_current_scene_inventory_id(u32 value)
 {
     CurrentScene[SCENE_CURRENT_INVENTORY_ID] = value;
 }
-uint32_t get_current_scene_inventory_id()
+u32 get_current_scene_inventory_id()
 {
     return CurrentScene[SCENE_CURRENT_INVENTORY_ID];
 }
 
-void set_current_scene_string_id(uint32_t value)
+void set_current_scene_string_id(u32 value)
 {
     CurrentScene[SCENE_CURRENT_SCENE_STRING_ID] = value;
 }
-uint32_t get_current_scene_string_id()
+u32 get_current_scene_string_id()
 {
     return CurrentScene[SCENE_CURRENT_SCENE_STRING_ID];
 }
 
-void set_current_scene_state(uint32_t value)
+void set_current_scene_state(u32 value)
 {
     CurrentScene[SCENE_CURRENT_STATE] = value;
 }
-uint32_t get_current_scene_state()
+u32 get_current_scene_state()
 {
     return CurrentScene[SCENE_CURRENT_STATE];
 }
 
-void set_current_scene(uint32_t value)
+void set_current_scene(u32 value)
 {
     CurrentScene[SCENE_CURRENT_SCENE] = value;
 }
-uint32_t get_current_scene()
+u32 get_current_scene()
 {
     return CurrentScene[SCENE_CURRENT_SCENE];
 }
 
-void set_current_scene_state_string_id(uint32_t value)
+void set_current_scene_state_string_id(u32 value)
 {
     CurrentScene[SCENE_CURRENT_STATE_STRING_ID] = value;
 }
-uint32_t get_current_scene_state_string_id()
+u32 get_current_scene_state_string_id()
 {
     return CurrentScene[SCENE_CURRENT_STATE_STRING_ID];
 }
 
-void set_current_scene_triggered_by_world_npc_id(uint32_t id)
+void set_current_scene_triggered_by_world_npc_id(u32 id)
 {
     CurrentScene[SCENE_TRIGGERED_BY_WORLD_NPC_ID] = id;
 }
-uint32_t get_current_scene_triggered_by_world_npc_id()
+u32 get_current_scene_triggered_by_world_npc_id()
 {
     return CurrentScene[SCENE_TRIGGERED_BY_WORLD_NPC_ID];
 }
 
-void set_current_scene_dialogue_string_id(uint32_t value)
+void set_current_scene_dialogue_string_id(u32 value)
 {
     CurrentScene[SCENE_CURRENT_DIALOGUE_STRING_ID] = value;
 }
-uint32_t get_current_scene_dialogue_string_id()
+u32 get_current_scene_dialogue_string_id()
 {
     return CurrentScene[SCENE_CURRENT_DIALOGUE_STRING_ID];
 }
 
-uint32_t get_current_scene_total_choices()
+u32 get_current_scene_total_choices()
 {
     return CurrentScene[SCENE_CURRENT_TOTAL_CHOICES];
 }
-void set_current_scene_total_choices(uint32_t total)
+void set_current_scene_total_choices(u32 total)
 {
     CurrentScene[SCENE_CURRENT_TOTAL_CHOICES] = total;
 }
 
-uint32_t get_current_scene_total_states()
+u32 get_current_scene_total_states()
 {
     return CurrentScene[SCENE_TOTAL_STATES];
 }
-void set_current_scene_total_states(uint32_t total)
+void set_current_scene_total_states(u32 total)
 {
     CurrentScene[SCENE_TOTAL_STATES] = total;
 }
 
-uint32_t get_current_scene_choice_enabled(uint32_t choice)
+u32 get_current_scene_choice_enabled(u32 choice)
 {
     CurrentScene[SCENE_CURRENT_CHOICE] = choice;
     if (CurrentSceneChoices[choice] != SENTRY)
@@ -1328,7 +1707,7 @@ uint32_t get_current_scene_choice_enabled(uint32_t choice)
     return SENTRY;
 }
 
-void set_current_scene_needs_numerical_input(uint32_t on_off)
+void set_current_scene_needs_numerical_input(u32 on_off)
 {
     CurrentScene[SCENE_WAITING_FOR_INPUT_NUMBER] = SENTRY;
     if (on_off == true)
@@ -1336,12 +1715,12 @@ void set_current_scene_needs_numerical_input(uint32_t on_off)
         CurrentScene[SCENE_WAITING_FOR_INPUT_NUMBER] = 1;
     }
 }
-uint32_t get_current_scene_needs_numerical_input()
+u32 get_current_scene_needs_numerical_input()
 {
     return CurrentScene[SCENE_WAITING_FOR_INPUT_NUMBER];
 }
 
-void current_scene_make_choice(uint32_t choice)
+void current_scene_make_choice(u32 choice)
 {
     CurrentScene[SCENE_CURRENT_CHOICE] = choice;
     if (get_current_scene() == SCENE_BLACKJACK)
@@ -1381,75 +1760,75 @@ void current_scene_make_choice(uint32_t choice)
         scene_bank(SCENE_MAKE_CHOICE);
     }
 }
-uint32_t current_scene_get_current_choice()
+u32 current_scene_get_current_choice()
 {
     return CurrentScene[SCENE_CURRENT_CHOICE];
 }
-uint32_t current_scene_add_choice(uint32_t value)
+u32 current_scene_add_choice(u32 value)
 {
-    uint32_t total_choices = get_current_scene_total_choices();
+    u32 total_choices = get_current_scene_total_choices();
     CurrentSceneChoices[total_choices] = value;
     set_current_scene_total_choices(total_choices + 1);
     return total_choices;
 }
-uint32_t current_scene_get_choice(uint32_t which)
+u32 current_scene_get_choice(u32 which)
 {
     return CurrentSceneChoices[which];
 }
 void current_scene_clear_choice_strings()
 {
-    for (uint32_t i = 0; i < MAX_SCENE_CHOICES; ++i)
+    for (u32 i = 0; i < MAX_SCENE_CHOICES; ++i)
     {
         CurrentSceneChoicesString[i] = SENTRY;
     }
 }
-void current_scene_set_choice_string_id(uint32_t choice, uint32_t string_id)
+void current_scene_set_choice_string_id(u32 choice, u32 string_id)
 {
     CurrentSceneChoicesString[choice] = string_id;
 }
-uint32_t get_current_scene_choice_string_id(uint32_t choice)
+u32 get_current_scene_choice_string_id(u32 choice)
 {
     return CurrentSceneChoicesString[choice];
 }
 
-void current_scene_add_state(uint32_t value)
+void current_scene_add_state(u32 value)
 {
-    uint32_t total_states = get_current_scene_total_states();
+    u32 total_states = get_current_scene_total_states();
     CurrentSceneStates[total_states] = value;
     set_current_scene_total_states(total_states + 1);
 }
-uint32_t current_scene_get_state(uint32_t which)
+u32 current_scene_get_state(u32 which)
 {
     return CurrentSceneStates[which];
 }
 
-void set_current_scene_total_strings(uint32_t value)
+void set_current_scene_total_strings(u32 value)
 {
     CurrentSceneStrings[SCENE_TOTAL_STRINGS] = value;
 }
-uint32_t get_current_scene_total_strings()
+u32 get_current_scene_total_strings()
 {
     return CurrentScene[SCENE_TOTAL_STRINGS];
 }
 
 void map_current_scene_inventory_id()
 {
-    uint32_t world_npc_id = get_current_scene_triggered_by_world_npc_id();
+    u32 world_npc_id = get_current_scene_triggered_by_world_npc_id();
     set_current_scene_inventory_id(get_world_npc_inventory_id(world_npc_id));
 }
 void clear_current_scene_inventory_items()
 {
-    for (uint32_t i = 0; i < MAX_INVENTORY_ITEMS; ++i)
+    for (u32 i = 0; i < MAX_INVENTORY_ITEMS; ++i)
     {
         CurrentSceneInventoryItems[i] = SENTRY;
     }
 }
 void map_current_scene_inventory_items()
 {
-    uint32_t inventory_id = get_current_scene_inventory_id();
+    u32 inventory_id = get_current_scene_inventory_id();
     clear_current_scene_inventory_items();
-    uint32_t csii = 0;
-    for (uint32_t i = 0; i < MAX_INVENTORY_ITEMS; ++i)
+    u32 csii = 0;
+    for (u32 i = 0; i < MAX_INVENTORY_ITEMS; ++i)
     {
         if (get_inventory_item_inventory_id(i) == inventory_id)
         {
@@ -1458,24 +1837,24 @@ void map_current_scene_inventory_items()
         }
     }
 }
-uint32_t get_current_scene_inventory_item_string_id(uint32_t inventory_item_id)
+u32 get_current_scene_inventory_item_string_id(u32 inventory_item_id)
 {
-    uint32_t real_inventory_id = CurrentSceneInventoryItems[inventory_item_id];
-    return get_inventory_item_string_id(real_inventory_id);
+    u32 real_inventory_id = CurrentSceneInventoryItems[inventory_item_id];
+    return get_inventory_item_name_id(real_inventory_id);
 }
-uint32_t get_current_scene_inventory_item_adjusted_price(uint32_t inventory_item_id)
+u32 get_current_scene_inventory_item_adjusted_price(u32 inventory_item_id)
 {
-    uint32_t real_inventory_id = CurrentSceneInventoryItems[inventory_item_id];
+    u32 real_inventory_id = CurrentSceneInventoryItems[inventory_item_id];
     return get_inventory_item_adjusted_price(real_inventory_id);
 }
 
-void current_scene_add_string(uint32_t value)
+void current_scene_add_string(u32 value)
 {
-    uint32_t total_strings = get_current_scene_total_strings();
+    u32 total_strings = get_current_scene_total_strings();
     CurrentSceneStrings[total_strings] = value;
     set_current_scene_total_strings(total_strings + 1);
 }
-uint32_t current_scene_get_string(uint32_t which)
+u32 current_scene_get_string(u32 which)
 {
     return CurrentSceneStrings[which];
 }
@@ -1485,13 +1864,13 @@ uint32_t current_scene_get_string(uint32_t which)
 // ------------------------------------------------------------------------------------------------
 #define G_GLOBAL_WORLD_DATA_SIZE 50000
 // MAXIMUM_WORLD_WIDTH * MAXIMUM_WORLD_HEIGHT * MAXIMUM_WORLD_LAYERS
-uint32_t GLOBAL_WORLD_DATA[G_GLOBAL_WORLD_DATA_SIZE];
-uint32_t GLOBAL_WORLD_DATA_ITERATOR;
-void add_value_to_global_world_data(uint32_t layer_id, uint32_t x, uint32_t y, uint32_t value)
+u32 GLOBAL_WORLD_DATA[G_GLOBAL_WORLD_DATA_SIZE];
+u32 GLOBAL_WORLD_DATA_ITERATOR;
+void add_value_to_global_world_data(u32 layer_id, u32 x, u32 y, u32 value)
 {
-    uint32_t layer_width = g_layer_data[layer_id * LAYER_DATA_SIZE + LAYER_WIDTH];
-    uint32_t offset = x + y * layer_width;
-    offset += g_layer_data[layer_id * LAYER_DATA_SIZE + LAYER_GLOBAL_WORLD_DATA_OFFSET];
+    u32 layer_width = get_layer_width(layer_id);
+    u32 offset = x + y * layer_width;
+    offset += get_layer_global_world_data_offset(layer_id);
     if (offset >= G_GLOBAL_WORLD_DATA_SIZE)
     {
         console_log("ERROR: Global world data not big enough for layer data");
@@ -1500,32 +1879,32 @@ void add_value_to_global_world_data(uint32_t layer_id, uint32_t x, uint32_t y, u
 }
 void clear_global_world_data()
 {
-    for (uint32_t i = 0; i < G_GLOBAL_WORLD_DATA_SIZE; ++i)
+    for (u32 i = 0; i < G_GLOBAL_WORLD_DATA_SIZE; ++i)
     {
         GLOBAL_WORLD_DATA[i] = SENTRY;
     }
     GLOBAL_WORLD_DATA_ITERATOR = 0;
 }
-uint32_t get_layer_data_by_coordinates(uint32_t layer_id, uint32_t x, uint32_t y)
+u32 get_layer_data_by_coordinates(u32 layer_id, u32 x, u32 y)
 {
-    uint32_t layer_width = g_layer_data[layer_id * LAYER_DATA_SIZE + LAYER_WIDTH];
-    uint32_t offset = x + y * layer_width;
-    offset += g_layer_data[layer_id * LAYER_DATA_SIZE + LAYER_GLOBAL_WORLD_DATA_OFFSET];
+    u32 layer_width = get_layer_width(layer_id);
+    u32 offset = x + y * layer_width;
+    offset += get_layer_global_world_data_offset(layer_id);
     return GLOBAL_WORLD_DATA[offset];
 }
 
 // ------------------------------------------------------------------------------------------------
 // Entities
 // ------------------------------------------------------------------------------------------------
-uint32_t check_if_player_stepped_on_entity(u32 player_id)
+u32 check_if_player_stepped_on_entity(u32 player_id)
 {
     for (u32 i = 0; i < MAX_GLOBAL_ENTITIES; ++i)
     {
         if (
-            g_entity_structs[i].world_position_x == get_player_in_world_x(player_id) &&
-            g_entity_structs[i].world_position_y == get_player_in_world_y(player_id) &&
-            g_entity_structs[i].is_interactable == true &&
-            g_entity_structs[i].interaction_on_step_over == true
+            get_entity_world_position_x(i) == get_player_in_world_x(player_id) &&
+            get_entity_world_position_y(i) == get_player_in_world_y(player_id) &&
+            get_entity_is_interactable(i) == true &&
+            get_entity_interaction_on_step_over(i) == true
         )
         {
             // TODO: interaction_scene
@@ -1535,34 +1914,17 @@ uint32_t check_if_player_stepped_on_entity(u32 player_id)
     }
     return SENTRY;
 }
-void set_default_entity(u32 entity_id)
-{
-    g_entity_structs[entity_id].name_id = SENTRY;
-    g_entity_structs[entity_id].is_interactable = SENTRY;
-    g_entity_structs[entity_id].is_solid = SENTRY;
-    g_entity_structs[entity_id].interaction_on_step_over = SENTRY;
-    g_entity_structs[entity_id].interaction_scene = SENTRY;
-    g_entity_structs[entity_id].world_position_x = SENTRY;
-    g_entity_structs[entity_id].world_position_y = SENTRY;
-}
-void init_structs_entities()
-{
-    for (u32 i = 0; i < MAX_GLOBAL_ENTITIES; ++i)
-    {
-        set_default_entity(i);
-    }
-}
 
 // ------------------------------------------------------------------------------------------------
 // Resource Creation
 // ------------------------------------------------------------------------------------------------
 #define CREATE_ENTITY_FUNC(name, data_type, data_size, max_entities, name_id, count, entity_data) \
-uint32_t create_##name(data_type data[data_size], ...) \
+u32 create_##name(data_type data[data_size], ...) \
 { \
     va_list args; \
     va_start(args, data); \
-    uint32_t should_clear = va_arg(args, uint32_t); \
-    uint32_t value = SENTRY; \
+    u32 should_clear = va_arg(args, u32); \
+    u32 value = SENTRY; \
     CREATE_ENTITY(data, entity_data, data_size, max_entities, name_id, count, value); \
     if (should_clear == 1) \
     { \
@@ -1580,12 +1942,12 @@ uint32_t create_##name(data_type data[data_size], ...) \
             value = SENTRY; \
             break; \
         } \
-        for (uint32_t i = 0; i < max_entities; ++i) \
+        for (u32 i = 0; i < max_entities; ++i) \
         { \
-            uint32_t offset = i * entity_size; \
+            u32 offset = i * entity_size; \
             if (entity_data[offset + name_id] == SENTRY) \
             { \
-                for (uint32_t j = 0; j < entity_size; j += 1) \
+                for (u32 j = 0; j < entity_size; j += 1) \
                 { \
                     entity_data[offset + j] = data[j]; \
                 } \
@@ -1598,22 +1960,22 @@ uint32_t create_##name(data_type data[data_size], ...) \
 
 #define CLEAR_DATA(data, size) \
     do { \
-        for (uint32_t i = 0; i < (size); ++i) \
+        for (u32 i = 0; i < (size); ++i) \
         { \
             (data)[i] = SENTRY; \
         } \
     } while (0)
 
 #define FREE_ENTITY(entity_type, entity_data, entity_size, max_entities, count) \
-void free_##entity_type(uint32_t data_index) \
+void free_##entity_type(u32 data_index) \
 { \
     if (data_index >= max_entities) \
     { \
         console_log("Tried to free a " #entity_type " resource that doesn't exist"); \
         return; \
     } \
-    uint32_t offset = data_index * entity_size; \
-    for (uint32_t i = 0; i < entity_size; ++i) \
+    u32 offset = data_index * entity_size; \
+    for (u32 i = 0; i < entity_size; ++i) \
     { \
         entity_data[offset + i] = SENTRY; \
     } \
@@ -1622,29 +1984,20 @@ void free_##entity_type(uint32_t data_index) \
 // USAGE: FREE_ENTITY(npc, g_npc_data, NPC_DATA_SIZE, MAX_NPCS, g_npc_count);
 
 // Create creation functions based on Macro usage
-CREATE_ENTITY_FUNC(ship_material, uint32_t, SHIP_MATERIAL_DATA_SIZE, MAX_SHIP_MATERIALS, SHIP_MATERIAL_NAME_ID, g_ship_material_count, g_ship_material_data);
-CREATE_ENTITY_FUNC(weapon, uint32_t, WEAPON_DATA_SIZE, MAX_WEAPONS, WEAPON_NAME_ID, g_weapon_count, g_weapon_data);
-CREATE_ENTITY_FUNC(armor, uint32_t, ARMOR_DATA_SIZE, MAX_ARMORS, ARMOR_NAME_ID, g_armor_count, g_armor_data);
-CREATE_ENTITY_FUNC(special_item, uint32_t, SPECIAL_ITEM_DATA_SIZE, MAX_SPECIAL_ITEMS, SPECIAL_ITEM_NAME_ID, g_special_item_count, g_special_item_data);
-CREATE_ENTITY_FUNC(world_npc, uint32_t, WORLD_NPC_DATA_SIZE, MAX_WORLD_NPCS, WORLD_NPC_NPC_ID, g_world_npc_count, g_world_npc_data);
-CREATE_ENTITY_FUNC(captain, uint32_t, CAPTAIN_DATA_SIZE, MAX_CAPTAINS, CAPTAIN_NPC_ID, g_captain_count, g_captain_data);
-CREATE_ENTITY_FUNC(layer, uint32_t, LAYER_DATA_SIZE, MAX_LAYERS, LAYER_NAME_ID, g_layer_count, g_layer_data);
-CREATE_ENTITY_FUNC(inventory, uint32_t, INVENTORY_DATA_SIZE, MAX_INVENTORIES, INVENTORY_NAME_ID, g_inventory_count, g_inventory_data);
-CREATE_ENTITY_FUNC(inventory_item, uint32_t, INVENTORY_ITEM_DATA_SIZE, MAX_INVENTORY_ITEMS, INVENTORY_ITEM_NAME_ID, g_inventory_item_count, g_inventory_item_data);
-CREATE_ENTITY_FUNC(port, uint32_t, PORT_DATA_SIZE, MAX_PORTS, PORT_NAME_ID, g_port_count, g_port_data);
-CREATE_ENTITY_FUNC(stats, uint32_t, STATS_DATA_SIZE, MAX_STATS, STATS_BATTLE_LEVEL, g_stats_count, g_stats_data);
-CREATE_ENTITY_FUNC(skill, uint32_t, SKILL_DATA_SIZE, MAX_SKILLS, SKILL_NAME_ID, g_skill_count, g_skill_data);
-CREATE_ENTITY_FUNC(fleet, uint32_t, FLEET_DATA_SIZE, MAX_FLEETS, FLEET_GENERAL_ID, g_fleet_count, g_fleet_data);
-CREATE_ENTITY_FUNC(fleet_ship, uint32_t, FLEET_SHIP_DATA_SIZE, MAX_FLEET_SHIPS, FLEET_SHIP_SHIP_ID, g_fleet_ship_count, g_fleet_ship_data);
-CREATE_ENTITY_FUNC(fleet_captain, uint32_t, FLEET_CAPTAIN_DATA_SIZE, MAX_FLEET_CAPTAINS, FLEET_CAPTAIN_CAPTAIN_ID, g_fleet_captain_count, g_fleet_captain_data);
-CREATE_ENTITY_FUNC(cannon, uint32_t, CANNON_DATA_SIZE, MAX_CANNONS, CANNON_NAME_ID, g_cannon_count, g_cannon_data);
-CREATE_ENTITY_FUNC(figurehead, uint32_t, FIGUREHEAD_DATA_SIZE, MAX_FIGUREHEADS, FIGUREHEAD_NAME_ID, g_figurehead_count, g_figurehead_data);
+CREATE_ENTITY_FUNC(captain, u32, CAPTAIN_DATA_SIZE, MAX_CAPTAINS, CAPTAIN_NPC_ID, g_captain_count, g_captain_data);
+CREATE_ENTITY_FUNC(stats, u32, STATS_DATA_SIZE, MAX_STATS, STATS_BATTLE_LEVEL, g_stats_count, g_stats_data);
+CREATE_ENTITY_FUNC(skill, u32, SKILL_DATA_SIZE, MAX_SKILLS, SKILL_NAME_ID, g_skill_count, g_skill_data);
+CREATE_ENTITY_FUNC(fleet, u32, FLEET_DATA_SIZE, MAX_FLEETS, FLEET_GENERAL_ID, g_fleet_count, g_fleet_data);
+CREATE_ENTITY_FUNC(fleet_ship, u32, FLEET_SHIP_DATA_SIZE, MAX_FLEET_SHIPS, FLEET_SHIP_SHIP_ID, g_fleet_ship_count, g_fleet_ship_data);
+CREATE_ENTITY_FUNC(fleet_captain, u32, FLEET_CAPTAIN_DATA_SIZE, MAX_FLEET_CAPTAINS, FLEET_CAPTAIN_CAPTAIN_ID, g_fleet_captain_count, g_fleet_captain_data);
+CREATE_ENTITY_FUNC(cannon, u32, CANNON_DATA_SIZE, MAX_CANNONS, CANNON_NAME_ID, g_cannon_count, g_cannon_data);
+CREATE_ENTITY_FUNC(figurehead, u32, FIGUREHEAD_DATA_SIZE, MAX_FIGUREHEADS, FIGUREHEAD_NAME_ID, g_figurehead_count, g_figurehead_data);
 
 
 int32_t create_string(const char* machine_name, const char* text)
 {
-    uint32_t machine_name_len = 0;
-    uint32_t text_len = 0;
+    u32 machine_name_len = 0;
+    u32 text_len = 0;
     
     // Calculate lengths
     while (machine_name[machine_name_len] && machine_name_len < MAX_STRING_LENGTH) machine_name_len++;
@@ -1656,16 +2009,16 @@ int32_t create_string(const char* machine_name, const char* text)
         return SENTRY;
     }
 
-    for (uint32_t i = 0; i < MAX_STRINGS; ++i)
+    for (u32 i = 0; i < MAX_STRINGS; ++i)
     {
-        uint32_t info_offset = i * STRING_DATA_SIZE;
-        if (g_string_info[info_offset + (uint32_t)STRING_MACHINE_NAME_LENGTH] == SENTRY)
+        u32 info_offset = i * STRING_DATA_SIZE;
+        if (g_string_info[info_offset + (u32)STRING_MACHINE_NAME_LENGTH] == SENTRY)
         {
             // Calculate the offset for string data
-            uint32_t string_offset = i * (MAX_STRING_LENGTH * 2);
+            u32 string_offset = i * (MAX_STRING_LENGTH * 2);
             
             // Clear the memory first
-            for (uint32_t j = 0; j < MAX_STRING_LENGTH * 2; j++)
+            for (u32 j = 0; j < MAX_STRING_LENGTH * 2; j++)
             {
                 g_string_data[string_offset + j] = '\0';
             }
@@ -1676,8 +2029,8 @@ int32_t create_string(const char* machine_name, const char* text)
             my_strcpy(&g_string_data[string_offset + MAX_STRING_LENGTH], text);
             
             // Store lengths
-            g_string_info[info_offset + (uint32_t)STRING_MACHINE_NAME_LENGTH] = machine_name_len;
-            g_string_info[info_offset + (uint32_t)STRING_TEXT_LENGTH] = text_len;
+            g_string_info[info_offset + (u32)STRING_MACHINE_NAME_LENGTH] = machine_name_len;
+            g_string_info[info_offset + (u32)STRING_TEXT_LENGTH] = text_len;
             
             g_string_count += 1;
             return i;
@@ -1686,207 +2039,97 @@ int32_t create_string(const char* machine_name, const char* text)
     return SENTRY;
 }
 // TODO: Update this for string
-// void free_string(uint32_t data_index) {
+// void free_string(u32 data_index) {
 //     if (data_index >= MAX_STRINGS) {
 //         console_log("Tried to free a string resource that doesn't exist");
 //         return;
 //     }
-//     uint32_t offset = data_index * STRING_DATA_SIZE;
-//     g_string_info[offset + (uint32_t)STRING_MACHINE_NAME_LENGTH] = SENTRY;
-//     g_string_info[offset + (uint32_t)STRING_TEXT_LENGTH] = SENTRY;
+//     u32 offset = data_index * STRING_DATA_SIZE;
+//     g_string_info[offset + (u32)STRING_MACHINE_NAME_LENGTH] = SENTRY;
+//     g_string_info[offset + (u32)STRING_TEXT_LENGTH] = SENTRY;
 //     offset = data_index * MAX_STRING_LENGTH * 2;
-//     for (uint32_t i = 0; i < MAX_STRING_LENGTH * 2; ++i) {
+//     for (u32 i = 0; i < MAX_STRING_LENGTH * 2; ++i) {
 //         g_string_data[offset + i] = '\0';
 //     }
 //     g_string_count -= 1;
 // }
 
 // ------------------------------------------------------------------------------------------------ //
-// STRING FUNCTIONS
-// ------------------------------------------------------------------------------------------------ //
-uint32_t get_string_id_by_machine_name(const char* machine_name)
-{
-    for (uint32_t i = 0; i < MAX_STRINGS; ++i)
-    {
-        uint32_t info_offset = i * STRING_DATA_SIZE;
-        // Check if this slot is occupied first
-        if (g_string_info[info_offset + (uint32_t)STRING_MACHINE_NAME_LENGTH] == SENTRY)
-        {
-            continue;
-        }
-        
-        // Get pointer to the start of this string's machine name
-        uint32_t string_offset = i * (MAX_STRING_LENGTH * 2);
-        // Note: Machine name is max_string_length + offset
-        const char* stored_name = &g_string_data[string_offset];
-        
-        // console_log_format("Comparing '%s' with '%s'", stored_name, machine_name);
-        
-        if (strcmp(stored_name, machine_name) == 0)
-        {
-            return i;
-        }
-    }
-    console_log_format("== could not find string id by machine name %s ==", machine_name);
-    return SENTRY;
-}
-const char* get_string_text(uint32_t index)
-{
-    if (index >= MAX_STRINGS) return "";
-    uint32_t offset = index * MAX_STRING_LENGTH * 2;
-    uint32_t info_offset = offset + STRING_DATA_SIZE;
-    uint32_t length = g_string_info[info_offset + (uint32_t)STRING_TEXT_LENGTH];
-    char slice[length + 1];
-    for (uint32_t j = 0; j < length; j += 1)
-    {
-        slice[j] = g_string_data[offset + j];
-    }
-    slice[length] = '\0';
-    return slice;
-}
-const char* get_string_machine_name(uint32_t index)
-{
-    if (index >= MAX_STRINGS)
-    {
-        console_log("Tried to get a string beyond what the system holds");
-        return "";
-    }
-    uint32_t offset = index * MAX_STRING_LENGTH * 2;
-    uint32_t info_offset = index * STRING_DATA_SIZE;
-    uint32_t length = g_string_info[info_offset + (uint32_t)STRING_MACHINE_NAME_LENGTH];
-    char slice[length + 1];
-    for (uint32_t j = 0; j < length; j += 1)
-    {
-        slice[j] = g_string_data[offset + j];
-    }
-    slice[length] = '\0';
-    return slice;
-}
-char* get_string_text_ptr(uint32_t index)
-{
-    if (index >= MAX_STRINGS) return NULL;
-    uint32_t offset = index * MAX_STRING_LENGTH * 2;
-    return &g_string_data[offset + (uint32_t)MAX_STRING_LENGTH];
-}
-uint32_t get_string_text_len(uint32_t index)
-{
-    if (index >= MAX_STRINGS)
-    {
-        console_log("Tried to get the length of a string that doesn't exist");
-        console_log_format("Index: %d", index);
-        return SENTRY;
-    }
-    uint32_t offset = index * STRING_DATA_SIZE;
-    return g_string_info[offset + (uint32_t)STRING_TEXT_LENGTH];
-}
-char* get_string_machine_name_ptr(uint32_t index)
-{
-    if (index >= MAX_STRINGS) return NULL;
-    uint32_t offset = index * MAX_STRING_LENGTH * 2;
-    return &g_string_data[offset];
-}
-uint32_t get_string_machine_name_len(uint32_t index)
-{
-    if (index >= MAX_STRINGS)
-    {
-        console_log("Tried to get the length of a string that doesn't exist");
-        return SENTRY;
-    }
-    uint32_t offset = index * STRING_DATA_SIZE;
-    return g_string_info[offset + (uint32_t)STRING_MACHINE_NAME_LENGTH];
-}
-
-// ------------------------------------------------------------------------------------------------ //
 // CANNON FUNCTIONS
 // ------------------------------------------------------------------------------------------------ //
-void set_cannon_name_id(uint32_t index, uint32_t name_id)
+void set_cannon_name_id(u32 index, u32 name_id)
 {
     if (index >= MAX_CANNONS) return;
     if (name_id >= MAX_STRINGS) return;
-    g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_NAME_ID] = name_id;
+    g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_NAME_ID] = name_id;
 }
-uint32_t get_cannon_name_id(uint32_t index)
+u32 get_cannon_name_id(u32 index)
 {
     if (index >= MAX_CANNONS) return SENTRY;
-    return g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_NAME_ID];
+    return g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_NAME_ID];
 }
-const char* get_cannon_machine_name(uint32_t index)
+const char* get_cannon_machine_name(u32 index)
 {
     if (index >= MAX_CANNONS) return "";
-    uint32_t name_id = get_cannon_name_id(index);
+    u32 name_id = get_cannon_name_id(index);
     return get_string_machine_name(name_id);
 }
-const char* get_cannon_text(uint32_t index)
+const char* get_cannon_text(u32 index)
 {
     if (index >= MAX_CANNONS) return "";
-    uint32_t name_id = get_cannon_name_id(index);
+    u32 name_id = get_cannon_name_id(index);
     return get_string_text(name_id);
 }
-void set_cannon_range(uint32_t index, uint32_t range)
+void set_cannon_range(u32 index, u32 range)
 {
     if (index >= MAX_CANNONS) return;
-    g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_RANGE] = range;
+    g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_RANGE] = range;
 }
-uint32_t get_cannon_range(uint32_t index)
+u32 get_cannon_range(u32 index)
 {
     if (index >= MAX_CANNONS) return SENTRY;
-    return g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_RANGE];
+    return g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_RANGE];
 }
-void set_cannon_power(uint32_t index, uint32_t power)
+void set_cannon_power(u32 index, u32 power)
 {
     if (index >= MAX_CANNONS) return;
-    g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_POWER] = power;
+    g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_POWER] = power;
 }
-uint32_t get_cannon_power(uint32_t index)
+u32 get_cannon_power(u32 index)
 {
     if (index >= MAX_CANNONS) return SENTRY;
-    return g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_POWER];
+    return g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_POWER];
 }
-void set_cannon_base_price(uint32_t index, uint32_t base_price)
+void set_cannon_base_price(u32 index, u32 base_price)
 {
     if (index >= MAX_CANNONS) return;
-    g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_BASE_PRICE] = base_price;
+    g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_BASE_PRICE] = base_price;
 }
-uint32_t get_cannon_base_price(uint32_t index)
+u32 get_cannon_base_price(u32 index)
 {
     if (index >= MAX_CANNONS) return SENTRY;
-    return g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE + (uint32_t)CANNON_BASE_PRICE];
+    return g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_BASE_PRICE];
 }
-uint32_t get_cannon_pointer(uint32_t index)
+u32 get_cannon_pointer(u32 index)
 {
     if (index >= MAX_CANNONS) return SENTRY;
-    return (uint32_t)&g_cannon_data[index * (uint32_t)CANNON_DATA_SIZE];
+    return (u32)&g_cannon_data[index * (u32)CANNON_DATA_SIZE];
 }
-uint32_t get_cannon_length(void)
+u32 get_cannon_length(void)
 {
     return CANNON_DATA_SIZE;
-}
-
-// ------------------------------------------------------------------------------------------------
-// GENERAL ITEMS
-// ------------------------------------------------------------------------------------------------
-uint32_t get_general_item_id_by_string_id(uint32_t string_id)
-{
-    for (uint32_t i = 0; i < MAX_GENERAL_ITEMS; ++i)
-    {
-        if (g_general_item_structs[i].name_id == string_id)
-        {
-            return i;
-        }
-    }
-    return SENTRY;
 }
 
 // ------------------------------------------------------------------------------------------------ //
 // DISTANCES
 // ------------------------------------------------------------------------------------------------ //
-uint32_t distance_between_coordinates(uint32_t a_x, uint32_t a_y, uint32_t b_x, uint32_t b_y)
+u32 distance_between_coordinates(u32 a_x, u32 a_y, u32 b_x, u32 b_y)
 {
-    uint32_t dx = (b_x > a_x) ? (b_x - a_x) : (a_x - b_x);
-    uint32_t dy = (b_y > a_y) ? (b_y - a_y) : (a_y - b_y);
+    u32 dx = (b_x > a_x) ? (b_x - a_x) : (a_x - b_x);
+    u32 dy = (b_y > a_y) ? (b_y - a_y) : (a_y - b_y);
     return dx + dy;
 }
-bool is_coordinate_in_range_of_coordinate(uint32_t a_x, uint32_t a_y, uint32_t b_x, uint32_t b_y, uint32_t range)
+bool is_coordinate_in_range_of_coordinate(u32 a_x, u32 a_y, u32 b_x, u32 b_y, u32 range)
 {
     return distance_between_coordinates(a_x, a_y, b_x, b_y) <= range;
 }
@@ -1894,23 +2137,23 @@ bool is_coordinate_in_range_of_coordinate(uint32_t a_x, uint32_t a_y, uint32_t b
 // ------------------------------------------------------------------------------------------------ //
 // RNG
 // ------------------------------------------------------------------------------------------------ //
-uint32_t tick_counter = 1;
-uint32_t rng_state = 1;
-uint32_t init_random(uint32_t seed)
+u32 tick_counter = 1;
+u32 rng_state = 1;
+u32 init_random(u32 seed)
 {
     rng_state = seed;
     return rng_state;
 }
-uint32_t get_random_number(uint32_t min, uint32_t max)
+u32 get_random_number(u32 min, u32 max)
 {
-    uint32_t rng_state = init_random(tick_counter);
-    uint32_t adjusted_max = max;
+    u32 rng_state = init_random(tick_counter);
+    u32 adjusted_max = max;
     if (min == max)
     {
         adjusted_max = 100;
     }
-    uint32_t range = adjusted_max - min + 1;
-    uint32_t result = min + (rng_state % range);
+    u32 range = adjusted_max - min + 1;
+    u32 result = min + (rng_state % range);
     
     if (tick_counter == UINT32_MAX)
     {
@@ -1956,13 +2199,13 @@ void user_input_right_bumper()
 {
     generate_world("athens");
 }
-void user_input_number(uint32_t number)
+void user_input_number(u32 number)
 {
     // Note: This is a bit weird but we are essentially setting the user number and then passing off the "event" to the handler
     current_user_input_number = number;
     handle_input(USER_INPUT_CUSTOM_NUMBER);
 }
-void handle_interaction_scene(uint32_t interaction_scene, uint32_t world_npc_id)
+void handle_interaction_scene(u32 interaction_scene, u32 world_npc_id)
 {
     if (interaction_scene == SCENE_BLACKJACK)
     {
@@ -2010,16 +2253,16 @@ void handle_interaction_scene(uint32_t interaction_scene, uint32_t world_npc_id)
         scene_bank(SCENE_ACTION_INIT);
     }
 }
-void handle_input(uint32_t input)
+void handle_input(u32 input)
 {
     // TODO: If current_game_mode is GAME_MODE_IN_PORT etc...
     // NOTE: Apparenty you have to declare variables up here, NOT INSIDE THE CASE FUNCTIONS THEMSELVES
     if (current_game_mode == GAME_MODE_IN_PORT)
     {
-        uint32_t world_npc_id = get_player_in_world(0);
-        uint32_t current_world_x = get_world_npc_x(world_npc_id);
-        uint32_t current_world_y = get_world_npc_y(world_npc_id);
-        uint32_t current_world_direction = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_DIRECTION];
+        u32 world_npc_id = get_player_in_world(0);
+        u32 current_world_x = get_world_npc_position_x(world_npc_id);
+        u32 current_world_y = get_world_npc_position_y(world_npc_id);
+        u32 current_world_direction = get_world_npc_direction(world_npc_id);
         switch (input)
         {
             case USER_INPUT_A:
@@ -2027,18 +2270,18 @@ void handle_input(uint32_t input)
                 {
                     if (current_world_y > 0)
                     {
-                        uint32_t intended_y = current_world_y - 1;
-                        for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
+                        u32 intended_y = current_world_y - 1;
+                        for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
                         {
                             if (i == world_npc_id)
                             {
                                 continue;
                             }
-                            uint32_t other_world_x = get_world_npc_x(i);
-                            uint32_t other_world_y = get_world_npc_y(i);
+                            u32 other_world_x = get_world_npc_position_x(i);
+                            u32 other_world_y = get_world_npc_position_y(i);
                             if (other_world_x == current_world_x && other_world_y == intended_y)
                             {
-                                uint32_t interaction_scene = g_world_npc_data[i * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_INTERACTION_SCENE];
+                                u32 interaction_scene = get_world_npc_interaction_scene(i);
                                 handle_interaction_scene(interaction_scene, i);
                             }
                         }
@@ -2048,18 +2291,18 @@ void handle_input(uint32_t input)
                 {
                     if (current_world_y < get_current_world_height())
                     {
-                        uint32_t intended_y = current_world_y + 1;
-                        for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
+                        u32 intended_y = current_world_y + 1;
+                        for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
                         {
                             if (i == world_npc_id)
                             {
                                 continue;
                             }
-                            uint32_t other_world_x = get_world_npc_x(i);
-                            uint32_t other_world_y = get_world_npc_y(i);
+                            u32 other_world_x = get_world_npc_position_x(i);
+                            u32 other_world_y = get_world_npc_position_y(i);
                             if (other_world_x == current_world_x && other_world_y == intended_y)
                             {
-                                uint32_t interaction_scene = g_world_npc_data[i * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_INTERACTION_SCENE];
+                                u32 interaction_scene = get_world_npc_interaction_scene(i);
                                 handle_interaction_scene(interaction_scene, i);
                             }
                         }
@@ -2069,18 +2312,18 @@ void handle_input(uint32_t input)
                 {
                     if (current_world_x > 0)
                     {
-                        uint32_t intended_x = current_world_x - 1;
-                        for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
+                        u32 intended_x = current_world_x - 1;
+                        for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
                         {
                             if (i == world_npc_id)
                             {
                                 continue;
                             }
-                            uint32_t other_world_x = get_world_npc_x(i);
-                            uint32_t other_world_y = get_world_npc_y(i);
+                            u32 other_world_x = get_world_npc_position_x(i);
+                            u32 other_world_y = get_world_npc_position_y(i);
                             if (other_world_x == intended_x && other_world_y == current_world_y)
                             {
-                                uint32_t interaction_scene = g_world_npc_data[i * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_INTERACTION_SCENE];
+                                u32 interaction_scene = get_world_npc_interaction_scene(i);
                                 handle_interaction_scene(interaction_scene, i);
                             }
                         }
@@ -2090,18 +2333,18 @@ void handle_input(uint32_t input)
                 {
                     if (current_world_x < get_current_world_width())
                     {
-                        uint32_t intended_x = current_world_x + 1;
-                        for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
+                        u32 intended_x = current_world_x + 1;
+                        for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
                         {
                             if (i == world_npc_id)
                             {
                                 continue;
                             }
-                            uint32_t other_world_x = get_world_npc_x(i);
-                            uint32_t other_world_y = get_world_npc_y(i);
+                            u32 other_world_x = get_world_npc_position_x(i);
+                            u32 other_world_y = get_world_npc_position_y(i);
                             if (other_world_x == intended_x && other_world_y == current_world_y)
                             {
-                                uint32_t interaction_scene = g_world_npc_data[i * WORLD_NPC_DATA_SIZE + (uint32_t)WORLD_NPC_INTERACTION_SCENE];
+                                u32 interaction_scene = get_world_npc_interaction_scene(i);
                                 handle_interaction_scene(interaction_scene, i);
                             }
                         }
@@ -2170,7 +2413,7 @@ void handle_input(uint32_t input)
 // SHOULD REDRAW
 // ------------------------------------------------------------------------------------------------ //
 enum ShouldRedraw should_redraw = SHOULD_REDRAW_NOTHING;
-uint32_t renderer_should_redraw()
+u32 renderer_should_redraw()
 {
     if (should_redraw > 0)
     {
@@ -2189,38 +2432,38 @@ void should_redraw_everything()
 // ------------------------------------------------------------------------------------------------
 // INPUT OUTPUT BUFFERS
 // ------------------------------------------------------------------------------------------------
-extern void js_output_string_buffer(void* ptr, uint32_t len);
-extern void js_output_array_buffer(void* ptr, uint32_t len);
-uint32_t input_string_buffer_length;
-uint32_t input_array_buffer_length;
+extern void js_output_string_buffer(void* ptr, u32 len);
+extern void js_output_array_buffer(void* ptr, u32 len);
+u32 input_string_buffer_length;
+u32 input_array_buffer_length;
 #define OUTPUT_ARRAY_BUFFER_SIZE 100
-uint32_t output_array_buffer[OUTPUT_ARRAY_BUFFER_SIZE];
+u32 output_array_buffer[OUTPUT_ARRAY_BUFFER_SIZE];
 #define OUTPUT_STRING_BUFFER_SIZE 1024
 uint8_t* output_string_buffer;
 #define INPUT_ARRAY_BUFFER_SIZE 100
 #define INPUT_STRING_BUFFER_SIZE 1024
-uint32_t input_array_buffer[INPUT_ARRAY_BUFFER_SIZE];
+u32 input_array_buffer[INPUT_ARRAY_BUFFER_SIZE];
 uint8_t input_string_buffer[INPUT_STRING_BUFFER_SIZE];
 void to_output_string_buffer(const char* message)
 {
     if (message != NULL)
     {
-        js_output_string_buffer((void*)message, (uint32_t)(sizeof(char) * strlen(message)));
+        js_output_string_buffer((void*)message, (u32)(sizeof(char) * strlen(message)));
     }
 }
-void to_output_array_buffer(uint32_t array[])
+void to_output_array_buffer(u32 array[])
 {
     for (int i = 0; i < OUTPUT_ARRAY_BUFFER_SIZE; ++i)
     {
         output_array_buffer[i] = array[i];
     }
-    js_output_array_buffer(output_array_buffer, OUTPUT_ARRAY_BUFFER_SIZE * sizeof(uint32_t));
+    js_output_array_buffer(output_array_buffer, OUTPUT_ARRAY_BUFFER_SIZE * sizeof(u32));
 }
-void set_input_string_buffer_length(uint32_t length)
+void set_input_string_buffer_length(u32 length)
 {
     input_string_buffer_length = length;
 }
-void set_input_array_buffer_length(uint32_t length)
+void set_input_array_buffer_length(u32 length)
 {
     input_array_buffer_length = length;
 }
@@ -2228,7 +2471,7 @@ uint8_t* get_input_string_buffer_ptr()
 {
     return input_string_buffer;
 }
-uint32_t* get_input_array_buffer_ptr()
+u32* get_input_array_buffer_ptr()
 {
     return input_array_buffer;
 }
@@ -2236,15 +2479,15 @@ uint8_t* get_output_string_buffer_ptr()
 {
     return output_string_buffer;
 }
-uint32_t* get_output_array_buffer_ptr()
+u32* get_output_array_buffer_ptr()
 {
     return output_array_buffer;
 }
-uint32_t get_input_string_buffer_len()
+u32 get_input_string_buffer_len()
 {
     return INPUT_STRING_BUFFER_SIZE;
 }
-uint32_t get_input_array_buffer_len()
+u32 get_input_array_buffer_len()
 {
     return INPUT_ARRAY_BUFFER_SIZE;
 }
@@ -2252,7 +2495,7 @@ char* format_input_string()
 {
     static char formatted[256];
     // somehow clear formatted using NOT stdlib functions
-    for (uint32_t i = 0; i < 256; ++i)
+    for (u32 i = 0; i < 256; ++i)
     {
         formatted[i] = 0;
     }
@@ -2264,8 +2507,8 @@ char* format_input_string()
         return formatted;
     }
     
-    uint32_t len = strlen(input);
-    for (uint32_t i = 0; i < len && i < 255; i++)
+    u32 len = strlen(input);
+    for (u32 i = 0; i < len && i < 255; i++)
     {
         formatted[i] = input[i];
     }
@@ -2275,20 +2518,20 @@ char* format_input_string()
 }
 void write_to_output_buffer(char* str)
 {
-    for (uint32_t i = 0; i < OUTPUT_STRING_BUFFER_SIZE; ++i)
+    for (u32 i = 0; i < OUTPUT_STRING_BUFFER_SIZE; ++i)
     {
         output_string_buffer[i] = 0;
     }
-    for (uint32_t i = 0; i < strlen(str); ++i)
+    for (u32 i = 0; i < strlen(str); ++i)
     {
         output_string_buffer[i] = str[i];
     }
 }
-uint32_t find_string_id_by_machine_name_from_input()
+u32 find_string_id_by_machine_name_from_input()
 {
     char* input = (char*)input_string_buffer;
     input[input_string_buffer_length] = '\0';
-    for (uint32_t i = input_string_buffer_length + 1; i < INPUT_STRING_BUFFER_SIZE; i++)
+    for (u32 i = input_string_buffer_length + 1; i < INPUT_STRING_BUFFER_SIZE; i++)
     {
         input[i] = '\0';
     }
@@ -2298,7 +2541,7 @@ uint32_t find_string_id_by_machine_name_from_input()
         return SENTRY;
     }
     // input_string_buffer_length
-    uint32_t string_id = get_string_id_by_machine_name(input);
+    u32 string_id = get_string_id_by_machine_name(input);
     return string_id;
 }
 
@@ -2319,7 +2562,7 @@ void move_camera_down()
     u32 map_height = get_current_world_height();
     
     // Calculate the maximum allowed camera offset
-    uint32_t max_camera_offset_y = max(0, map_height - viewport_height);
+    u32 max_camera_offset_y = max(0, map_height - viewport_height);
     
     // Check if moving down would exceed the map bounds
     if (camera_offset_y < max_camera_offset_y)
@@ -2337,7 +2580,7 @@ void move_camera_right()
     u32 map_width = get_current_world_width();
     
     // Calculate the maximum allowed camera offset
-    uint32_t max_camera_offset_x = max(0, map_width - viewport_width);
+    u32 max_camera_offset_x = max(0, map_width - viewport_width);
     
     // Check if moving right would exceed the map bounds
     if (camera_offset_x < max_camera_offset_x)
@@ -2364,9 +2607,9 @@ void move_camera_left()
 }
 void update_camera()
 {
-    uint32_t world_npc_id = get_player_in_world(0);
-    uint32_t player_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t player_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
+    u32 world_npc_id = get_player_in_world(0);
+    u32 player_x = get_world_npc_position_x(world_npc_id);
+    u32 player_y = get_world_npc_position_y(world_npc_id);
     if (is_world_coordinate_halfway_of_viewport_more_than_x(player_x))
     {
         move_camera_right();
@@ -2397,20 +2640,20 @@ u32 get_camera_offset_y()
 // ------------------------------------------------------------------------------------------------
 // VIEWPORT
 // ------------------------------------------------------------------------------------------------
-void set_viewport_size(uint32_t width, uint32_t height)
+void set_viewport_size(u32 width, u32 height)
 {
     viewport_width = width;
     viewport_height = height;
 }
-uint32_t get_viewport_width()
+u32 get_viewport_width()
 {
     return viewport_width;
 }
-uint32_t get_viewport_height()
+u32 get_viewport_height()
 {
     return viewport_height;
 }
-uint32_t get_viewport_value_at_coordinates(uint32_t layer_index, uint32_t x, uint32_t y)
+u32 get_viewport_value_at_coordinates(u32 layer_index, u32 x, u32 y)
 {
     if (current_world == SENTRY)
     {
@@ -2418,8 +2661,8 @@ uint32_t get_viewport_value_at_coordinates(uint32_t layer_index, uint32_t x, uin
     }
     u32 world_width = get_current_world_width();
     u32 world_height = get_current_world_height();
-    uint32_t x_padding = 0;
-    uint32_t y_padding = 0;
+    u32 x_padding = 0;
+    u32 y_padding = 0;
     if (viewport_width > world_width)
     {
         x_padding = (viewport_width - world_width) / 2;
@@ -2428,8 +2671,8 @@ uint32_t get_viewport_value_at_coordinates(uint32_t layer_index, uint32_t x, uin
     {
         y_padding = (viewport_height - world_height) / 2;
     }
-    uint32_t x_offset = x - x_padding;
-    uint32_t y_offset = y - y_padding;
+    u32 x_offset = x - x_padding;
+    u32 y_offset = y - y_padding;
     x_offset += camera_offset_x;
     y_offset += camera_offset_y;
     if (x_offset < 0 || y_offset < 0 || x_offset >= world_width || y_offset >= world_height)
@@ -2438,14 +2681,14 @@ uint32_t get_viewport_value_at_coordinates(uint32_t layer_index, uint32_t x, uin
         return SENTRY;
     }
 
-    const char* machine_name = get_layer_machine_name(layer_index);
-    if (strcmp("npc_layer", machine_name) == 0)
+    u32 npc_layer_string_id = get_string_id_by_machine_name("npc_layer");
+    if (get_layer_name_id(layer_index) == npc_layer_string_id)
     {
-        for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
+        for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
         {
             if (
-                g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] == x_offset &&
-                g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] == y_offset
+                get_world_npc_position_x(i) == x_offset &&
+                get_world_npc_position_y(i) == y_offset
             )
             {
                 // return g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_NPC_ID];
@@ -2455,13 +2698,14 @@ uint32_t get_viewport_value_at_coordinates(uint32_t layer_index, uint32_t x, uin
         return SENTRY;
     }
 
-    if (strcmp("entity_layer", machine_name) == 0)
+    u32 entity_layer_string_id = get_string_id_by_machine_name("entity_layer");
+    if (get_layer_name_id(layer_index) == entity_layer_string_id)
     {
         for (u32 i = 0; i < 10; ++i)
         {
             if (
-                g_entity_structs[i].world_position_x == x_offset &&
-                g_entity_structs[i].world_position_y == y_offset
+                get_entity_world_position_x(i) == x_offset &&
+                get_entity_world_position_y(i) == y_offset
             )
             {
                 return i;
@@ -2474,35 +2718,35 @@ uint32_t get_viewport_value_at_coordinates(uint32_t layer_index, uint32_t x, uin
     {
         return get_layer_same_value(layer_index);
     }
-    uint32_t value = get_layer_data_by_coordinates(layer_index, x_offset, y_offset);
+    u32 value = get_layer_data_by_coordinates(layer_index, x_offset, y_offset);
     return value;
 }
-bool is_world_coordinate_in_viewport(uint32_t x, uint32_t y)
+bool is_world_coordinate_in_viewport(u32 x, u32 y)
 {
     return x >= camera_offset_x && x < camera_offset_x + viewport_width &&
            y >= camera_offset_y && y < camera_offset_y + viewport_height;
 }
-uint32_t is_world_coordinate_halfway_of_viewport_more_than_x(uint32_t x)
+u32 is_world_coordinate_halfway_of_viewport_more_than_x(u32 x)
 {
-    uint32_t halfway_x = camera_offset_x + viewport_width / 2;
+    u32 halfway_x = camera_offset_x + viewport_width / 2;
     return x > halfway_x;
 }
-uint32_t is_world_coordinate_halfway_of_viewport_more_than_y(uint32_t y)
+u32 is_world_coordinate_halfway_of_viewport_more_than_y(u32 y)
 {
-    uint32_t halfway_y = camera_offset_y + viewport_height / 2;
+    u32 halfway_y = camera_offset_y + viewport_height / 2;
     return y > halfway_y;
 }
-uint32_t is_world_coordinate_halfway_of_viewport_less_than_x(uint32_t x)
+u32 is_world_coordinate_halfway_of_viewport_less_than_x(u32 x)
 {
-    uint32_t halfway_x = camera_offset_x + viewport_width / 2;
+    u32 halfway_x = camera_offset_x + viewport_width / 2;
     return x < halfway_x;
 }
-uint32_t is_world_coordinate_halfway_of_viewport_less_than_y(uint32_t y)
+u32 is_world_coordinate_halfway_of_viewport_less_than_y(u32 y)
 {
-    uint32_t halfway_y = camera_offset_y + viewport_height / 2;
+    u32 halfway_y = camera_offset_y + viewport_height / 2;
     return y < halfway_y;
 }
-uint32_t get_world_coordinate_x_from_viewport_coordinate(uint32_t x, uint32_t y)
+u32 get_world_coordinate_x_from_viewport_coordinate(u32 x, u32 y)
 {
     if (current_world == SENTRY)
     {
@@ -2510,8 +2754,8 @@ uint32_t get_world_coordinate_x_from_viewport_coordinate(uint32_t x, uint32_t y)
     }
     u32 world_width = get_current_world_width();
     u32 world_height = get_current_world_height();
-    uint32_t x_padding = 0;
-    uint32_t y_padding = 0;
+    u32 x_padding = 0;
+    u32 y_padding = 0;
     if (viewport_width > world_width)
     {
         x_padding = (viewport_width - world_width) / 2;
@@ -2520,8 +2764,8 @@ uint32_t get_world_coordinate_x_from_viewport_coordinate(uint32_t x, uint32_t y)
     {
         y_padding = (viewport_height - world_height) / 2;
     }
-    uint32_t x_offset = x - x_padding;
-    uint32_t y_offset = y - y_padding;
+    u32 x_offset = x - x_padding;
+    u32 y_offset = y - y_padding;
     x_offset += camera_offset_x;
     y_offset += camera_offset_y;
     if (x_offset < 0 || y_offset < 0 || x_offset >= world_width || y_offset >= world_height)
@@ -2532,7 +2776,7 @@ uint32_t get_world_coordinate_x_from_viewport_coordinate(uint32_t x, uint32_t y)
 
     return x_offset;
 }
-uint32_t get_world_coordinate_y_from_viewport_coordinate(uint32_t x, uint32_t y)
+u32 get_world_coordinate_y_from_viewport_coordinate(u32 x, u32 y)
 {
     if (current_world == SENTRY)
     {
@@ -2540,8 +2784,8 @@ uint32_t get_world_coordinate_y_from_viewport_coordinate(uint32_t x, uint32_t y)
     }
     u32 world_width = get_current_world_width();
     u32 world_height = get_current_world_height();
-    uint32_t x_padding = 0;
-    uint32_t y_padding = 0;
+    u32 x_padding = 0;
+    u32 y_padding = 0;
     if (viewport_width > world_width)
     {
         x_padding = (viewport_width - world_width) / 2;
@@ -2550,8 +2794,8 @@ uint32_t get_world_coordinate_y_from_viewport_coordinate(uint32_t x, uint32_t y)
     {
         y_padding = (viewport_height - world_height) / 2;
     }
-    uint32_t x_offset = x - x_padding;
-    uint32_t y_offset = y - y_padding;
+    u32 x_offset = x - x_padding;
+    u32 y_offset = y - y_padding;
     x_offset += camera_offset_x;
     y_offset += camera_offset_y;
     if (x_offset < 0 || y_offset < 0 || x_offset >= world_width || y_offset >= world_height)
@@ -2566,112 +2810,40 @@ uint32_t get_world_coordinate_y_from_viewport_coordinate(uint32_t x, uint32_t y)
 // ------------------------------------------------------------------------------------------------ //
 // WORLDS & LAYERS
 // ------------------------------------------------------------------------------------------------ //
-u32 get_world_id_by_machine_name(char* machine_name)
-{
-    u32 world_id = SENTRY;
-    u32 world_name_id = get_string_id_by_machine_name(machine_name);
-    for (u32 i = 0; i < MAX_WORLDS; i++)
-    {
-        if (g_world_structs[i].name_id == world_name_id)
-        {
-            world_id = i;
-            break;
-        }
-    }
-
-    return world_id;
-}
 u32 get_current_world_width()
 {
-    return g_world_structs[current_world].width;
+    return get_world_width(current_world);
 }
-uint32_t get_current_world_height()
+u32 get_current_world_height()
 {
-    return g_world_structs[current_world].height;
+    return get_world_height(current_world);
 }
-uint32_t get_current_world_total_layers()
+u32 get_current_world_total_layers()
 {
-    return g_world_structs[current_world].total_layers;
+    return get_world_total_layers(current_world);
 }
-uint32_t get_current_world_name_id()
+u32 get_current_world_name_id()
 {
-    return g_world_structs[current_world].name_id;
+    return get_world_name_id(current_world);
 }
-uint32_t get_layer_width(uint32_t layer_index)
+
+u32 are_coordinates_blocked(u32 x, u32 y)
 {
-    return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_WIDTH];
-}
-uint32_t get_layer_height(uint32_t layer_index)
-{
-    return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_HEIGHT];
-}
-uint32_t get_layer_global_world_data_offset(uint32_t layer_index)
-{
-    return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_GLOBAL_WORLD_DATA_OFFSET];
-}
-uint32_t get_layer_is_block(uint32_t layer_index)
-{
-    return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_IS_BLOCK];
-}
-uint32_t get_layer_name_id(uint32_t layer_index)
-{
-    return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_NAME_ID];
-}
-uint32_t get_layer_type(uint32_t layer_index)
-{
-    return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_TYPE];
-}
-uint32_t get_layer_same_value(uint32_t layer_index)
-{
-    return g_layer_data[layer_index * LAYER_DATA_SIZE + LAYER_SAME_VALUE];
-}
-const char* get_layer_machine_name(uint32_t layer_index)
-{
-    uint32_t name_id = get_layer_name_id(layer_index);
-    return get_string_machine_name(name_id);
-}
-uint32_t find_layer_id_by_string_id(uint32_t string_id)
-{
-    for (uint32_t i = 0; i < MAX_LAYERS; ++i)
-    {
-        if (g_layer_data[i * LAYER_DATA_SIZE + LAYER_NAME_ID] == string_id)
-        {
-            return i;
-        }
-    }
-    return SENTRY;
-}
-uint32_t get_layer_id_by_machine_name(char* machine_name)
-{
-    for (uint32_t i = 0; i < MAX_LAYERS; ++i) {
-        uint32_t offset = i * LAYER_DATA_SIZE;
-        uint32_t name_id = g_layer_data[offset + LAYER_NAME_ID];
-        const char* grabbed_machine_name = get_string_machine_name(name_id);
-        if (strcmp(machine_name, grabbed_machine_name) == 0)
-        {
-            return i;
-        }
-    }
-    return SENTRY;
-}
-uint32_t are_coordinates_blocked(uint32_t x, uint32_t y)
-{
-    for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i) {
-        uint32_t offset = i * WORLD_NPC_DATA_SIZE;
-        if (g_world_npc_data[offset + WORLD_NPC_IS_PLAYER] == true)
+    for (u32 i = 0; i < MAX_WORLD_NPCS; ++i) {
+        if (get_world_npc_is_player(i) == true)
         {
             continue;
         }
-        if (g_world_npc_data[offset + WORLD_NPC_POSITION_X] == x && g_world_npc_data[offset + WORLD_NPC_POSITION_Y] == y)
+        if (get_world_npc_position_x(i) == x && get_world_npc_position_y(i) == y)
         {
             return 1;
         }
     }
 
-    uint32_t block_layer_id = get_layer_id_by_machine_name("block_layer");
+    u32 block_layer_id = get_layer_id_by_machine_name("block_layer");
     if (block_layer_id != SENTRY)
     {
-        uint32_t layer_value = get_layer_data_by_coordinates(block_layer_id, x, y);
+        u32 layer_value = get_layer_data_by_coordinates(block_layer_id, x, y);
         if (layer_value > 0 && layer_value != SENTRY)
         {
             return 1;
@@ -2685,10 +2857,9 @@ void generate_world(char* world_name)
     console_log_format("Generating world %s", world_name);
 
     reset_camera();
-    CLEAR_DATA(g_layer_data, G_LAYER_DATA_SIZE);
-    CLEAR_DATA(g_world_npc_data, G_WORLD_NPC_DATA_SIZE);
-    clear_global_world_data();
-    init_structs_entities();
+    clear_storage_layer();
+    clear_storage_world_npc();
+    clear_storage_entity();
 
     if (strcmp(world_name, "dingus_land") == 0)
     {
@@ -2701,8 +2872,8 @@ void generate_world(char* world_name)
         }
         u32 world_width = get_current_world_width();
         u32 world_height = get_current_world_height();
-        uint32_t layer_id;
-        uint32_t layer_data[LAYER_DATA_SIZE];
+        u32 layer_id;
+        u32 layer_data[LAYER_DATA_SIZE];
         CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
         layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("background_layer");
         layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
@@ -2712,10 +2883,10 @@ void generate_world(char* world_name)
         layer_data[LAYER_IS_BLOCK] = false;
         //GLOBAL_WORLD_DATA_ITERATOR = 0;
         layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
-        layer_id = create_layer(layer_data, true);
+        layer_id = add_layer(layer_data);
         // console_log_format("bg layer is %d", layer_id);
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
-        ++g_world_structs[current_world].total_layers;
+        increment_world_total_layers(current_world);
         // NPC LAYER
         layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("npc_layer");
         // TODO: Technically, we do not need to store this layer in the global data at all
@@ -2724,10 +2895,10 @@ void generate_world(char* world_name)
         layer_data[LAYER_HEIGHT] = world_height;
         layer_data[LAYER_IS_BLOCK] = false;
         layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
-        layer_id = create_layer(layer_data, true);
+        layer_id = add_layer(layer_data);
         // console_log_format("npc layer is %d", layer_id);
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
-        ++g_world_structs[current_world].total_layers;
+        increment_world_total_layers(current_world);
         CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
         // LAYER ONE
         CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
@@ -2737,14 +2908,14 @@ void generate_world(char* world_name)
         layer_data[LAYER_HEIGHT] = world_height;
         layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
-        layer_id = create_layer(layer_data, true);
+        layer_id = add_layer(layer_data);
         // console_log_format("layer one is %d", layer_id);
-        ++g_world_structs[current_world].total_layers;
+        increment_world_total_layers(current_world);
         add_value_to_global_world_data(layer_id, 2, 2, 36);
 
-        uint32_t world_npc_data[WORLD_NPC_DATA_SIZE];
-        uint32_t npc_id;
-        uint32_t world_npc_id;
+        u32 world_npc_data[WORLD_NPC_DATA_SIZE];
+        u32 npc_id;
+        u32 world_npc_id;
 
         npc_id = get_npc_id_by_machine_name("bank_teller");
         CLEAR_DATA(world_npc_data, WORLD_NPC_DATA_SIZE);
@@ -2756,7 +2927,7 @@ void generate_world(char* world_name)
         world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_BANK;
         world_npc_data[WORLD_NPC_IS_INTERACTABLE] = true;
         world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
-        world_npc_id = create_world_npc(world_npc_data, true);
+        world_npc_id = add_world_npc(world_npc_data);
         npc_id = get_player_npc_id(0);
         world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
         world_npc_data[WORLD_NPC_CAPTAIN_ID] = players[0];
@@ -2765,7 +2936,7 @@ void generate_world(char* world_name)
         world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
         world_npc_data[WORLD_NPC_IS_CAPTAIN] = true;
         world_npc_data[WORLD_NPC_IS_PLAYER] = true;
-        create_world_npc(world_npc_data, true);
+        add_world_npc(world_npc_data);
         should_redraw_everything();
     }
     else if (strcmp(world_name, "athens") == 0)
@@ -2784,8 +2955,8 @@ void generate_world(char* world_name)
 
         u32 world_width = get_current_world_width();
         u32 world_height = get_current_world_height();
-        uint32_t layer_id;
-        uint32_t layer_data[LAYER_DATA_SIZE];
+        u32 layer_id;
+        u32 layer_data[LAYER_DATA_SIZE];
         CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
         layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("background_layer");
         layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
@@ -2794,10 +2965,10 @@ void generate_world(char* world_name)
         layer_data[LAYER_SAME_VALUE] = 1;
         layer_data[LAYER_IS_BLOCK] = false;
         layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
-        layer_id = create_layer(layer_data, true);
+        layer_id = add_layer(layer_data);
         // console_log_format("bg layer is %d", layer_id);
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
-        ++g_world_structs[current_world].total_layers;
+        increment_world_total_layers(current_world);
         layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("npc_layer");
         // TODO: Technically, we do not need to store this layer in the global data at all
         layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
@@ -2805,10 +2976,10 @@ void generate_world(char* world_name)
         layer_data[LAYER_HEIGHT] = world_height;
         layer_data[LAYER_IS_BLOCK] = false;
         layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
-        layer_id = create_layer(layer_data, true);
+        layer_id = add_layer(layer_data);
         // console_log_format("npc layer is %d", layer_id);
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
-        ++g_world_structs[current_world].total_layers;
+        increment_world_total_layers(current_world);
         CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
         layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("block_layer");
         layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
@@ -2817,9 +2988,9 @@ void generate_world(char* world_name)
         layer_data[LAYER_IS_BLOCK] = true;
         layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
-        layer_id = create_layer(layer_data, true);
+        layer_id = add_layer(layer_data);
         // console_log_format("block layer is %d", layer_id);
-        ++g_world_structs[current_world].total_layers;
+        increment_world_total_layers(current_world);
         add_value_to_global_world_data(layer_id, 2, 2, 1);
         CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
         layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("layer_one");
@@ -2828,20 +2999,20 @@ void generate_world(char* world_name)
         layer_data[LAYER_HEIGHT] = world_height;
         layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
-        layer_id = create_layer(layer_data, true);
+        layer_id = add_layer(layer_data);
         // console_log_format("layer one is %d", layer_id);
-        ++g_world_structs[current_world].total_layers;
+        increment_world_total_layers(current_world);
         add_value_to_global_world_data(layer_id, 0, 0, 36);
         add_value_to_global_world_data(layer_id, 7, 0, 38);
         add_value_to_global_world_data(layer_id, 0, 1, 33);
         add_value_to_global_world_data(layer_id, 0, 2, 33);
         add_value_to_global_world_data(layer_id, 0, 3, 33);
         add_value_to_global_world_data(layer_id, 0, 4, 33);
-        for (uint32_t column = 1; column < 7; ++column)
+        for (u32 column = 1; column < 7; ++column)
         {
             add_value_to_global_world_data(layer_id, column, 0, 37);
         }
-        for (uint32_t column = 1; column < 7; ++column)
+        for (u32 column = 1; column < 7; ++column)
         {
             add_value_to_global_world_data(layer_id, column, 1, 34);
             add_value_to_global_world_data(layer_id, column, 2, 34);
@@ -2853,7 +3024,7 @@ void generate_world(char* world_name)
         add_value_to_global_world_data(layer_id, 7, 3, 35);
         add_value_to_global_world_data(layer_id, 7, 4, 35);
         add_value_to_global_world_data(layer_id, 0, 5, 39);
-        for (uint32_t column = 1; column < 7; ++column)
+        for (u32 column = 1; column < 7; ++column)
         {
             add_value_to_global_world_data(layer_id, column, 5, 40);
         }
@@ -2866,16 +3037,16 @@ void generate_world(char* world_name)
         layer_data[LAYER_HEIGHT] = world_height;
         layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
-        layer_id = create_layer(layer_data, true);
+        layer_id = add_layer(layer_data);
         // console_log_format("layer one is %d", layer_id);
-        ++g_world_structs[current_world].total_layers;
+        increment_world_total_layers(current_world);
         add_value_to_global_world_data(layer_id, 5, 3, 69);
         add_value_to_global_world_data(layer_id, 4, 3, 71);
         add_value_to_global_world_data(layer_id, 4, 4, 72);
 
-        uint32_t world_npc_data[WORLD_NPC_DATA_SIZE];
-        uint32_t npc_id;
-        uint32_t world_npc_id;
+        u32 world_npc_data[WORLD_NPC_DATA_SIZE];
+        u32 npc_id;
+        u32 world_npc_id;
 
         npc_id = get_npc_id_by_machine_name("bank_teller");
         CLEAR_DATA(world_npc_data, WORLD_NPC_DATA_SIZE);
@@ -2887,22 +3058,20 @@ void generate_world(char* world_name)
         world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_BANK;
         world_npc_data[WORLD_NPC_IS_INTERACTABLE] = true;
         world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
-        world_npc_id = create_world_npc(world_npc_data, true);
+        world_npc_id = add_world_npc(world_npc_data);
 
-        uint32_t general_item_id;
-        uint32_t item_string_id;
-        uint32_t inventory_id;
-        uint32_t inventory_item_id;
-        uint32_t inventory_data[INVENTORY_DATA_SIZE];
-        CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
-        uint32_t inventory_item_data[INVENTORY_ITEM_DATA_SIZE];
-        CLEAR_DATA(inventory_item_data, INVENTORY_ITEM_DATA_SIZE);
+        u32 general_item_id;
+        u32 item_string_id;
+        u32 inventory_id;
+        u32 inventory_item_id;
+        u32 inventory_data[INVENTORY_DATA_SIZE];
+        u32 inventory_item_data[INVENTORY_ITEM_DATA_SIZE];
 
         item_string_id = get_string_id_by_machine_name("telescope");
         general_item_id = get_general_item_id_by_string_id(item_string_id);
         inventory_data[INVENTORY_NAME_ID] = get_string_id_by_machine_name("general_shop_inventory");
         inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
-        inventory_id = create_inventory(inventory_data, true);
+        inventory_id = add_inventory(inventory_data);
         inventory_item_data[INVENTORY_ITEM_NAME_ID] = item_string_id;
         // TODO: Change NUMBER_HELD/NUMBER_CHOSE to some kind of "quantity" term
         inventory_item_data[INVENTORY_ITEM_NUMBER_HELD] = 22;
@@ -2912,7 +3081,7 @@ void generate_world(char* world_name)
         inventory_item_data[INVENTORY_ITEM_ADJUSTED_PRICE] = 400;
         // TODO: Do we need to keep this anymore?
         inventory_item_data[INVENTORY_ITEM_NUMBER_CHOSEN] = SENTRY;
-        create_inventory_item(inventory_item_data, true);
+        add_inventory_item(inventory_item_data);
         increment_inventory_total_items(inventory_id);
         item_string_id = get_string_id_by_machine_name("quadrant");
         general_item_id = get_general_item_id_by_string_id(item_string_id);
@@ -2923,7 +3092,7 @@ void generate_world(char* world_name)
         inventory_item_data[INVENTORY_ITEM_INVENTORY_ID] = inventory_id;
         inventory_item_data[INVENTORY_ITEM_ADJUSTED_PRICE] = 430;
         inventory_item_data[INVENTORY_ITEM_NUMBER_CHOSEN] = SENTRY;
-        create_inventory_item(inventory_item_data, true);
+        add_inventory_item(inventory_item_data);
         increment_inventory_total_items(inventory_id);
         item_string_id = get_string_id_by_machine_name("theodolite");
         general_item_id = get_general_item_id_by_string_id(item_string_id);
@@ -2934,7 +3103,7 @@ void generate_world(char* world_name)
         inventory_item_data[INVENTORY_ITEM_INVENTORY_ID] = inventory_id;
         inventory_item_data[INVENTORY_ITEM_ADJUSTED_PRICE] = 222;
         inventory_item_data[INVENTORY_ITEM_NUMBER_CHOSEN] = SENTRY;
-        create_inventory_item(inventory_item_data, true);
+        add_inventory_item(inventory_item_data);
         increment_inventory_total_items(inventory_id);
         item_string_id = get_string_id_by_machine_name("sextant");
         general_item_id = get_general_item_id_by_string_id(item_string_id);
@@ -2945,19 +3114,19 @@ void generate_world(char* world_name)
         inventory_item_data[INVENTORY_ITEM_INVENTORY_ID] = inventory_id;
         inventory_item_data[INVENTORY_ITEM_ADJUSTED_PRICE] = 666;
         inventory_item_data[INVENTORY_ITEM_NUMBER_CHOSEN] = SENTRY;
-        create_inventory_item(inventory_item_data, true);
+        add_inventory_item(inventory_item_data);
         increment_inventory_total_items(inventory_id);
         npc_id = get_npc_id_by_machine_name("general_shop_owner");
         world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
         world_npc_data[WORLD_NPC_CAPTAIN_ID] = SENTRY;
         world_npc_data[WORLD_NPC_POSITION_X] = 3;
-        world_npc_data[WORLD_NPC_POSITION_Y] = 0;
+        world_npc_data[WORLD_NPC_POSITION_Y] = 1;
         world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
         world_npc_data[WORLD_NPC_IS_INTERACTABLE] = true;
         world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
         world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_GENERAL_SHOP;
         world_npc_data[WORLD_NPC_INVENTORY_ID] = inventory_id;
-        create_world_npc(world_npc_data, true);
+        add_world_npc(world_npc_data);
 
         npc_id = get_npc_id_by_machine_name("blackjack_player");
         world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
@@ -2968,7 +3137,7 @@ void generate_world(char* world_name)
         world_npc_data[WORLD_NPC_IS_INTERACTABLE] = true;
         world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
         world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_BLACKJACK;
-        create_world_npc(world_npc_data, true);
+        add_world_npc(world_npc_data);
 
         npc_id = get_player_npc_id(0);
         world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
@@ -2978,16 +3147,18 @@ void generate_world(char* world_name)
         world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
         world_npc_data[WORLD_NPC_IS_CAPTAIN] = true;
         world_npc_data[WORLD_NPC_IS_PLAYER] = true;
-        create_world_npc(world_npc_data, true);
+        add_world_npc(world_npc_data);
 
         npc_id = get_npc_id_by_machine_name("npc_ocean_battle");
         world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
+        world_npc_data[WORLD_NPC_CAPTAIN_ID] = SENTRY;
         world_npc_data[WORLD_NPC_POSITION_X] = 0;
         world_npc_data[WORLD_NPC_POSITION_Y] = 1;
         world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
         world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
+        world_npc_data[WORLD_NPC_IS_PLAYER] = false;
         world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_OCEAN_BATTLE;
-        create_world_npc(world_npc_data, true);
+        add_world_npc(world_npc_data);
 
         npc_id = get_npc_id_by_machine_name("npc_rvice");
         world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
@@ -2996,8 +3167,9 @@ void generate_world(char* world_name)
         world_npc_data[WORLD_NPC_POSITION_Y] = 2;
         world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
         world_npc_data[WORLD_NPC_IS_CAPTAIN] = true;
+        world_npc_data[WORLD_NPC_IS_PLAYER] = false;
         world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_NPC_RVICE;
-        create_world_npc(world_npc_data, true);
+        add_world_npc(world_npc_data);
 
         npc_id = get_npc_id_by_machine_name("npc_lafolie");
         world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
@@ -3006,8 +3178,9 @@ void generate_world(char* world_name)
         world_npc_data[WORLD_NPC_POSITION_Y] = 3;
         world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
         world_npc_data[WORLD_NPC_IS_CAPTAIN] = true;
+        world_npc_data[WORLD_NPC_IS_PLAYER] = false;
         world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_NPC_LAFOLIE;
-        create_world_npc(world_npc_data, true);
+        add_world_npc(world_npc_data);
 
         npc_id = get_npc_id_by_machine_name("npc_nakor");
         world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
@@ -3016,8 +3189,9 @@ void generate_world(char* world_name)
         world_npc_data[WORLD_NPC_POSITION_Y] = 4;
         world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
         world_npc_data[WORLD_NPC_IS_CAPTAIN] = true;
+        world_npc_data[WORLD_NPC_IS_PLAYER] = false;
         world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_NPC_NAKOR;
-        create_world_npc(world_npc_data, true);
+        add_world_npc(world_npc_data);
 
         npc_id = get_npc_id_by_machine_name("npc_travis");
         world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
@@ -3026,8 +3200,9 @@ void generate_world(char* world_name)
         world_npc_data[WORLD_NPC_POSITION_Y] = 5;
         world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
         world_npc_data[WORLD_NPC_IS_CAPTAIN] = true;
+        world_npc_data[WORLD_NPC_IS_PLAYER] = false;
         world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_NPC_TRAVIS;
-        create_world_npc(world_npc_data, true);
+        add_world_npc(world_npc_data);
 
         npc_id = get_npc_id_by_machine_name("npc_loller");
         world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
@@ -3035,8 +3210,9 @@ void generate_world(char* world_name)
         world_npc_data[WORLD_NPC_POSITION_Y] = 6;
         world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
         world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
+        world_npc_data[WORLD_NPC_IS_PLAYER] = false;
         world_npc_data[WORLD_NPC_INTERACTION_SCENE] = SCENE_NPC_LOLLER;
-        create_world_npc(world_npc_data, true);
+        add_world_npc(world_npc_data);
 
         layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("entity_layer");
         layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
@@ -3044,17 +3220,17 @@ void generate_world(char* world_name)
         layer_data[LAYER_HEIGHT] = world_height;
         layer_data[LAYER_IS_BLOCK] = false;
         layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
-        layer_id = create_layer(layer_data, true);
+        layer_id = add_layer(layer_data);
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
-        ++g_world_structs[current_world].total_layers;
+        increment_world_total_layers(current_world);
         CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
 
-        init_structs_entities();
-        g_entity_structs[0].name_id = get_string_id_by_machine_name("load_test_world");
-        g_entity_structs[0].is_interactable = true;
-        g_entity_structs[0].interaction_on_step_over = true;
-        g_entity_structs[0].world_position_x = 8;
-        g_entity_structs[0].world_position_y = 8;
+        u32 entity[ENTITY_DATA_SIZE];
+        entity[ENTITY_NAME_ID] = get_string_id_by_machine_name("load_test_world");
+        entity[ENTITY_IS_INTERACTABLE] = true;
+        entity[ENTITY_INTERACTION_ON_STEP_OVER] = true;
+        entity[ENTITY_WORLD_POSITION_X] = 8;
+        entity[ENTITY_WORLD_POSITION_Y] = 8;
 
         should_redraw_everything();
 
@@ -3073,192 +3249,103 @@ void generate_world(char* world_name)
 }
 
 // ------------------------------------------------------------------------------------------------
-// NPCS
-// ------------------------------------------------------------------------------------------------
-u32 get_npc_id_by_machine_name(char* machine_name)
-{
-    u32 string_id = get_string_id_by_machine_name(machine_name);
-    for (u32 i = 0; i < MAX_NPCS; i++)
-    {
-        if (get_npc_name_id(i) == string_id)
-        {
-            return i;
-        }
-    }
-    return SENTRY;
-}
-
-// ------------------------------------------------------------------------------------------------
 // WORLD NPCS
 // ------------------------------------------------------------------------------------------------
-uint32_t get_world_npc_x(uint32_t world_npc_id)
-{
-    return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-}
-uint32_t get_world_npc_y(uint32_t world_npc_id)
-{
-    return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
-}
-uint32_t get_world_npc_inventory_id(uint32_t world_npc_id)
-{
-    return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_INVENTORY_ID];
-}
-uint32_t get_world_npc_type(uint32_t world_npc_id)
-{
-    uint32_t npc_id = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_NPC_ID];
-    if (npc_id != SENTRY)
-    {
-        return get_npc_type(npc_id);
-    }
-    return SENTRY;
-}
-uint32_t get_world_npc_name_id(uint32_t world_npc_id)
-{
-    uint32_t npc_id = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_NPC_ID];
-    if (npc_id != SENTRY)
-    {
-        return get_npc_name_id(npc_id);
-    }
-    return SENTRY;
-}
-void clear_world_npc(uint32_t world_npc_id)
-{
-    uint32_t offset = world_npc_id * WORLD_NPC_DATA_SIZE;
-    for (uint32_t i = 0; i < WORLD_NPC_DATA_SIZE; ++i)
-    {
-        g_world_npc_data[offset + i] = SENTRY;
-    }
-    --g_world_npc_count;
-}
-uint32_t get_world_npc_entity_id(uint32_t world_npc_id)
-{
-    return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_ENTITY_ID];
-}
-void move_world_npc_to(uint32_t world_npc_id, uint32_t x, uint32_t y)
+void move_world_npc_to(u32 world_npc_id, u32 x, u32 y)
 {
     console_log_format("Moving world npc id %d to x %d and y %d", world_npc_id, x, y);
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = x;
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = y;
+    set_world_npc_position_x(world_npc_id, x);
+    set_world_npc_position_y(world_npc_id, y);
 }
-void move_world_npc_left(uint32_t world_npc_id)
+void move_world_npc_left(u32 world_npc_id)
 {
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
-    uint32_t intended_x = current_x - 1;
+    u32 current_x = get_world_npc_position_x(world_npc_id);
+    u32 current_y = get_world_npc_position_y(world_npc_id);
+    u32 intended_x = current_x - 1;
     if (current_x > 0 && are_coordinates_blocked(intended_x, current_y) != 1)
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = intended_x;
+        set_world_npc_position_x(world_npc_id, intended_x);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_LEFT;
+    set_world_npc_direction(world_npc_id, DIRECTION_LEFT);
 }
-void move_world_npc_right(uint32_t world_npc_id)
+void move_world_npc_right(u32 world_npc_id)
 {
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
-    uint32_t intended_x = current_x + 1;
+    u32 current_x = get_world_npc_position_x(world_npc_id);
+    u32 current_y = get_world_npc_position_y(world_npc_id);
+    u32 intended_x = current_x + 1;
     if (intended_x < get_current_world_width() && are_coordinates_blocked(intended_x, current_y) != 1)
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = intended_x;
+        set_world_npc_position_x(world_npc_id, intended_x);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_RIGHT;
+    set_world_npc_direction(world_npc_id, DIRECTION_RIGHT);
 }
-void move_world_npc_up(uint32_t world_npc_id)
+void move_world_npc_up(u32 world_npc_id)
 {
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
-    uint32_t intended_y = current_y - 1;
+    u32 current_x = get_world_npc_position_x(world_npc_id);
+    u32 current_y = get_world_npc_position_y(world_npc_id);
+    u32 intended_y = current_y - 1;
     if (current_y > 0 && are_coordinates_blocked(current_x, intended_y) != 1)
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = intended_y;
+        set_world_npc_position_y(world_npc_id, intended_y);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_UP;
+    set_world_npc_direction(world_npc_id, DIRECTION_UP);
 }
-void move_world_npc_down(uint32_t world_npc_id)
+void move_world_npc_down(u32 world_npc_id)
 {
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
-    uint32_t intended_y = current_y + 1;
+    u32 current_x = get_world_npc_position_x(world_npc_id);
+    u32 current_y = get_world_npc_position_y(world_npc_id);
+    u32 intended_y = current_y + 1;
     if (intended_y < get_current_world_height() && are_coordinates_blocked(current_x, intended_y) != 1)
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = intended_y;
+        set_world_npc_position_y(world_npc_id, intended_y);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-}
-
-// ------------------------------------------------------------------------------------------------
-// INVENTORY
-// ------------------------------------------------------------------------------------------------
-uint32_t get_inventory_total_items(uint32_t inventory_id)
-{
-    uint32_t offset = inventory_id * INVENTORY_DATA_SIZE;
-    return g_inventory_data[offset + INVENTORY_TOTAL_ITEMS];
-}
-uint32_t get_inventory_item_inventory_id(uint32_t inventory_item_id)
-{
-    uint32_t offset = inventory_item_id * INVENTORY_ITEM_DATA_SIZE;
-    return g_inventory_item_data[offset + INVENTORY_ITEM_INVENTORY_ID];
-}
-uint32_t get_inventory_item_adjusted_price(uint32_t inventory_item_id)
-{
-    uint32_t offset = inventory_item_id * INVENTORY_ITEM_DATA_SIZE;
-    return g_inventory_item_data[offset + INVENTORY_ITEM_ADJUSTED_PRICE];
-}
-uint32_t get_inventory_item_string_id(uint32_t inventory_item_id)
-{
-    uint32_t offset = inventory_item_id * INVENTORY_ITEM_DATA_SIZE;
-    return g_inventory_item_data[offset + INVENTORY_ITEM_NAME_ID];
-}
-void increment_inventory_total_items(uint32_t inventory_id)
-{
-    uint32_t offset = inventory_id * INVENTORY_DATA_SIZE;
-    ++g_inventory_data[offset + INVENTORY_TOTAL_ITEMS];
+    set_world_npc_direction(world_npc_id, DIRECTION_DOWN);
 }
 
 // ------------------------------------------------------------------------------------------------ //
 // PLAYERS
 // ------------------------------------------------------------------------------------------------ //
-uint32_t get_player_gold(uint32_t player_id)
+u32 get_player_gold(u32 player_id)
 {
-    uint32_t captain_id = players[player_id];
+    u32 captain_id = players[player_id];
     return g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD];
 }
-void set_player_gold(uint32_t player_id, uint32_t value)
+void set_player_gold(u32 player_id, u32 value)
 {
-    uint32_t captain_id = players[player_id];
+    u32 captain_id = players[player_id];
     g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD] = value;
 }
-void subtract_player_gold(uint32_t player_id, uint32_t value)
+void subtract_player_gold(u32 player_id, u32 value)
 {
-    uint32_t captain_id = players[player_id];
+    u32 captain_id = players[player_id];
     g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD] -= value;
 }
-void add_player_gold(uint32_t player_id, uint32_t value)
+void add_player_gold(u32 player_id, u32 value)
 {
-    uint32_t captain_id = players[player_id];
+    u32 captain_id = players[player_id];
     g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD] -= value;
 }
-uint32_t get_player_npc_id(uint32_t player_id)
+u32 get_player_npc_id(u32 player_id)
 {
-    uint32_t captain_id = players[player_id];
+    u32 captain_id = players[player_id];
     return g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_NPC_ID];
 }
-uint32_t get_player_inventory_id(uint32_t player_id)
+u32 get_player_inventory_id(u32 player_id)
 {
-    uint32_t captain_id = players[player_id];
+    u32 captain_id = players[player_id];
     return g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_INVENTORY_ID];
 }
-uint32_t get_player_total_items(uint32_t player_id)
+u32 get_player_total_items(u32 player_id)
 {
-    uint32_t inventory_id = get_player_inventory_id(player_id);
-    uint32_t offset = inventory_id * INVENTORY_DATA_SIZE;
-    return g_inventory_data[offset + INVENTORY_TOTAL_ITEMS];
+    u32 inventory_id = get_player_inventory_id(player_id);
+    return get_inventory_total_items(inventory_id);
 }
-uint32_t get_player_inventory_item_by_id(uint32_t item_id)
+u32 get_player_inventory_item_by_id(u32 item_id)
 {
-    uint32_t inventory_id = get_player_inventory_id(0);
-    for (uint32_t i = 0; i < MAX_INVENTORY_ITEMS; ++i)
+    u32 inventory_id = get_player_inventory_id(0);
+    for (u32 i = 0; i < MAX_INVENTORY_ITEMS; ++i)
     {
-        uint32_t offset = i * INVENTORY_ITEM_DATA_SIZE;
+        u32 offset = i * INVENTORY_ITEM_DATA_SIZE;
         if (i == item_id)
         {
             return i;
@@ -3266,243 +3353,122 @@ uint32_t get_player_inventory_item_by_id(uint32_t item_id)
     }
     return SENTRY;
 }
-uint32_t get_player_inventory_item_string_id(uint32_t item_id)
+u32 get_player_inventory_item_string_id(u32 item_id)
 {
-    uint32_t offset = get_player_inventory_item_by_id(item_id);
-    if (offset != SENTRY)
+    u32 iid = get_player_inventory_item_by_id(item_id);
+    if (iid != SENTRY)
     {
-        return g_inventory_item_data[offset + INVENTORY_ITEM_NAME_ID];
+        return get_inventory_item_name_id(iid);
     }
     return SENTRY;
 }
-uint32_t get_player_in_world(uint32_t player_id)
+u32 get_player_in_world(u32 player_id)
 {
-    uint32_t npc_id = get_player_npc_id(player_id);
-    for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
+    u32 npc_id = get_player_npc_id(player_id);
+    for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
     {
-        if (g_world_npc_data[i * WORLD_NPC_DATA_SIZE + WORLD_NPC_NPC_ID] == npc_id)
+        if (get_world_npc_npc_id(i) == npc_id)
         {
             return i;
         }
     }
     return SENTRY;
 }
-uint32_t get_player_in_world_x(uint32_t player_id)
+u32 get_player_in_world_x(u32 player_id)
 {
-    uint32_t world_npc_id = get_player_in_world(player_id);
-    return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
+    u32 world_npc_id = get_player_in_world(player_id);
+    return get_world_npc_position_x(world_npc_id);
 }
-uint32_t get_player_in_world_y(uint32_t player_id)
+u32 get_player_in_world_y(u32 player_id)
 {
-    uint32_t world_npc_id = get_player_in_world(player_id);
-    return g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
+    u32 world_npc_id = get_player_in_world(player_id);
+    return get_world_npc_position_y(world_npc_id);
 }
-void move_player_to(uint32_t player_id, uint32_t x, uint32_t y)
+void move_player_to(u32 player_id, u32 x, u32 y)
 {
-    uint32_t world_npc_id = get_player_in_world(player_id);
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = x;
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = y;
+    u32 world_npc_id = get_player_in_world(player_id);
+    set_world_npc_position_x(world_npc_id, x);
+    set_world_npc_position_y(world_npc_id, y);
 }
-void move_player_left(uint32_t player_id)
+void move_player_left(u32 player_id)
 {
-    uint32_t world_npc_id = get_player_in_world(player_id);
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
-    uint32_t intended_x = current_x - 1;
+    u32 world_npc_id = get_player_in_world(player_id);
+    u32 current_x = get_world_npc_position_x(world_npc_id);
+    u32 current_y = get_world_npc_position_y(world_npc_id);
+    u32 intended_x = current_x - 1;
     if (current_x > 0 && are_coordinates_blocked(intended_x, current_y) != 1)
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = intended_x;
+        set_world_npc_position_x(world_npc_id, intended_x);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_LEFT;
+    set_world_npc_direction(world_npc_id, DIRECTION_LEFT);
 }
-void move_player_right(uint32_t player_id)
+void move_player_right(u32 player_id)
 {
-    uint32_t world_npc_id = get_player_in_world(player_id);
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
-    uint32_t intended_x = current_x + 1;
+    u32 world_npc_id = get_player_in_world(player_id);
+    u32 current_x = get_world_npc_position_x(world_npc_id);
+    u32 current_y = get_world_npc_position_y(world_npc_id);
+    u32 intended_x = current_x + 1;
     if (intended_x < get_current_world_width() && are_coordinates_blocked(intended_x, current_y) != 1) 
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X] = intended_x;
+        set_world_npc_position_x(world_npc_id, intended_x);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_RIGHT;
+    set_world_npc_direction(world_npc_id, DIRECTION_RIGHT);
 }
-void move_player_up(uint32_t player_id)
+void move_player_up(u32 player_id)
 {
-    uint32_t world_npc_id = get_player_in_world(player_id);
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
-    uint32_t intended_y = current_y - 1;
+    u32 world_npc_id = get_player_in_world(player_id);
+    u32 current_x = get_world_npc_position_x(world_npc_id);
+    u32 current_y = get_world_npc_position_y(world_npc_id);
+    u32 intended_y = current_y - 1;
     if (current_y > 0 && are_coordinates_blocked(current_x, intended_y) != 1)
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = intended_y;
+        set_world_npc_position_y(world_npc_id, intended_y);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_UP;
+    set_world_npc_direction(world_npc_id, DIRECTION_UP);
 }
-void move_player_down(uint32_t player_id)
+void move_player_down(u32 player_id)
 {
-    uint32_t world_npc_id = get_player_in_world(player_id);
-    uint32_t current_x = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_X];
-    uint32_t current_y = g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y];
-    uint32_t intended_y = current_y + 1;
+    u32 world_npc_id = get_player_in_world(player_id);
+    u32 current_x = get_world_npc_position_x(world_npc_id);
+    u32 current_y = get_world_npc_position_y(world_npc_id);
+    u32 intended_y = current_y + 1;
     if (intended_y < get_current_world_height() && are_coordinates_blocked(current_x, intended_y) != 1)
     {
-        g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_POSITION_Y] = intended_y;
+        set_world_npc_position_y(world_npc_id, intended_y);
     }
-    g_world_npc_data[world_npc_id * WORLD_NPC_DATA_SIZE + WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-}
-
-// ------------------------------------------------------------------------------------------------ //
-// BASE SHIPS
-// ------------------------------------------------------------------------------------------------ //
-uint32_t get_base_ship_id_by_machine_name(char* machine_name)
-{
-    uint32_t string_id = get_string_id_by_machine_name(machine_name);
-    for (uint32_t i = 0; i < MAX_BASE_SHIPS; ++i)
-    {
-        if (g_base_ship_structs[i].name_id == string_id)
-        {
-            return i;
-        }
-    }
-    return SENTRY;
-}
-uint32_t get_base_ship_tacking(uint32_t base_ship_id)
-{
-    return g_base_ship_structs[base_ship_id].base_tacking;
-}
-uint32_t get_base_ship_power(uint32_t base_ship_id)
-{
-    return g_base_ship_structs[base_ship_id].base_power;
-}
-uint32_t get_base_ship_speed(uint32_t base_ship_id)
-{
-    return g_base_ship_structs[base_ship_id].base_speed;
-}
-uint32_t get_base_ship_max_capacity(uint32_t base_ship_id)
-{
-    return g_base_ship_structs[base_ship_id].max_capacity;
-}
-uint32_t get_base_ship_base_price(uint32_t base_ship_id)
-{
-    return g_base_ship_structs[base_ship_id].base_price;
-}
-uint32_t get_base_ship_top_material_id(uint32_t base_ship_id)
-{
-    return g_base_ship_structs[base_ship_id].top_material_id;
-}
-
-// ------------------------------------------------------------------------------------------------ //
-// SHIPS
-// ------------------------------------------------------------------------------------------------ //
-uint32_t get_ship_id_by_machine_name(char* machine_name)
-{
-    uint32_t string_id = get_string_id_by_machine_name(machine_name);
-    for (uint32_t i = 0; i < MAX_SHIPS; ++i)
-    {
-        if (g_ship_structs[i].name_id == string_id)
-        {
-            return i;
-        }
-    }
-    return SENTRY;
-}
-uint32_t get_ship_base_ship_id(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].base_ship_id;
-}
-uint32_t get_ship_tacking(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].tacking;
-}
-uint32_t get_ship_power(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].power;
-}
-uint32_t get_ship_speed(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].speed;
-}
-uint32_t get_ship_capacity(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].capacity;
-}
-uint32_t get_ship_max_crew(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].max_crew;
-}
-uint32_t get_ship_max_hull(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].max_hull;
-}
-uint32_t get_ship_crew(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].crew;
-}
-uint32_t get_ship_hull(uint32_t ship_id)
-{
-    return g_ship_structs[ship_id].hull;
-}
-void reduce_ship_hull(uint32_t ship_id, uint32_t damage)
-{
-    // Check if damage would cause underflow
-    if (damage > g_ship_structs[ship_id].hull)
-    {
-        g_ship_structs[ship_id].hull = 0;
-    }
-    else
-    {
-        g_ship_structs[ship_id].hull -= damage;
-    }
-}
-void reduce_ship_crew(uint32_t ship_id, uint32_t damage)
-{
-    // Check if damage would cause underflow
-    if (damage > g_ship_structs[ship_id].crew)
-    {
-        g_ship_structs[ship_id].crew = 0;
-    }
-    else
-    {
-        g_ship_structs[ship_id].crew -= damage;
-    }
+    set_world_npc_direction(world_npc_id, DIRECTION_DOWN);
 }
 
 // ------------------------------------------------------------------------------------------------ //
 // FLEETS
 // ------------------------------------------------------------------------------------------------ //
-void add_ship_to_fleet(uint32_t fleet_id, uint32_t ship_id)
+void add_ship_to_fleet(u32 fleet_id, u32 ship_id)
 {
-    uint32_t offset = fleet_id * FLEET_DATA_SIZE;
+    u32 offset = fleet_id * FLEET_DATA_SIZE;
     g_fleet_data[offset + FLEET_TOTAL_SHIPS] += 1;
     // TODO: Only need this if the captain of a ship is NOT the same as the fleets general (also a captain)
     // g_fleet_data[offset + FLEET_TOTAL_CAPTAINS] += 1;
-    uint32_t fleet_ship_data[FLEET_SHIP_DATA_SIZE];
+    u32 fleet_ship_data[FLEET_SHIP_DATA_SIZE];
     CLEAR_DATA(fleet_ship_data, FLEET_SHIP_DATA_SIZE);
     fleet_ship_data[FLEET_SHIP_FLEET_ID] = fleet_id;
     fleet_ship_data[FLEET_SHIP_SHIP_ID] = ship_id;
     create_fleet_ship(fleet_ship_data, true);
 }
-uint32_t get_fleet_ship_fleet_id(uint32_t fleet_ship_id)
+u32 get_fleet_ship_fleet_id(u32 fleet_ship_id)
 {
-    uint32_t offset = fleet_ship_id * FLEET_SHIP_DATA_SIZE;
+    u32 offset = fleet_ship_id * FLEET_SHIP_DATA_SIZE;
     return g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID];
 }
-uint32_t get_fleet_ship_ship_id(uint32_t fleet_ship_id)
+u32 get_fleet_ship_ship_id(u32 fleet_ship_id)
 {
-    uint32_t offset = fleet_ship_id * FLEET_SHIP_DATA_SIZE;
+    u32 offset = fleet_ship_id * FLEET_SHIP_DATA_SIZE;
     return g_fleet_ship_data[offset + FLEET_SHIP_SHIP_ID];
 }
-uint32_t get_fleet_total_ships(uint32_t fleet_id)
+u32 get_ship_id_by_fleet_ship_id(u32 ship_id)
 {
-    uint32_t offset = fleet_id * FLEET_DATA_SIZE;
-    return g_fleet_data[offset + FLEET_TOTAL_SHIPS];
-}
-uint32_t get_ship_id_by_fleet_ship_id(uint32_t ship_id)
-{
-    for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i)
+    for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
     {
-        uint32_t offset = i * FLEET_SHIP_DATA_SIZE;
+        u32 offset = i * FLEET_SHIP_DATA_SIZE;
         if (g_fleet_ship_data[offset + FLEET_SHIP_SHIP_ID] == ship_id)
         {
             return i;
@@ -3510,11 +3476,11 @@ uint32_t get_ship_id_by_fleet_ship_id(uint32_t ship_id)
     }
     return SENTRY;
 }
-uint32_t get_fleet_id_by_general_id(uint32_t general_id)
+u32 get_fleet_id_by_general_id(u32 general_id)
 {
-    for (uint32_t i = 0; i < MAX_FLEETS; ++i)
+    for (u32 i = 0; i < MAX_FLEETS; ++i)
     {
-        uint32_t offset = i * FLEET_DATA_SIZE;
+        u32 offset = i * FLEET_DATA_SIZE;
         if (g_fleet_data[offset + FLEET_GENERAL_ID] == general_id)
         {
             return i;
@@ -3526,7 +3492,7 @@ uint32_t get_fleet_id_by_general_id(uint32_t general_id)
 // ------------------------------------------------------------------------------------------------ //
 // GENERAL GAME FUNCTIONS
 // ------------------------------------------------------------------------------------------------ //
-uint32_t get_current_game_mode()
+u32 get_current_game_mode()
 {
     switch (current_game_mode)
     {
@@ -3546,7 +3512,7 @@ uint32_t get_current_game_mode()
     return SENTRY;
 }
 
-void increment_tick_counter(uint32_t* tick)
+void increment_tick_counter(u32* tick)
 {
     if (*tick == UINT32_MAX)
     {
@@ -3581,30 +3547,22 @@ void tick()
 void initialize_game()
 {
     tick_counter = 1;
-    current_game_mode = (uint32_t)GAME_MODE_EMPTY;
+    current_game_mode = (u32)GAME_MODE_EMPTY;
     clear_current_scene();
 
     init_string_data();
     init_string_info();
-    init_data_ship_material();
-    init_data_weapon();
-    init_data_armor();
-    init_data_special_item();
+
     init_data_figurehead();
     init_data_cannon();
-    init_data_layer();
-    init_data_inventory();
-    init_data_inventory_item();
-    init_data_port();
+
     init_data_stats();
     init_data_skill();
     init_data_fleet();
     init_data_fleet_ship();
     init_data_fleet_captain();
-    init_data_world_npc();
     init_data_bank();
     init_data_captain();
-    init_structs_entities();
 
     create_string("empty", "Empty");
     create_string("you_have_x_gold", "You have %d gold.");
@@ -3806,24 +3764,21 @@ void initialize_game()
     create_string("load_test_world", "Load Test World");
     create_string("dingus_land", "Dingus Land");
 
-    struct World game_world;
-    CLEAR_STRUCT(&game_world, SENTRY);
-    game_world.name_id = get_string_id_by_machine_name("athens");
-    game_world.width = 50;
-    game_world.height = 50;
-    game_world.total_npcs = 0;
-    game_world.total_captains = 0;
-    game_world.total_layers = 1;
-    // TODO: create_world, add to g_world_structs[iterator], then CLEAR_STRUCT
-    g_world_structs[0] = game_world;
-    CLEAR_STRUCT(&game_world, SENTRY);
-    game_world.name_id = get_string_id_by_machine_name("dingus_land");
-    game_world.width = 50;
-    game_world.height = 50;
-    game_world.total_npcs = 0;
-    game_world.total_captains = 0;
-    game_world.total_layers = 1;
-    g_world_structs[1] = game_world;
+    u32 world[WORLD_DATA_SIZE];
+    world[WORLD_NAME_ID] = get_string_id_by_machine_name("athens");
+    world[WORLD_WIDTH] = 50;
+    world[WORLD_HEIGHT] = 50;
+    world[WORLD_TOTAL_NPCS] = 0;
+    world[WORLD_TOTAL_CAPTAINS] = 0;
+    world[WORLD_TOTAL_LAYERS] = 1;
+    add_world(world);
+    world[WORLD_NAME_ID] = get_string_id_by_machine_name("dingus_land");
+    world[WORLD_WIDTH] = 50;
+    world[WORLD_HEIGHT] = 50;
+    world[WORLD_TOTAL_NPCS] = 0;
+    world[WORLD_TOTAL_CAPTAINS] = 0;
+    world[WORLD_TOTAL_LAYERS] = 1;
+    add_world(world);
 
     u32 empty_npc[NPC_DATA_SIZE];
     empty_npc[NPC_NAME_ID] = get_string_id_by_machine_name("empty");
@@ -3870,25 +3825,24 @@ void initialize_game()
     empty_npc[NPC_TYPE] = NPC_TYPE_HUMAN;
     u32 npc_loller_id = add_npc(empty_npc);
 
-    uint32_t inventory_data[INVENTORY_DATA_SIZE];
-    CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
+    u32 inventory_data[INVENTORY_DATA_SIZE];
     inventory_data[INVENTORY_NAME_ID] = get_string_id_by_machine_name("player_ones_inventory");
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
-    uint32_t inventory_id = create_inventory(inventory_data, true);
+    u32 inventory_id = add_inventory(inventory_data);
 
-    uint32_t captain_data[CAPTAIN_DATA_SIZE];
+    u32 captain_data[CAPTAIN_DATA_SIZE];
     CLEAR_DATA(captain_data, CAPTAIN_DATA_SIZE);
     captain_data[CAPTAIN_NPC_ID] = empty_npc_id;
     captain_data[CAPTAIN_PLAYER_ID] = 0;
     captain_data[CAPTAIN_GOLD] = 99;
     captain_data[CAPTAIN_INVENTORY_ID] = inventory_id;
-    uint32_t captain_id = create_captain(captain_data, true);
+    u32 captain_id = create_captain(captain_data, true);
     players[0] = captain_id;
 
     CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
     inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_rvice_id);
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
-    inventory_id = create_inventory(inventory_data, true);
+    inventory_id = add_inventory(inventory_data);
     CLEAR_DATA(captain_data, CAPTAIN_DATA_SIZE);
     captain_data[CAPTAIN_NPC_ID] = npc_rvice_id;
     captain_data[CAPTAIN_PLAYER_ID] = 0;
@@ -3898,7 +3852,7 @@ void initialize_game()
     CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
     inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_lafolie_id);
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
-    inventory_id = create_inventory(inventory_data, true);
+    inventory_id = add_inventory(inventory_data);
     CLEAR_DATA(captain_data, CAPTAIN_DATA_SIZE);
     captain_data[CAPTAIN_NPC_ID] = npc_lafolie_id;
     captain_data[CAPTAIN_PLAYER_ID] = 0;
@@ -3908,7 +3862,7 @@ void initialize_game()
     CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
     inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_nakor_id);
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
-    inventory_id = create_inventory(inventory_data, true);
+    inventory_id = add_inventory(inventory_data);
     CLEAR_DATA(captain_data, CAPTAIN_DATA_SIZE);
     captain_data[CAPTAIN_NPC_ID] = npc_nakor_id;
     captain_data[CAPTAIN_PLAYER_ID] = 0;
@@ -3918,7 +3872,7 @@ void initialize_game()
     CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
     inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_travis_id);
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
-    inventory_id = create_inventory(inventory_data, true);
+    inventory_id = add_inventory(inventory_data);
     CLEAR_DATA(captain_data, CAPTAIN_DATA_SIZE);
     captain_data[CAPTAIN_NPC_ID] = npc_travis_id;
     captain_data[CAPTAIN_PLAYER_ID] = 0;
@@ -3926,29 +3880,29 @@ void initialize_game()
     captain_data[CAPTAIN_INVENTORY_ID] = inventory_id;
     create_captain(captain_data, true);
 
-    struct GeneralItem general_item;
-    general_item.name_id = get_string_id_by_machine_name("telescope");
-    general_item.base_price = 200;
-    g_general_item_structs[0] = general_item;
-    general_item.name_id = get_string_id_by_machine_name("quadrant");
-    general_item.base_price = 201;
-    g_general_item_structs[1] = general_item;
-    general_item.name_id = get_string_id_by_machine_name("theodolite");
-    general_item.base_price = 203;
-    g_general_item_structs[2] = general_item;
-    general_item.name_id = get_string_id_by_machine_name("theodolite");
-    general_item.base_price = 222;
-    g_general_item_structs[3] = general_item;
+    u32 empty_general_item[GENERAL_ITEM_DATA_SIZE];
+    empty_general_item[GENERAL_ITEM_NAME_ID] = get_string_id_by_machine_name("telescope");
+    empty_general_item[GENERAL_ITEM_BASE_PRICE] = 200;
+    add_general_item(empty_general_item);
+    empty_general_item[GENERAL_ITEM_NAME_ID] = get_string_id_by_machine_name("quadrant");
+    empty_general_item[GENERAL_ITEM_BASE_PRICE] = 201;
+    add_general_item(empty_general_item);
+    empty_general_item[GENERAL_ITEM_NAME_ID] = get_string_id_by_machine_name("theodolite");
+    empty_general_item[GENERAL_ITEM_BASE_PRICE] = 203;
+    add_general_item(empty_general_item);
+    empty_general_item[GENERAL_ITEM_NAME_ID] = get_string_id_by_machine_name("theodolite");
+    empty_general_item[GENERAL_ITEM_BASE_PRICE] = 222;
+    add_general_item(empty_general_item);
 
-    struct BaseShip base_ship;
-    base_ship.name_id = get_string_id_by_machine_name("balsa");
-    base_ship.top_material_id = 0;
-    base_ship.base_price = 100;
-    base_ship.max_capacity = 100;
-    base_ship.base_tacking = 100;
-    base_ship.base_power = 100;
-    base_ship.base_speed = 100;
-    g_base_ship_structs[0] = base_ship;
+    u32 base_ship[BASE_SHIP_DATA_SIZE];
+    base_ship[BASE_SHIP_NAME_ID] = get_string_id_by_machine_name("balsa");
+    base_ship[BASE_SHIP_TOP_MATERIAL_ID] = 0;
+    base_ship[BASE_SHIP_BASE_PRICE] = 100;
+    base_ship[BASE_SHIP_MAX_CAPACITY] = 100;
+    base_ship[BASE_SHIP_TACKING] = 100;
+    base_ship[BASE_SHIP_POWER] = 100;
+    base_ship[BASE_SHIP_SPEED] = 100;
+    add_base_ship(base_ship);
 
     // TODO: Import from wells fargo
     g_bank_data[BANK_DEPOSIT_INTEREST_RATE] = 33;
@@ -3967,48 +3921,44 @@ void test()
 
     u32 base_ship_id = get_base_ship_id_by_machine_name("balsa");
 
-    uint32_t fleet_data[FLEET_DATA_SIZE];
+    u32 fleet_data[FLEET_DATA_SIZE];
     CLEAR_DATA(fleet_data, FLEET_DATA_SIZE);
     fleet_data[FLEET_TOTAL_SHIPS] = 0;
     fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
     // TODO: This should be the player captain id. Right now, that happens to be manually set to 0 so we'll just use that for now
     fleet_data[FLEET_GENERAL_ID] = players[0];
-    uint32_t fleet_id = create_fleet(fleet_data, true);
+    u32 fleet_id = create_fleet(fleet_data, true);
 
-    struct Ship ship;
-    uint32_t ship_id;
-    uint32_t second_ship_id;
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    ship.base_ship_id = base_ship_id;
-    ship.price = 100;
-    ship.material_id = 0;
-    ship.capacity = 100;
-    ship.tacking = 100;
-    ship.power = 100;
-    ship.speed = 100;
-    ship.crew = 100;
-    ship.hull = 99;
-    g_ship_structs[0] = ship;
-    ship_id = 0;
-    g_ship_structs[1] = ship;
-    second_ship_id = 1;
+    u32 ship[SHIP_DATA_SIZE];
+    u32 ship_id;
+    u32 second_ship_id;
+    ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
+    ship[SHIP_BASE_SHIP_ID] = base_ship_id;
+    ship[SHIP_PRICE] = 100;
+    ship[SHIP_MATERIAL_ID] = 0;
+    ship[SHIP_CAPACITY] = 100;
+    ship[SHIP_TACKING] = 100;
+    ship[SHIP_POWER] = 100;
+    ship[SHIP_SPEED] = 100;
+    ship[SHIP_CREW] = 100;
+    ship[SHIP_HULL] = 99;
+    ship_id = add_ship(ship);
+    second_ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, ship_id);
     add_ship_to_fleet(fleet_id, second_ship_id);
 
-    uint32_t npc_id;
+    u32 npc_id;
     fleet_data[FLEET_TOTAL_SHIPS] = 0;
     fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
     npc_id = get_npc_id_by_machine_name("npc_rvice");
     fleet_data[FLEET_GENERAL_ID] = npc_id;
     fleet_id = create_fleet(fleet_data, true);
     // TODO: This is a weird way to reference ship data and stuff
-    ship.name_id = get_string_id_by_machine_name("rvices_ship");
-    g_ship_structs[2] = ship;
-    ship_id = 2;
+    ship[SHIP_NAME_ID] = get_string_id_by_machine_name("rvices_ship");
+    ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, ship_id);
     npc_id = get_npc_id_by_machine_name("rvices_ship");
-    g_ship_structs[3] = ship;
-    second_ship_id = 3;
+    second_ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, second_ship_id);
 
     fleet_data[FLEET_TOTAL_SHIPS] = 0;
@@ -4016,13 +3966,11 @@ void test()
     npc_id = get_npc_id_by_machine_name("npc_rvice");
     fleet_data[FLEET_GENERAL_ID] = npc_id;
     fleet_id = create_fleet(fleet_data, true);
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[4] = ship;
-    ship_id = 4;
+    ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
+    ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, ship_id);
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[5] = ship;
-    second_ship_id = 5;
+    ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
+    second_ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, second_ship_id);
 
     fleet_data[FLEET_TOTAL_SHIPS] = 0;
@@ -4030,13 +3978,11 @@ void test()
     npc_id = get_npc_id_by_machine_name("npc_rvice");
     fleet_data[FLEET_GENERAL_ID] = npc_id;
     fleet_id = create_fleet(fleet_data, true);
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[6] = ship;
-    ship_id = 6;
+    ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
+    ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, ship_id);
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[7] = ship;
-    second_ship_id = 7;
+    ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
+    second_ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, second_ship_id);
 
     fleet_data[FLEET_TOTAL_SHIPS] = 0;
@@ -4044,13 +3990,11 @@ void test()
     npc_id = get_npc_id_by_machine_name("npc_rvice");
     fleet_data[FLEET_GENERAL_ID] = npc_id;
     fleet_id = create_fleet(fleet_data, true);
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[8] = ship;
-    ship_id = 8;
+    ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
+    ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, ship_id);
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[9] = ship;
-    second_ship_id = 9;
+    ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
+    second_ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, second_ship_id);
 
     fleet_data[FLEET_TOTAL_SHIPS] = 0;
@@ -4058,45 +4002,43 @@ void test()
     npc_id = get_npc_id_by_machine_name("npc_rvice");
     fleet_data[FLEET_GENERAL_ID] = npc_id;
     fleet_id = create_fleet(fleet_data, true);
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[10] = ship;
-    ship_id = 10;
+    ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
+    ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, ship_id);
-    ship.name_id = get_string_id_by_machine_name("player_ship");
-    g_ship_structs[11] = ship;
-    second_ship_id = 11;
+    ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
+    second_ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, second_ship_id);
 }
 
 // ------------------------------------------------------------------------------------------------ //
 // BLACKJACK
 // ------------------------------------------------------------------------------------------------ //
-uint32_t blackjack_deck[48];
-uint32_t blackjack_player_deck[10];
-uint32_t blackjack_player_deck_iterator;
-uint32_t blackjack_dealer_deck[10];
-uint32_t blackjack_dealer_deck_iterator;
-uint32_t blackjack_player_value;
-uint32_t blackjack_dealer_value;
-uint32_t blackjack_deck_index;
-uint32_t blackjack_bet_amount;
-uint32_t blackjack_bet_minimum = 5;
-uint32_t blackjack_bet_maximum = 10000;
-uint32_t blackjack_player_standing;
-uint32_t blackjack_dealer_standing;
-uint32_t blackjack_player_hitting;
-uint32_t blackjack_dealer_hitting;
-uint32_t blackjack_get_player_deck_card(uint32_t index)
+u32 blackjack_deck[48];
+u32 blackjack_player_deck[10];
+u32 blackjack_player_deck_iterator;
+u32 blackjack_dealer_deck[10];
+u32 blackjack_dealer_deck_iterator;
+u32 blackjack_player_value;
+u32 blackjack_dealer_value;
+u32 blackjack_deck_index;
+u32 blackjack_bet_amount;
+u32 blackjack_bet_minimum = 5;
+u32 blackjack_bet_maximum = 10000;
+u32 blackjack_player_standing;
+u32 blackjack_dealer_standing;
+u32 blackjack_player_hitting;
+u32 blackjack_dealer_hitting;
+u32 blackjack_get_player_deck_card(u32 index)
 {
     return blackjack_player_deck[index];
 }
-uint32_t blackjack_get_dealer_deck_card(uint32_t index)
+u32 blackjack_get_dealer_deck_card(u32 index)
 {
     return blackjack_dealer_deck[index];
 }
-uint32_t blackjack_get_card_value(uint32_t card_id)
+u32 blackjack_get_card_value(u32 card_id)
 {
-    uint32_t card = card_id % 13;
+    u32 card = card_id % 13;
     if (card == 0)
     {
         return 11;
@@ -4107,10 +4049,10 @@ uint32_t blackjack_get_card_value(uint32_t card_id)
     }
     return card;
 }
-uint32_t blackjack_get_dealers_deck_value()
+u32 blackjack_get_dealers_deck_value()
 {
-    uint32_t total = 0;
-    for (uint32_t i = 0; i < 10; ++i)
+    u32 total = 0;
+    for (u32 i = 0; i < 10; ++i)
     {
         if (blackjack_dealer_deck[i] != SENTRY)
         {
@@ -4119,10 +4061,10 @@ uint32_t blackjack_get_dealers_deck_value()
     }
     return total;
 }
-uint32_t blackjack_get_players_deck_value()
+u32 blackjack_get_players_deck_value()
 {
-    uint32_t total = 0;
-    for (uint32_t i = 0; i < 10; ++i)
+    u32 total = 0;
+    for (u32 i = 0; i < 10; ++i)
     {
         if (blackjack_player_deck[i] != SENTRY)
         {
@@ -4133,8 +4075,8 @@ uint32_t blackjack_get_players_deck_value()
 }
 void blackjack_randomize_deck()
 {
-    uint32_t deck_index = 0;
-    for (uint32_t i = 0; i < 52; ++i)
+    u32 deck_index = 0;
+    for (u32 i = 0; i < 52; ++i)
     {
         // Skip JACK cards
         if (i % 13 != 10)
@@ -4143,10 +4085,10 @@ void blackjack_randomize_deck()
             deck_index += 1;
         }
     }
-    for (uint32_t i = 47; i > 0; --i)
+    for (u32 i = 47; i > 0; --i)
     {
-        uint32_t random_index = get_random_number(0, i + 1);
-        uint32_t temp = blackjack_deck[i];
+        u32 random_index = get_random_number(0, i + 1);
+        u32 temp = blackjack_deck[i];
         blackjack_deck[i] = blackjack_deck[random_index];
         blackjack_deck[random_index] = temp;
     }
@@ -4156,7 +4098,7 @@ void blackjack_randomize_deck()
     blackjack_dealer_standing = SENTRY;
     blackjack_player_hitting = SENTRY;
     blackjack_dealer_hitting = SENTRY;
-    for (uint32_t i = 0; i < 10; ++i)
+    for (u32 i = 0; i < 10; ++i)
     {
         blackjack_player_deck[i] = SENTRY;
         blackjack_dealer_deck[i] = SENTRY;
@@ -4188,17 +4130,17 @@ void blackjack_start_game()
 }
 void blackjack_dealer_turn()
 {
-    uint32_t dealer_total = blackjack_get_dealers_deck_value();
+    u32 dealer_total = blackjack_get_dealers_deck_value();
     console_log_format("dealer total %d", dealer_total);
     if (dealer_total >= 17)
     {
         blackjack_dealer_standing = true;
     }
 }
-uint32_t blackjack_check_winner()
+u32 blackjack_check_winner()
 {
-    uint32_t player_total = blackjack_get_players_deck_value();
-    uint32_t dealer_total = blackjack_get_dealers_deck_value();
+    u32 player_total = blackjack_get_players_deck_value();
+    u32 dealer_total = blackjack_get_dealers_deck_value();
     // return 1 = player won
     // return 2 = dealer won
     // return 3 = nobody won
@@ -4276,7 +4218,7 @@ uint32_t blackjack_check_winner()
 
 // TODO: Immediate bust out if anybody goes over 21
 // TODO: Immediate bust out if dealer gets 21 right out the gate (but NOT player)
-uint32_t scene_blackjack(uint32_t action)
+u32 scene_blackjack(u32 action)
 {
     // TODO: Consider putting all strings in a scene array so you
     // don't have to thrash the entire string pool to find the
@@ -4309,7 +4251,7 @@ uint32_t scene_blackjack(uint32_t action)
                         current_scene_add_choice(SCENE_BLACKJACK_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("welcome_to_blackjack");
+                    u32 string_id = get_string_id_by_machine_name("welcome_to_blackjack");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -4317,7 +4259,7 @@ uint32_t scene_blackjack(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
                     {
                         set_current_scene_state(SCENE_BLACKJACK_STATE_ASK_FOR_BET_AMOUNT);
@@ -4344,7 +4286,7 @@ uint32_t scene_blackjack(uint32_t action)
             {
                 case SCENE_ACTION_INIT:
                 {
-                    uint32_t string_id = get_string_id_by_machine_name("blackjack_ask_for_bet_amount");
+                    u32 string_id = get_string_id_by_machine_name("blackjack_ask_for_bet_amount");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     set_current_scene_needs_numerical_input(true);
@@ -4352,7 +4294,7 @@ uint32_t scene_blackjack(uint32_t action)
                     break;
                 }
                 case SCENE_MAKE_CHOICE: {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
                     {
                         // TODO: Can you NOT duplicate break calls?
@@ -4411,7 +4353,7 @@ uint32_t scene_blackjack(uint32_t action)
                         current_scene_add_choice(SCENE_BLACKJACK_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("blackjack_not_minimum_bet");
+                    u32 string_id = get_string_id_by_machine_name("blackjack_not_minimum_bet");
                     set_current_scene_needs_numerical_input(false);
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
@@ -4420,7 +4362,7 @@ uint32_t scene_blackjack(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK)
                     {
                         // Go back to bet amount
@@ -4444,7 +4386,7 @@ uint32_t scene_blackjack(uint32_t action)
                         current_scene_add_choice(SCENE_BLACKJACK_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("blackjack_bet_too_much");
+                    u32 string_id = get_string_id_by_machine_name("blackjack_bet_too_much");
                     set_current_scene_needs_numerical_input(false);
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
@@ -4453,7 +4395,7 @@ uint32_t scene_blackjack(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK)
                     {
                         // Go back to bet amount
@@ -4477,7 +4419,7 @@ uint32_t scene_blackjack(uint32_t action)
                         current_scene_add_choice(SCENE_BLACKJACK_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("blackjack_not_enough_gold");
+                    u32 string_id = get_string_id_by_machine_name("blackjack_not_enough_gold");
                     set_current_scene_needs_numerical_input(false);
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
@@ -4486,7 +4428,7 @@ uint32_t scene_blackjack(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_BACK)
                     {
                         clear_current_scene();
@@ -4502,7 +4444,7 @@ uint32_t scene_blackjack(uint32_t action)
         }
         case SCENE_BLACKJACK_STATE_CONFIRM_BET_AMOUNT:
         {
-            uint32_t cc = current_scene_get_current_choice();
+            u32 cc = current_scene_get_current_choice();
             switch (action)
             {
                 case SCENE_ACTION_INIT:
@@ -4518,7 +4460,7 @@ uint32_t scene_blackjack(uint32_t action)
                     );
                     // TODO: Formatted string with
                     // current_user_input_number as %d
-                    uint32_t string_id = get_string_id_by_machine_name("blackjack_confirm_bet");
+                    u32 string_id = get_string_id_by_machine_name("blackjack_confirm_bet");
                     set_current_scene_needs_numerical_input(false);
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
@@ -4560,7 +4502,7 @@ uint32_t scene_blackjack(uint32_t action)
                     blackjack_bet_amount = current_user_input_number;
                     // TODO: Formatted string with
                     // current_user_input_number as %d
-                    uint32_t string_id = get_string_id_by_machine_name("blackjack_deal_deck");
+                    u32 string_id = get_string_id_by_machine_name("blackjack_deal_deck");
                     set_current_scene_needs_numerical_input(false);
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
@@ -4569,7 +4511,7 @@ uint32_t scene_blackjack(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
                     {
                         set_current_scene_state(SCENE_BLACKJACK_STATE_PLAYER_HIT_OR_STAND);
@@ -4596,7 +4538,7 @@ uint32_t scene_blackjack(uint32_t action)
                         current_scene_add_choice(SCENE_BLACKJACK_CHOICE_STAND),
                         get_string_id_by_machine_name("blackjack_stay")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("blackjack_player_turn");
+                    u32 string_id = get_string_id_by_machine_name("blackjack_player_turn");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -4604,7 +4546,7 @@ uint32_t scene_blackjack(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_HIT)
                     {
                         blackjack_add_card_to_players_deck();
@@ -4635,7 +4577,7 @@ uint32_t scene_blackjack(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("blackjack_deal_player_card");
+                    u32 string_id = get_string_id_by_machine_name("blackjack_deal_player_card");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -4643,7 +4585,7 @@ uint32_t scene_blackjack(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
                     {
                         set_current_scene_state(SCENE_BLACKJACK_STATE_DEALER_HIT_OR_STAND);
@@ -4667,7 +4609,7 @@ uint32_t scene_blackjack(uint32_t action)
                         get_string_id_by_machine_name("confirm")
                     );
                     blackjack_dealer_turn();
-                    uint32_t string_id = get_string_id_by_machine_name("blackjack_dealer_turn");
+                    u32 string_id = get_string_id_by_machine_name("blackjack_dealer_turn");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -4675,7 +4617,7 @@ uint32_t scene_blackjack(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
                     {
                         // if (blackjack_dealer_standing == true) {
@@ -4716,7 +4658,7 @@ uint32_t scene_blackjack(uint32_t action)
                         get_string_id_by_machine_name("confirm")
                     );
                     blackjack_add_card_to_dealer_deck();
-                    uint32_t string_id = get_string_id_by_machine_name("blackjack_deal_dealer_card");
+                    u32 string_id = get_string_id_by_machine_name("blackjack_deal_dealer_card");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -4724,7 +4666,7 @@ uint32_t scene_blackjack(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
                     {
                         set_current_scene_state(SCENE_BLACKJACK_STATE_CHECK_WINNER);
@@ -4747,7 +4689,7 @@ uint32_t scene_blackjack(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("blackjack_check_winner");
+                    u32 string_id = get_string_id_by_machine_name("blackjack_check_winner");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -4755,10 +4697,10 @@ uint32_t scene_blackjack(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
                     {
-                        uint32_t winner = blackjack_check_winner();
+                        u32 winner = blackjack_check_winner();
                         if (winner == 1)
                         {
                             // If player won, show player won state
@@ -4810,7 +4752,7 @@ uint32_t scene_blackjack(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("blackjack_player_won");
+                    u32 string_id = get_string_id_by_machine_name("blackjack_player_won");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -4818,7 +4760,7 @@ uint32_t scene_blackjack(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_BLACKJACK_CHOICE_CONFIRM)
                     {
                         add_player_gold(0, blackjack_bet_amount);
@@ -4833,7 +4775,7 @@ uint32_t scene_blackjack(uint32_t action)
         }
         case SCENE_BLACKJACK_STATE_DEALER_WON:
         {
-            uint32_t cc = current_scene_get_current_choice();
+            u32 cc = current_scene_get_current_choice();
             switch (action)
             {
                 case SCENE_ACTION_INIT:
@@ -4843,7 +4785,7 @@ uint32_t scene_blackjack(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("blackjack_dealer_won");
+                    u32 string_id = get_string_id_by_machine_name("blackjack_dealer_won");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -4876,7 +4818,7 @@ uint32_t scene_blackjack(uint32_t action)
 // __attribute__((visibility("default")))
 // void f32_to_string(float text) {
 //     // Inline conversion of f32 bytes to char*
-//     for (uint32_t i = 0; i < 4; ++i) {
+//     for (u32 i = 0; i < 4; ++i) {
 //         test_output_string_buffer[i] = ((char*)&text)[i];
 //     }
 // }
@@ -4885,7 +4827,7 @@ uint32_t scene_blackjack(uint32_t action)
 // ------------------------------------------------------------------------------------------------ //
 // GENERAL SHOP SCENE
 // ------------------------------------------------------------------------------------------------ //
-uint32_t scene_general_shop(uint32_t action)
+u32 scene_general_shop(u32 action)
 {
     // TODO: When the scene exits, we need to clear g_inventory_item_data where INVENTORY_ID == scenes inventory id
     if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
@@ -4921,7 +4863,7 @@ uint32_t scene_general_shop(uint32_t action)
                         current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("welcome_to_general_shop");
+                    u32 string_id = get_string_id_by_machine_name("welcome_to_general_shop");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -4929,7 +4871,7 @@ uint32_t scene_general_shop(uint32_t action)
                 }   
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BUY)
                     {
                         set_current_scene_state(SCENE_GENERAL_SHOP_STATE_BUYING);
@@ -4971,7 +4913,7 @@ uint32_t scene_general_shop(uint32_t action)
                         current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("general_shop_buy");
+                    u32 string_id = get_string_id_by_machine_name("general_shop_buy");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -4979,16 +4921,15 @@ uint32_t scene_general_shop(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BUY)
                     {
-                        uint32_t item_id = input_array_buffer[0];
-                        uint32_t qty = input_array_buffer[1];
-                        uint32_t player_gold = get_player_gold(0);
-                        uint32_t real_item_id = CurrentSceneInventoryItems[item_id];
-                        uint32_t real_item_offset = real_item_id * INVENTORY_ITEM_DATA_SIZE;
-                        uint32_t base_price = g_inventory_item_data[real_item_offset + INVENTORY_ITEM_ADJUSTED_PRICE];
-                        uint32_t total_price = base_price * qty;
+                        u32 item_id = input_array_buffer[0];
+                        u32 qty = input_array_buffer[1];
+                        u32 player_gold = get_player_gold(0);
+                        u32 real_item_id = CurrentSceneInventoryItems[item_id];
+                        u32 base_price = get_inventory_item_adjusted_price(real_item_id);
+                        u32 total_price = base_price * qty;
                         if (player_gold >= total_price)
                         {
                             set_current_scene_state(SCENE_GENERAL_SHOP_STATE_BUYING_CONFIRM);
@@ -5028,7 +4969,7 @@ uint32_t scene_general_shop(uint32_t action)
                         current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("confirm_buy");
+                    u32 string_id = get_string_id_by_machine_name("confirm_buy");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -5036,7 +4977,7 @@ uint32_t scene_general_shop(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_CONFIRM)
                     {
                         set_current_scene_state(SCENE_GENERAL_SHOP_STATE_BUYING_COMPLETE);
@@ -5065,7 +5006,7 @@ uint32_t scene_general_shop(uint32_t action)
                         current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("not_enough_gold");
+                    u32 string_id = get_string_id_by_machine_name("not_enough_gold");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -5073,7 +5014,7 @@ uint32_t scene_general_shop(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_GENERAL_SHOP_CHOICE_BACK)
                     {
                         set_current_scene_state(SCENE_GENERAL_SHOP_STATE_BUYING);
@@ -5087,7 +5028,7 @@ uint32_t scene_general_shop(uint32_t action)
         }
         case SCENE_GENERAL_SHOP_STATE_BUYING_COMPLETE:
         {
-            uint32_t cc = current_scene_get_current_choice();
+            u32 cc = current_scene_get_current_choice();
             switch (action)
             {
                 case SCENE_ACTION_INIT:
@@ -5097,23 +5038,21 @@ uint32_t scene_general_shop(uint32_t action)
                         current_scene_add_choice(SCENE_GENERAL_SHOP_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t item_id = input_array_buffer[0];
-                    uint32_t qty = input_array_buffer[1];
-                    uint32_t player_gold = get_player_gold(0);
-                    uint32_t real_item_id = CurrentSceneInventoryItems[item_id];
-                    uint32_t real_item_offset = real_item_id * INVENTORY_ITEM_DATA_SIZE;
-                    uint32_t base_price = g_inventory_item_data[real_item_offset + INVENTORY_ITEM_ADJUSTED_PRICE];
-                    uint32_t total_price = base_price * qty;
+                    u32 item_id = input_array_buffer[0];
+                    u32 qty = input_array_buffer[1];
+                    u32 player_gold = get_player_gold(0);
+                    u32 real_item_id = CurrentSceneInventoryItems[item_id];
+                    u32 base_price = get_inventory_item_adjusted_price(real_item_id);
+                    u32 total_price = base_price * qty;
                     subtract_player_gold(0, total_price);
-                    uint32_t inventory_id = get_player_inventory_id(0);
-                    uint32_t inventory_item_data[INVENTORY_ITEM_DATA_SIZE];
-                    CLEAR_DATA(inventory_item_data, INVENTORY_ITEM_DATA_SIZE);
+                    u32 inventory_id = get_player_inventory_id(0);
+                    u32 inventory_item_data[INVENTORY_ITEM_DATA_SIZE];
                     inventory_item_data[INVENTORY_ITEM_NUMBER_HELD] = qty;
                     inventory_item_data[INVENTORY_ITEM_INVENTORY_ID] = inventory_id;
-                    create_inventory_item(inventory_item_data, true);
+                    add_inventory_item(inventory_item_data);
                     increment_inventory_total_items(inventory_id);
 
-                    uint32_t string_id = get_string_id_by_machine_name("buy_complete");
+                    u32 string_id = get_string_id_by_machine_name("buy_complete");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -5143,25 +5082,25 @@ uint32_t scene_general_shop(uint32_t action)
 // OCEAN BATTLE
 // ------------------------------------------------------------------------------------------------ //
 #define MAX_OCEAN_BATTLE_FLEETS 10
-static uint32_t ocean_battle_fleets[MAX_OCEAN_BATTLE_FLEETS];
-static uint32_t ocean_battle_turn_order[MAX_OCEAN_BATTLE_FLEETS * MAX_FLEET_SHIPS];
-void clear_ocean_battle_data(uint32_t data[OCEAN_BATTLE_DATA_SIZE])
+static u32 ocean_battle_fleets[MAX_OCEAN_BATTLE_FLEETS];
+static u32 ocean_battle_turn_order[MAX_OCEAN_BATTLE_FLEETS * MAX_FLEET_SHIPS];
+void clear_ocean_battle_data(u32 data[OCEAN_BATTLE_DATA_SIZE])
 {
-    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_SIZE; ++i)
+    for (u32 i = 0; i < OCEAN_BATTLE_DATA_SIZE; ++i)
     {
         data[i] = SENTRY;
     }
 }
 void clear_ocean_battle_fleets()
 {
-    for (uint32_t i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
     {
         ocean_battle_fleets[i] = SENTRY;
     }
 }
-void add_fleet_to_battle(uint32_t fleet_id)
+void add_fleet_to_battle(u32 fleet_id)
 {
-    for (uint32_t i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
     {
         if (ocean_battle_fleets[i] == SENTRY)
         {
@@ -5169,23 +5108,23 @@ void add_fleet_to_battle(uint32_t fleet_id)
         }
     }
 }
-uint32_t ocean_battle_total_targets_within_cannon_range()
+u32 ocean_battle_total_targets_within_cannon_range()
 {
-    uint32_t world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
-    uint32_t attacker_ship_id = get_world_npc_entity_id(world_npc_id);
-    uint32_t attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
-    uint32_t attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
-    uint32_t total = SENTRY;
+    u32 world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+    u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
+    u32 attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
+    u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
+    u32 total = SENTRY;
     // TODO: Properly get cannon range
-    uint32_t cannon_range = 8;
-    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    u32 cannon_range = 8;
+    for (u32 i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
     {
         if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
         {
-            uint32_t target_npc_id = ocean_battle_turn_order[i];
-            uint32_t target_ship_id = get_world_npc_entity_id(target_npc_id);
-            uint32_t target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
-            uint32_t target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
+            u32 target_npc_id = ocean_battle_turn_order[i];
+            u32 target_ship_id = get_world_npc_entity_id(target_npc_id);
+            u32 target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
+            u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
             if (target_fleet_id == attacker_fleet_id)
             {
                 continue;
@@ -5194,10 +5133,10 @@ uint32_t ocean_battle_total_targets_within_cannon_range()
             {
                 continue;
             }
-            uint32_t a_x = get_world_npc_x(target_npc_id);
-            uint32_t a_y = get_world_npc_y(target_npc_id);
-            uint32_t b_x = get_world_npc_x(world_npc_id);
-            uint32_t b_y = get_world_npc_y(world_npc_id);
+            u32 a_x = get_world_npc_position_x(target_npc_id);
+            u32 a_y = get_world_npc_position_y(target_npc_id);
+            u32 b_x = get_world_npc_position_x(world_npc_id);
+            u32 b_y = get_world_npc_position_y(world_npc_id);
             if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, cannon_range))
             {
                 ++total;
@@ -5206,23 +5145,23 @@ uint32_t ocean_battle_total_targets_within_cannon_range()
     }
     return total;
 }
-uint32_t ocean_battle_total_targets_within_boarding_range()
+u32 ocean_battle_total_targets_within_boarding_range()
 {
-    uint32_t world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
-    uint32_t attacker_ship_id = get_world_npc_entity_id(world_npc_id);
-    uint32_t attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
-    uint32_t attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
-    uint32_t total = 0;
+    u32 world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+    u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
+    u32 attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
+    u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
+    u32 total = 0;
     // TODO: Properly get cannon range
-    uint32_t boarding_range = 2;
-    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    u32 boarding_range = 2;
+    for (u32 i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
     {
         if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
         {
-            uint32_t target_npc_id = ocean_battle_turn_order[i];
-            uint32_t target_ship_id = get_world_npc_entity_id(target_npc_id);
-            uint32_t target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
-            uint32_t target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
+            u32 target_npc_id = ocean_battle_turn_order[i];
+            u32 target_ship_id = get_world_npc_entity_id(target_npc_id);
+            u32 target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
+            u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
             if (target_fleet_id == attacker_fleet_id)
             {
                 continue;
@@ -5231,10 +5170,10 @@ uint32_t ocean_battle_total_targets_within_boarding_range()
             {
                 continue;
             }
-            uint32_t a_x = get_world_npc_x(target_npc_id);
-            uint32_t a_y = get_world_npc_y(target_npc_id);
-            uint32_t b_x = get_world_npc_x(world_npc_id);
-            uint32_t b_y = get_world_npc_y(world_npc_id);
+            u32 a_x = get_world_npc_position_x(target_npc_id);
+            u32 a_y = get_world_npc_position_y(target_npc_id);
+            u32 b_x = get_world_npc_position_x(world_npc_id);
+            u32 b_y = get_world_npc_position_y(world_npc_id);
             console_log("ocean battle targets within boarding range");
             console_log_format("target_npc_id:%d %d %d", target_npc_id, a_x, a_y);
             console_log_format("world_npc_id:%d %d %d", world_npc_id, b_x, b_y);
@@ -5246,29 +5185,29 @@ uint32_t ocean_battle_total_targets_within_boarding_range()
     }
     return total;
 }
-uint32_t get_current_ocean_battle_turn_npc_id()
+u32 get_current_ocean_battle_turn_npc_id()
 {
     return ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
 }
-uint32_t get_current_ocean_battle_turn_npc_x()
+u32 get_current_ocean_battle_turn_npc_x()
 {
-    uint32_t world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
-    return get_world_npc_x(world_npc_id);
+    u32 world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+    return get_world_npc_position_x(world_npc_id);
 }
-uint32_t get_current_ocean_battle_turn_npc_y()
+u32 get_current_ocean_battle_turn_npc_y()
 {
-    uint32_t world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
-    return get_world_npc_y(world_npc_id);
+    u32 world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+    return get_world_npc_position_y(world_npc_id);
 }
-uint32_t ocean_battle_find_world_npc_id_by_coordinates(uint32_t x, uint32_t y)
+u32 ocean_battle_find_world_npc_id_by_coordinates(u32 x, u32 y)
 {
-    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    for (u32 i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
     {
         if (ocean_battle_turn_order[i] != SENTRY)
         {
-            uint32_t target_npc_id = ocean_battle_turn_order[i];
-            uint32_t a_x = get_world_npc_x(target_npc_id);
-            uint32_t a_y = get_world_npc_y(target_npc_id);
+            u32 target_npc_id = ocean_battle_turn_order[i];
+            u32 a_x = get_world_npc_position_x(target_npc_id);
+            u32 a_y = get_world_npc_position_y(target_npc_id);
             if (a_x == x && a_y == y)
             {
                 return target_npc_id;
@@ -5278,31 +5217,31 @@ uint32_t ocean_battle_find_world_npc_id_by_coordinates(uint32_t x, uint32_t y)
     return SENTRY;
 }
 #define MAX_VALID_MOVEMENT_COORDINATES 100
-uint32_t ocean_battle_valid_movement_coordinates[MAX_VALID_MOVEMENT_COORDINATES];
-uint32_t ocean_battle_total_valid_movement_coordinates = 0;
-uint32_t ocean_battle_get_total_valid_movement_coordinates()
+u32 ocean_battle_valid_movement_coordinates[MAX_VALID_MOVEMENT_COORDINATES];
+u32 ocean_battle_total_valid_movement_coordinates = 0;
+u32 ocean_battle_get_total_valid_movement_coordinates()
 {
     return ocean_battle_total_valid_movement_coordinates;
 }
-uint32_t ocean_battle_get_valid_movement_coordinate_x(uint32_t index)
+u32 ocean_battle_get_valid_movement_coordinate_x(u32 index)
 {
-    uint32_t offset = index * 2;
+    u32 offset = index * 2;
     return ocean_battle_valid_movement_coordinates[offset];
 }
-uint32_t ocean_battle_get_valid_movement_coordinate_y(uint32_t index)
+u32 ocean_battle_get_valid_movement_coordinate_y(u32 index)
 {
-    uint32_t offset = index * 2;
+    u32 offset = index * 2;
     return ocean_battle_valid_movement_coordinates[offset + 1];
 }
 void ocean_battle_build_valid_move_coordinates()
 {
-    uint32_t x = get_current_ocean_battle_turn_npc_x();
-    uint32_t y = get_current_ocean_battle_turn_npc_y();
+    u32 x = get_current_ocean_battle_turn_npc_x();
+    u32 y = get_current_ocean_battle_turn_npc_y();
     console_log_format("current turn npc y %d", y);
     // TODO: Why does 5 lead to the right range (of 2)?
-    uint32_t movement_range = 5;
-    uint32_t x_diff = 0;
-    uint32_t y_diff = 0;
+    u32 movement_range = 5;
+    u32 x_diff = 0;
+    u32 y_diff = 0;
     if (x -= movement_range < 0)
     {
         if (x > movement_range)
@@ -5335,16 +5274,16 @@ void ocean_battle_build_valid_move_coordinates()
     {
         y -= movement_range;
     }
-    for (uint32_t i = 0; i < MAX_VALID_MOVEMENT_COORDINATES; ++i)
+    for (u32 i = 0; i < MAX_VALID_MOVEMENT_COORDINATES; ++i)
     {
         ocean_battle_valid_movement_coordinates[i] = SENTRY;
     }
     ocean_battle_total_valid_movement_coordinates = 0;
-    uint32_t iterator = 0;
-    uint32_t full_range = movement_range * 2;
+    u32 iterator = 0;
+    u32 full_range = movement_range * 2;
     while (x < (full_range + x_diff))
     {
-        for (uint32_t inner_y = y; inner_y < ((movement_range * 2) + y_diff); ++inner_y)
+        for (u32 inner_y = y; inner_y < ((movement_range * 2) + y_diff); ++inner_y)
         {
             if (ocean_battle_is_world_coordinate_in_ship_movement_range(x, inner_y))
             {
@@ -5359,40 +5298,40 @@ void ocean_battle_build_valid_move_coordinates()
     }
 }
 #define MAX_VALID_BOARDING_COORDINATES 100
-uint32_t ocean_battle_valid_boarding_coordinates[MAX_VALID_BOARDING_COORDINATES];
-uint32_t ocean_battle_total_valid_boarding_coordinates = 0;
-uint32_t ocean_battle_intended_boarding_coordinates[2];
-void ocean_battle_set_intended_boarding_coordinates(uint32_t x, uint32_t y)
+u32 ocean_battle_valid_boarding_coordinates[MAX_VALID_BOARDING_COORDINATES];
+u32 ocean_battle_total_valid_boarding_coordinates = 0;
+u32 ocean_battle_intended_boarding_coordinates[2];
+void ocean_battle_set_intended_boarding_coordinates(u32 x, u32 y)
 {
     ocean_battle_intended_boarding_coordinates[0] = x;
     ocean_battle_intended_boarding_coordinates[1] = y;
 }
-uint32_t get_total_valid_boarding_coordinates()
+u32 get_total_valid_boarding_coordinates()
 {
     return ocean_battle_total_valid_boarding_coordinates;
 }
 void ocean_battle_build_valid_boarding_coordinates()
 {
-    for (uint32_t i = 0; i < MAX_VALID_BOARDING_COORDINATES; ++i)
+    for (u32 i = 0; i < MAX_VALID_BOARDING_COORDINATES; ++i)
     {
         ocean_battle_valid_boarding_coordinates[i] = SENTRY;
     }
-    uint32_t world_npc_id = get_current_ocean_battle_turn_npc_id();
-    uint32_t attacker_ship_id = get_world_npc_entity_id(world_npc_id);
-    uint32_t attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
-    uint32_t attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
+    u32 world_npc_id = get_current_ocean_battle_turn_npc_id();
+    u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
+    u32 attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
+    u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
     ocean_battle_total_valid_boarding_coordinates = 0;
-    uint32_t total = 0;
+    u32 total = 0;
     // TODO: Properly get boarding range
-    uint32_t boarding_range = 1;
-    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    u32 boarding_range = 1;
+    for (u32 i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
     {
         if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
         {
-            uint32_t target_npc_id = ocean_battle_turn_order[i];
-            uint32_t target_ship_id = get_world_npc_entity_id(target_npc_id);
-            uint32_t target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
-            uint32_t target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
+            u32 target_npc_id = ocean_battle_turn_order[i];
+            u32 target_ship_id = get_world_npc_entity_id(target_npc_id);
+            u32 target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
+            u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
             if (target_fleet_id == attacker_fleet_id)
             {
                 continue;
@@ -5401,10 +5340,10 @@ void ocean_battle_build_valid_boarding_coordinates()
             {
                 continue;
             }
-            uint32_t a_x = get_world_npc_x(target_npc_id);
-            uint32_t a_y = get_world_npc_y(target_npc_id);
-            uint32_t b_x = get_world_npc_x(world_npc_id);
-            uint32_t b_y = get_world_npc_y(world_npc_id);
+            u32 a_x = get_world_npc_position_x(target_npc_id);
+            u32 a_y = get_world_npc_position_y(target_npc_id);
+            u32 b_x = get_world_npc_position_x(world_npc_id);
+            u32 b_y = get_world_npc_position_y(world_npc_id);
             if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, boarding_range))
             {
                 ocean_battle_valid_boarding_coordinates[total] = a_x;
@@ -5416,19 +5355,19 @@ void ocean_battle_build_valid_boarding_coordinates()
         }
     }
 }
-uint32_t ocean_battle_get_valid_boarding_coordinates_x(uint32_t which)
+u32 ocean_battle_get_valid_boarding_coordinates_x(u32 which)
 {
-    uint32_t offset = which * 2;
+    u32 offset = which * 2;
     return ocean_battle_valid_boarding_coordinates[offset];
 }
-uint32_t ocean_battle_get_valid_boarding_coordinates_y(uint32_t which)
+u32 ocean_battle_get_valid_boarding_coordinates_y(u32 which)
 {
-    uint32_t offset = which * 2;
+    u32 offset = which * 2;
     return ocean_battle_valid_boarding_coordinates[offset + 1];
 }
-uint32_t ocean_battle_is_valid_boarding_coordinates(uint32_t x, uint32_t y)
+u32 ocean_battle_is_valid_boarding_coordinates(u32 x, u32 y)
 {
-    for (uint32_t i = 0; i < MAX_VALID_BOARDING_COORDINATES; i += 2)
+    for (u32 i = 0; i < MAX_VALID_BOARDING_COORDINATES; i += 2)
     {
         if (
             ocean_battle_valid_boarding_coordinates[i] != SENTRY &&
@@ -5441,40 +5380,40 @@ uint32_t ocean_battle_is_valid_boarding_coordinates(uint32_t x, uint32_t y)
     return SENTRY;
 }
 #define MAX_VALID_CANNON_COORDINATES 100
-uint32_t ocean_battle_valid_cannon_coordinates[MAX_VALID_CANNON_COORDINATES];
-uint32_t ocean_battle_total_valid_cannon_coordinates = 0;
-uint32_t ocean_battle_intended_cannon_coordinates[2];
-void ocean_battle_set_intended_cannon_coordinates(uint32_t x, uint32_t y)
+u32 ocean_battle_valid_cannon_coordinates[MAX_VALID_CANNON_COORDINATES];
+u32 ocean_battle_total_valid_cannon_coordinates = 0;
+u32 ocean_battle_intended_cannon_coordinates[2];
+void ocean_battle_set_intended_cannon_coordinates(u32 x, u32 y)
 {
     ocean_battle_intended_cannon_coordinates[0] = x;
     ocean_battle_intended_cannon_coordinates[1] = y;
 }
-uint32_t get_total_valid_cannon_coordinates()
+u32 get_total_valid_cannon_coordinates()
 {
     return ocean_battle_total_valid_cannon_coordinates;
 }
 void ocean_battle_build_valid_cannon_coordinates()
 {
-    for (uint32_t i = 0; i < MAX_VALID_CANNON_COORDINATES; ++i)
+    for (u32 i = 0; i < MAX_VALID_CANNON_COORDINATES; ++i)
     {
         ocean_battle_valid_cannon_coordinates[i] = SENTRY;
     }
-    uint32_t world_npc_id = get_current_ocean_battle_turn_npc_id();
-    uint32_t attacker_ship_id = get_world_npc_entity_id(world_npc_id);
-    uint32_t attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
-    uint32_t attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
+    u32 world_npc_id = get_current_ocean_battle_turn_npc_id();
+    u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
+    u32 attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
+    u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
     ocean_battle_total_valid_cannon_coordinates = 0;
-    uint32_t total = 0;
+    u32 total = 0;
     // TODO: Properly get cannon range
-    uint32_t cannon_range = 8;
-    for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    u32 cannon_range = 8;
+    for (u32 i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
     {
         if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
         {
-            uint32_t target_npc_id = ocean_battle_turn_order[i];
-            uint32_t target_ship_id = get_world_npc_entity_id(target_npc_id);
-            uint32_t target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
-            uint32_t target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
+            u32 target_npc_id = ocean_battle_turn_order[i];
+            u32 target_ship_id = get_world_npc_entity_id(target_npc_id);
+            u32 target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
+            u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
             if (target_fleet_id == attacker_fleet_id)
             {
                 continue;
@@ -5483,10 +5422,10 @@ void ocean_battle_build_valid_cannon_coordinates()
             {
                 continue;
             }
-            uint32_t a_x = get_world_npc_x(target_npc_id);
-            uint32_t a_y = get_world_npc_y(target_npc_id);
-            uint32_t b_x = get_world_npc_x(world_npc_id);
-            uint32_t b_y = get_world_npc_y(world_npc_id);
+            u32 a_x = get_world_npc_position_x(target_npc_id);
+            u32 a_y = get_world_npc_position_y(target_npc_id);
+            u32 b_x = get_world_npc_position_x(world_npc_id);
+            u32 b_y = get_world_npc_position_y(world_npc_id);
             if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, cannon_range))
             {
                 ocean_battle_valid_cannon_coordinates[total] = a_x;
@@ -5498,19 +5437,19 @@ void ocean_battle_build_valid_cannon_coordinates()
         }
     }
 }
-uint32_t ocean_battle_get_valid_cannon_coordinates_x(uint32_t which)
+u32 ocean_battle_get_valid_cannon_coordinates_x(u32 which)
 {
-    uint32_t offset = which * 2;
+    u32 offset = which * 2;
     return ocean_battle_valid_cannon_coordinates[offset];
 }
-uint32_t ocean_battle_get_valid_cannon_coordinates_y(uint32_t which)
+u32 ocean_battle_get_valid_cannon_coordinates_y(u32 which)
 {
-    uint32_t offset = which * 2;
+    u32 offset = which * 2;
     return ocean_battle_valid_cannon_coordinates[offset + 1];
 }
-uint32_t ocean_battle_is_valid_cannon_coordinates(uint32_t x, uint32_t y)
+u32 ocean_battle_is_valid_cannon_coordinates(u32 x, u32 y)
 {
-    for (uint32_t i = 0; i < MAX_VALID_CANNON_COORDINATES; i += 2)
+    for (u32 i = 0; i < MAX_VALID_CANNON_COORDINATES; i += 2)
     {
         if (
             ocean_battle_valid_cannon_coordinates[i] != SENTRY &&
@@ -5532,7 +5471,7 @@ void scene_ocean_battle_increment_turn_order()
         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX] = 0;
     }
 }
-uint32_t scene_ocean_battle(uint32_t action)
+u32 scene_ocean_battle(u32 action)
 {
     if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
     {
@@ -5559,7 +5498,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("setting_up_ocean_battle");
+                    u32 string_id = get_string_id_by_machine_name("setting_up_ocean_battle");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -5567,7 +5506,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                     // TODO: add_fleet_to_battle
                     // players fleet
                     // two captain fleets
-                    for (uint32_t i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
+                    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
                     {
                         if (ocean_battle_fleets[i] != SENTRY)
                         {
@@ -5576,29 +5515,29 @@ uint32_t scene_ocean_battle(uint32_t action)
                         }
                     }
                     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_SHIP_NTH_ORDER] = 0;
-                    for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i)
+                    for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
                     {
-                        uint32_t offset = i * FLEET_SHIP_DATA_SIZE;
+                        u32 offset = i * FLEET_SHIP_DATA_SIZE;
                         if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] == ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_FLEET_ORDER_ID])
                         {
                             ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_SHIP_ID] = i;
                             break;
                         }
                     }
-                    for (uint32_t i = 0; i < MAX_OCEAN_BATTLE_FLEETS * MAX_FLEET_SHIPS; ++i)
+                    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEETS * MAX_FLEET_SHIPS; ++i)
                     {
                         ocean_battle_turn_order[i] = SENTRY;
                     }
                     console_log("PLACEMENT PHASE");
-                    uint32_t world_npc_data[WORLD_NPC_DATA_SIZE];
+                    u32 world_npc_data[WORLD_NPC_DATA_SIZE];
                     CLEAR_DATA(world_npc_data, WORLD_NPC_DATA_SIZE);
-                    uint32_t npc_id;
-                    uint32_t world_npc_id;
-                    uint32_t obto = 0;
+                    u32 npc_id;
+                    u32 world_npc_id;
+                    u32 obto = 0;
                     // TODO: Update this so only the active fleets in the battle are placed
-                    for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i)
+                    for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
                     {
-                        uint32_t offset = i * FLEET_SHIP_DATA_SIZE;
+                        u32 offset = i * FLEET_SHIP_DATA_SIZE;
                         if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] != SENTRY)
                         {
                             // [BATTLE SHIP CLEAR]
@@ -5613,7 +5552,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                             world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
                             world_npc_data[WORLD_NPC_IS_INTERACTABLE] = false;
                             world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
-                            world_npc_id = create_world_npc(world_npc_data, true);
+                            world_npc_id = add_world_npc(world_npc_data);
                             ++ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY];
                             ocean_battle_turn_order[obto] = world_npc_id;
                             ++obto;
@@ -5625,7 +5564,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
                     {
                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
@@ -5648,16 +5587,16 @@ uint32_t scene_ocean_battle(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t players_fleet_id = get_fleet_id_by_general_id(players[0]);
-                    uint32_t world_npc_id = get_current_ocean_battle_turn_npc_id();
-                    uint32_t attacker_ship_id = get_world_npc_entity_id(world_npc_id);
-                    uint32_t attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
-                    uint32_t attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
+                    u32 players_fleet_id = get_fleet_id_by_general_id(players[0]);
+                    u32 world_npc_id = get_current_ocean_battle_turn_npc_id();
+                    u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
+                    u32 attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
+                    u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
                     bool npcs_turn = true;
                     if (attacker_fleet_id == players_fleet_id)
                     {
                         npcs_turn = false;
-                        uint32_t moved_and_attacked = SENTRY;
+                        u32 moved_and_attacked = SENTRY;
                         if (ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] == true && ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] == true)
                         {
                             moved_and_attacked = 1;
@@ -5694,7 +5633,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                         world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
                         if (get_ship_hull(attacker_ship_id) > 0 && get_ship_crew(attacker_ship_id) > 0)
                         {
-                            uint32_t rando = get_random_number(1, 4);
+                            u32 rando = get_random_number(1, 4);
                             if (rando == 1)
                             {
                                 move_world_npc_down(world_npc_id);
@@ -5715,19 +5654,19 @@ uint32_t scene_ocean_battle(uint32_t action)
                         }
 
                         // TODO: Make this an actual range value based on the ship & other heuristics
-                        uint32_t movement_range = 2;
-                        uint32_t cannon_range = 6;
+                        u32 movement_range = 2;
+                        u32 cannon_range = 6;
                         bool attacking = false;
                         if (get_ship_hull(attacker_ship_id) > 0 && get_ship_crew(attacker_ship_id) > 0)
                         {
-                            for (uint32_t i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+                            for (u32 i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
                             {
                                 if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
                                 {
-                                    uint32_t target_npc_id = ocean_battle_turn_order[i];
-                                    uint32_t target_ship_id = get_world_npc_entity_id(target_npc_id);
-                                    uint32_t target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
-                                    uint32_t target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
+                                    u32 target_npc_id = ocean_battle_turn_order[i];
+                                    u32 target_ship_id = get_world_npc_entity_id(target_npc_id);
+                                    u32 target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
+                                    u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
                                     if (target_fleet_id == attacker_fleet_id)
                                     {
                                         continue;
@@ -5736,10 +5675,10 @@ uint32_t scene_ocean_battle(uint32_t action)
                                     {
                                         continue;
                                     }
-                                    uint32_t a_x = get_world_npc_x(target_npc_id);
-                                    uint32_t a_y = get_world_npc_y(target_npc_id);
-                                    uint32_t b_x = get_world_npc_x(world_npc_id);
-                                    uint32_t b_y = get_world_npc_y(world_npc_id);
+                                    u32 a_x = get_world_npc_position_x(target_npc_id);
+                                    u32 a_y = get_world_npc_position_y(target_npc_id);
+                                    u32 b_x = get_world_npc_position_x(world_npc_id);
+                                    u32 b_y = get_world_npc_position_y(world_npc_id);
                                     if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, cannon_range))
                                     {
                                         ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = world_npc_id;
@@ -5754,7 +5693,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                         }
                         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] = true;
 
-                        uint32_t moved_and_attacked = SENTRY;
+                        u32 moved_and_attacked = SENTRY;
                         if (
                             ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] &&
                             ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED]
@@ -5771,7 +5710,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
                     {
                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
@@ -5794,7 +5733,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("ship_is_attacking_with_cannon");
+                    u32 string_id = get_string_id_by_machine_name("ship_is_attacking_with_cannon");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -5802,12 +5741,12 @@ uint32_t scene_ocean_battle(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
                     {
                         // TODO: Why are we running the damage actions in confirm here?
-                        uint32_t damage = get_random_number(1, 33);
-                        uint32_t ship_id = get_world_npc_entity_id(ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID]);
+                        u32 damage = get_random_number(1, 33);
+                        u32 ship_id = get_world_npc_entity_id(ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID]);
                         reduce_ship_hull(ship_id, damage);
                         if (get_ship_hull(ship_id) <= 0)
                         {
@@ -5844,7 +5783,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("ship_is_attacking_with_boarding");
+                    u32 string_id = get_string_id_by_machine_name("ship_is_attacking_with_boarding");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -5852,12 +5791,12 @@ uint32_t scene_ocean_battle(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
                     {
                         // TODO: Why are we running the damage actions in confirm here?
-                        uint32_t damage = get_random_number(1, 33);
-                        uint32_t ship_id = get_world_npc_entity_id(ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID]);
+                        u32 damage = get_random_number(1, 33);
+                        u32 ship_id = get_world_npc_entity_id(ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID]);
                         reduce_ship_crew(ship_id, damage);
                         if (get_ship_crew(ship_id) <= 0)
                         {
@@ -5899,7 +5838,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                         get_string_id_by_machine_name("exit")
                     );
                     ocean_battle_build_valid_cannon_coordinates();
-                    uint32_t string_id = get_string_id_by_machine_name("ocean_battle_cannon_attack_choose_target");
+                    u32 string_id = get_string_id_by_machine_name("ocean_battle_cannon_attack_choose_target");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_CANNON_ATTACK_TARGET_ID] = SENTRY;
@@ -5908,11 +5847,11 @@ uint32_t scene_ocean_battle(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
                     {
-                        uint32_t x = ocean_battle_intended_cannon_coordinates[0];
-                        uint32_t y = ocean_battle_intended_cannon_coordinates[1];
+                        u32 x = ocean_battle_intended_cannon_coordinates[0];
+                        u32 y = ocean_battle_intended_cannon_coordinates[1];
                         if (ocean_battle_is_valid_cannon_coordinates(x, y) != SENTRY)
                         {
                             ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = get_current_ocean_battle_turn_npc_id();
@@ -5957,7 +5896,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                         get_string_id_by_machine_name("exit")
                     );
                     ocean_battle_build_valid_boarding_coordinates();
-                    uint32_t string_id = get_string_id_by_machine_name("ocean_battle_board_attack_choose_target");
+                    u32 string_id = get_string_id_by_machine_name("ocean_battle_board_attack_choose_target");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_BOARD_ATTACK_TARGET_ID] = SENTRY;
@@ -5966,11 +5905,11 @@ uint32_t scene_ocean_battle(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
                     {
-                        uint32_t x = ocean_battle_intended_boarding_coordinates[0];
-                        uint32_t y = ocean_battle_intended_boarding_coordinates[1];
+                        u32 x = ocean_battle_intended_boarding_coordinates[0];
+                        u32 y = ocean_battle_intended_boarding_coordinates[1];
                         if (ocean_battle_is_valid_boarding_coordinates(x, y) != SENTRY)
                         {
                             ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = get_current_ocean_battle_turn_npc_id();
@@ -6026,7 +5965,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("ocean_battle_end_turn")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("ocean_battle_players_turn");
+                    u32 string_id = get_string_id_by_machine_name("ocean_battle_players_turn");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -6034,8 +5973,8 @@ uint32_t scene_ocean_battle(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
-                    uint32_t choice = current_scene_get_choice(cc);
+                    u32 cc = current_scene_get_current_choice();
+                    u32 choice = current_scene_get_choice(cc);
                     if (choice == SCENE_OCEAN_BATTLE_CHOICE_FIRE_CANNONS)
                     {
                         if (
@@ -6140,7 +6079,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("ocean_battle_ordering");
+                    u32 string_id = get_string_id_by_machine_name("ocean_battle_ordering");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -6148,7 +6087,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_BACK)
                     {
                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_PLAYER_TAKE_TURN);
@@ -6172,7 +6111,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("ocean_battle_moving");
+                    u32 string_id = get_string_id_by_machine_name("ocean_battle_moving");
                     ocean_battle_build_valid_move_coordinates();
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
@@ -6181,7 +6120,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM) {
                         // console_log_format("intended x %d and y %d", ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_X], ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_Y]);
                         move_world_npc_to(ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]], ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_X], ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_Y]);
@@ -6208,7 +6147,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("ocean_battle_victory");
+                    u32 string_id = get_string_id_by_machine_name("ocean_battle_victory");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -6216,7 +6155,7 @@ uint32_t scene_ocean_battle(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
                     {
                         // If you confirm a victory then just go back to normal game mode
@@ -6226,22 +6165,21 @@ uint32_t scene_ocean_battle(uint32_t action)
                         // TODO: You have to clear the world npcs that are ships
                         // [BATTLE SHIP CLEAR]
                         // TODO: Update this so only the active fleets in the battle are placed
-                        for (uint32_t i = 0; i < MAX_FLEET_SHIPS; ++i)
+                        for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
                         {
-                            uint32_t offset = i * FLEET_SHIP_DATA_SIZE;
+                            u32 offset = i * FLEET_SHIP_DATA_SIZE;
                             if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] != SENTRY)
                             {
-                                for (uint32_t wn = 0; wn < MAX_WORLD_NPCS; ++wn)
+                                for (u32 wn = 0; wn < MAX_WORLD_NPCS; ++wn)
                                 {
-                                    uint32_t wn_offset = wn * WORLD_NPC_DATA_SIZE;
-                                    if (g_world_npc_data[wn_offset + WORLD_NPC_ENTITY_ID] == i)
+                                    if (get_world_npc_npc_id(wn) == i)
                                     {
                                         // TODO: THIS IS TEMPORARY
                                         // we reset the ships stats so we can
                                         // start a new fresh battle down the road
-                                        uint32_t ship_id = get_world_npc_entity_id(wn);
-                                        g_ship_structs[ship_id].hull = 99;
-                                        clear_world_npc(wn);
+                                        u32 ship_id = get_world_npc_entity_id(wn);
+                                        set_ship_hull(ship_id, 99);
+                                        remove_world_npc(wn);
                                     }
                                 }
                             }
@@ -6256,37 +6194,36 @@ uint32_t scene_ocean_battle(uint32_t action)
     }
     return SENTRY;
 }
-void set_ocean_battle_data_intended_move_x(uint32_t x)
+void set_ocean_battle_data_intended_move_x(u32 x)
 {
     ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_X] = x;
 }
-void set_ocean_battle_data_intended_move_y(uint32_t y)
+void set_ocean_battle_data_intended_move_y(u32 y)
 {
     ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_Y] = y;
 }
-uint32_t get_ocean_battle_attacker_world_npc_id()
+u32 get_ocean_battle_attacker_world_npc_id()
 {
     return ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID];
 }
-uint32_t get_ocean_battle_target_world_npc_id()
+u32 get_ocean_battle_target_world_npc_id()
 {
     return ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID];
 }
-uint32_t ocean_battle_is_world_coordinate_in_ship_movement_range(uint32_t world_x, uint32_t world_y)
+u32 ocean_battle_is_world_coordinate_in_ship_movement_range(u32 world_x, u32 world_y)
 {
-    uint32_t world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
-    uint32_t current_ship_id = get_world_npc_entity_id(world_npc_id);
+    u32 world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+    u32 current_ship_id = get_world_npc_entity_id(world_npc_id);
     // TODO: Setup an actual movement range
-    uint32_t movement_range = 2;
-    uint32_t b_x = SENTRY;
-    uint32_t b_y = SENTRY;
-    for (uint32_t i = 0; i < MAX_WORLD_NPCS; ++i)
+    u32 movement_range = 2;
+    u32 b_x = SENTRY;
+    u32 b_y = SENTRY;
+    for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
     {
-        uint32_t offset = i * WORLD_NPC_DATA_SIZE;
-        if (g_world_npc_data[offset + WORLD_NPC_ENTITY_ID] == current_ship_id)
+        if (get_world_npc_entity_id(i) == current_ship_id)
         {
-            b_x = g_world_npc_data[offset + WORLD_NPC_POSITION_X];
-            b_y = g_world_npc_data[offset + WORLD_NPC_POSITION_Y];
+            b_x = get_world_npc_position_x(i);
+            b_y = get_world_npc_position_y(i);
             break;
         }
     }
@@ -6297,22 +6234,22 @@ uint32_t ocean_battle_is_world_coordinate_in_ship_movement_range(uint32_t world_
     }
     return is_coordinate_in_range_of_coordinate(world_x, world_y, b_x, b_y, movement_range);
 }
-uint32_t get_ocean_battle_current_turn_ship_x()
+u32 get_ocean_battle_current_turn_ship_x()
 {
-    uint32_t world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
-    return get_world_npc_x(world_npc_id);
+    u32 world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+    return get_world_npc_position_x(world_npc_id);
 }
-uint32_t get_ocean_battle_current_turn_ship_y()
+u32 get_ocean_battle_current_turn_ship_y()
 {
-    uint32_t world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
-    return get_world_npc_y(world_npc_id);
+    u32 world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+    return get_world_npc_position_y(world_npc_id);
 }
 
 
 // TODO: Software renderer. Blit pixels out. Load on initalize game. Ask for pixels for a *thing*, get pixels out, render to *other thing*
 
 
-uint32_t scene_npc_rvice(uint32_t action)
+u32 scene_npc_rvice(u32 action)
 {
     if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
     {
@@ -6336,7 +6273,7 @@ uint32_t scene_npc_rvice(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("scene_state_npc_rvice_trash_talk");
+                    u32 string_id = get_string_id_by_machine_name("scene_state_npc_rvice_trash_talk");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -6344,7 +6281,7 @@ uint32_t scene_npc_rvice(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM)
                     {
                         current_game_mode = GAME_MODE_IN_PORT;
@@ -6361,7 +6298,7 @@ uint32_t scene_npc_rvice(uint32_t action)
     }
     return SENTRY;
 }
-uint32_t scene_npc_lafolie(uint32_t action)
+u32 scene_npc_lafolie(u32 action)
 {
     if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
     {
@@ -6386,7 +6323,7 @@ uint32_t scene_npc_lafolie(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("scene_state_npc_lafolie_trash_talk");
+                    u32 string_id = get_string_id_by_machine_name("scene_state_npc_lafolie_trash_talk");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -6394,7 +6331,7 @@ uint32_t scene_npc_lafolie(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM)
                     {
                         current_game_mode = GAME_MODE_IN_PORT;
@@ -6411,7 +6348,7 @@ uint32_t scene_npc_lafolie(uint32_t action)
     }
     return SENTRY;
 }
-uint32_t scene_npc_nakor(uint32_t action)
+u32 scene_npc_nakor(u32 action)
 {
     if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
     {
@@ -6436,7 +6373,7 @@ uint32_t scene_npc_nakor(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("scene_state_npc_nakor_trash_talk");
+                    u32 string_id = get_string_id_by_machine_name("scene_state_npc_nakor_trash_talk");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -6444,7 +6381,7 @@ uint32_t scene_npc_nakor(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM)
                     {
                         current_game_mode = GAME_MODE_IN_PORT;
@@ -6461,7 +6398,7 @@ uint32_t scene_npc_nakor(uint32_t action)
     }
     return SENTRY;
 }
-uint32_t scene_npc_travis(uint32_t action)
+u32 scene_npc_travis(u32 action)
 {
     //
     // THERE IS AN ISSUE WITH TOP DOWN AUTOMATA (OR LAST IN FIRST OUT)
@@ -6494,7 +6431,7 @@ uint32_t scene_npc_travis(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("scene_state_npc_travis_trash_talk");
+                    u32 string_id = get_string_id_by_machine_name("scene_state_npc_travis_trash_talk");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -6502,7 +6439,7 @@ uint32_t scene_npc_travis(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM)
                     {
                         current_game_mode = GAME_MODE_IN_PORT;
@@ -6519,7 +6456,7 @@ uint32_t scene_npc_travis(uint32_t action)
     }
     return SENTRY;
 }
-uint32_t scene_npc_loller(uint32_t action)
+u32 scene_npc_loller(u32 action)
 {
     if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
     {
@@ -6543,7 +6480,7 @@ uint32_t scene_npc_loller(uint32_t action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("scene_state_npc_loller_trash_talk");
+                    u32 string_id = get_string_id_by_machine_name("scene_state_npc_loller_trash_talk");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -6551,7 +6488,7 @@ uint32_t scene_npc_loller(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
+                    u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_NPC_CHOICE_CONFIRM)
                     {
                         current_game_mode = GAME_MODE_IN_PORT;
@@ -6574,13 +6511,13 @@ uint32_t scene_npc_loller(uint32_t action)
 // ------------------------------------------------------------------------------------------------ //
 // g_bank_data
 // enum BankData
-uint32_t bank_add_deposit(uint32_t amount)
+u32 bank_add_deposit(u32 amount)
 {
     // TODO: Check that we haven't deposited more than we can handle, unlike rvices ballz
     g_bank_data[BANK_DEPOSIT_ORIGINAL_AMOUNT] += amount;
     return g_bank_data[BANK_DEPOSIT_ORIGINAL_AMOUNT];
 }
-uint32_t bank_take_loan(uint32_t amount)
+u32 bank_take_loan(u32 amount)
 {
     // Never add. You can only take one load per time
     g_bank_data[BANK_LOAN_ORIGINAL_AMOUNT] = amount;
@@ -6590,32 +6527,32 @@ void bank_update_yearly()
 {
     // TODO: Every year, add interest rate amounts to deposit and loan original amounts
 }
-uint32_t get_bank_deposit_interest_rate()
+u32 get_bank_deposit_interest_rate()
 {
     return g_bank_data[BANK_DEPOSIT_INTEREST_RATE];
 }
-uint32_t get_bank_loan_interest_rate()
+u32 get_bank_loan_interest_rate()
 {
     return g_bank_data[BANK_LOAN_INTEREST_RATE];
 }
-uint32_t get_bank_deposit_original_amount()
+u32 get_bank_deposit_original_amount()
 {
     return g_bank_data[BANK_DEPOSIT_ORIGINAL_AMOUNT];
 }
-uint32_t get_bank_loan_original_amount()
+u32 get_bank_loan_original_amount()
 {
     return g_bank_data[BANK_LOAN_ORIGINAL_AMOUNT];
 }
-uint32_t get_bank_deposit_max_amount()
+u32 get_bank_deposit_max_amount()
 {
     return g_bank_data[BANK_MAX_DEPOSIT_AMOUNT];
 }
-uint32_t get_bank_loan_max_amount()
+u32 get_bank_loan_max_amount()
 {
     return g_bank_data[BANK_MAX_LOAN_AMOUNT];
 }
 
-uint32_t scene_bank(uint32_t action)
+u32 scene_bank(u32 action)
 {
     switch (get_current_scene_state())
     {
@@ -6658,7 +6595,7 @@ uint32_t scene_bank(uint32_t action)
                         current_scene_add_choice(SCENE_BANK_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t string_id = get_string_id_by_machine_name("welcome_to_digi_tal_bank");
+                    u32 string_id = get_string_id_by_machine_name("welcome_to_digi_tal_bank");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -6666,8 +6603,8 @@ uint32_t scene_bank(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
-                    uint32_t choice = current_scene_get_choice(cc);
+                    u32 cc = current_scene_get_current_choice();
+                    u32 choice = current_scene_get_choice(cc);
                     switch (choice)
                     {
                         case SCENE_BANK_CHOICE_BACK:
@@ -6720,7 +6657,7 @@ uint32_t scene_bank(uint32_t action)
                         current_scene_add_choice(SCENE_BANK_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t string_id;
+                    u32 string_id;
                     // TODO: "deposit_to_existing_account"
                     string_id = get_string_id_by_machine_name("welcome_to_digi_tal_bank");
                     if (get_bank_deposit_original_amount() > 0)
@@ -6735,8 +6672,8 @@ uint32_t scene_bank(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
-                    uint32_t choice = current_scene_get_choice(cc);
+                    u32 cc = current_scene_get_current_choice();
+                    u32 choice = current_scene_get_choice(cc);
                     switch (choice)
                     {
                         case SCENE_BANK_CHOICE_BACK:
@@ -6785,7 +6722,7 @@ uint32_t scene_bank(uint32_t action)
                         current_scene_add_choice(SCENE_BANK_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t string_id;
+                    u32 string_id;
                     string_id = get_string_id_by_machine_name("deposit_no_money");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
@@ -6794,8 +6731,8 @@ uint32_t scene_bank(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
-                    uint32_t choice = current_scene_get_choice(cc);
+                    u32 cc = current_scene_get_current_choice();
+                    u32 choice = current_scene_get_choice(cc);
                     switch (choice)
                     {
                         case SCENE_BANK_CHOICE_BACK:
@@ -6826,7 +6763,7 @@ uint32_t scene_bank(uint32_t action)
                         current_scene_add_choice(SCENE_BANK_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
-                    uint32_t string_id;
+                    u32 string_id;
                     string_id = get_string_id_by_machine_name("confirm_deposit_amount");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
@@ -6835,8 +6772,8 @@ uint32_t scene_bank(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
-                    uint32_t choice = current_scene_get_choice(cc);
+                    u32 cc = current_scene_get_current_choice();
+                    u32 choice = current_scene_get_choice(cc);
                     switch (choice)
                     {
                         case SCENE_BANK_CHOICE_CONFIRM:
@@ -6870,7 +6807,7 @@ uint32_t scene_bank(uint32_t action)
                         current_scene_add_choice(SCENE_BANK_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id;
+                    u32 string_id;
                     string_id = get_string_id_by_machine_name("deposit_confirmed");
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
@@ -6879,8 +6816,8 @@ uint32_t scene_bank(uint32_t action)
                 }
                 case SCENE_MAKE_CHOICE:
                 {
-                    uint32_t cc = current_scene_get_current_choice();
-                    uint32_t choice = current_scene_get_choice(cc);
+                    u32 cc = current_scene_get_current_choice();
+                    u32 choice = current_scene_get_choice(cc);
                     switch (choice)
                     {
                         case SCENE_BANK_CHOICE_CONFIRM:
@@ -6907,7 +6844,7 @@ uint32_t scene_bank(uint32_t action)
                         current_scene_add_choice(SCENE_BANK_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    uint32_t string_id;
+                    u32 string_id;
                     // TODO: Wrong string
                     string_id = get_string_id_by_machine_name("deposit_confirmed");
                     set_current_scene_state_string_id(string_id);
@@ -7077,7 +7014,7 @@ uint32_t scene_bank(uint32_t action)
     return SENTRY;
 }
 
-uint32_t scene_shipyard(uint32_t action)
+u32 scene_shipyard(u32 action)
 {
     // Buy Used
     // - Simply a list of pre-fabbed ships
@@ -7110,7 +7047,7 @@ uint32_t scene_shipyard(uint32_t action)
     return SENTRY;
 }
 
-uint32_t scene_innkeeper(uint32_t action)
+u32 scene_innkeeper(u32 action)
 {
     // Welcome to my Inn. Would you like a room?
     // yes or no
@@ -7126,7 +7063,7 @@ uint32_t scene_innkeeper(uint32_t action)
     return SENTRY;
 }
 
-uint32_t scene_blacksmith(uint32_t action)
+u32 scene_blacksmith(u32 action)
 {
     // Weapons & Armor
     // hello, welcome
@@ -7143,7 +7080,7 @@ uint32_t scene_blacksmith(uint32_t action)
     return SENTRY;
 }
 
-uint32_t scene_goods_shop(uint32_t action)
+u32 scene_goods_shop(u32 action)
 {
     // TODO: Trade shop -> heuristics on economic factors that influence price
     // Note: trade shop just needs to know list of goods, their local value, at the end, you pick X goods, Y number of them, input on which ships get which goods and how many after you validate you have room for it to beging with
@@ -7152,7 +7089,7 @@ uint32_t scene_goods_shop(uint32_t action)
     return SENTRY;
 }
 
-uint32_t scene_guild(uint32_t action)
+u32 scene_guild(u32 action)
 {
     // TODO: Guilds? Tasks with reputation and guild memberships?
     // guild quests have this structure
@@ -7167,7 +7104,7 @@ uint32_t scene_guild(uint32_t action)
     return SENTRY;
 }
 
-uint32_t scene_cafe(uint32_t action)
+u32 scene_cafe(u32 action)
 {
     // TODO: Cafe -> buy drinks, flirt with waitress, captains, gossip, blackjack
     // Buy a round of drinks
@@ -7208,16 +7145,16 @@ uint32_t scene_cafe(uint32_t action)
 
 
 // NOTE: How to bit pack and unpack
-uint32_t pack(uint32_t a, uint32_t b) {
+u32 pack(u32 a, u32 b) {
     // Ensure values are within range
     if (a > 100 || b > 100) return 0; // or handle error
     
     // Pack 'a' into the lower 7 bits, 'b' into the next 7 bits
     return (b << 7) | a;
 }
-uint32_t unpack_lower(uint32_t packed) {
+u32 unpack_lower(u32 packed) {
     return packed & 0x7F;  // 0x7F is 1111111 in binary, masking out the lower 7 bits
 }
-uint32_t unpack_upper(uint32_t packed) {
+u32 unpack_upper(u32 packed) {
     return (packed >> 7) & 0x7F;  // Shift right by 7, then mask to get the upper 7 bits
 }

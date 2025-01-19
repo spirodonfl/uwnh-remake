@@ -534,7 +534,7 @@
                     wasm_setInputString(string);
                     var string_id = wasm.exports.find_string_id_by_machine_name_from_input();
                     // console.log("getCurrentLayerIDByString:", string_id)
-                    return wasm.exports.find_layer_id_by_string_id(string_id);
+                    return wasm.exports.get_layer_id_by_string_id(string_id);
                 },
 
                 getCurrentWorldNameID: function ()
@@ -1605,12 +1605,12 @@
                                     var attacker_world_npc_id = wasm.exports.get_ocean_battle_attacker_world_npc_id();
                                     var target_world_npc_id = wasm.exports.get_ocean_battle_target_world_npc_id();
                                     var attacker_coords = {
-                                        x: wasm.exports.get_world_npc_x(attacker_world_npc_id),
-                                        y: wasm.exports.get_world_npc_y(attacker_world_npc_id),
+                                        x: wasm.exports.get_world_npc_position_x(attacker_world_npc_id),
+                                        y: wasm.exports.get_world_npc_position_y(attacker_world_npc_id),
                                     };
                                     var target_coords = {
-                                        x: wasm.exports.get_world_npc_x(target_world_npc_id),
-                                        y: wasm.exports.get_world_npc_y(target_world_npc_id),
+                                        x: wasm.exports.get_world_npc_position_x(target_world_npc_id),
+                                        y: wasm.exports.get_world_npc_position_y(target_world_npc_id),
                                     };
                                     var attacker_tile_element = document.querySelector('[world_x="' + attacker_coords.x + '"][world_y="' + attacker_coords.y + '"]');
                                     var target_tile_element = document.querySelector('[world_x="' + target_coords.x + '"][world_y="' + target_coords.y + '"]');
