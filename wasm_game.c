@@ -235,7 +235,7 @@ u32 max(u32 a, u32 b)
         g_storage_##LOWERSCORE##s.next_open_slot = id; \
     }
 
-#define GENERATE_FIELD_ACCESSORS(CAMEL, LOWERSCORE, UPPERSCORE, LOWERFIELD, UPPERFIELD, MAX_COUNT) \
+#define GENERATE_FIELD_ACCESSORS(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT, LOWERFIELD, UPPERFIELD) \
     u32 get_##LOWERSCORE##_##LOWERFIELD(u32 id) \
     { \
         if (id >= MAX_COUNT) \
@@ -617,8 +617,8 @@ FIND_NEXT_OPEN_SLOT(NPC, npc, NPC, MAX_NPCS)
 STORAGE_CLEAR(NPC, npc, NPC, MAX_NPCS)
 STORAGE_ADD(NPC, npc, NPC, MAX_NPCS)
 STORAGE_REMOVE(NPC, npc, NPC, MAX_NPCS)
-GENERATE_FIELD_ACCESSORS(NPC, npc, NPC, name_id, NAME_ID, MAX_NPCS)
-GENERATE_FIELD_ACCESSORS(NPC, npc, NPC, type, TYPE, MAX_NPCS)
+GENERATE_FIELD_ACCESSORS(NPC, npc, NPC, MAX_NPCS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(NPC, npc, NPC, MAX_NPCS, type, TYPE)
 GET_BY_STRING_ID(NPC, npc, NPC, MAX_NPCS)
 GET_BY_MACHINE_NAME(NPC, npc, NPC)
 
@@ -633,8 +633,8 @@ FIND_NEXT_OPEN_SLOT(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
 STORAGE_CLEAR(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
 STORAGE_ADD(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
 STORAGE_REMOVE(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
-GENERATE_FIELD_ACCESSORS(GeneralItem, general_item, GENERAL_ITEM, name_id, NAME_ID, MAX_GENERAL_ITEMS)
-GENERATE_FIELD_ACCESSORS(GeneralItem, general_item, GENERAL_ITEM, base_price, BASE_PRICE, MAX_GENERAL_ITEMS)
+GENERATE_FIELD_ACCESSORS(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS, base_price, BASE_PRICE)
 GET_BY_STRING_ID(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
 GET_BY_MACHINE_NAME(GeneralItem, general_item, GENERAL_ITEM)
 
@@ -654,13 +654,13 @@ FIND_NEXT_OPEN_SLOT(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
 STORAGE_CLEAR(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
 STORAGE_ADD(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
 STORAGE_REMOVE(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
-GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, name_id, NAME_ID, MAX_BASE_SHIPS)
-GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, top_material_id, TOP_MATERIAL_ID, MAX_BASE_SHIPS)
-GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, base_price, BASE_PRICE, MAX_BASE_SHIPS)
-GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, max_capacity, MAX_CAPACITY, MAX_BASE_SHIPS)
-GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, tacking, TACKING, MAX_BASE_SHIPS)
-GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, power, POWER, MAX_BASE_SHIPS)
-GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, speed, SPEED, MAX_BASE_SHIPS)
+GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS, top_material_id, TOP_MATERIAL_ID)
+GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS, base_price, BASE_PRICE)
+GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS, max_capacity, MAX_CAPACITY)
+GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS, tacking, TACKING)
+GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS, power, POWER)
+GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS, speed, SPEED)
 GET_BY_STRING_ID(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
 GET_BY_MACHINE_NAME(BaseShip, base_ship, BASE_SHIP)
 
@@ -685,18 +685,18 @@ FIND_NEXT_OPEN_SLOT(Ship, ship, SHIP, MAX_SHIPS)
 STORAGE_CLEAR(Ship, ship, SHIP, MAX_SHIPS)
 STORAGE_ADD(Ship, ship, SHIP, MAX_SHIPS)
 STORAGE_REMOVE(Ship, ship, SHIP, MAX_SHIPS)
-GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, name_id, NAME_ID, MAX_SHIPS)
-GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, base_ship_id, BASE_SHIP_ID, MAX_SHIPS)
-GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, price, PRICE, MAX_SHIPS)
-GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, material_id, MATERIAL_ID, MAX_SHIPS)
-GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, capacity, CAPACITY, MAX_SHIPS)
-GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, tacking, TACKING, MAX_SHIPS)
-GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, power, POWER, MAX_SHIPS)
-GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, speed, SPEED, MAX_SHIPS)
-GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, max_crew, MAX_CREW, MAX_SHIPS)
-GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, max_hull, MAX_HULL, MAX_SHIPS)
-GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, crew, CREW, MAX_SHIPS)
-GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, hull, HULL, MAX_SHIPS)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, base_ship_id, BASE_SHIP_ID)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, price, PRICE)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, material_id, MATERIAL_ID)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, capacity, CAPACITY)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, tacking, TACKING)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, power, POWER)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, speed, SPEED)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, max_crew, MAX_CREW)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, max_hull, MAX_HULL)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, crew, CREW)
+GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, hull, HULL)
 GET_BY_STRING_ID(Ship, ship, SHIP, MAX_SHIPS)
 GET_BY_MACHINE_NAME(Ship, ship, SHIP)
 FIELD_REDUCE_BY(Ship, ship, SHIP, hull, HULL)
@@ -717,12 +717,12 @@ FIND_NEXT_OPEN_SLOT(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIA
 STORAGE_CLEAR(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
 STORAGE_ADD(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
 STORAGE_REMOVE(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
-GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, name_id, NAME_ID, MAX_SHIP_MATERIALS)
-GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, base_price, BASE_PRICE, MAX_SHIP_MATERIALS)
-GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, mod_power, MOD_POWER, MAX_SHIP_MATERIALS)
-GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, mod_capacity, MOD_CAPACITY, MAX_SHIP_MATERIALS)
-GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, mod_tacking, MOD_TACKING, MAX_SHIP_MATERIALS)
-GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, mod_speed, MOD_SPEED, MAX_SHIP_MATERIALS)
+GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS, base_price, BASE_PRICE)
+GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS, mod_power, MOD_POWER)
+GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS, mod_capacity, MOD_CAPACITY)
+GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS, mod_tacking, MOD_TACKING)
+GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS, mod_speed, MOD_SPEED)
 GET_BY_STRING_ID(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
 GET_BY_MACHINE_NAME(ShipMaterial, ship_material, SHIP_MATERIAL)
 
@@ -737,8 +737,8 @@ FIND_NEXT_OPEN_SLOT(Good, good, GOOD, MAX_GOODS)
 STORAGE_CLEAR(Good, good, GOOD, MAX_GOODS)
 STORAGE_ADD(Good, good, GOOD, MAX_GOODS)
 STORAGE_REMOVE(Good, good, GOOD, MAX_GOODS)
-GENERATE_FIELD_ACCESSORS(Good, good, GOOD, name_id, NAME_ID, MAX_GOODS)
-GENERATE_FIELD_ACCESSORS(Good, good, GOOD, base_price, BASE_PRICE, MAX_GOODS)
+GENERATE_FIELD_ACCESSORS(Good, good, GOOD, MAX_GOODS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(Good, good, GOOD, MAX_GOODS, base_price, BASE_PRICE)
 GET_BY_STRING_ID(Good, good, GOOD, MAX_GOODS)
 GET_BY_MACHINE_NAME(Good, good, GOOD)
 
@@ -754,9 +754,9 @@ FIND_NEXT_OPEN_SLOT(Weapon, weapon, WEAPON, MAX_WEAPONS)
 STORAGE_CLEAR(Weapon, weapon, WEAPON, MAX_WEAPONS)
 STORAGE_ADD(Weapon, weapon, WEAPON, MAX_WEAPONS)
 STORAGE_REMOVE(Weapon, weapon, WEAPON, MAX_WEAPONS)
-GENERATE_FIELD_ACCESSORS(Weapon, weapon, WEAPON, name_id, NAME_ID, MAX_WEAPONS)
-GENERATE_FIELD_ACCESSORS(Weapon, weapon, WEAPON, base_price, BASE_PRICE, MAX_WEAPONS)
-GENERATE_FIELD_ACCESSORS(Weapon, weapon, WEAPON, power, POWER, MAX_WEAPONS)
+GENERATE_FIELD_ACCESSORS(Weapon, weapon, WEAPON, MAX_WEAPONS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(Weapon, weapon, WEAPON, MAX_WEAPONS, base_price, BASE_PRICE)
+GENERATE_FIELD_ACCESSORS(Weapon, weapon, WEAPON, MAX_WEAPONS, power, POWER)
 GET_BY_STRING_ID(Weapon, weapon, WEAPON, MAX_WEAPONS)
 GET_BY_MACHINE_NAME(Weapon, weapon, WEAPON)
 
@@ -772,9 +772,9 @@ FIND_NEXT_OPEN_SLOT(Armor, armor, ARMOR, MAX_ARMORS)
 STORAGE_CLEAR(Armor, armor, ARMOR, MAX_ARMORS)
 STORAGE_ADD(Armor, armor, ARMOR, MAX_ARMORS)
 STORAGE_REMOVE(Armor, armor, ARMOR, MAX_ARMORS)
-GENERATE_FIELD_ACCESSORS(Armor, armor, ARMOR, name_id, NAME_ID, MAX_ARMORS)
-GENERATE_FIELD_ACCESSORS(Armor, armor, ARMOR, base_price, BASE_PRICE, MAX_ARMORS)
-GENERATE_FIELD_ACCESSORS(Armor, armor, ARMOR, defense, DEFENSE, MAX_ARMORS)
+GENERATE_FIELD_ACCESSORS(Armor, armor, ARMOR, MAX_ARMORS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(Armor, armor, ARMOR, MAX_ARMORS, base_price, BASE_PRICE)
+GENERATE_FIELD_ACCESSORS(Armor, armor, ARMOR, MAX_ARMORS, defense, DEFENSE)
 GET_BY_STRING_ID(Armor, armor, ARMOR, MAX_ARMORS)
 GET_BY_MACHINE_NAME(Armor, armor, ARMOR)
 
@@ -789,8 +789,8 @@ FIND_NEXT_OPEN_SLOT(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
 STORAGE_CLEAR(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
 STORAGE_ADD(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
 STORAGE_REMOVE(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
-GENERATE_FIELD_ACCESSORS(SpecialItem, special_item, SPECIAL_ITEM, name_id, NAME_ID, MAX_SPECIAL_ITEMS)
-GENERATE_FIELD_ACCESSORS(SpecialItem, special_item, SPECIAL_ITEM, base_price, BASE_PRICE, MAX_SPECIAL_ITEMS)
+GENERATE_FIELD_ACCESSORS(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS, base_price, BASE_PRICE)
 GET_BY_STRING_ID(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
 GET_BY_MACHINE_NAME(SpecialItem, special_item, SPECIAL_ITEM)
 
@@ -809,12 +809,12 @@ FIND_NEXT_OPEN_SLOT(World, world, WORLD, MAX_WORLDS)
 STORAGE_CLEAR(World, world, WORLD, MAX_WORLDS)
 STORAGE_ADD(World, world, WORLD, MAX_WORLDS)
 STORAGE_REMOVE(World, world, WORLD, MAX_WORLDS)
-GENERATE_FIELD_ACCESSORS(World, world, WORLD, name_id, NAME_ID, MAX_WORLDS)
-GENERATE_FIELD_ACCESSORS(World, world, WORLD, width, WIDTH, MAX_WORLDS)
-GENERATE_FIELD_ACCESSORS(World, world, WORLD, height, HEIGHT, MAX_WORLDS)
-GENERATE_FIELD_ACCESSORS(World, world, WORLD, total_npcs, TOTAL_NPCS, MAX_WORLDS)
-GENERATE_FIELD_ACCESSORS(World, world, WORLD, total_captains, TOTAL_CAPTAINS, MAX_WORLDS)
-GENERATE_FIELD_ACCESSORS(World, world, WORLD, total_layers, TOTAL_LAYERS, MAX_WORLDS)
+GENERATE_FIELD_ACCESSORS(World, world, WORLD, MAX_WORLDS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(World, world, WORLD, MAX_WORLDS, width, WIDTH)
+GENERATE_FIELD_ACCESSORS(World, world, WORLD, MAX_WORLDS, height, HEIGHT)
+GENERATE_FIELD_ACCESSORS(World, world, WORLD, MAX_WORLDS, total_npcs, TOTAL_NPCS)
+GENERATE_FIELD_ACCESSORS(World, world, WORLD, MAX_WORLDS, total_captains, TOTAL_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(World, world, WORLD, MAX_WORLDS, total_layers, TOTAL_LAYERS)
 GET_BY_STRING_ID(World, world, WORLD, MAX_WORLDS)
 GET_BY_MACHINE_NAME(World, world, WORLD)
 FIELD_INCREMENT(World, world, WORLD, total_layers, TOTAL_LAYERS)
@@ -839,17 +839,17 @@ FIND_NEXT_OPEN_SLOT(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
 STORAGE_CLEAR(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
 STORAGE_ADD(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
 STORAGE_REMOVE(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
-GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, npc_id, NPC_ID, MAX_WORLD_NPCS)
-GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, captain_id, CAPTAIN_ID, MAX_WORLD_NPCS)
-GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, position_x, POSITION_X, MAX_WORLD_NPCS)
-GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, position_y, POSITION_Y, MAX_WORLD_NPCS)
-GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, direction, DIRECTION, MAX_WORLD_NPCS)
-GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, is_interactable, IS_INTERACTABLE, MAX_WORLD_NPCS)
-GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, is_captain, IS_CAPTAIN, MAX_WORLD_NPCS)
-GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, interaction_scene, INTERACTION_SCENE, MAX_WORLD_NPCS)
-GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, is_player, IS_PLAYER, MAX_WORLD_NPCS)
-GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, inventory_id, INVENTORY_ID, MAX_WORLD_NPCS)
-GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, entity_id, ENTITY_ID, MAX_WORLD_NPCS)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS, npc_id, NPC_ID)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS, captain_id, CAPTAIN_ID)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS, position_x, POSITION_X)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS, position_y, POSITION_Y)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS, direction, DIRECTION)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS, is_interactable, IS_INTERACTABLE)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS, is_captain, IS_CAPTAIN)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS, interaction_scene, INTERACTION_SCENE)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS, is_player, IS_PLAYER)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS, inventory_id, INVENTORY_ID)
+GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS, entity_id, ENTITY_ID)
 // TODO: get_world_npc_by_string_id but have to dig into NPC_ID
 // TODO: get_world_npc_by_machine_name but have to dig into NPC_ID
 u32 get_world_npc_name_id(u32 id)
@@ -889,23 +889,23 @@ FIND_NEXT_OPEN_SLOT(Captain, captain, CAPTAIN, MAX_CAPTAINS)
 STORAGE_CLEAR(Captain, captain, CAPTAIN, MAX_CAPTAINS)
 STORAGE_ADD(Captain, captain, CAPTAIN, MAX_CAPTAINS)
 STORAGE_REMOVE(Captain, captain, CAPTAIN, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, npc_id, NPC_ID, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, world_npc_id, WORLD_NPC_ID, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, in_world, IN_WORLD, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, global_position_x, GLOBAL_POSITION_X, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, global_position_y, GLOBAL_POSITION_Y, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, in_port, IN_PORT, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, on_land, ON_LAND, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, in_ocean, IN_OCEAN, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, sailing, SAILING, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, skills_id, SKILLS_ID, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, stats_id, STATS_ID, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, inventory_id, INVENTORY_ID, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, player_id, PLAYER_ID, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, gold, GOLD, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, fleet_id, FLEET_ID, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, equipped_weapon_id, EQUIPPED_WEAPON_ID, MAX_CAPTAINS)
-GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, equipped_armor_id, EQUIPPED_ARMOR_ID, MAX_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, npc_id, NPC_ID)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, world_npc_id, WORLD_NPC_ID)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, in_world, IN_WORLD)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, global_position_x, GLOBAL_POSITION_X)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, global_position_y, GLOBAL_POSITION_Y)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, in_port, IN_PORT)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, on_land, ON_LAND)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, in_ocean, IN_OCEAN)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, sailing, SAILING)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, skills_id, SKILLS_ID)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, stats_id, STATS_ID)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, inventory_id, INVENTORY_ID)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, player_id, PLAYER_ID)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, gold, GOLD)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, fleet_id, FLEET_ID)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, equipped_weapon_id, EQUIPPED_WEAPON_ID)
+GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, equipped_armor_id, EQUIPPED_ARMOR_ID)
 // TODO: get_captain_by_string_id but have to dig into NPC_ID
 // TODO: get_captain_by_machine_name but have to dig into NPC_ID
 u32 get_captain_name_id(u32 id)
@@ -949,14 +949,14 @@ FIND_NEXT_OPEN_SLOT(Layer, layer, LAYER, MAX_LAYERS)
 STORAGE_CLEAR(Layer, layer, LAYER, MAX_LAYERS)
 STORAGE_ADD(Layer, layer, LAYER, MAX_LAYERS)
 STORAGE_REMOVE(Layer, layer, LAYER, MAX_LAYERS)
-GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, name_id, NAME_ID, MAX_LAYERS)
-GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, global_world_data_offset, GLOBAL_WORLD_DATA_OFFSET, MAX_LAYERS)
-GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, width, WIDTH, MAX_LAYERS)
-GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, height, HEIGHT, MAX_LAYERS)
-GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, type, TYPE, MAX_LAYERS)
-GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, same_value, SAME_VALUE, MAX_LAYERS)
-GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, specific_coordinates_size, SPECIFIC_COORDINATES_SIZE, MAX_LAYERS)
-GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, is_block, IS_BLOCK, MAX_LAYERS)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, MAX_LAYERS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, MAX_LAYERS, global_world_data_offset, GLOBAL_WORLD_DATA_OFFSET)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, MAX_LAYERS, width, WIDTH)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, MAX_LAYERS, height, HEIGHT)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, MAX_LAYERS, type, TYPE)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, MAX_LAYERS, same_value, SAME_VALUE)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, MAX_LAYERS, specific_coordinates_size, SPECIFIC_COORDINATES_SIZE)
+GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, MAX_LAYERS, is_block, IS_BLOCK)
 GET_BY_STRING_ID(Layer, layer, LAYER, MAX_LAYERS)
 GET_BY_MACHINE_NAME(Layer, layer, LAYER)
 
@@ -981,8 +981,8 @@ FIND_NEXT_OPEN_SLOT(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
 STORAGE_CLEAR(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
 STORAGE_ADD(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
 STORAGE_REMOVE(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
-GENERATE_FIELD_ACCESSORS(Inventory, inventory, INVENTORY, name_id, NAME_ID, MAX_INVENTORIES)
-GENERATE_FIELD_ACCESSORS(Inventory, inventory, INVENTORY, total_items, TOTAL_ITEMS, MAX_INVENTORIES)
+GENERATE_FIELD_ACCESSORS(Inventory, inventory, INVENTORY, MAX_INVENTORIES, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(Inventory, inventory, INVENTORY, MAX_INVENTORIES, total_items, TOTAL_ITEMS)
 GET_BY_STRING_ID(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
 GET_BY_MACHINE_NAME(Inventory, inventory, INVENTORY)
 FIELD_INCREMENT(Inventory, inventory, INVENTORY, total_items, TOTAL_ITEMS)
@@ -1004,14 +1004,14 @@ FIND_NEXT_OPEN_SLOT(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY
 STORAGE_CLEAR(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
 STORAGE_ADD(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
 STORAGE_REMOVE(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
-GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, name_id, NAME_ID, MAX_INVENTORY_ITEMS)
-GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, number_held, NUMBER_HELD, MAX_INVENTORY_ITEMS)
-GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, adjusted_price, ADJUSTED_PRICE, MAX_INVENTORY_ITEMS)
-GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, type, TYPE, MAX_INVENTORY_ITEMS)
-GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, type_name_id, TYPE_NAME_ID, MAX_INVENTORY_ITEMS)
-GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, type_reference, TYPE_REFERENCE, MAX_INVENTORY_ITEMS)
-GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, inventory_id, INVENTORY_ID, MAX_INVENTORY_ITEMS)
-GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, number_chosen, NUMBER_CHOSEN, MAX_INVENTORY_ITEMS)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS, number_held, NUMBER_HELD)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS, adjusted_price, ADJUSTED_PRICE)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS, type, TYPE)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS, type_name_id, TYPE_NAME_ID)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS, type_reference, TYPE_REFERENCE)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS, inventory_id, INVENTORY_ID)
+GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS, number_chosen, NUMBER_CHOSEN)
 GET_BY_STRING_ID(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
 GET_BY_MACHINE_NAME(InventoryItem, inventory_item, INVENTORY_ITEM)
 FIELD_INCREMENT(InventoryItem, inventory_item, INVENTORY_ITEM, number_held, NUMBER_HELD)
@@ -1031,12 +1031,12 @@ FIND_NEXT_OPEN_SLOT(Port, port, PORT, MAX_PORTS)
 STORAGE_CLEAR(Port, port, PORT, MAX_PORTS)
 STORAGE_ADD(Port, port, PORT, MAX_PORTS)
 STORAGE_REMOVE(Port, port, PORT, MAX_PORTS)
-GENERATE_FIELD_ACCESSORS(Port, port, PORT, name_id, NAME_ID, MAX_PORTS)
-GENERATE_FIELD_ACCESSORS(Port, port, PORT, global_location_x, GLOBAL_LOCATION_X, MAX_PORTS)
-GENERATE_FIELD_ACCESSORS(Port, port, PORT, global_location_y, GLOBAL_LOCATION_Y, MAX_PORTS)
-GENERATE_FIELD_ACCESSORS(Port, port, PORT, overall_investment_level, OVERALL_INVESTMENT_LEVEL, MAX_PORTS)
-GENERATE_FIELD_ACCESSORS(Port, port, PORT, market_investment_level, MARKET_INVESTMENT_LEVEL, MAX_PORTS)
-GENERATE_FIELD_ACCESSORS(Port, port, PORT, shipyard_investment_level, SHIPYARD_INVESTMENT_LEVEL, MAX_PORTS)
+GENERATE_FIELD_ACCESSORS(Port, port, PORT, MAX_PORTS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(Port, port, PORT, MAX_PORTS, global_location_x, GLOBAL_LOCATION_X)
+GENERATE_FIELD_ACCESSORS(Port, port, PORT, MAX_PORTS, global_location_y, GLOBAL_LOCATION_Y)
+GENERATE_FIELD_ACCESSORS(Port, port, PORT, MAX_PORTS, overall_investment_level, OVERALL_INVESTMENT_LEVEL)
+GENERATE_FIELD_ACCESSORS(Port, port, PORT, MAX_PORTS, market_investment_level, MARKET_INVESTMENT_LEVEL)
+GENERATE_FIELD_ACCESSORS(Port, port, PORT, MAX_PORTS, shipyard_investment_level, SHIPYARD_INVESTMENT_LEVEL)
 GET_BY_STRING_ID(Port, port, PORT, MAX_PORTS)
 GET_BY_MACHINE_NAME(Port, port, PORT)
 
@@ -1078,13 +1078,13 @@ FIND_NEXT_OPEN_SLOT(Entity, entity, ENTITY, MAX_ENTITIES)
 STORAGE_CLEAR(Entity, entity, ENTITY, MAX_ENTITIES)
 STORAGE_ADD(Entity, entity, ENTITY, MAX_ENTITIES)
 STORAGE_REMOVE(Entity, entity, ENTITY, MAX_ENTITIES)
-GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, name_id, NAME_ID, MAX_ENTITIES)
-GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, is_interactable, IS_INTERACTABLE, MAX_ENTITIES)
-GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, is_solid, IS_SOLID, MAX_ENTITIES)
-GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, interaction_on_step_over, INTERACTION_ON_STEP_OVER, MAX_ENTITIES)
-GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, interaction_scene, INTERACTION_SCENE, MAX_ENTITIES)
-GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, world_position_x, WORLD_POSITION_X, MAX_ENTITIES)
-GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, world_position_y, WORLD_POSITION_Y, MAX_ENTITIES)
+GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, MAX_ENTITIES, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, MAX_ENTITIES, is_interactable, IS_INTERACTABLE)
+GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, MAX_ENTITIES, is_solid, IS_SOLID)
+GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, MAX_ENTITIES, interaction_on_step_over, INTERACTION_ON_STEP_OVER)
+GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, MAX_ENTITIES, interaction_scene, INTERACTION_SCENE)
+GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, MAX_ENTITIES, world_position_x, WORLD_POSITION_X)
+GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, MAX_ENTITIES, world_position_y, WORLD_POSITION_Y)
 GET_BY_STRING_ID(Entity, entity, ENTITY, MAX_ENTITIES)
 GET_BY_MACHINE_NAME(Entity, entity, ENTITY)
 
@@ -1103,12 +1103,13 @@ FIND_NEXT_OPEN_SLOT(Fleet, fleet, FLEET, MAX_FLEETS)
 STORAGE_CLEAR(Fleet, fleet, FLEET, MAX_FLEETS)
 STORAGE_ADD(Fleet, fleet, FLEET, MAX_FLEETS)
 STORAGE_REMOVE(Fleet, fleet, FLEET, MAX_FLEETS)
-GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, total_ships, TOTAL_SHIPS, MAX_FLEETS)
-GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, total_captains, TOTAL_CAPTAINS, MAX_FLEETS)
-GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, first_mate_id, FIRST_MATE_ID, MAX_FLEETS)
-GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, accountant_id, ACCOUNTANT_ID, MAX_FLEETS)
-GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, navigator_id, NAVIGATOR_ID, MAX_FLEETS)
-GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, general_id, GENERAL_ID, MAX_FLEETS)
+GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, MAX_FLEETS, total_ships, TOTAL_SHIPS)
+GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, MAX_FLEETS, total_captains, TOTAL_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, MAX_FLEETS, first_mate_id, FIRST_MATE_ID)
+GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, MAX_FLEETS, accountant_id, ACCOUNTANT_ID)
+GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, MAX_FLEETS, navigator_id, NAVIGATOR_ID)
+GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, MAX_FLEETS, general_id, GENERAL_ID)
+FIELD_INCREMENT(Fleet, fleet, FLEET, total_ships, TOTAL_SHIPS)
 
 enum FleetShipData
 {
@@ -1116,6 +1117,13 @@ enum FleetShipData
     FLEET_SHIP_FLEET_ID,
     FLEET_SHIP_DATA_SIZE,
 };
+STORAGE_STRUCT(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS)
+FIND_NEXT_OPEN_SLOT(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS)
+STORAGE_CLEAR(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS)
+STORAGE_ADD(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS)
+STORAGE_REMOVE(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS)
+GENERATE_FIELD_ACCESSORS(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS, ship_id, SHIP_ID)
+GENERATE_FIELD_ACCESSORS(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS, fleet_id, FLEET_ID)
 
 enum FleetCaptainData
 {
@@ -1412,10 +1420,6 @@ static u32 g_skill_count = 0;
 static u32 g_fleet_data[G_FLEET_DATA_SIZE];
 static u32 g_fleet_count = 0;
 
-#define G_FLEET_SHIP_DATA_SIZE (MAX_FLEET_SHIPS * (u32)FLEET_SHIP_DATA_SIZE)
-static u32 g_fleet_ship_data[G_FLEET_SHIP_DATA_SIZE];
-static u32 g_fleet_ship_count = 0;
-
 #define G_FLEET_CAPTAIN_DATA_SIZE (MAX_FLEET_CAPTAINS * (u32)FLEET_CAPTAIN_DATA_SIZE)
 static u32 g_fleet_captain_data[G_FLEET_CAPTAIN_DATA_SIZE];
 static u32 g_fleet_captain_count = 0;
@@ -1509,7 +1513,6 @@ CREATE_INIT_DATA_FUNC(cannon, G_CANNON_DATA_SIZE, g_cannon_data);
 CREATE_INIT_DATA_FUNC(stats, G_STATS_DATA_SIZE, g_stats_data);
 CREATE_INIT_DATA_FUNC(skill, G_SKILL_DATA_SIZE, g_skill_data);
 CREATE_INIT_DATA_FUNC(fleet, G_FLEET_DATA_SIZE, g_fleet_data);
-CREATE_INIT_DATA_FUNC(fleet_ship, G_FLEET_SHIP_DATA_SIZE, g_fleet_ship_data);
 CREATE_INIT_DATA_FUNC(fleet_captain, G_FLEET_CAPTAIN_DATA_SIZE, g_fleet_captain_data);
 CREATE_INIT_DATA_FUNC(bank, G_BANK_DATA_SIZE, g_bank_data);
 CREATE_INIT_DATA_FUNC(captain, G_CAPTAIN_DATA_SIZE, g_captain_data);
@@ -1988,7 +1991,6 @@ CREATE_ENTITY_FUNC(captain, u32, CAPTAIN_DATA_SIZE, MAX_CAPTAINS, CAPTAIN_NPC_ID
 CREATE_ENTITY_FUNC(stats, u32, STATS_DATA_SIZE, MAX_STATS, STATS_BATTLE_LEVEL, g_stats_count, g_stats_data);
 CREATE_ENTITY_FUNC(skill, u32, SKILL_DATA_SIZE, MAX_SKILLS, SKILL_NAME_ID, g_skill_count, g_skill_data);
 CREATE_ENTITY_FUNC(fleet, u32, FLEET_DATA_SIZE, MAX_FLEETS, FLEET_GENERAL_ID, g_fleet_count, g_fleet_data);
-CREATE_ENTITY_FUNC(fleet_ship, u32, FLEET_SHIP_DATA_SIZE, MAX_FLEET_SHIPS, FLEET_SHIP_SHIP_ID, g_fleet_ship_count, g_fleet_ship_data);
 CREATE_ENTITY_FUNC(fleet_captain, u32, FLEET_CAPTAIN_DATA_SIZE, MAX_FLEET_CAPTAINS, FLEET_CAPTAIN_CAPTAIN_ID, g_fleet_captain_count, g_fleet_captain_data);
 CREATE_ENTITY_FUNC(cannon, u32, CANNON_DATA_SIZE, MAX_CANNONS, CANNON_NAME_ID, g_cannon_count, g_cannon_data);
 CREATE_ENTITY_FUNC(figurehead, u32, FIGUREHEAD_DATA_SIZE, MAX_FIGUREHEADS, FIGUREHEAD_NAME_ID, g_figurehead_count, g_figurehead_data);
@@ -2914,11 +2916,11 @@ void generate_world(char* world_name)
         add_value_to_global_world_data(layer_id, 2, 2, 36);
 
         u32 world_npc_data[WORLD_NPC_DATA_SIZE];
+        CLEAR_DATA(world_npc_data, WORLD_NPC_DATA_SIZE);
         u32 npc_id;
         u32 world_npc_id;
 
         npc_id = get_npc_id_by_machine_name("bank_teller");
-        CLEAR_DATA(world_npc_data, WORLD_NPC_DATA_SIZE);
         world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
         world_npc_data[WORLD_NPC_CAPTAIN_ID] = SENTRY;
         world_npc_data[WORLD_NPC_POSITION_X] = 4;
@@ -3045,11 +3047,11 @@ void generate_world(char* world_name)
         add_value_to_global_world_data(layer_id, 4, 4, 72);
 
         u32 world_npc_data[WORLD_NPC_DATA_SIZE];
+        CLEAR_DATA(world_npc_data, WORLD_NPC_DATA_SIZE);
         u32 npc_id;
         u32 world_npc_id;
 
         npc_id = get_npc_id_by_machine_name("bank_teller");
-        CLEAR_DATA(world_npc_data, WORLD_NPC_DATA_SIZE);
         world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
         world_npc_data[WORLD_NPC_CAPTAIN_ID] = SENTRY;
         world_npc_data[WORLD_NPC_POSITION_X] = 4;
@@ -3065,7 +3067,9 @@ void generate_world(char* world_name)
         u32 inventory_id;
         u32 inventory_item_id;
         u32 inventory_data[INVENTORY_DATA_SIZE];
+        CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
         u32 inventory_item_data[INVENTORY_ITEM_DATA_SIZE];
+        CLEAR_DATA(inventory_item_data, INVENTORY_ITEM_DATA_SIZE);
 
         item_string_id = get_string_id_by_machine_name("telescope");
         general_item_id = get_general_item_id_by_string_id(item_string_id);
@@ -3226,6 +3230,7 @@ void generate_world(char* world_name)
         CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
 
         u32 entity[ENTITY_DATA_SIZE];
+        CLEAR_DATA(entity, ENTITY_DATA_SIZE);
         entity[ENTITY_NAME_ID] = get_string_id_by_machine_name("load_test_world");
         entity[ENTITY_IS_INTERACTABLE] = true;
         entity[ENTITY_INTERACTION_ON_STEP_OVER] = true;
@@ -3444,32 +3449,18 @@ void move_player_down(u32 player_id)
 // ------------------------------------------------------------------------------------------------ //
 void add_ship_to_fleet(u32 fleet_id, u32 ship_id)
 {
-    u32 offset = fleet_id * FLEET_DATA_SIZE;
-    g_fleet_data[offset + FLEET_TOTAL_SHIPS] += 1;
-    // TODO: Only need this if the captain of a ship is NOT the same as the fleets general (also a captain)
-    // g_fleet_data[offset + FLEET_TOTAL_CAPTAINS] += 1;
     u32 fleet_ship_data[FLEET_SHIP_DATA_SIZE];
     CLEAR_DATA(fleet_ship_data, FLEET_SHIP_DATA_SIZE);
     fleet_ship_data[FLEET_SHIP_FLEET_ID] = fleet_id;
     fleet_ship_data[FLEET_SHIP_SHIP_ID] = ship_id;
-    create_fleet_ship(fleet_ship_data, true);
-}
-u32 get_fleet_ship_fleet_id(u32 fleet_ship_id)
-{
-    u32 offset = fleet_ship_id * FLEET_SHIP_DATA_SIZE;
-    return g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID];
-}
-u32 get_fleet_ship_ship_id(u32 fleet_ship_id)
-{
-    u32 offset = fleet_ship_id * FLEET_SHIP_DATA_SIZE;
-    return g_fleet_ship_data[offset + FLEET_SHIP_SHIP_ID];
+    add_fleet_ship(fleet_ship_data);
+    increment_fleet_total_ships(fleet_id);
 }
 u32 get_ship_id_by_fleet_ship_id(u32 ship_id)
 {
     for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
     {
-        u32 offset = i * FLEET_SHIP_DATA_SIZE;
-        if (g_fleet_ship_data[offset + FLEET_SHIP_SHIP_ID] == ship_id)
+        if (get_fleet_ship_ship_id(i) == ship_id)
         {
             return i;
         }
@@ -3480,8 +3471,7 @@ u32 get_fleet_id_by_general_id(u32 general_id)
 {
     for (u32 i = 0; i < MAX_FLEETS; ++i)
     {
-        u32 offset = i * FLEET_DATA_SIZE;
-        if (g_fleet_data[offset + FLEET_GENERAL_ID] == general_id)
+        if (get_fleet_general_id(i) == general_id)
         {
             return i;
         }
@@ -3558,8 +3548,7 @@ void initialize_game()
 
     init_data_stats();
     init_data_skill();
-    init_data_fleet();
-    init_data_fleet_ship();
+
     init_data_fleet_captain();
     init_data_bank();
     init_data_captain();
@@ -3765,6 +3754,7 @@ void initialize_game()
     create_string("dingus_land", "Dingus Land");
 
     u32 world[WORLD_DATA_SIZE];
+    CLEAR_DATA(world, WORLD_DATA_SIZE);
     world[WORLD_NAME_ID] = get_string_id_by_machine_name("athens");
     world[WORLD_WIDTH] = 50;
     world[WORLD_HEIGHT] = 50;
@@ -3781,6 +3771,7 @@ void initialize_game()
     add_world(world);
 
     u32 empty_npc[NPC_DATA_SIZE];
+    CLEAR_DATA(empty_npc, NPC_DATA_SIZE);
     empty_npc[NPC_NAME_ID] = get_string_id_by_machine_name("empty");
     empty_npc[NPC_TYPE] = NPC_TYPE_HUMAN;
     u32 empty_npc_id = add_npc(empty_npc);
@@ -3826,6 +3817,7 @@ void initialize_game()
     u32 npc_loller_id = add_npc(empty_npc);
 
     u32 inventory_data[INVENTORY_DATA_SIZE];
+    CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
     inventory_data[INVENTORY_NAME_ID] = get_string_id_by_machine_name("player_ones_inventory");
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
     u32 inventory_id = add_inventory(inventory_data);
@@ -3881,6 +3873,7 @@ void initialize_game()
     create_captain(captain_data, true);
 
     u32 empty_general_item[GENERAL_ITEM_DATA_SIZE];
+    CLEAR_DATA(empty_general_item, GENERAL_ITEM_DATA_SIZE);
     empty_general_item[GENERAL_ITEM_NAME_ID] = get_string_id_by_machine_name("telescope");
     empty_general_item[GENERAL_ITEM_BASE_PRICE] = 200;
     add_general_item(empty_general_item);
@@ -3895,6 +3888,7 @@ void initialize_game()
     add_general_item(empty_general_item);
 
     u32 base_ship[BASE_SHIP_DATA_SIZE];
+    CLEAR_DATA(base_ship, BASE_SHIP_DATA_SIZE);
     base_ship[BASE_SHIP_NAME_ID] = get_string_id_by_machine_name("balsa");
     base_ship[BASE_SHIP_TOP_MATERIAL_ID] = 0;
     base_ship[BASE_SHIP_BASE_PRICE] = 100;
@@ -3927,9 +3921,10 @@ void test()
     fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
     // TODO: This should be the player captain id. Right now, that happens to be manually set to 0 so we'll just use that for now
     fleet_data[FLEET_GENERAL_ID] = players[0];
-    u32 fleet_id = create_fleet(fleet_data, true);
+    u32 fleet_id = add_fleet(fleet_data);
 
     u32 ship[SHIP_DATA_SIZE];
+    CLEAR_DATA(ship, SHIP_DATA_SIZE);
     u32 ship_id;
     u32 second_ship_id;
     ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
@@ -3952,7 +3947,7 @@ void test()
     fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
     npc_id = get_npc_id_by_machine_name("npc_rvice");
     fleet_data[FLEET_GENERAL_ID] = npc_id;
-    fleet_id = create_fleet(fleet_data, true);
+    fleet_id = add_fleet(fleet_data);
     // TODO: This is a weird way to reference ship data and stuff
     ship[SHIP_NAME_ID] = get_string_id_by_machine_name("rvices_ship");
     ship_id = add_ship(ship);
@@ -3965,7 +3960,7 @@ void test()
     fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
     npc_id = get_npc_id_by_machine_name("npc_rvice");
     fleet_data[FLEET_GENERAL_ID] = npc_id;
-    fleet_id = create_fleet(fleet_data, true);
+    fleet_id = add_fleet(fleet_data);
     ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
     ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, ship_id);
@@ -3977,7 +3972,7 @@ void test()
     fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
     npc_id = get_npc_id_by_machine_name("npc_rvice");
     fleet_data[FLEET_GENERAL_ID] = npc_id;
-    fleet_id = create_fleet(fleet_data, true);
+    fleet_id = add_fleet(fleet_data);
     ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
     ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, ship_id);
@@ -3989,7 +3984,7 @@ void test()
     fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
     npc_id = get_npc_id_by_machine_name("npc_rvice");
     fleet_data[FLEET_GENERAL_ID] = npc_id;
-    fleet_id = create_fleet(fleet_data, true);
+    fleet_id = add_fleet(fleet_data);
     ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
     ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, ship_id);
@@ -4001,7 +3996,7 @@ void test()
     fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
     npc_id = get_npc_id_by_machine_name("npc_rvice");
     fleet_data[FLEET_GENERAL_ID] = npc_id;
-    fleet_id = create_fleet(fleet_data, true);
+    fleet_id = add_fleet(fleet_data);
     ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
     ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, ship_id);
@@ -5047,6 +5042,7 @@ u32 scene_general_shop(u32 action)
                     subtract_player_gold(0, total_price);
                     u32 inventory_id = get_player_inventory_id(0);
                     u32 inventory_item_data[INVENTORY_ITEM_DATA_SIZE];
+                    CLEAR_DATA(inventory_item_data, INVENTORY_ITEM_DATA_SIZE);
                     inventory_item_data[INVENTORY_ITEM_NUMBER_HELD] = qty;
                     inventory_item_data[INVENTORY_ITEM_INVENTORY_ID] = inventory_id;
                     add_inventory_item(inventory_item_data);
@@ -5517,8 +5513,7 @@ u32 scene_ocean_battle(u32 action)
                     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_SHIP_NTH_ORDER] = 0;
                     for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
                     {
-                        u32 offset = i * FLEET_SHIP_DATA_SIZE;
-                        if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] == ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_FLEET_ORDER_ID])
+                        if (get_fleet_ship_fleet_id(i) == ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_FLEET_ORDER_ID])
                         {
                             ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_SHIP_ID] = i;
                             break;
@@ -5537,8 +5532,7 @@ u32 scene_ocean_battle(u32 action)
                     // TODO: Update this so only the active fleets in the battle are placed
                     for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
                     {
-                        u32 offset = i * FLEET_SHIP_DATA_SIZE;
-                        if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] != SENTRY)
+                        if (get_fleet_ship_fleet_id(i) != SENTRY)
                         {
                             // [BATTLE SHIP CLEAR]
                             npc_id = get_npc_id_by_machine_name("ship");
@@ -6167,8 +6161,7 @@ u32 scene_ocean_battle(u32 action)
                         // TODO: Update this so only the active fleets in the battle are placed
                         for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
                         {
-                            u32 offset = i * FLEET_SHIP_DATA_SIZE;
-                            if (g_fleet_ship_data[offset + FLEET_SHIP_FLEET_ID] != SENTRY)
+                            if (get_fleet_ship_fleet_id(i) != SENTRY)
                             {
                                 for (u32 wn = 0; wn < MAX_WORLD_NPCS; ++wn)
                                 {
