@@ -918,6 +918,8 @@ u32 get_captain_type(u32 id)
     u32 npc_id = get_captain_npc_id(id);
     return get_npc_type(npc_id);
 }
+FIELD_INCREASE_BY(Captain, captain, CAPTAIN, gold, GOLD)
+FIELD_REDUCE_BY(Captain, captain, CAPTAIN, gold, GOLD)
 
 enum LayerType
 {
@@ -1131,6 +1133,13 @@ enum FleetCaptainData
     FLEET_CAPTAIN_FLEET_ID,
     FLEET_CAPTAIN_DATA_SIZE,
 };
+STORAGE_STRUCT(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS)
+FIND_NEXT_OPEN_SLOT(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS)
+STORAGE_CLEAR(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS)
+STORAGE_ADD(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS)
+STORAGE_REMOVE(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS)
+GENERATE_FIELD_ACCESSORS(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS, captain_id, CAPTAIN_ID)
+GENERATE_FIELD_ACCESSORS(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS, fleet_id, FLEET_ID)
 
 enum CannonData
 {
@@ -1140,6 +1149,15 @@ enum CannonData
     CANNON_BASE_PRICE,
     CANNON_DATA_SIZE,
 };
+STORAGE_STRUCT(Cannon, cannon, CANNON, MAX_CANNONS)
+FIND_NEXT_OPEN_SLOT(Cannon, cannon, CANNON, MAX_CANNONS)
+STORAGE_CLEAR(Cannon, cannon, CANNON, MAX_CANNONS)
+STORAGE_ADD(Cannon, cannon, CANNON, MAX_CANNONS)
+STORAGE_REMOVE(Cannon, cannon, CANNON, MAX_CANNONS)
+GENERATE_FIELD_ACCESSORS(Cannon, cannon, CANNON, MAX_CANNONS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(Cannon, cannon, CANNON, MAX_CANNONS, range, RANGE)
+GENERATE_FIELD_ACCESSORS(Cannon, cannon, CANNON, MAX_CANNONS, power, POWER)
+GENERATE_FIELD_ACCESSORS(Cannon, cannon, CANNON, MAX_CANNONS, base_price, BASE_PRICE)
 
 enum FigureheadData
 {
@@ -1147,6 +1165,13 @@ enum FigureheadData
     FIGUREHEAD_BASE_PRICE,
     FIGUREHEAD_DATA_SIZE,
 };
+STORAGE_STRUCT(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS)
+FIND_NEXT_OPEN_SLOT(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS)
+STORAGE_CLEAR(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS)
+STORAGE_ADD(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS)
+STORAGE_REMOVE(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS)
+GENERATE_FIELD_ACCESSORS(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS, name_id, NAME_ID)
+GENERATE_FIELD_ACCESSORS(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS, base_price, BASE_PRICE)
 
 // ------------------------------------------------------------------------------------------------
 // - ENUMS - SCENES
@@ -1396,18 +1421,6 @@ enum OceanBattleData
 // ------------------------------------------------------------------------------------------------
 // Resource Management
 // ------------------------------------------------------------------------------------------------
-#define G_FIGUREHEAD_DATA_SIZE (MAX_FIGUREHEADS * FIGUREHEAD_DATA_SIZE)
-static u32 g_figurehead_data[G_FIGUREHEAD_DATA_SIZE];
-static u32 g_figurehead_count = 0;
-
-#define G_CANNON_DATA_SIZE (MAX_CANNONS * CANNON_DATA_SIZE)
-static u32 g_cannon_data[G_CANNON_DATA_SIZE];
-static u32 g_cannon_count = 0;
-
-#define G_CAPTAIN_DATA_SIZE (MAX_CAPTAINS * CAPTAIN_DATA_SIZE)
-static u32 g_captain_data[G_CAPTAIN_DATA_SIZE];
-static u32 g_captain_count = 0;
-
 #define G_STATS_DATA_SIZE (MAX_STATS * (u32)STATS_DATA_SIZE)
 static u32 g_stats_data[G_STATS_DATA_SIZE];
 static u32 g_stats_count = 0;
@@ -1415,14 +1428,6 @@ static u32 g_stats_count = 0;
 #define G_SKILL_DATA_SIZE (MAX_SKILLS * (u32)SKILL_DATA_SIZE)
 static u32 g_skill_data[G_SKILL_DATA_SIZE];
 static u32 g_skill_count = 0;
-
-#define G_FLEET_DATA_SIZE (MAX_FLEETS * (u32)FLEET_DATA_SIZE)
-static u32 g_fleet_data[G_FLEET_DATA_SIZE];
-static u32 g_fleet_count = 0;
-
-#define G_FLEET_CAPTAIN_DATA_SIZE (MAX_FLEET_CAPTAINS * (u32)FLEET_CAPTAIN_DATA_SIZE)
-static u32 g_fleet_captain_data[G_FLEET_CAPTAIN_DATA_SIZE];
-static u32 g_fleet_captain_count = 0;
 
 // Note: Bank does not need a resource. It's a single entity that is always present.
 #define G_BANK_DATA_SIZE (MAX_BANKS * (u32)BANK_DATA_SIZE)
@@ -1508,14 +1513,9 @@ void init_data_##name() \
     } \
 }
 
-CREATE_INIT_DATA_FUNC(figurehead, G_FIGUREHEAD_DATA_SIZE, g_figurehead_data);
-CREATE_INIT_DATA_FUNC(cannon, G_CANNON_DATA_SIZE, g_cannon_data);
 CREATE_INIT_DATA_FUNC(stats, G_STATS_DATA_SIZE, g_stats_data);
 CREATE_INIT_DATA_FUNC(skill, G_SKILL_DATA_SIZE, g_skill_data);
-CREATE_INIT_DATA_FUNC(fleet, G_FLEET_DATA_SIZE, g_fleet_data);
-CREATE_INIT_DATA_FUNC(fleet_captain, G_FLEET_CAPTAIN_DATA_SIZE, g_fleet_captain_data);
 CREATE_INIT_DATA_FUNC(bank, G_BANK_DATA_SIZE, g_bank_data);
-CREATE_INIT_DATA_FUNC(captain, G_CAPTAIN_DATA_SIZE, g_captain_data);
 
 void init_string_data(void)
 {
@@ -1987,13 +1987,8 @@ void free_##entity_type(u32 data_index) \
 // USAGE: FREE_ENTITY(npc, g_npc_data, NPC_DATA_SIZE, MAX_NPCS, g_npc_count);
 
 // Create creation functions based on Macro usage
-CREATE_ENTITY_FUNC(captain, u32, CAPTAIN_DATA_SIZE, MAX_CAPTAINS, CAPTAIN_NPC_ID, g_captain_count, g_captain_data);
 CREATE_ENTITY_FUNC(stats, u32, STATS_DATA_SIZE, MAX_STATS, STATS_BATTLE_LEVEL, g_stats_count, g_stats_data);
 CREATE_ENTITY_FUNC(skill, u32, SKILL_DATA_SIZE, MAX_SKILLS, SKILL_NAME_ID, g_skill_count, g_skill_data);
-CREATE_ENTITY_FUNC(fleet, u32, FLEET_DATA_SIZE, MAX_FLEETS, FLEET_GENERAL_ID, g_fleet_count, g_fleet_data);
-CREATE_ENTITY_FUNC(fleet_captain, u32, FLEET_CAPTAIN_DATA_SIZE, MAX_FLEET_CAPTAINS, FLEET_CAPTAIN_CAPTAIN_ID, g_fleet_captain_count, g_fleet_captain_data);
-CREATE_ENTITY_FUNC(cannon, u32, CANNON_DATA_SIZE, MAX_CANNONS, CANNON_NAME_ID, g_cannon_count, g_cannon_data);
-CREATE_ENTITY_FUNC(figurehead, u32, FIGUREHEAD_DATA_SIZE, MAX_FIGUREHEADS, FIGUREHEAD_NAME_ID, g_figurehead_count, g_figurehead_data);
 
 
 int32_t create_string(const char* machine_name, const char* text)
@@ -2055,72 +2050,6 @@ int32_t create_string(const char* machine_name, const char* text)
 //     }
 //     g_string_count -= 1;
 // }
-
-// ------------------------------------------------------------------------------------------------ //
-// CANNON FUNCTIONS
-// ------------------------------------------------------------------------------------------------ //
-void set_cannon_name_id(u32 index, u32 name_id)
-{
-    if (index >= MAX_CANNONS) return;
-    if (name_id >= MAX_STRINGS) return;
-    g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_NAME_ID] = name_id;
-}
-u32 get_cannon_name_id(u32 index)
-{
-    if (index >= MAX_CANNONS) return SENTRY;
-    return g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_NAME_ID];
-}
-const char* get_cannon_machine_name(u32 index)
-{
-    if (index >= MAX_CANNONS) return "";
-    u32 name_id = get_cannon_name_id(index);
-    return get_string_machine_name(name_id);
-}
-const char* get_cannon_text(u32 index)
-{
-    if (index >= MAX_CANNONS) return "";
-    u32 name_id = get_cannon_name_id(index);
-    return get_string_text(name_id);
-}
-void set_cannon_range(u32 index, u32 range)
-{
-    if (index >= MAX_CANNONS) return;
-    g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_RANGE] = range;
-}
-u32 get_cannon_range(u32 index)
-{
-    if (index >= MAX_CANNONS) return SENTRY;
-    return g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_RANGE];
-}
-void set_cannon_power(u32 index, u32 power)
-{
-    if (index >= MAX_CANNONS) return;
-    g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_POWER] = power;
-}
-u32 get_cannon_power(u32 index)
-{
-    if (index >= MAX_CANNONS) return SENTRY;
-    return g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_POWER];
-}
-void set_cannon_base_price(u32 index, u32 base_price)
-{
-    if (index >= MAX_CANNONS) return;
-    g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_BASE_PRICE] = base_price;
-}
-u32 get_cannon_base_price(u32 index)
-{
-    if (index >= MAX_CANNONS) return SENTRY;
-    return g_cannon_data[index * (u32)CANNON_DATA_SIZE + (u32)CANNON_BASE_PRICE];
-}
-u32 get_cannon_pointer(u32 index)
-{
-    if (index >= MAX_CANNONS) return SENTRY;
-    return (u32)&g_cannon_data[index * (u32)CANNON_DATA_SIZE];
-}
-u32 get_cannon_length(void)
-{
-    return CANNON_DATA_SIZE;
-}
 
 // ------------------------------------------------------------------------------------------------ //
 // DISTANCES
@@ -3313,32 +3242,32 @@ void move_world_npc_down(u32 world_npc_id)
 u32 get_player_gold(u32 player_id)
 {
     u32 captain_id = players[player_id];
-    return g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD];
+    return get_captain_gold(captain_id);
 }
 void set_player_gold(u32 player_id, u32 value)
 {
     u32 captain_id = players[player_id];
-    g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD] = value;
+    set_captain_gold(captain_id, value);
 }
 void subtract_player_gold(u32 player_id, u32 value)
 {
     u32 captain_id = players[player_id];
-    g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD] -= value;
+    reduce_captain_gold(captain_id, value);
 }
 void add_player_gold(u32 player_id, u32 value)
 {
     u32 captain_id = players[player_id];
-    g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_GOLD] -= value;
+    increase_captain_gold(captain_id, value);
 }
 u32 get_player_npc_id(u32 player_id)
 {
     u32 captain_id = players[player_id];
-    return g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_NPC_ID];
+    return get_captain_npc_id(captain_id);
 }
 u32 get_player_inventory_id(u32 player_id)
 {
     u32 captain_id = players[player_id];
-    return g_captain_data[captain_id * CAPTAIN_DATA_SIZE + CAPTAIN_INVENTORY_ID];
+    return get_captain_inventory_id(captain_id);
 }
 u32 get_player_total_items(u32 player_id)
 {
@@ -3542,16 +3471,9 @@ void initialize_game()
 
     init_string_data();
     init_string_info();
-
-    init_data_figurehead();
-    init_data_cannon();
-
     init_data_stats();
     init_data_skill();
-
-    init_data_fleet_captain();
     init_data_bank();
-    init_data_captain();
 
     create_string("empty", "Empty");
     create_string("you_have_x_gold", "You have %d gold.");
@@ -3828,7 +3750,7 @@ void initialize_game()
     captain_data[CAPTAIN_PLAYER_ID] = 0;
     captain_data[CAPTAIN_GOLD] = 99;
     captain_data[CAPTAIN_INVENTORY_ID] = inventory_id;
-    u32 captain_id = create_captain(captain_data, true);
+    u32 captain_id = add_captain(captain_data);
     players[0] = captain_id;
 
     CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
@@ -3840,7 +3762,7 @@ void initialize_game()
     captain_data[CAPTAIN_PLAYER_ID] = 0;
     captain_data[CAPTAIN_GOLD] = 100;
     captain_data[CAPTAIN_INVENTORY_ID] = inventory_id;
-    create_captain(captain_data, true);
+    add_captain(captain_data);
     CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
     inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_lafolie_id);
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
@@ -3850,7 +3772,7 @@ void initialize_game()
     captain_data[CAPTAIN_PLAYER_ID] = 0;
     captain_data[CAPTAIN_GOLD] = 100;
     captain_data[CAPTAIN_INVENTORY_ID] = inventory_id;
-    create_captain(captain_data, true);
+    add_captain(captain_data);
     CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
     inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_nakor_id);
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
@@ -3860,7 +3782,7 @@ void initialize_game()
     captain_data[CAPTAIN_PLAYER_ID] = 0;
     captain_data[CAPTAIN_GOLD] = 100;
     captain_data[CAPTAIN_INVENTORY_ID] = inventory_id;
-    create_captain(captain_data, true);
+    add_captain(captain_data);
     CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
     inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_travis_id);
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
@@ -3870,7 +3792,7 @@ void initialize_game()
     captain_data[CAPTAIN_PLAYER_ID] = 0;
     captain_data[CAPTAIN_GOLD] = 100;
     captain_data[CAPTAIN_INVENTORY_ID] = inventory_id;
-    create_captain(captain_data, true);
+    add_captain(captain_data);
 
     u32 empty_general_item[GENERAL_ITEM_DATA_SIZE];
     CLEAR_DATA(empty_general_item, GENERAL_ITEM_DATA_SIZE);
