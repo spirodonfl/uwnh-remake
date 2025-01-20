@@ -36,74 +36,131 @@ void console_log(const char* message)
 char* string_format(const char* format, ...)
 {
     static char local_buffer[BUFFER_SIZE];
-    char* buf_ptr = local_buffer;
     va_list args;
     va_start(args, format);
     
+    // Zero out buffer
+    for (u32 i = 0; i < BUFFER_SIZE; i++) {
+        local_buffer[i] = '\0';
+    }
+    
+    // First pass: collect arguments
+    void* arg_values[BUFFER_SIZE/8];
+    int arg_count = 0;
+    
     const char* fmt_ptr = format;
-    while (*fmt_ptr && (buf_ptr - local_buffer) < BUFFER_SIZE - 1)
+    while (*fmt_ptr)
     {
-        if (*fmt_ptr != '%')
+        if (*fmt_ptr == '%')
         {
-            *buf_ptr++ = *fmt_ptr++;
-            continue;
-        }
-        
-        fmt_ptr++; // Skip '%'
-        switch (*fmt_ptr)
-        {
-            case 'd':
+            fmt_ptr++;
+            switch (*fmt_ptr)
             {
-                int val = va_arg(args, int);
-                
-                if (val == 0)
-                {
-                    *buf_ptr++ = '0';
+                case 'd':
+                    arg_values[arg_count++] = (void*)(long)va_arg(args, int);
                     break;
-                }
-                
-                char num_buffer[12];
-                char* num_ptr = num_buffer;
-                
-                if (val < 0)
-                {
-                    *buf_ptr++ = '-';
-                    val = -val;
-                }
-                
-                while (val > 0)
-                {
-                    *num_ptr++ = '0' + (val % 10);
-                    val /= 10;
-                }
-                
-                while (num_ptr > num_buffer)
-                {
-                    *buf_ptr++ = *--num_ptr;
-                }
-                break;
-            }
-            case 's':
-            {
-                char* str = va_arg(args, char*);
-                while (*str && (buf_ptr - local_buffer) < BUFFER_SIZE - 1)
-                {
-                    *buf_ptr++ = *str++;
-                }
-                break;
-            }
-            case 'c':
-            {
-                char c = (char)va_arg(args, int);
-                *buf_ptr++ = c;
-                break;
+                case 's':
+                    arg_values[arg_count++] = va_arg(args, char*);
+                    break;
+                case 'c':
+                    arg_values[arg_count++] = (void*)(long)va_arg(args, int);
+                    break;
             }
         }
         fmt_ptr++;
     }
-    
-    *buf_ptr = '\0';
     va_end(args);
+    
+    // Second pass: format the string
+    u32 pos = 0;
+    const char* p = format;
+    int current_arg = 0;
+    bool in_format = false;
+    
+    while (*p && pos < BUFFER_SIZE - 1) 
+    {
+        if (*p == '%') 
+        {
+            in_format = true;
+            p++;
+            continue;
+        }
+        
+        if (in_format)
+        {
+            if (*p == 'd') 
+            {
+                int val = (int)(long)arg_values[current_arg++];
+                
+                // Handle negative numbers
+                if (val < 0) 
+                {
+                    local_buffer[pos++] = '-';
+                    val = -val;
+                }
+                
+                // Convert to temporary buffer first
+                char temp[12];
+                u32 temp_pos = 0;
+                
+                // Handle zero case
+                if (val == 0) 
+                {
+                    temp[temp_pos++] = '0';
+                }
+                else 
+                {
+                    // Convert to digits
+                    while (val > 0 && temp_pos < 11) 
+                    {
+                        temp[temp_pos++] = '0' + (val % 10);
+                        val /= 10;
+                    }
+                    
+                    // Reverse the digits
+                    for (u32 i = 0; i < temp_pos / 2; i++) 
+                    {
+                        char t = temp[i];
+                        temp[i] = temp[temp_pos - 1 - i];
+                        temp[temp_pos - 1 - i] = t;
+                    }
+                }
+                
+                // Copy to main buffer
+                for (u32 i = 0; i < temp_pos; i++) 
+                {
+                    local_buffer[pos++] = temp[i];
+                }
+                
+                in_format = false;
+            }
+            else if (*p == 's') 
+            {
+                const char* str = (const char*)arg_values[current_arg++];
+                if (str) 
+                {
+                    while (*str && pos < BUFFER_SIZE - 1) 
+                    {
+                        local_buffer[pos++] = *str++;
+                    }
+                }
+                in_format = false;
+            }
+            else 
+            {
+                local_buffer[pos++] = '%';
+                local_buffer[pos++] = *p;
+                in_format = false;
+            }
+        }
+        else 
+        {
+            local_buffer[pos++] = *p;
+        }
+        p++;
+    }
+    
+    local_buffer[pos] = '\0';
     return local_buffer;
 }
 void console_log_format(const char* format, ...)
@@ -143,7 +200,9 @@ void console_log_format(const char* format, ...)
     va_start(args, format);
     // Note: LIMITED arguments but, hey
     char* formatted = string_format(format, arg_values[0], arg_values[1], 
-                                  arg_values[2], arg_values[3], arg_values[4]);
+                                  arg_values[2], arg_values[3], arg_values[4],
+                                  arg_values[5], arg_values[6], arg_values[7],
+                                  arg_values[8], arg_values[9]);
     va_end(args);
     
     console_log(formatted);
@@ -172,7 +231,27 @@ u32 max(u32 a, u32 b)
     }; \
     struct Storage##CAMEL##s g_storage_##LOWERSCORE##s;
 
-#define FIND_NEXT_OPEN_SLOT(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT) \
+#define STORAGE_OPEN_SLOT_FUNCS(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT) \
+    u32 get_storage_##LOWERSCORE##s_next_open_slot() \
+    { \
+        return g_storage_##LOWERSCORE##s.next_open_slot; \
+    } \
+    u32 pull_storage_##LOWERSCORE##s_next_open_slot() \
+    { \
+        u32 current_count = g_storage_##LOWERSCORE##s.count; \
+        if (current_count + 1 >= MAX_COUNT) \
+        { \
+            console_log("[E] No more room left in " #LOWERSCORE " to add a new entry"); \
+            return SENTRY; \
+        } \
+        u32 current_open_slot = g_storage_##LOWERSCORE##s.next_open_slot; \
+        g_storage_##LOWERSCORE##s.used[current_open_slot] = true; \
+        ++g_storage_##LOWERSCORE##s.count; \
+        find_next_##LOWERSCORE##_open_slot(); \
+        return current_open_slot; \
+    }
+
+#define SLOT_FUNCS(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT) \
     u32 find_next_##LOWERSCORE##_open_slot() \
     { \
         for (u32 i = 0; i < MAX_COUNT; ++i) \
@@ -184,9 +263,27 @@ u32 max(u32 a, u32 b)
             } \
         } \
         return SENTRY; \
+    } \
+    u32 get_storage_##LOWERSCORE##s_next_open_slot() \
+    { \
+        return g_storage_##LOWERSCORE##s.next_open_slot; \
+    } \
+    u32 pull_storage_##LOWERSCORE##s_next_open_slot() \
+    { \
+        u32 current_count = g_storage_##LOWERSCORE##s.count; \
+        if (current_count + 1 >= MAX_COUNT) \
+        { \
+            console_log("[E] No more room left in " #LOWERSCORE " to add a new entry"); \
+            return SENTRY; \
+        } \
+        u32 current_open_slot = g_storage_##LOWERSCORE##s.next_open_slot; \
+        g_storage_##LOWERSCORE##s.used[current_open_slot] = true; \
+        ++g_storage_##LOWERSCORE##s.count; \
+        find_next_##LOWERSCORE##_open_slot(); \
+        return current_open_slot; \
     }
 
-#define STORAGE_CLEAR(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT) \
+#define STORAGE_FUNCS(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT) \
     void clear_storage_##LOWERSCORE() \
     { \
         u32 total = MAX_COUNT * UPPERSCORE##_DATA_SIZE; \
@@ -194,9 +291,7 @@ u32 max(u32 a, u32 b)
         { \
             g_storage_##LOWERSCORE##s.data[i] = SENTRY; \
         } \
-    }
-
-#define STORAGE_ADD(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT) \
+    } \
     u32 add_##LOWERSCORE(u32 data[UPPERSCORE##_DATA_SIZE]) \
     { \
         u32 intended_count = g_storage_##LOWERSCORE##s.count + 1; \
@@ -215,9 +310,7 @@ u32 max(u32 a, u32 b)
         ++g_storage_##LOWERSCORE##s.count; \
         find_next_##LOWERSCORE##_open_slot(); \
         return id; \
-    }
-
-#define STORAGE_REMOVE(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT) \
+    } \
     void remove_##LOWERSCORE(u32 id) \
     { \
         if (id >= MAX_COUNT || g_storage_##LOWERSCORE##s.used[id] == false) \
@@ -269,7 +362,7 @@ u32 max(u32 a, u32 b)
     { \
         if (value > get_##LOWERSCORE##_##LOWERFIELD(id)) \
         { \
-            set_##LOWERSCORE##_##LOWERFIELD(id, value); \
+            set_##LOWERSCORE##_##LOWERFIELD(id, 0); \
         } \
         else \
         { \
@@ -500,9 +593,15 @@ u32 get_string_id_by_machine_name(const char* machine_name)
 }
 const char* get_string_text(u32 index)
 {
-    if (index >= MAX_STRINGS) return "";
+    if (index >= MAX_STRINGS)
+    {
+        console_log("[E] Tried to get a string index greater than max strings");
+        return "";
+    }
     u32 offset = index * MAX_STRING_LENGTH * 2;
-    u32 info_offset = offset + STRING_DATA_SIZE;
+    // So we skip the machine name which is the first portion
+    offset += MAX_STRING_LENGTH;
+    u32 info_offset = index * STRING_DATA_SIZE;
     u32 length = g_string_info[info_offset + STRING_TEXT_LENGTH];
     char slice[length + 1];
     for (u32 j = 0; j < length; j += 1)
@@ -601,7 +700,7 @@ u32 create_string(const char* machine_name, const char* text)
             u32 string_offset = i * (MAX_STRING_LENGTH * 2);
             
             // Clear the memory first
-            for (u32 j = 0; j < MAX_STRING_LENGTH * 2; j++)
+            for (u32 j = 0; j < MAX_STRING_LENGTH * 2; ++j)
             {
                 g_string_data[string_offset + j] = '\0';
             }
@@ -620,6 +719,26 @@ u32 create_string(const char* machine_name, const char* text)
         }
     }
     return SENTRY;
+}
+void clear_string_by_id(u32 string_id)
+{
+    u32 info_offset = string_id * STRING_DATA_SIZE;
+    if (g_string_info[info_offset + STRING_MACHINE_NAME_LENGTH] != SENTRY)
+    {
+        // Calculate the offset for string data
+        u32 string_offset = string_id * (MAX_STRING_LENGTH * 2);
+        
+        // Clear the memory first
+        for (u32 j = 0; j < MAX_STRING_LENGTH * 2; ++j)
+        {
+            g_string_data[string_offset + j] = '\0';
+        }
+        
+        // Zero out lengths
+        g_string_info[info_offset + STRING_MACHINE_NAME_LENGTH] = SENTRY;
+        g_string_info[info_offset + STRING_TEXT_LENGTH] = SENTRY;
+        --g_string_count;
+    }
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -708,10 +827,8 @@ enum NPCData
     NPC_DATA_SIZE,
 };
 STORAGE_STRUCT(NPC, npc, NPC, MAX_NPCS)
-FIND_NEXT_OPEN_SLOT(NPC, npc, NPC, MAX_NPCS)
-STORAGE_CLEAR(NPC, npc, NPC, MAX_NPCS)
-STORAGE_ADD(NPC, npc, NPC, MAX_NPCS)
-STORAGE_REMOVE(NPC, npc, NPC, MAX_NPCS)
+SLOT_FUNCS(NPC, npc, NPC, MAX_NPCS)
+STORAGE_FUNCS(NPC, npc, NPC, MAX_NPCS)
 GENERATE_FIELD_ACCESSORS(NPC, npc, NPC, MAX_NPCS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(NPC, npc, NPC, MAX_NPCS, type, TYPE)
 GET_BY_STRING_ID(NPC, npc, NPC, MAX_NPCS)
@@ -724,10 +841,8 @@ enum GeneralItemData
     GENERAL_ITEM_DATA_SIZE,
 };
 STORAGE_STRUCT(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
-FIND_NEXT_OPEN_SLOT(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
-STORAGE_CLEAR(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
-STORAGE_ADD(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
-STORAGE_REMOVE(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
+SLOT_FUNCS(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
+STORAGE_FUNCS(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
 GENERATE_FIELD_ACCESSORS(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS, base_price, BASE_PRICE)
 GET_BY_STRING_ID(GeneralItem, general_item, GENERAL_ITEM, MAX_GENERAL_ITEMS)
@@ -745,10 +860,8 @@ enum BaseShipData
     BASE_SHIP_DATA_SIZE,
 };
 STORAGE_STRUCT(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
-FIND_NEXT_OPEN_SLOT(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
-STORAGE_CLEAR(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
-STORAGE_ADD(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
-STORAGE_REMOVE(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
+SLOT_FUNCS(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
+STORAGE_FUNCS(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS)
 GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS, top_material_id, TOP_MATERIAL_ID)
 GENERATE_FIELD_ACCESSORS(BaseShip, base_ship, BASE_SHIP, MAX_BASE_SHIPS, base_price, BASE_PRICE)
@@ -776,10 +889,8 @@ enum ShipData
     SHIP_DATA_SIZE,
 };
 STORAGE_STRUCT(Ship, ship, SHIP, MAX_SHIPS)
-FIND_NEXT_OPEN_SLOT(Ship, ship, SHIP, MAX_SHIPS)
-STORAGE_CLEAR(Ship, ship, SHIP, MAX_SHIPS)
-STORAGE_ADD(Ship, ship, SHIP, MAX_SHIPS)
-STORAGE_REMOVE(Ship, ship, SHIP, MAX_SHIPS)
+SLOT_FUNCS(Ship, ship, SHIP, MAX_SHIPS)
+STORAGE_FUNCS(Ship, ship, SHIP, MAX_SHIPS)
 GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, base_ship_id, BASE_SHIP_ID)
 GENERATE_FIELD_ACCESSORS(Ship, ship, SHIP, MAX_SHIPS, price, PRICE)
@@ -808,10 +919,8 @@ enum ShipMaterialData
     SHIP_MATERIAL_DATA_SIZE,
 };
 STORAGE_STRUCT(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
-FIND_NEXT_OPEN_SLOT(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
-STORAGE_CLEAR(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
-STORAGE_ADD(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
-STORAGE_REMOVE(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
+SLOT_FUNCS(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
+STORAGE_FUNCS(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS)
 GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS, base_price, BASE_PRICE)
 GENERATE_FIELD_ACCESSORS(ShipMaterial, ship_material, SHIP_MATERIAL, MAX_SHIP_MATERIALS, mod_power, MOD_POWER)
@@ -828,10 +937,8 @@ enum GoodData
     GOOD_DATA_SIZE,
 };
 STORAGE_STRUCT(Good, good, GOOD, MAX_GOODS)
-FIND_NEXT_OPEN_SLOT(Good, good, GOOD, MAX_GOODS)
-STORAGE_CLEAR(Good, good, GOOD, MAX_GOODS)
-STORAGE_ADD(Good, good, GOOD, MAX_GOODS)
-STORAGE_REMOVE(Good, good, GOOD, MAX_GOODS)
+SLOT_FUNCS(Good, good, GOOD, MAX_GOODS)
+STORAGE_FUNCS(Good, good, GOOD, MAX_GOODS)
 GENERATE_FIELD_ACCESSORS(Good, good, GOOD, MAX_GOODS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(Good, good, GOOD, MAX_GOODS, base_price, BASE_PRICE)
 GET_BY_STRING_ID(Good, good, GOOD, MAX_GOODS)
@@ -845,10 +952,8 @@ enum WeaponData
     WEAPON_DATA_SIZE,
 };
 STORAGE_STRUCT(Weapon, weapon, WEAPON, MAX_WEAPONS)
-FIND_NEXT_OPEN_SLOT(Weapon, weapon, WEAPON, MAX_WEAPONS)
-STORAGE_CLEAR(Weapon, weapon, WEAPON, MAX_WEAPONS)
-STORAGE_ADD(Weapon, weapon, WEAPON, MAX_WEAPONS)
-STORAGE_REMOVE(Weapon, weapon, WEAPON, MAX_WEAPONS)
+SLOT_FUNCS(Weapon, weapon, WEAPON, MAX_WEAPONS)
+STORAGE_FUNCS(Weapon, weapon, WEAPON, MAX_WEAPONS)
 GENERATE_FIELD_ACCESSORS(Weapon, weapon, WEAPON, MAX_WEAPONS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(Weapon, weapon, WEAPON, MAX_WEAPONS, base_price, BASE_PRICE)
 GENERATE_FIELD_ACCESSORS(Weapon, weapon, WEAPON, MAX_WEAPONS, power, POWER)
@@ -863,10 +968,8 @@ enum ArmorData
     ARMOR_DATA_SIZE,
 };
 STORAGE_STRUCT(Armor, armor, ARMOR, MAX_ARMORS)
-FIND_NEXT_OPEN_SLOT(Armor, armor, ARMOR, MAX_ARMORS)
-STORAGE_CLEAR(Armor, armor, ARMOR, MAX_ARMORS)
-STORAGE_ADD(Armor, armor, ARMOR, MAX_ARMORS)
-STORAGE_REMOVE(Armor, armor, ARMOR, MAX_ARMORS)
+SLOT_FUNCS(Armor, armor, ARMOR, MAX_ARMORS)
+STORAGE_FUNCS(Armor, armor, ARMOR, MAX_ARMORS)
 GENERATE_FIELD_ACCESSORS(Armor, armor, ARMOR, MAX_ARMORS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(Armor, armor, ARMOR, MAX_ARMORS, base_price, BASE_PRICE)
 GENERATE_FIELD_ACCESSORS(Armor, armor, ARMOR, MAX_ARMORS, defense, DEFENSE)
@@ -880,10 +983,8 @@ enum SpecialItemData
     SPECIAL_ITEM_DATA_SIZE,
 };
 STORAGE_STRUCT(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
-FIND_NEXT_OPEN_SLOT(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
-STORAGE_CLEAR(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
-STORAGE_ADD(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
-STORAGE_REMOVE(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
+SLOT_FUNCS(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
+STORAGE_FUNCS(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
 GENERATE_FIELD_ACCESSORS(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS, base_price, BASE_PRICE)
 GET_BY_STRING_ID(SpecialItem, special_item, SPECIAL_ITEM, MAX_SPECIAL_ITEMS)
@@ -900,10 +1001,8 @@ enum WorldData
     WORLD_DATA_SIZE,
 };
 STORAGE_STRUCT(World, world, WORLD, MAX_WORLDS)
-FIND_NEXT_OPEN_SLOT(World, world, WORLD, MAX_WORLDS)
-STORAGE_CLEAR(World, world, WORLD, MAX_WORLDS)
-STORAGE_ADD(World, world, WORLD, MAX_WORLDS)
-STORAGE_REMOVE(World, world, WORLD, MAX_WORLDS)
+SLOT_FUNCS(World, world, WORLD, MAX_WORLDS)
+STORAGE_FUNCS(World, world, WORLD, MAX_WORLDS)
 GENERATE_FIELD_ACCESSORS(World, world, WORLD, MAX_WORLDS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(World, world, WORLD, MAX_WORLDS, width, WIDTH)
 GENERATE_FIELD_ACCESSORS(World, world, WORLD, MAX_WORLDS, height, HEIGHT)
@@ -930,10 +1029,8 @@ enum WorldNPCData
     WORLD_NPC_DATA_SIZE,
 };
 STORAGE_STRUCT(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
-FIND_NEXT_OPEN_SLOT(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
-STORAGE_CLEAR(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
-STORAGE_ADD(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
-STORAGE_REMOVE(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
+SLOT_FUNCS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
+STORAGE_FUNCS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS)
 GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS, npc_id, NPC_ID)
 GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS, captain_id, CAPTAIN_ID)
 GENERATE_FIELD_ACCESSORS(WorldNPC, world_npc, WORLD_NPC, MAX_WORLD_NPCS, position_x, POSITION_X)
@@ -980,10 +1077,8 @@ enum CaptainData
     CAPTAIN_DATA_SIZE,
 };
 STORAGE_STRUCT(Captain, captain, CAPTAIN, MAX_CAPTAINS)
-FIND_NEXT_OPEN_SLOT(Captain, captain, CAPTAIN, MAX_CAPTAINS)
-STORAGE_CLEAR(Captain, captain, CAPTAIN, MAX_CAPTAINS)
-STORAGE_ADD(Captain, captain, CAPTAIN, MAX_CAPTAINS)
-STORAGE_REMOVE(Captain, captain, CAPTAIN, MAX_CAPTAINS)
+SLOT_FUNCS(Captain, captain, CAPTAIN, MAX_CAPTAINS)
+STORAGE_FUNCS(Captain, captain, CAPTAIN, MAX_CAPTAINS)
 GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, npc_id, NPC_ID)
 GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, world_npc_id, WORLD_NPC_ID)
 GENERATE_FIELD_ACCESSORS(Captain, captain, CAPTAIN, MAX_CAPTAINS, in_world, IN_WORLD)
@@ -1042,10 +1137,8 @@ enum LayerData
     LAYER_DATA_SIZE,
 };
 STORAGE_STRUCT(Layer, layer, LAYER, MAX_LAYERS)
-FIND_NEXT_OPEN_SLOT(Layer, layer, LAYER, MAX_LAYERS)
-STORAGE_CLEAR(Layer, layer, LAYER, MAX_LAYERS)
-STORAGE_ADD(Layer, layer, LAYER, MAX_LAYERS)
-STORAGE_REMOVE(Layer, layer, LAYER, MAX_LAYERS)
+SLOT_FUNCS(Layer, layer, LAYER, MAX_LAYERS)
+STORAGE_FUNCS(Layer, layer, LAYER, MAX_LAYERS)
 GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, MAX_LAYERS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, MAX_LAYERS, global_world_data_offset, GLOBAL_WORLD_DATA_OFFSET)
 GENERATE_FIELD_ACCESSORS(Layer, layer, LAYER, MAX_LAYERS, width, WIDTH)
@@ -1074,10 +1167,8 @@ enum InventoryData
     INVENTORY_DATA_SIZE,
 };
 STORAGE_STRUCT(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
-FIND_NEXT_OPEN_SLOT(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
-STORAGE_CLEAR(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
-STORAGE_ADD(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
-STORAGE_REMOVE(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
+SLOT_FUNCS(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
+STORAGE_FUNCS(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
 GENERATE_FIELD_ACCESSORS(Inventory, inventory, INVENTORY, MAX_INVENTORIES, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(Inventory, inventory, INVENTORY, MAX_INVENTORIES, total_items, TOTAL_ITEMS)
 GET_BY_STRING_ID(Inventory, inventory, INVENTORY, MAX_INVENTORIES)
@@ -1097,10 +1188,8 @@ enum InventoryItemData
     INVENTORY_ITEM_DATA_SIZE,
 };
 STORAGE_STRUCT(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
-FIND_NEXT_OPEN_SLOT(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
-STORAGE_CLEAR(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
-STORAGE_ADD(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
-STORAGE_REMOVE(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
+SLOT_FUNCS(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
+STORAGE_FUNCS(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS)
 GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS, number_held, NUMBER_HELD)
 GENERATE_FIELD_ACCESSORS(InventoryItem, inventory_item, INVENTORY_ITEM, MAX_INVENTORY_ITEMS, adjusted_price, ADJUSTED_PRICE)
@@ -1124,10 +1213,8 @@ enum PortData
     PORT_DATA_SIZE,
 };
 STORAGE_STRUCT(Port, port, PORT, MAX_PORTS)
-FIND_NEXT_OPEN_SLOT(Port, port, PORT, MAX_PORTS)
-STORAGE_CLEAR(Port, port, PORT, MAX_PORTS)
-STORAGE_ADD(Port, port, PORT, MAX_PORTS)
-STORAGE_REMOVE(Port, port, PORT, MAX_PORTS)
+SLOT_FUNCS(Port, port, PORT, MAX_PORTS)
+STORAGE_FUNCS(Port, port, PORT, MAX_PORTS)
 GENERATE_FIELD_ACCESSORS(Port, port, PORT, MAX_PORTS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(Port, port, PORT, MAX_PORTS, global_location_x, GLOBAL_LOCATION_X)
 GENERATE_FIELD_ACCESSORS(Port, port, PORT, MAX_PORTS, global_location_y, GLOBAL_LOCATION_Y)
@@ -1152,10 +1239,8 @@ enum StatsData
     STATS_DATA_SIZE,
 };
 STORAGE_STRUCT(Stats, stats, STATS, MAX_STATS)
-FIND_NEXT_OPEN_SLOT(Stats, stats, STATS, MAX_STATS)
-STORAGE_CLEAR(Stats, stats, STATS, MAX_STATS)
-STORAGE_ADD(Stats, stats, STATS, MAX_STATS)
-STORAGE_REMOVE(Stats, stats, STATS, MAX_STATS)
+SLOT_FUNCS(Stats, stats, STATS, MAX_STATS)
+STORAGE_FUNCS(Stats, stats, STATS, MAX_STATS)
 GENERATE_FIELD_ACCESSORS(Stats, stats, STATS, MAX_STATS, battle_level, BATTLE_LEVEL)
 GENERATE_FIELD_ACCESSORS(Stats, stats, STATS, MAX_STATS, navigation_level, NAVIGATION_LEVEL)
 GENERATE_FIELD_ACCESSORS(Stats, stats, STATS, MAX_STATS, leadership, LEADERSHIP)
@@ -1174,10 +1259,8 @@ enum SkillData
     SKILL_DATA_SIZE,
 };
 STORAGE_STRUCT(Skill, skill, SKILL, MAX_SKILLS)
-FIND_NEXT_OPEN_SLOT(Skill, skill, SKILL, MAX_SKILLS)
-STORAGE_CLEAR(Skill, skill, SKILL, MAX_SKILLS)
-STORAGE_ADD(Skill, skill, SKILL, MAX_SKILLS)
-STORAGE_REMOVE(Skill, skill, SKILL, MAX_SKILLS)
+SLOT_FUNCS(Skill, skill, SKILL, MAX_SKILLS)
+STORAGE_FUNCS(Skill, skill, SKILL, MAX_SKILLS)
 GENERATE_FIELD_ACCESSORS(Skill, skill, SKILL, MAX_SKILLS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(Skill, skill, SKILL, MAX_SKILLS, stats_requirements, STATS_REQUIREMENTS)
 GET_BY_STRING_ID(Skill, skill, SKILL, MAX_SKILLS)
@@ -1195,10 +1278,8 @@ enum EntityData
     ENTITY_DATA_SIZE,
 };
 STORAGE_STRUCT(Entity, entity, ENTITY, MAX_ENTITIES)
-FIND_NEXT_OPEN_SLOT(Entity, entity, ENTITY, MAX_ENTITIES)
-STORAGE_CLEAR(Entity, entity, ENTITY, MAX_ENTITIES)
-STORAGE_ADD(Entity, entity, ENTITY, MAX_ENTITIES)
-STORAGE_REMOVE(Entity, entity, ENTITY, MAX_ENTITIES)
+SLOT_FUNCS(Entity, entity, ENTITY, MAX_ENTITIES)
+STORAGE_FUNCS(Entity, entity, ENTITY, MAX_ENTITIES)
 GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, MAX_ENTITIES, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, MAX_ENTITIES, is_interactable, IS_INTERACTABLE)
 GENERATE_FIELD_ACCESSORS(Entity, entity, ENTITY, MAX_ENTITIES, is_solid, IS_SOLID)
@@ -1220,10 +1301,8 @@ enum FleetData
     FLEET_DATA_SIZE,
 };
 STORAGE_STRUCT(Fleet, fleet, FLEET, MAX_FLEETS)
-FIND_NEXT_OPEN_SLOT(Fleet, fleet, FLEET, MAX_FLEETS)
-STORAGE_CLEAR(Fleet, fleet, FLEET, MAX_FLEETS)
-STORAGE_ADD(Fleet, fleet, FLEET, MAX_FLEETS)
-STORAGE_REMOVE(Fleet, fleet, FLEET, MAX_FLEETS)
+SLOT_FUNCS(Fleet, fleet, FLEET, MAX_FLEETS)
+STORAGE_FUNCS(Fleet, fleet, FLEET, MAX_FLEETS)
 GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, MAX_FLEETS, total_ships, TOTAL_SHIPS)
 GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, MAX_FLEETS, total_captains, TOTAL_CAPTAINS)
 GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, MAX_FLEETS, first_mate_id, FIRST_MATE_ID)
@@ -1231,6 +1310,7 @@ GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, MAX_FLEETS, accountant_id, ACCOUNT
 GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, MAX_FLEETS, navigator_id, NAVIGATOR_ID)
 GENERATE_FIELD_ACCESSORS(Fleet, fleet, FLEET, MAX_FLEETS, general_id, GENERAL_ID)
 FIELD_INCREMENT(Fleet, fleet, FLEET, total_ships, TOTAL_SHIPS)
+u32 mda_fleet_ship[MAX_FLEETS][MAX_FLEET_SHIPS];
 
 enum FleetShipData
 {
@@ -1239,10 +1319,8 @@ enum FleetShipData
     FLEET_SHIP_DATA_SIZE,
 };
 STORAGE_STRUCT(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS)
-FIND_NEXT_OPEN_SLOT(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS)
-STORAGE_CLEAR(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS)
-STORAGE_ADD(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS)
-STORAGE_REMOVE(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS)
+SLOT_FUNCS(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS)
+STORAGE_FUNCS(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS)
 GENERATE_FIELD_ACCESSORS(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS, ship_id, SHIP_ID)
 GENERATE_FIELD_ACCESSORS(FleetShip, fleet_ship, FLEET_SHIP, MAX_FLEET_SHIPS, fleet_id, FLEET_ID)
 
@@ -1253,10 +1331,8 @@ enum FleetCaptainData
     FLEET_CAPTAIN_DATA_SIZE,
 };
 STORAGE_STRUCT(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS)
-FIND_NEXT_OPEN_SLOT(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS)
-STORAGE_CLEAR(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS)
-STORAGE_ADD(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS)
-STORAGE_REMOVE(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS)
+SLOT_FUNCS(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS)
+STORAGE_FUNCS(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS)
 GENERATE_FIELD_ACCESSORS(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS, captain_id, CAPTAIN_ID)
 GENERATE_FIELD_ACCESSORS(FleetCaptain, fleet_captain, FLEET_CAPTAIN, MAX_FLEET_CAPTAINS, fleet_id, FLEET_ID)
 
@@ -1269,10 +1345,8 @@ enum CannonData
     CANNON_DATA_SIZE,
 };
 STORAGE_STRUCT(Cannon, cannon, CANNON, MAX_CANNONS)
-FIND_NEXT_OPEN_SLOT(Cannon, cannon, CANNON, MAX_CANNONS)
-STORAGE_CLEAR(Cannon, cannon, CANNON, MAX_CANNONS)
-STORAGE_ADD(Cannon, cannon, CANNON, MAX_CANNONS)
-STORAGE_REMOVE(Cannon, cannon, CANNON, MAX_CANNONS)
+SLOT_FUNCS(Cannon, cannon, CANNON, MAX_CANNONS)
+STORAGE_FUNCS(Cannon, cannon, CANNON, MAX_CANNONS)
 GENERATE_FIELD_ACCESSORS(Cannon, cannon, CANNON, MAX_CANNONS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(Cannon, cannon, CANNON, MAX_CANNONS, range, RANGE)
 GENERATE_FIELD_ACCESSORS(Cannon, cannon, CANNON, MAX_CANNONS, power, POWER)
@@ -1285,10 +1359,8 @@ enum FigureheadData
     FIGUREHEAD_DATA_SIZE,
 };
 STORAGE_STRUCT(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS)
-FIND_NEXT_OPEN_SLOT(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS)
-STORAGE_CLEAR(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS)
-STORAGE_ADD(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS)
-STORAGE_REMOVE(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS)
+SLOT_FUNCS(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS)
+STORAGE_FUNCS(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS)
 GENERATE_FIELD_ACCESSORS(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS, name_id, NAME_ID)
 GENERATE_FIELD_ACCESSORS(Figurehead, figurehead, FIGUREHEAD, MAX_FIGUREHEADS, base_price, BASE_PRICE)
 
@@ -1511,7 +1583,9 @@ enum OceanBattleData
     OCEAN_BATTLE_DATA_INITIALIZED,
     OCEAN_BATTLE_DATA_WORLD_ID,
     OCEAN_BATTLE_DATA_WORLD_NAME_ID,
+    // TODO: We don't seem to be using this
     OCEAN_BATTLE_DATA_CURRENT_FLEET_ORDER_ID,
+    // TODO: We don't seem to be using this either
     OCEAN_BATTLE_DATA_CURRENT_SHIP_NTH_ORDER,
     OCEAN_BATTLE_DATA_CURRENT_SHIP_ID,
     OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX,
@@ -1569,7 +1643,10 @@ u32 accepting_input = false;
 // Previous game mode
 u32 previous_game_mode = SENTRY;
 
-u32 players[10];
+#define MAX_PLAYERS 10
+u32 players[MAX_PLAYERS];
+u32 active_players[MAX_PLAYERS];
+u32 captain_to_player[MAX_CAPTAINS];
 
 u32 CurrentScene[MAX_SCENE_DATA_SIZE];
 u32 CurrentSceneChoices[MAX_SCENE_CHOICES];
@@ -2776,6 +2853,7 @@ void generate_world(char* world_name)
         world_npc_data[WORLD_NPC_IS_INTERACTABLE] = true;
         world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
         world_npc_id = add_world_npc(world_npc_data);
+        
         npc_id = get_player_npc_id(0);
         world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
         world_npc_data[WORLD_NPC_CAPTAIN_ID] = players[0];
@@ -3293,6 +3371,16 @@ void move_player_down(u32 player_id)
 // ------------------------------------------------------------------------------------------------ //
 // FLEETS
 // ------------------------------------------------------------------------------------------------ //
+void clear_mda_fleet_ship()
+{
+    for (u32 f = 0; f < MAX_FLEETS; ++f)
+    {
+        for (u32 s = 0; s < MAX_FLEET_SHIPS; ++s)
+        {
+            mda_fleet_ship[f][s] = SENTRY;
+        }
+    }
+}
 void add_ship_to_fleet(u32 fleet_id, u32 ship_id)
 {
     u32 fleet_ship_data[FLEET_SHIP_DATA_SIZE];
@@ -3301,6 +3389,27 @@ void add_ship_to_fleet(u32 fleet_id, u32 ship_id)
     fleet_ship_data[FLEET_SHIP_SHIP_ID] = ship_id;
     add_fleet_ship(fleet_ship_data);
     increment_fleet_total_ships(fleet_id);
+
+    for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
+    {
+        if (mda_fleet_ship[fleet_id][i] == SENTRY)
+        {
+            mda_fleet_ship[fleet_id][i] = ship_id;
+            break;
+        }
+    }
+}
+// TODO: void remove_ship_from_fleet
+u32 get_fleet_id_by_ship_id(u32 ship_id)
+{
+    for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
+    {
+        if (get_fleet_ship_ship_id(i) == ship_id)
+        {
+            return get_fleet_ship_fleet_id(i);
+        }
+    }
+    return SENTRY;
 }
 u32 get_ship_id_by_fleet_ship_id(u32 ship_id)
 {
@@ -3389,6 +3498,8 @@ void initialize_game()
     init_string_data();
     init_string_info();
     CLEAR_DATA(g_bank_data, BANK_DATA_SIZE);
+    CLEAR_DATA(captain_to_player, MAX_CAPTAINS);
+    clear_mda_fleet_ship();
 
     create_string("empty", "Empty");
     create_string("you_have_x_gold", "You have %d gold.");
@@ -3463,12 +3574,14 @@ void initialize_game()
     create_string("blackjack_dealer_won", "Oof! Better luck next time jabroni.");
     create_string("buy_complete", "Thank you for your purchase");
     create_string("sell_complete", "I'll take those items off your hands. Here is your gold.");
+
     create_string("in_ocean", "In Ocean");
     create_string("in_scene", "In Scene");
     create_string("in_ocean_battle", "In Ocean Battle");
     create_string("in_port", "In Port");
     create_string("on_land", "On Land");
     create_string("in_player_menu", "In Player Menu");
+
     create_string("background_layer", "Background Layer");
     create_string("npc_layer", "NPC Layer");
     create_string("block_layer", "Block Layer");
@@ -3479,19 +3592,42 @@ void initialize_game()
     create_string("layer_five", "Layer 5");
     create_string("layer_six", "Layer 6");
     create_string("layer_seven", "Layer 7");
+
     create_string("player_one", "Player 1");
     create_string("player_ones_inventory", "Player 1's Inventory");
+    create_string("player_ones_ship", "Player 1's Ship");
+    create_string("player_two", "Player 1");
+    create_string("player_twos_inventory", "Player 2's Inventory");
+    create_string("player_twos_ship", "Player 2's Ship");
+    create_string("player_three", "Player 1");
+    create_string("player_threes_inventory", "Player 3's Inventory");
+    create_string("player_threes_ship", "Player 3's Ship");
+    create_string("player_four", "Player 1");
+    create_string("player_fours_inventory", "Player 4's Inventory");
+    create_string("player_fours_ship", "Player 4's Ship");
+    create_string("player_five", "Player 1");
+    create_string("player_fives_inventory", "Player 5's Inventory");
+    create_string("player_fives_ship", "Player 5's Ship");
+
     create_string("bank_teller", "Bank Teller");
     create_string("general_shop_owner", "General Shop Owner");
     create_string("general_shop_inventory", "General Shop Inventory");
     create_string("blackjack_player", "Blackjack Player");
+    
+    // - STRINGS - WORLDS
     create_string("athens", "Athens");
+
+    // - STRINGS - ITEMS
     create_string("telescope", "Telescope");
     create_string("quadrant", "Quadrant");
     create_string("theodolite", "Theodolite");
     create_string("sextant", "Sextant");
+
+    // - STRINGS - SHIP MATERIALS
     create_string("beech", "Beech");
     create_string("balsa", "Balsa");
+
+    // - STRINGS - SHIPS
     create_string("hansa_cog", "Hansa Cog");
     create_string("light_galley", "Light Galley");
     create_string("tallette", "Tallette");
@@ -3516,6 +3652,7 @@ void initialize_game()
     create_string("frigate", "Frigate");
     create_string("barge", "Barge");
     create_string("full_rigged_ship", "Full-Rigged Ship");
+
     create_string("seahorse", "Seahorse");
     create_string("commodore", "Commodore");
     create_string("unicorn", "Unicorn");
@@ -3562,7 +3699,7 @@ void initialize_game()
     create_string("fire_cannons", "Fire Cannons");
     create_string("board_ship", "Board Ship");
     create_string("order", "Order");
-    create_string("ocean_battle_players_turn", "Ocean Battle - Players Turn");
+    create_string("ocean_battle_players_turn", "Ocean Battle - Player %ds Turn");
     create_string("ocean_battle_moving", "Ocean Battle - Moving");
     create_string("ocean_battle_victory", "Ocean Battle - VICTORY");
     create_string("scene_npc_rvice", "I suck");
@@ -3659,15 +3796,23 @@ void initialize_game()
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
     u32 inventory_id = add_inventory(inventory_data);
 
+    u32 captain_id = pull_storage_captains_next_open_slot();
+    set_captain_npc_id(captain_id, empty_npc_id);
+    set_captain_player_id(captain_id, 0);
+    set_captain_gold(captain_id, 99);
+    set_captain_inventory_id(captain_id, inventory_id);
+    players[0] = captain_id;
+    captain_to_player[captain_id] = 0;
+    captain_id = pull_storage_captains_next_open_slot();
+    set_captain_npc_id(captain_id, empty_npc_id);
+    set_captain_player_id(captain_id, 0);
+    set_captain_gold(captain_id, 99);
+    set_captain_inventory_id(captain_id, inventory_id);
+    players[1] = captain_id;
+    captain_to_player[captain_id] = 1;
+
     u32 captain_data[CAPTAIN_DATA_SIZE];
     CLEAR_DATA(captain_data, CAPTAIN_DATA_SIZE);
-    captain_data[CAPTAIN_NPC_ID] = empty_npc_id;
-    captain_data[CAPTAIN_PLAYER_ID] = 0;
-    captain_data[CAPTAIN_GOLD] = 99;
-    captain_data[CAPTAIN_INVENTORY_ID] = inventory_id;
-    u32 captain_id = add_captain(captain_data);
-    players[0] = captain_id;
-
     CLEAR_DATA(inventory_data, INVENTORY_DATA_SIZE);
     inventory_data[INVENTORY_NAME_ID] = get_npc_name_id(npc_rvice_id);
     inventory_data[INVENTORY_TOTAL_ITEMS] = 0;
@@ -3720,7 +3865,7 @@ void initialize_game()
     empty_general_item[GENERAL_ITEM_NAME_ID] = get_string_id_by_machine_name("theodolite");
     empty_general_item[GENERAL_ITEM_BASE_PRICE] = 203;
     add_general_item(empty_general_item);
-    empty_general_item[GENERAL_ITEM_NAME_ID] = get_string_id_by_machine_name("theodolite");
+    empty_general_item[GENERAL_ITEM_NAME_ID] = get_string_id_by_machine_name("sextant");
     empty_general_item[GENERAL_ITEM_BASE_PRICE] = 222;
     add_general_item(empty_general_item);
 
@@ -3735,7 +3880,6 @@ void initialize_game()
     base_ship[BASE_SHIP_SPEED] = 100;
     add_base_ship(base_ship);
 
-    // TODO: Import from wells fargo
     g_bank_data[BANK_DEPOSIT_INTEREST_RATE] = 33;
     g_bank_data[BANK_LOAN_INTEREST_RATE] = 69;
     g_bank_data[BANK_FDIC_INSURED] = false;
@@ -3752,14 +3896,11 @@ void test()
 
     u32 base_ship_id = get_base_ship_id_by_machine_name("balsa");
 
-    u32 fleet_data[FLEET_DATA_SIZE];
-    CLEAR_DATA(fleet_data, FLEET_DATA_SIZE);
-    fleet_data[FLEET_TOTAL_SHIPS] = 0;
-    fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
+    u32 fleet_id = pull_storage_fleets_next_open_slot();
+    set_fleet_total_ships(fleet_id, 0);
+    set_fleet_total_captains(fleet_id, 1);
     // TODO: This should be the player captain id. Right now, that happens to be manually set to 0 so we'll just use that for now
-    fleet_data[FLEET_GENERAL_ID] = players[0];
-    u32 fleet_id = add_fleet(fleet_data);
-
+    set_fleet_general_id(fleet_id, players[0]);
     u32 ship[SHIP_DATA_SIZE];
     CLEAR_DATA(ship, SHIP_DATA_SIZE);
     u32 ship_id;
@@ -3774,22 +3915,34 @@ void test()
     ship[SHIP_SPEED] = 100;
     ship[SHIP_CREW] = 100;
     ship[SHIP_HULL] = 99;
+    // function create_ship() { ship_data = []; ship_data["SHIP_NAME_ID"] = string_id("player_ship"); wasm.exports.add_ship(ship_data); }
+    // function create_ship() { ship_id = get_next_ship_available_slot(); set_ship_name_id(ship_id, string_id("player_ship")); take_ship_slot(ship_id); }
+    // function create_fleet() { fleet_id = get_next_fleet_available_slot(); fleet_set_general_id(player[1]); take_fleet_slot(fleet_id); }
     ship_id = add_ship(ship);
     second_ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, ship_id);
     add_ship_to_fleet(fleet_id, second_ship_id);
 
     u32 npc_id;
+    u32 fleet_data[FLEET_DATA_SIZE];
+    CLEAR_DATA(fleet_data, FLEET_DATA_SIZE);
     fleet_data[FLEET_TOTAL_SHIPS] = 0;
     fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
     npc_id = get_npc_id_by_machine_name("npc_rvice");
     fleet_data[FLEET_GENERAL_ID] = npc_id;
     fleet_id = add_fleet(fleet_data);
-    // TODO: This is a weird way to reference ship data and stuff
     ship[SHIP_NAME_ID] = get_string_id_by_machine_name("rvices_ship");
     ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, ship_id);
-    npc_id = get_npc_id_by_machine_name("rvices_ship");
+    second_ship_id = add_ship(ship);
+    add_ship_to_fleet(fleet_id, second_ship_id);
+
+    fleet_id = pull_storage_fleets_next_open_slot();
+    set_fleet_total_ships(fleet_id, 0);
+    set_fleet_total_captains(fleet_id, 1);
+    set_fleet_general_id(fleet_id, players[1]);
+    ship_id = add_ship(ship);
+    add_ship_to_fleet(fleet_id, ship_id);
     second_ship_id = add_ship(ship);
     add_ship_to_fleet(fleet_id, second_ship_id);
 
@@ -3807,7 +3960,7 @@ void test()
 
     fleet_data[FLEET_TOTAL_SHIPS] = 0;
     fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
-    npc_id = get_npc_id_by_machine_name("npc_rvice");
+    npc_id = get_npc_id_by_machine_name("npc_loller");
     fleet_data[FLEET_GENERAL_ID] = npc_id;
     fleet_id = add_fleet(fleet_data);
     ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
@@ -3819,7 +3972,7 @@ void test()
 
     fleet_data[FLEET_TOTAL_SHIPS] = 0;
     fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
-    npc_id = get_npc_id_by_machine_name("npc_rvice");
+    npc_id = get_npc_id_by_machine_name("npc_lafolie");
     fleet_data[FLEET_GENERAL_ID] = npc_id;
     fleet_id = add_fleet(fleet_data);
     ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
@@ -3831,7 +3984,7 @@ void test()
 
     fleet_data[FLEET_TOTAL_SHIPS] = 0;
     fleet_data[FLEET_TOTAL_CAPTAINS] = 1;
-    npc_id = get_npc_id_by_machine_name("npc_rvice");
+    npc_id = get_npc_id_by_machine_name("npc_nakor");
     fleet_data[FLEET_GENERAL_ID] = npc_id;
     fleet_id = add_fleet(fleet_data);
     ship[SHIP_NAME_ID] = get_string_id_by_machine_name("player_ship");
@@ -4915,6 +5068,7 @@ u32 scene_general_shop(u32 action)
 // OCEAN BATTLE
 // ------------------------------------------------------------------------------------------------ //
 #define MAX_OCEAN_BATTLE_FLEETS 10
+u32 ocean_battle_total_fleets = 0;
 static u32 ocean_battle_fleets[MAX_OCEAN_BATTLE_FLEETS];
 static u32 ocean_battle_turn_order[MAX_OCEAN_BATTLE_FLEETS * MAX_FLEET_SHIPS];
 void clear_ocean_battle_data(u32 data[OCEAN_BATTLE_DATA_SIZE])
@@ -4930,6 +5084,7 @@ void clear_ocean_battle_fleets()
     {
         ocean_battle_fleets[i] = SENTRY;
     }
+    ocean_battle_total_fleets = 0;
 }
 void add_fleet_to_battle(u32 fleet_id)
 {
@@ -4938,19 +5093,33 @@ void add_fleet_to_battle(u32 fleet_id)
         if (ocean_battle_fleets[i] == SENTRY)
         {
             ocean_battle_fleets[i] = fleet_id;
+            break;
         }
     }
+    ++ocean_battle_total_fleets;
+}
+u32 get_current_ocean_battle_turn_world_npc_id()
+{
+    return ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+}
+u32 get_current_ocean_battle_turn_player_id()
+{
+    u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
+    u32 ship_id = get_world_npc_entity_id(world_npc_id);
+    u32 fleet_id = get_fleet_id_by_ship_id(ship_id);
+    u32 general_id = get_fleet_general_id(fleet_id);
+    return captain_to_player[general_id];
 }
 u32 ocean_battle_total_targets_within_cannon_range()
 {
-    u32 world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+    u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
     u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
     u32 attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
     u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
     u32 total = SENTRY;
     // TODO: Properly get cannon range
     u32 cannon_range = 8;
-    for (u32 i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    for (u32 i = 0; i < ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY]; ++i)
     {
         if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
         {
@@ -4970,6 +5139,7 @@ u32 ocean_battle_total_targets_within_cannon_range()
             u32 a_y = get_world_npc_position_y(target_npc_id);
             u32 b_x = get_world_npc_position_x(world_npc_id);
             u32 b_y = get_world_npc_position_y(world_npc_id);
+            // TODO: Don't target npcs that are in your own fleet or an ally
             if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, cannon_range))
             {
                 ++total;
@@ -4980,14 +5150,14 @@ u32 ocean_battle_total_targets_within_cannon_range()
 }
 u32 ocean_battle_total_targets_within_boarding_range()
 {
-    u32 world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+    u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
     u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
     u32 attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
     u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
     u32 total = 0;
     // TODO: Properly get cannon range
     u32 boarding_range = 2;
-    for (u32 i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    for (u32 i = 0; i < ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY]; ++i)
     {
         if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
         {
@@ -5010,6 +5180,7 @@ u32 ocean_battle_total_targets_within_boarding_range()
             console_log("ocean battle targets within boarding range");
             console_log_format("target_npc_id:%d %d %d", target_npc_id, a_x, a_y);
             console_log_format("world_npc_id:%d %d %d", world_npc_id, b_x, b_y);
+            // TODO: Don't target ships in fleet or allies
             if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, boarding_range))
             {
                 ++total;
@@ -5018,23 +5189,19 @@ u32 ocean_battle_total_targets_within_boarding_range()
     }
     return total;
 }
-u32 get_current_ocean_battle_turn_npc_id()
-{
-    return ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
-}
 u32 get_current_ocean_battle_turn_npc_x()
 {
-    u32 world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+    u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
     return get_world_npc_position_x(world_npc_id);
 }
 u32 get_current_ocean_battle_turn_npc_y()
 {
-    u32 world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+    u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
     return get_world_npc_position_y(world_npc_id);
 }
 u32 ocean_battle_find_world_npc_id_by_coordinates(u32 x, u32 y)
 {
-    for (u32 i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    for (u32 i = 0; i < ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY]; ++i)
     {
         if (ocean_battle_turn_order[i] != SENTRY)
         {
@@ -5070,7 +5237,6 @@ void ocean_battle_build_valid_move_coordinates()
 {
     u32 x = get_current_ocean_battle_turn_npc_x();
     u32 y = get_current_ocean_battle_turn_npc_y();
-    console_log_format("current turn npc y %d", y);
     // TODO: Why does 5 lead to the right range (of 2)?
     u32 movement_range = 5;
     u32 x_diff = 0;
@@ -5118,7 +5284,11 @@ void ocean_battle_build_valid_move_coordinates()
     {
         for (u32 inner_y = y; inner_y < ((movement_range * 2) + y_diff); ++inner_y)
         {
-            if (ocean_battle_is_world_coordinate_in_ship_movement_range(x, inner_y))
+            if (
+                ocean_battle_is_world_coordinate_in_ship_movement_range(x, inner_y)
+                &&
+                !are_coordinates_blocked(x, inner_y)
+            )
             {
                 ocean_battle_valid_movement_coordinates[iterator] = x;
                 ++iterator;
@@ -5149,7 +5319,7 @@ void ocean_battle_build_valid_boarding_coordinates()
     {
         ocean_battle_valid_boarding_coordinates[i] = SENTRY;
     }
-    u32 world_npc_id = get_current_ocean_battle_turn_npc_id();
+    u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
     u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
     u32 attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
     u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
@@ -5157,7 +5327,7 @@ void ocean_battle_build_valid_boarding_coordinates()
     u32 total = 0;
     // TODO: Properly get boarding range
     u32 boarding_range = 1;
-    for (u32 i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    for (u32 i = 0; i < ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY]; ++i)
     {
         if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
         {
@@ -5231,7 +5401,7 @@ void ocean_battle_build_valid_cannon_coordinates()
     {
         ocean_battle_valid_cannon_coordinates[i] = SENTRY;
     }
-    u32 world_npc_id = get_current_ocean_battle_turn_npc_id();
+    u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
     u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
     u32 attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
     u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
@@ -5239,7 +5409,7 @@ void ocean_battle_build_valid_cannon_coordinates()
     u32 total = 0;
     // TODO: Properly get cannon range
     u32 cannon_range = 8;
-    for (u32 i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
+    for (u32 i = 0; i < ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY]; ++i)
     {
         if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
         {
@@ -5247,6 +5417,8 @@ void ocean_battle_build_valid_cannon_coordinates()
             u32 target_ship_id = get_world_npc_entity_id(target_npc_id);
             u32 target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
             u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
+            u32 a_x = get_world_npc_position_x(target_npc_id);
+            u32 a_y = get_world_npc_position_y(target_npc_id);
             if (target_fleet_id == attacker_fleet_id)
             {
                 continue;
@@ -5255,8 +5427,6 @@ void ocean_battle_build_valid_cannon_coordinates()
             {
                 continue;
             }
-            u32 a_x = get_world_npc_position_x(target_npc_id);
-            u32 a_y = get_world_npc_position_y(target_npc_id);
             u32 b_x = get_world_npc_position_x(world_npc_id);
             u32 b_y = get_world_npc_position_y(world_npc_id);
             if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, cannon_range))
@@ -5326,6 +5496,26 @@ u32 scene_ocean_battle(u32 action)
             {
                 case SCENE_ACTION_INIT:
                 {
+                    // Preset all available players as world npcs & hide them in renderer when they're not active in battle
+                    // - when players fleet is dead, don't remove them, reset all the fleet values
+                    // - nobody can join current battle until it's done
+                    // ALT
+                    // NPC fleets can be taken over by player
+                    // ALT
+                    // Everybody has to wait for the battle to finish before they can join
+                    // To join, you pick an available player slot
+                    // Fleet is added to battle + turn order initialized
+                    // Placement is random
+                    //
+                    // Random krakens
+                    // Random health packs you step over (entities)
+                    // Potential buffs depending on your current score or your role in discord
+                    //
+                    // Functions we need for ocean battle
+                    // set_battle_ship_turn_order(fleet_id, ship_id, TURN_ORDER)
+                    // [have it]scene_ocean_battle(ACTION_INIT)
+                    // break up world into small grids/coordinates of starting areas and fleets are randomly assigned a starting area
+                    // -- go over fleet ships and do simple arithmetic (starting_area_x + ship_id + 1) or something
                     clear_current_scene_choices();
                     current_scene_set_choice_string_id(
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
@@ -5336,57 +5526,42 @@ u32 scene_ocean_battle(u32 action)
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
 
-                    // TODO: add_fleet_to_battle
-                    // players fleet
-                    // two captain fleets
-                    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
-                    {
-                        if (ocean_battle_fleets[i] != SENTRY)
-                        {
-                            ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_FLEET_ORDER_ID] = i;
-                            break;
-                        }
-                    }
-                    ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_SHIP_NTH_ORDER] = 0;
-                    for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
-                    {
-                        if (get_fleet_ship_fleet_id(i) == ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_FLEET_ORDER_ID])
-                        {
-                            ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_SHIP_ID] = i;
-                            break;
-                        }
-                    }
-                    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEETS * MAX_FLEET_SHIPS; ++i)
-                    {
-                        ocean_battle_turn_order[i] = SENTRY;
-                    }
+                    add_fleet_to_battle(get_fleet_id_by_general_id(players[0]));
+                    add_fleet_to_battle(get_fleet_id_by_general_id(get_npc_id_by_machine_name("npc_rvice")));
+                    add_fleet_to_battle(get_fleet_id_by_general_id(get_npc_id_by_machine_name("npc_loller")));
+                    add_fleet_to_battle(get_fleet_id_by_general_id(players[1]));
+                    add_fleet_to_battle(get_fleet_id_by_general_id(get_npc_id_by_machine_name("npc_lafolie")));
+                    add_fleet_to_battle(get_fleet_id_by_general_id(get_npc_id_by_machine_name("npc_nakor")));
+                    CLEAR_DATA(ocean_battle_turn_order, (MAX_OCEAN_BATTLE_FLEETS * MAX_FLEET_SHIPS));
                     console_log("PLACEMENT PHASE");
                     u32 world_npc_data[WORLD_NPC_DATA_SIZE];
                     CLEAR_DATA(world_npc_data, WORLD_NPC_DATA_SIZE);
                     u32 npc_id;
                     u32 world_npc_id;
-                    u32 obto = 0;
-                    // TODO: Update this so only the active fleets in the battle are placed
+                    u32 ocean_battle_turn_order_iterator = 0;
                     for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
                     {
-                        if (get_fleet_ship_fleet_id(i) != SENTRY)
+                        for (u32 f = 0; f < ocean_battle_total_fleets; ++f)
                         {
-                            // [BATTLE SHIP CLEAR]
-                            npc_id = get_npc_id_by_machine_name("ship");
-                            world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
-                            // Note: This is the RAW fleet ship id
-                            world_npc_data[WORLD_NPC_ENTITY_ID] = i;
-                            // TODO: Get actual captain ID
-                            world_npc_data[WORLD_NPC_CAPTAIN_ID] = 0;
-                            world_npc_data[WORLD_NPC_POSITION_X] = 2 + i;
-                            world_npc_data[WORLD_NPC_POSITION_Y] = 6;
-                            world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-                            world_npc_data[WORLD_NPC_IS_INTERACTABLE] = false;
-                            world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
-                            world_npc_id = add_world_npc(world_npc_data);
-                            ++ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY];
-                            ocean_battle_turn_order[obto] = world_npc_id;
-                            ++obto;
+                            u32 this_fleet_id = ocean_battle_fleets[f];
+                            if (this_fleet_id != SENTRY && mda_fleet_ship[this_fleet_id][i] != SENTRY)
+                            {
+                                // ship_id = mda_fleet_ship[this_fleet_id][i]
+                                npc_id = get_npc_id_by_machine_name("ship");
+                                world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
+                                // the ship id here
+                                world_npc_data[WORLD_NPC_ENTITY_ID] = mda_fleet_ship[this_fleet_id][i];
+                                world_npc_data[WORLD_NPC_CAPTAIN_ID] = 0;
+                                world_npc_data[WORLD_NPC_POSITION_X] = 2 + i;
+                                world_npc_data[WORLD_NPC_POSITION_Y] = 6 + f + i;
+                                world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
+                                world_npc_data[WORLD_NPC_IS_INTERACTABLE] = false;
+                                world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
+                                world_npc_id = add_world_npc(world_npc_data);
+                                ++ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY];
+                                ocean_battle_turn_order[ocean_battle_turn_order_iterator] = world_npc_id;
+                                ++ocean_battle_turn_order_iterator;
+                            }
                         }
                     }
                     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX] = 0;
@@ -5418,41 +5593,39 @@ u32 scene_ocean_battle(u32 action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("confirm")
                     );
-                    u32 players_fleet_id = get_fleet_id_by_general_id(players[0]);
-                    u32 world_npc_id = get_current_ocean_battle_turn_npc_id();
+
+                    // If the current ship has moved & attack, auto increment
+                    // or if the current ship has no hull or no crew
+                    u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
                     u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
-                    u32 attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
-                    u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
+                    while (
+                        (
+                            ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] == true
+                            &&
+                            ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] == true
+                        )
+                        ||
+                        get_ship_hull(attacker_ship_id) == 0
+                        ||
+                        get_ship_crew(attacker_ship_id) == 0
+                    )
+                    {
+                        scene_ocean_battle_increment_turn_order();
+                        world_npc_id = get_current_ocean_battle_turn_world_npc_id();
+                        attacker_ship_id = get_world_npc_entity_id(world_npc_id);
+                    }
+
+                    // Maybe it's good to find if the current turn is npc or player by the following
+                    u32 attacker_fleet_id = get_fleet_id_by_ship_id(attacker_ship_id);
+                    u32 attacker_general_id = get_fleet_general_id(attacker_fleet_id);
+                    u32 attacker_player_id = captain_to_player[attacker_general_id];
                     bool npcs_turn = true;
-                    if (attacker_fleet_id == players_fleet_id)
+                    if (attacker_player_id != SENTRY)
                     {
                         npcs_turn = false;
-                        u32 moved_and_attacked = SENTRY;
-                        if (ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] == true && ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] == true)
-                        {
-                            moved_and_attacked = 1;
-                        }
-                        if (moved_and_attacked != SENTRY)
-                        {
-                            console_log("PLAYERS TURN ENDS");
-                            scene_ocean_battle_increment_turn_order();
-                            npcs_turn = true;
-                            world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
-                            attacker_ship_id = get_world_npc_entity_id(world_npc_id);
-                            attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
-                            attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
-                            if (attacker_fleet_id == players_fleet_id)
-                            {
-                                console_log("NPCS TRUN FALSE");
-                                npcs_turn = false;
-                            }
-                        }
-                        if (npcs_turn == false)
-                        {
-                            set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_PLAYER_TAKE_TURN);
-                            scene_ocean_battle(SCENE_ACTION_INIT);
-                            should_redraw_everything();
-                        }
+                        set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_PLAYER_TAKE_TURN);
+                        scene_ocean_battle(SCENE_ACTION_INIT);
+                        should_redraw_everything();
                     }
                     if (npcs_turn == true)
                     {
@@ -5461,7 +5634,7 @@ u32 scene_ocean_battle(u32 action)
                         // TODO: Board ship attack for npcs as a random choice (between fire cannon and board ship)
                         // TODO: Have NPC ships capable of running away when health is low
                         console_log("NPC TAKES ACTION");
-                        world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+                        world_npc_id = get_current_ocean_battle_turn_world_npc_id();
                         if (get_ship_hull(attacker_ship_id) > 0 && get_ship_crew(attacker_ship_id) > 0)
                         {
                             u32 rando = get_random_number(1, 4);
@@ -5685,7 +5858,7 @@ u32 scene_ocean_battle(u32 action)
                         u32 y = ocean_battle_intended_cannon_coordinates[1];
                         if (ocean_battle_is_valid_cannon_coordinates(x, y) != SENTRY)
                         {
-                            ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = get_current_ocean_battle_turn_npc_id();
+                            ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = get_current_ocean_battle_turn_world_npc_id();
                             ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID] = ocean_battle_find_world_npc_id_by_coordinates(x, y);
                             ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] = true;
                             set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_CANNON_ATTACK);
@@ -5743,7 +5916,7 @@ u32 scene_ocean_battle(u32 action)
                         u32 y = ocean_battle_intended_boarding_coordinates[1];
                         if (ocean_battle_is_valid_boarding_coordinates(x, y) != SENTRY)
                         {
-                            ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = get_current_ocean_battle_turn_npc_id();
+                            ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = get_current_ocean_battle_turn_world_npc_id();
                             ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID] = ocean_battle_find_world_npc_id_by_coordinates(x, y);
                             ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] = true;
                             set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_BOARD_ATTACK);
@@ -5796,7 +5969,19 @@ u32 scene_ocean_battle(u32 action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
                         get_string_id_by_machine_name("ocean_battle_end_turn")
                     );
-                    u32 string_id = get_string_id_by_machine_name("ocean_battle_players_turn");
+                    u32 ship_id = get_world_npc_entity_id(get_current_ocean_battle_turn_world_npc_id());
+                    u32 fleet_id = get_fleet_id_by_ship_id(ship_id);
+                    u32 general_id = get_fleet_general_id(fleet_id);
+                    u32 player_id = captain_to_player[general_id];
+                    u32 string_id = create_string(
+                        "scene_ocean_battle_current_players_turn",
+                        string_format(
+                            get_string_text(
+                                get_string_id_by_machine_name("ocean_battle_players_turn")
+                            ),
+                            (player_id + 1)
+                        )
+                    );
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
@@ -5814,6 +5999,7 @@ u32 scene_ocean_battle(u32 action)
                             ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] != true
                         ) {
                             set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_CANNON_ATTACK_CHOOSE_TARGET);
+                            clear_string_by_id(get_current_scene_state_string_id());
                             scene_ocean_battle(SCENE_ACTION_INIT);
                             should_redraw_everything();
                             break;
@@ -5827,6 +6013,7 @@ u32 scene_ocean_battle(u32 action)
                             ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] != true
                         ) {
                             set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_BOARD_ATTACK_CHOOSE_TARGET);
+                            clear_string_by_id(get_current_scene_state_string_id());
                             scene_ocean_battle(SCENE_ACTION_INIT);
                             should_redraw_everything();
                             break;
@@ -5845,6 +6032,7 @@ u32 scene_ocean_battle(u32 action)
                     {
                         scene_ocean_battle_increment_turn_order();
                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
+                        clear_string_by_id(get_current_scene_state_string_id());
                         scene_ocean_battle(SCENE_ACTION_INIT);
                         should_redraw_everything();
                         break;
@@ -5854,6 +6042,7 @@ u32 scene_ocean_battle(u32 action)
                         if (ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] != true)
                         {
                             set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_MOVING);
+                            clear_string_by_id(get_current_scene_state_string_id());
                             scene_ocean_battle(SCENE_ACTION_INIT);
                             should_redraw_everything();
                         }
@@ -5862,6 +6051,7 @@ u32 scene_ocean_battle(u32 action)
                     if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_ORDER)
                     {
                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_ORDER);
+                        clear_string_by_id(get_current_scene_state_string_id());
                         scene_ocean_battle(SCENE_ACTION_INIT);
                         should_redraw_everything();
                         break;
@@ -5954,11 +6144,26 @@ u32 scene_ocean_battle(u32 action)
                     u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM) {
                         // console_log_format("intended x %d and y %d", ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_X], ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_Y]);
-                        move_world_npc_to(ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]], ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_X], ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_Y]);
-                        ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] = true;
-                        // TODO: Check blocked somehow? Maybe in renderer?
-                        set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
-                        scene_ocean_battle(SCENE_ACTION_INIT);
+                        if (
+                            !are_coordinates_blocked(
+                                ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_X],
+                                ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_Y]
+                            )
+                        )
+                        {
+                            move_world_npc_to(
+                                get_current_ocean_battle_turn_world_npc_id(),
+                                ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_X],
+                                ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_Y]
+                            );
+                            ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] = true;
+                            set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
+                            scene_ocean_battle(SCENE_ACTION_INIT);
+                        }
+                        else
+                        {
+                            console_log("Cannot move there. Blocked.");
+                        }
                         should_redraw_everything();
                         break;
                     }
@@ -5996,19 +6201,22 @@ u32 scene_ocean_battle(u32 action)
                         // TODO: You have to clear the world npcs that are ships
                         // [BATTLE SHIP CLEAR]
                         // TODO: Update this so only the active fleets in the battle are placed
-                        for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
+                        for (u32 i = 0; i < ocean_battle_total_fleets; ++i)
                         {
-                            if (get_fleet_ship_fleet_id(i) != SENTRY)
+                            u32 fleet_id = ocean_battle_fleets[i];
+                            for (u32 s = 0; s < MAX_FLEET_SHIPS; ++s)
                             {
+                                u32 ship_id = mda_fleet_ship[fleet_id][s];
+                                if (ship_id == SENTRY)
+                                {
+                                    continue;
+                                }
                                 for (u32 wn = 0; wn < MAX_WORLD_NPCS; ++wn)
                                 {
-                                    if (get_world_npc_npc_id(wn) == i)
+                                    if (get_world_npc_entity_id(wn) == ship_id)
                                     {
-                                        // TODO: THIS IS TEMPORARY
-                                        // we reset the ships stats so we can
-                                        // start a new fresh battle down the road
-                                        u32 ship_id = get_world_npc_entity_id(wn);
-                                        set_ship_hull(ship_id, 99);
+                                        set_ship_hull(ship_id, 100);
+                                        set_ship_crew(ship_id, 50);
                                         remove_world_npc(wn);
                                     }
                                 }
@@ -6042,7 +6250,7 @@ u32 get_ocean_battle_target_world_npc_id()
 }
 u32 ocean_battle_is_world_coordinate_in_ship_movement_range(u32 world_x, u32 world_y)
 {
-    u32 world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+    u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
     u32 current_ship_id = get_world_npc_entity_id(world_npc_id);
     // TODO: Setup an actual movement range
     u32 movement_range = 2;
@@ -6066,17 +6274,14 @@ u32 ocean_battle_is_world_coordinate_in_ship_movement_range(u32 world_x, u32 wor
 }
 u32 get_ocean_battle_current_turn_ship_x()
 {
-    u32 world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+    u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
     return get_world_npc_position_x(world_npc_id);
 }
 u32 get_ocean_battle_current_turn_ship_y()
 {
-    u32 world_npc_id = ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
+    u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
     return get_world_npc_position_y(world_npc_id);
 }
-
-
-// TODO: Software renderer. Blit pixels out. Load on initalize game. Ask for pixels for a *thing*, get pixels out, render to *other thing*
 
 
 u32 scene_npc_rvice(u32 action)
@@ -6230,14 +6435,6 @@ u32 scene_npc_nakor(u32 action)
 }
 u32 scene_npc_travis(u32 action)
 {
-    //
-    // THERE IS AN ISSUE WITH TOP DOWN AUTOMATA (OR LAST IN FIRST OUT)
-    //
-    // STEP BY STEP
-    // clear_current_scene() && set_current_scene() && set_current_scene_string_id()
-    // set_current_scene_state()
-    // set_game_mode_to_IN_SCENE
-    // [[initialize_first_state]]
     if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
     {
         clear_current_scene();
@@ -6974,6 +7171,8 @@ u32 scene_cafe(u32 action)
 // TODO: "Item in a bottle" -> send out an item and random player receives it later
 
 
+
+// TODO: Software renderer. Blit pixels out. Load on initalize game. Ask for pixels for a *thing*, get pixels out, render to *other thing*
 // NOTE: How to bit pack and unpack
 u32 pack(u32 a, u32 b) {
     // Ensure values are within range
