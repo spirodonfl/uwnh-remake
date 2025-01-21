@@ -483,12 +483,13 @@
             var LAYER_COORDINATES_VALUE_UNDO_COUNTER = 0;
             var LAYER_COORDINATES_VALUE_REDO_COUNTER = 0;
 
-            var IS_MULTIPLAYER = true;
+            var IS_MULTIPLAYER = false;
             var MULTIPLAYER = {
                 host: null,
                 key: null,
                 allowed_to_take_turn: true,
                 is_player: 1,
+                have_valid_key: false,
                 startPolling: function () {
                     // every second, ask host for current game state
                     // allowed_to_take_turn = false sometimes

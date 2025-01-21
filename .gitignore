@@ -6,3 +6,6 @@
 clang_warnings.txt
 link_warnings.txt
 llc_warnings.txt
+
+bun.lockb
+node_modules
