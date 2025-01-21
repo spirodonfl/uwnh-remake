@@ -184,3 +184,95 @@ int main() {
     sqlite3_close(state.db);
     return 0;
 }
+
+
+
+
+// // POTENTIAL WASM
+// // INSTALL WASM3
+// /*
+// # Install wasm3
+// git clone https://github.com/wasm3/wasm3
+// cd wasm3
+// mkdir build && cd build
+// cmake ..
+// make
+// sudo make install
+// */
+// #include <wasm3.h>
+// #include <m3_env.h>
+// // NOTE THE UPDATED GAMESTATE TO INCLUDE WASM CONTEXT
+// // COMPILATION: clang -o game_server server.c \
+//     // -I/usr/local/include/wasm3 \
+//     // -L/usr/local/lib \
+//     // -lwasm3 \
+//     // -lsqlite3 \
+//     // -luuid \
+//     // -ljson-c
+// typedef struct {
+//     Player players[MAX_PLAYERS];
+//     int player_count;
+//     sqlite3* db;
+//     WasmContext wasm;
+// } GameState;
+// typedef struct {
+//     M3Runtime* runtime;
+//     M3Module* module;
+//     // Game-specific function pointers
+//     M3Function* init_game_fn;
+//     M3Function* get_scene_fn;
+//     M3Function* move_player_fn;
+// } WasmContext;
+
+// WasmContext load_wasm(const char* wasm_path) {
+//     WasmContext ctx = {0};
+//     FILE* f = fopen(wasm_path, "rb");
+//     if (!f) return ctx;
+    
+//     fseek(f, 0, SEEK_END);
+//     size_t wasm_size = ftell(f);
+//     fseek(f, 0, SEEK_SET);
+    
+//     uint8_t* wasm_bytes = malloc(wasm_size);
+//     fread(wasm_bytes, 1, wasm_size, f);
+//     fclose(f);
+    
+//     ctx.runtime = m3_NewRuntime(8092, NULL);
+//     M3Environment* env = m3_NewEnvironment();
+    
+//     M3Result result = m3_ParseModule(env, &ctx.module, wasm_bytes, wasm_size);
+//     if (result) return ctx;
+    
+//     result = m3_LoadModule(ctx.runtime, ctx.module);
+//     if (result) return ctx;
+    
+//     // Bind WASM functions
+//     m3_FindFunction(&ctx.init_game_fn, ctx.runtime, "initialize_game");
+//     m3_FindFunction(&ctx.get_scene_fn, ctx.runtime, "get_current_scene");
+//     m3_FindFunction(&ctx.move_player_fn, ctx.runtime, "move_player");
+    
+//     free(wasm_bytes);
+//     return ctx;
+// }
+// // USAGE EXAMPLE
+// int main() {
+//     GameState state = {0};
+    
+//     // Load WASM module
+//     state.wasm = load_wasm("game.wasm");
+    
+//     // Call WASM functions
+//     int result;
+//     m3_CallV(state.wasm.init_game_fn, &result);
+    
+//     // Server setup
+//     sqlite3_open("game.db", &state.db);
+//     // ... rest of server setup
+    
+//     // In request handler
+//     if (url.pathname == "/move") {
+//         int move_result;
+//         m3_CallV(state.wasm.move_player_fn, &move_result);
+//     }
+// }
+
