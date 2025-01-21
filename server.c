@@ -20,6 +20,20 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+#include "wasm_game.h"
+void js_console_log(void* ptr, u32 len)
+{
+    printf("js console log %s\n", (char *)ptr);
+}
+void js_output_string_buffer()
+{
+    printf("js output string buffer %d", 69420);
+}
+void js_output_array_buffer()
+{
+    printf("js output array buffer %d", 69420);
+}
+
 #define MAX_PLAYERS 10
 #define COUNTDOWN_SECONDS 120
 #define PORT 3333
@@ -232,6 +246,8 @@ int main() {
     sqlite3_open("game.db", &state.db);
     init_database(state.db);
 
+    initialize_game();
+
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
         perror("Socket creation failed");
@@ -343,8 +359,6 @@ int main() {
                         "Content-Type: application/json\r\n\r\n"
                         "{\"success\":false,\"message\":\"Invalid JSON\"}");
                 }
-            } else if (strstr(buffer, "GET /generatekey")) {
-                // TODO: This
             } else {
                 printf("No request body found\n");  // Debug log
                 sprintf(response, 
@@ -352,6 +366,12 @@ int main() {
                     "Content-Type: application/json\r\n\r\n"
                     "{\"success\":false,\"message\":\"Missing request body\"}");
             }
+            send(new_socket, response, strlen(response), 0);
+        } else if (strstr(buffer, "POST /getgamestate")) {
+            sprintf(response, 
+                "HTTP/1.1 400 Bad Request\r\n"
+                "Content-Type: application/json\r\n\r\n"
+                "{\"success\":false,\"message\":\"Missing request body\"}");
             send(new_socket, response, strlen(response), 0);
         } else {
             printf("Unsupported request type\n");  // Debug log
