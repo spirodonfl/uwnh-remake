@@ -2766,7 +2766,7 @@ u32 get_current_world_name_id()
 }
 u32 get_current_world_total_world_npcs()
 {
-    return get_world_total_npcs();
+    return get_world_total_npcs(current_world);
 }
 
 u32 are_coordinates_blocked(u32 x, u32 y)
