@@ -469,6 +469,8 @@ const char* get_layer_machine_name(u32 layer_index);
 u32 get_layer_name_id(u32 layer_index);
 
 u32 get_player_npc_id(u32 player_id);
+void set_which_player_you_are(u32 player_id);
+u32 which_player_are_you = SENTRY;
 
 void move_player_left(u32 player_id);
 void move_player_right(u32 player_id);
@@ -512,7 +514,11 @@ u32 scene_npc_loller(u32 action);
 
 void current_scene_clear_choice_strings();
 
+u32 get_fleet_id_by_general_id(u32 general_id);
+
 u32 ocean_battle_is_world_coordinate_in_ship_movement_range(u32 world_x, u32 world_y);
+void clear_ocean_battle_fleets();
+void add_fleet_to_battle(u32 fleet_id);
 
 u32 scene_bank(u32 action);
 
@@ -2145,6 +2151,13 @@ void handle_interaction_scene(u32 interaction_scene, u32 world_npc_id)
     else if (interaction_scene == SCENE_OCEAN_BATTLE)
     {
         set_current_scene_triggered_by_world_npc_id(world_npc_id);
+        clear_ocean_battle_fleets();
+        add_fleet_to_battle(get_fleet_id_by_general_id(players[0]));
+        add_fleet_to_battle(get_fleet_id_by_general_id(get_npc_id_by_machine_name("npc_rvice")));
+        add_fleet_to_battle(get_fleet_id_by_general_id(get_npc_id_by_machine_name("npc_loller")));
+        add_fleet_to_battle(get_fleet_id_by_general_id(players[1]));
+        add_fleet_to_battle(get_fleet_id_by_general_id(get_npc_id_by_machine_name("npc_lafolie")));
+        add_fleet_to_battle(get_fleet_id_by_general_id(get_npc_id_by_machine_name("npc_nakor")));
         scene_ocean_battle(SCENE_ACTION_INIT);
     }
     else if (interaction_scene == SCENE_NPC_RVICE)
@@ -3234,6 +3247,10 @@ void move_world_npc_down(u32 world_npc_id)
 // ------------------------------------------------------------------------------------------------ //
 // PLAYERS
 // ------------------------------------------------------------------------------------------------ //
+void set_which_player_you_are(u32 player_id)
+{
+    which_player_are_you = player_id;
+}
 u32 get_player_gold(u32 player_id)
 {
     u32 captain_id = players[player_id];
@@ -5479,7 +5496,8 @@ u32 scene_ocean_battle(u32 action)
     if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
     {
         clear_ocean_battle_data(ocean_battle_data);
-        clear_ocean_battle_fleets();
+        // Assumption is that we've run clear_ocean_battle_fleets
+        // before this point and our fleets are already setup
         clear_current_scene();
         set_current_scene(SCENE_OCEAN_BATTLE);
         set_current_scene_string_id(get_string_id_by_machine_name("scene_ocean_battle"));
@@ -5526,12 +5544,6 @@ u32 scene_ocean_battle(u32 action)
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
 
-                    add_fleet_to_battle(get_fleet_id_by_general_id(players[0]));
-                    add_fleet_to_battle(get_fleet_id_by_general_id(get_npc_id_by_machine_name("npc_rvice")));
-                    add_fleet_to_battle(get_fleet_id_by_general_id(get_npc_id_by_machine_name("npc_loller")));
-                    add_fleet_to_battle(get_fleet_id_by_general_id(players[1]));
-                    add_fleet_to_battle(get_fleet_id_by_general_id(get_npc_id_by_machine_name("npc_lafolie")));
-                    add_fleet_to_battle(get_fleet_id_by_general_id(get_npc_id_by_machine_name("npc_nakor")));
                     CLEAR_DATA(ocean_battle_turn_order, (MAX_OCEAN_BATTLE_FLEETS * MAX_FLEET_SHIPS));
                     console_log("PLACEMENT PHASE");
                     u32 world_npc_data[WORLD_NPC_DATA_SIZE];
@@ -5949,30 +5961,34 @@ u32 scene_ocean_battle(u32 action)
                 case SCENE_ACTION_INIT:
                 {
                     clear_current_scene_choices();
-                    current_scene_set_choice_string_id(
-                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_MOVE),
-                        get_string_id_by_machine_name("move")
-                    );
-                    current_scene_set_choice_string_id(
-                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_FIRE_CANNONS),
-                        get_string_id_by_machine_name("fire_cannons")
-                    );
-                    current_scene_set_choice_string_id(
-                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_BOARD_SHIP),
-                        get_string_id_by_machine_name("board_ship")
-                    );
-                    current_scene_set_choice_string_id(
-                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_ORDER),
-                        get_string_id_by_machine_name("order")
-                    );
-                    current_scene_set_choice_string_id(
-                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                        get_string_id_by_machine_name("ocean_battle_end_turn")
-                    );
-                    u32 ship_id = get_world_npc_entity_id(get_current_ocean_battle_turn_world_npc_id());
-                    u32 fleet_id = get_fleet_id_by_ship_id(ship_id);
-                    u32 general_id = get_fleet_general_id(fleet_id);
-                    u32 player_id = captain_to_player[general_id];
+                    u32 player_id = get_current_ocean_battle_turn_player_id();
+                    if (
+                        (which_player_are_you != SENTRY && player_id == which_player_are_you)
+                        ||
+                        which_player_are_you == SENTRY
+                    )
+                    {
+                        current_scene_set_choice_string_id(
+                            current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_MOVE),
+                            get_string_id_by_machine_name("move")
+                        );
+                        current_scene_set_choice_string_id(
+                            current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_FIRE_CANNONS),
+                            get_string_id_by_machine_name("fire_cannons")
+                        );
+                        current_scene_set_choice_string_id(
+                            current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_BOARD_SHIP),
+                            get_string_id_by_machine_name("board_ship")
+                        );
+                        current_scene_set_choice_string_id(
+                            current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_ORDER),
+                            get_string_id_by_machine_name("order")
+                        );
+                        current_scene_set_choice_string_id(
+                            current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                            get_string_id_by_machine_name("ocean_battle_end_turn")
+                        );
+                    }
                     u32 string_id = create_string(
                         "scene_ocean_battle_current_players_turn",
                         string_format(
@@ -6128,10 +6144,18 @@ u32 scene_ocean_battle(u32 action)
                 case SCENE_ACTION_INIT:
                 {
                     clear_current_scene_choices();
-                    current_scene_set_choice_string_id(
-                        current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-                        get_string_id_by_machine_name("confirm")
-                    );
+                    u32 player_id = get_current_ocean_battle_turn_player_id();
+                    if (
+                        (which_player_are_you != SENTRY && player_id == which_player_are_you)
+                        ||
+                        which_player_are_you == SENTRY
+                    )
+                    {
+                        current_scene_set_choice_string_id(
+                            current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
+                            get_string_id_by_machine_name("confirm")
+                        );
+                    }
                     u32 string_id = get_string_id_by_machine_name("ocean_battle_moving");
                     ocean_battle_build_valid_move_coordinates();
                     set_current_scene_state_string_id(string_id);

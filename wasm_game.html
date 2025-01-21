@@ -518,8 +518,28 @@
                     // etc...
                     // then -> scene_ocean_battle(SCENE_ACTION_INIT (0))
                     // then -> continue to update ocean battle scene but also pass along ocean battle data
+                    // Need this portion for cannon animation
+                    /**
+                     * if (uih.scene.state_name == "ship_is_attacking_with_cannon")
+                                {
+                                    var attacker_world_npc_id = wasm.exports.get_ocean_battle_attacker_world_npc_id();
+                                    var target_world_npc_id
+
+                                    uih.renderCannonAttack(attacker_tile_element, target_tile_element);
+                                    */
+                    // Eff it. Instead of a lot of the above, just store key inputs from players via js into bun, then ship those and execute to clients
+                    // during NPC turns, just do "move_npc_to" and then "renderCannonAttack" if it happens
+                    // since everyone is polling every X seconds, your server doesn't have to worry about getting ahead until everybody checks in
+                    //
+                    // eff it. grug brain
+                    // raw dog the state, no animations, nothing. just pass in pure states
+                    // set_which_player_you_are(X) && check that in ocean battle stuff
                     wasm.exports.should_redraw_everything();
                     RAF.render();
+                },
+                sendToHost: function (action)
+                {
+                    alert("Waiting for host");
                 }
             };
 
@@ -1015,7 +1035,18 @@
                             var current_value = document.getElementById('scene_user_numerical_input').value;
                             wasm.exports.user_input_number(current_value);
                         }
-                        wasm.exports.current_scene_make_choice(current_scene_choice.id);
+
+                        if (IS_MULTIPLAYER)
+                        {
+                            MULTIPLAYER.sendToHost({
+                                action: "making_choice",
+                                choice_id: current_scene_choice.id
+                            });
+                        }
+                        else
+                        {
+                            wasm.exports.current_scene_make_choice(current_scene_choice.id);
+                        }
                     }
                 },
                 // Function to get card value (1-13)
@@ -1197,6 +1228,76 @@
                         }
                     }
                 },
+
+                renderCannonAttack: function(attacker_tile_element, target_tile_element)
+                {
+                    if (attacker_tile_element && target_tile_element)
+                    {
+                        var cannon_tile = document.createElement('div');
+                        cannon_tile.id = "cannon_tile";
+                        cannon_tile.style.position = "absolute";
+                        cannon_tile.style.zIndex = "100";
+                        cannon_tile.style.width = TILE_SIZE_SCALED + "px";
+                        cannon_tile.style.height = TILE_SIZE_SCALED + "px";
+                        cannon_tile.classList.add("atlas");
+                        cannon_tile.style.backgroundPosition = "calc(-1 * calc(64px * 9)) calc(-1 * calc(64px * 1))";
+                        cannon_tile.style.top = attacker_tile_element.getClientRects()[0].top + "px";
+                        cannon_tile.style.left = attacker_tile_element.getClientRects()[0].left + "px";
+                        var attacker_animation_y = attacker_tile_element.getClientRects()[0].top;
+                        var attacker_animation_x = attacker_tile_element.getClientRects()[0].left;
+                        var target_animation_y = target_tile_element.getClientRects()[0].top;
+                        var target_animation_x = target_tile_element.getClientRects()[0].left;
+                        // target_tile_element.style.border = "3px solid white";
+                        document.body.appendChild(cannon_tile);
+                        var animation_interval = setInterval(() => {
+                            if (target_animation_x > attacker_animation_x)
+                            {
+                                attacker_animation_x += 5;
+                                if (attacker_animation_x > target_animation_x) {
+                                    attacker_animation_x = target_animation_x;
+                                }
+                            }
+                            else
+                            {
+                                attacker_animation_x -= 5;
+                                if (attacker_animation_x < target_animation_x)
+                                {
+                                    attacker_animation_x = target_animation_x;
+                                }
+                            }
+                            cannon_tile.style.left = attacker_animation_x + "px";
+                            if (target_animation_y > attacker_animation_y)
+                            {
+                                attacker_animation_y += 5;
+                                if (attacker_animation_y > target_animation_y)
+                                {
+                                    attacker_animation_y = target_animation_y;
+                                }
+                            }
+                            else
+                            {
+                                attacker_animation_y -= 5;
+                                if (attacker_animation_y < target_animation_y)
+                                {
+                                    attacker_animation_y = target_animation_y;
+                                }
+                            }
+                            cannon_tile.style.top = attacker_animation_y + "px";
+                            if (
+                                attacker_animation_x == target_animation_x &&
+                                attacker_animation_y == target_animation_y
+                            ) {
+                                cannon_tile.remove();
+                                clearInterval(animation_interval);
+                            }
+                        }, 20);
+                    }
+                    else
+                    {
+                        console.log("Target", target_tile_element);
+                        console.log("Attacker", attacker_tile_element);
+                    }
+                }
             }
 
             var OceanBattlePlayerMoving = {
@@ -1641,72 +1742,7 @@
                                     var attacker_tile_element = document.querySelector('[world_x="' + attacker_coords.x + '"][world_y="' + attacker_coords.y + '"]');
                                     var target_tile_element = document.querySelector('[world_x="' + target_coords.x + '"][world_y="' + target_coords.y + '"]');
 
-                                    if (attacker_tile_element && target_tile_element)
-                                    {
-                                        var cannon_tile = document.createElement('div');
-                                        cannon_tile.id = "cannon_tile";
-                                        cannon_tile.style.position = "absolute";
-                                        cannon_tile.style.zIndex = "100";
-                                        cannon_tile.style.width = TILE_SIZE_SCALED + "px";
-                                        cannon_tile.style.height = TILE_SIZE_SCALED + "px";
-                                        cannon_tile.classList.add("atlas");
-                                        cannon_tile.style.backgroundPosition = "calc(-1 * calc(64px * 9)) calc(-1 * calc(64px * 1))";
-                                        cannon_tile.style.top = attacker_tile_element.getClientRects()[0].top + "px";
-                                        cannon_tile.style.left = attacker_tile_element.getClientRects()[0].left + "px";
-                                        var attacker_animation_y = attacker_tile_element.getClientRects()[0].top;
-                                        var attacker_animation_x = attacker_tile_element.getClientRects()[0].left;
-                                        var target_animation_y = target_tile_element.getClientRects()[0].top;
-                                        var target_animation_x = target_tile_element.getClientRects()[0].left;
-                                        // target_tile_element.style.border = "3px solid white";
-                                        document.body.appendChild(cannon_tile);
-                                        var animation_interval = setInterval(() => {
-                                            if (target_animation_x > attacker_animation_x)
-                                            {
-                                                attacker_animation_x += 5;
-                                                if (attacker_animation_x > target_animation_x) {
-                                                    attacker_animation_x = target_animation_x;
-                                                }
-                                            }
-                                            else
-                                            {
-                                                attacker_animation_x -= 5;
-                                                if (attacker_animation_x < target_animation_x)
-                                                {
-                                                    attacker_animation_x = target_animation_x;
-                                                }
-                                            }
-                                            cannon_tile.style.left = attacker_animation_x + "px";
-                                            if (target_animation_y > attacker_animation_y)
-                                            {
-                                                attacker_animation_y += 5;
-                                                if (attacker_animation_y > target_animation_y)
-                                                {
-                                                    attacker_animation_y = target_animation_y;
-                                                }
-                                            }
-                                            else
-                                            {
-                                                attacker_animation_y -= 5;
-                                                if (attacker_animation_y < target_animation_y)
-                                                {
-                                                    attacker_animation_y = target_animation_y;
-                                                }
-                                            }
-                                            cannon_tile.style.top = attacker_animation_y + "px";
-                                            if (
-                                                attacker_animation_x == target_animation_x &&
-                                                attacker_animation_y == target_animation_y
-                                            ) {
-                                                cannon_tile.remove();
-                                                clearInterval(animation_interval);
-                                            }
-                                        }, 20);
-                                    }
-                                    else
-                                    {
-                                        console.log("Target", target_tile_element);
-                                        console.log("Attacker", attacker_tile_element);
-                                    }
+                                    uih.renderCannonAttack(attacker_tile_element, target_tile_element);
                                 }
                                 uih.showSceneTextWrapper();
                                 if (gh.getCurrentSceneHasDialogue())
@@ -1716,30 +1752,7 @@
 
                                 uih.clearSceneChoices();
                                 clear_scene_inputs();
-                                var should_decide = false;
-                                if (IS_MULTIPLAYER)
-                                {
-                                    if (scene_state_name === "scene_ocean_battle_current_players_turn")
-                                    {
-                                        if (wasm.exports.get_current_ocean_battle_turn_player_id() === MULTIPLAYER.is_player)
-                                        {
-                                            should_decide = true;
-                                        }
-                                        else
-                                        {
-                                            should_decide = false;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        should_decide = true;
-                                    }
-                                }
-                                if (
-                                    gh.getCurrentSceneChoicesCount() > 0
-                                    &&
-                                    ((IS_MULTIPLAYER && should_decide) || !IS_MULTIPLAYER)
-                                )
+                                if (gh.getCurrentSceneChoicesCount() > 0)
                                 {
                                     var total_choices = gh.getCurrentSceneChoicesCount();
                                     uih.scene.total_scene_choices = total_choices;
@@ -2358,7 +2371,20 @@
                                             h_choose_target.x, h_choose_target.y
                                         );
                                         uih.clearMultiHighlights();
-                                        wasm.exports.current_scene_make_choice(0);
+                                        if (IS_MULTIPLAYER)
+                                        {
+                                            MULTIPLAYER.sendToHost({
+                                                action: "cannon_attack_choose_target",
+                                                chosen_target: {
+                                                    x: h_choose_target.x,
+                                                    y: h_choose_target.y
+                                                }
+                                            });
+                                        }
+                                        else
+                                        {
+                                            wasm.exports.current_scene_make_choice(0);
+                                        }
                                     } else if(
                                         scene_state_name == "ocean_battle_board_attack_choose_target" &&
                                         wasm.exports.ocean_battle_is_valid_boarding_coordinates(
@@ -2370,7 +2396,20 @@
                                             h_choose_target.x, h_choose_target.y
                                         );
                                         uih.clearMultiHighlights();
-                                        wasm.exports.current_scene_make_choice(0);
+                                        if (IS_MULTIPLAYER)
+                                        {
+                                            MULTIPLAYER.sendToHost({
+                                                action: "boarding_attack_choose_target",
+                                                chosen_target: {
+                                                    x: h_choose_target.x,
+                                                    y: h_choose_target.y
+                                                }
+                                            });
+                                        }
+                                        else
+                                        {
+                                            wasm.exports.current_scene_make_choice(0);
+                                        }
                                     }
                                 }
                                 else
@@ -2397,7 +2436,8 @@
                                     scene_state_name == "ocean_battle_board_attack_choose_target")
                                 ) {
                                     uih.clearMultiHighlights();
-                                    // 1 for exit
+                                    // Exiting target choice for attack so we don't need
+                                    // to send this off to the multiplayer host
                                     wasm.exports.current_scene_make_choice(1);
                                 }
                             }
