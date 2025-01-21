@@ -15,7 +15,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <uuid/uuid.h>
-#include <json-c/json.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -321,43 +320,75 @@ int main() {
             char* body_start = strstr(buffer, "\r\n\r\n");
             if (body_start) {
                 body_start += 4;  // Skip the \r\n\r\n
+
+                u32 indx = body_start ? body_start - buffer : -1;
+                u8 keystring_length = buffer[indx];
+                u8 username_length = buffer[indx+1];
+                indx += 2;
+                u32 total = keystring_length + username_length;
+                printf("Total body length %d\n", total);
+                printf("first value %d\n", keystring_length);
+                printf("second value %d\n", username_length);
+                printf("index %d\n", indx);
                 
-                printf("Parsing JSON body: %s\n", body_start);  // Debug log
+                // u8 keystring[keystring_length];
+                // for (u32 c = 0; c < keystring_length; ++c)
+                // {
+                //     keystring[c] = buffer[indx + c];
+                // }
+                // // TODO: Not storing initial "$" dollar sign value for key string uuid
+                // printf("keystring is %s\n", (char *)keystring);
+                char keystring[keystring_length + 1];
+                for (u32 c = 0; c < keystring_length; ++c)
+                {
+                    keystring[c] = (char)buffer[indx + c];
+                }
+                keystring[keystring_length] = '\0';
+                printf("keystring is %s\n", (char *)keystring);
+
+                indx += keystring_length;
+                char username[username_length + 1];
+                for (u32 c = 0; c < username_length; ++c)
+                {
+                    username[c] = (char)buffer[indx + c];
+                }
+                username[username_length] = '\0';
+                printf("username is %s\n", (char *)username);
+                indx += username_length;
+
+                u32 remaining = (buffer[indx] << 24) |
+                    (buffer[indx + 1] << 16) |
+                    (buffer[indx + 2] << 8) |
+                    (buffer[indx + 3]);
+                indx += 4;
+                printf("DEBUG -> rest of data %d\n", remaining);
+                // iterate from indx to remaining and every 4 iterations, add a u32 value
+                u32 rest_of_data[remaining];
+                for (u32 c = 0; c < remaining; ++c)
+                {
+                    rest_of_data[c] = (buffer[indx] << 24) |
+                        (buffer[indx + 1] << 16) |
+                        (buffer[indx + 2] << 8) |
+                        (buffer[indx + 3]);
+                    indx += 4;
+                }
+                printf("DEBUG -> rod 1 %d\n", rest_of_data[0]);
+                printf("DEBUG -> rod 2 %d\n", rest_of_data[1]);
                 
-                struct json_object *parsed_json;
-                parsed_json = json_tokener_parse(body_start);
-                
-                if (parsed_json) {
-                    struct json_object *key_obj, *username_obj;
-                    const char *key_str = NULL, *username = NULL;
-                    
-                    if (json_object_object_get_ex(parsed_json, "keyString", &key_obj)) {
-                        key_str = json_object_get_string(key_obj);
-                    }
-                    if (json_object_object_get_ex(parsed_json, "username", &username_obj)) {
-                        username = json_object_get_string(username_obj);
-                    }
-                    
-                    if (key_str && username) {
-                        printf("Validating key: %s for user: %s\n", key_str, username);  // Debug log
-                        handle_validate_key(&state, key_str, username, response);
-                    } else {
-                        printf("Missing fields - key_str: %s, username: %s\n", 
-                               key_str ? key_str : "null", 
-                               username ? username : "null");  // Debug log
-                        sprintf(response, 
-                            "HTTP/1.1 400 Bad Request\r\n"
-                            "Content-Type: application/json\r\n\r\n"
-                            "{\"success\":false,\"message\":\"Missing key or username\"}");
-                    }
-                    
-                    json_object_put(parsed_json);
-                } else {
-                    printf("Failed to parse JSON: %s\n", body_start);  // Debug log
+                if (keystring_length > 0 && username_length > 0)
+                {
+                    printf("Validating key: %s for user: %s\n", keystring, username);  // Debug log
+                    handle_validate_key(&state, keystring, username, response);
+                }
+                else
+                {
+                    printf("Missing fields - keystring: %d, username: %d\n", 
+                           keystring_length ? keystring_length : 0, 
+                           username_length ? username_length : 0);  // Debug log
                     sprintf(response, 
                         "HTTP/1.1 400 Bad Request\r\n"
                         "Content-Type: application/json\r\n\r\n"
-                        "{\"success\":false,\"message\":\"Invalid JSON\"}");
+                        "{\"success\":false,\"message\":\"Missing key or username\"}");
                 }
             } else {
                 printf("No request body found\n");  // Debug log

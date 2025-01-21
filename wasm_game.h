@@ -13,6 +13,7 @@
 #define BUFFER_SIZE 1024
 
 typedef uint32_t u32;
+typedef uint32_t u8;
 
 void console_log(const char* message);
 void console_log_format(const char* format, ...);

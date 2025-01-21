@@ -560,15 +560,34 @@
                     // This way I can do clearInterval(MULTIPLAYER.polling_timeout)
                 },
                 validateKey: function () {
+                    var data_array = [
+                        MULTIPLAYER.keyString.length,
+                        MULTIPLAYER.username.length,
+                    ];
+                    for (var c = 0; c < MULTIPLAYER.keyString.length; ++c)
+                    {
+                        data_array.push(MULTIPLAYER.keyString[c].charCodeAt(0));
+                    }
+                    for (var c = 0; c < MULTIPLAYER.username.length; ++c)
+                    {
+                        data_array.push(MULTIPLAYER.username[c].charCodeAt(0));
+                    }
+                    function addToArray(array, value)
+                    {
+                        array.push((value >> 24) & 0xFF);
+                        array.push((value >> 16) & 0xFF);
+                        array.push((value >> 8) & 0xFF);
+                        array.push(value & 0xFF);
+                    }
+                    addToArray(data_array, 2);
+                    addToArray(data_array, 69420);
+                    addToArray(data_array, 69);
                     fetch("http://localhost:3333/validatekey", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json"
                         },
-                        body: JSON.stringify({
-                            username: MULTIPLAYER.username,
-                            keyString: MULTIPLAYER.keyString,
-                        })
+                        body: new Uint8Array(data_array),
                     }).then((response) => {
                         if (response.ok) {
                             return response.json();
@@ -588,12 +607,28 @@
                     action.keyString = MULTIPLAYER.keyString;
                     action.username = MULTIPLAYER.username;
                     clearInterval(MULTIPLAYER.polling_timeout);
+
+                    var dummy_array = [
+                        action.keyString.length,
+                        action.username.length,
+                    ];
+                    for (var c = 0; c < action.keyString.length; ++c)
+                    {
+                        dummy_array.push(action.keyString[c].charCodeAt(0));
+                    }
+                    for (var c = 0; c < action.username.length; ++c)
+                    {
+                        dummy_array.push(action.username[c].charCodeAt(0));
+                    }
+                    console.log("UINT8", new Uint8Array(dummy_array));
+                    
                     fetch("http://localhost:3333/playeraction", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json"
                         },
-                        body: JSON.stringify(action)
+                        body: dummy_array,
+                        // body: JSON.stringify(action)
                     }).then((response) => {
                         if (response.ok) {
                             return response.json();
