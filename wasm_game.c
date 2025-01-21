@@ -2764,6 +2764,10 @@ u32 get_current_world_name_id()
 {
     return get_world_name_id(current_world);
 }
+u32 get_current_world_total_world_npcs()
+{
+    return get_world_total_npcs();
+}
 
 u32 are_coordinates_blocked(u32 x, u32 y)
 {
@@ -3707,6 +3711,17 @@ void initialize_game()
     create_string("npc_nakor", "Nakor");
     create_string("npc_travis", "Travis");
     create_string("npc_loller", "Loller");
+
+    // BAD CHARACTERS
+    create_string("npc_profchud", "ProfCHUD");
+    // TODO: Actually use this NPC
+    // TODO: Make this NPC say things like "I love AI. It's my personal Jesus Christ. Save me AI"
+    // "AI will cure cancer"
+    // "AI will make you a master mathematician in 2 weeks or less"
+    // "AI will eliminate the need for humans to exist. Might as well 404 you right now *pulls blade*"
+    // "AI will put an end to all wars. Might as well 404 you right now *pulls nuke*"
+    // "AI will solve all problems by eliminating all life on the planet. *pushes 'fire entire nuke arsenal' button*"
+    
     create_string("setting_up_ocean_battle", "Setting up ocean battle");
     create_string("ship_is_attacking_with_cannon", "Ship is attaking with cannon");
     create_string("ship_is_attacking_with_boarding", "Ship is boarding!");

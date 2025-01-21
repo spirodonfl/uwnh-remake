@@ -486,10 +486,13 @@
             var IS_MULTIPLAYER = false;
             var MULTIPLAYER = {
                 host: null,
-                key: null,
+                keyString: null,
                 allowed_to_take_turn: true,
                 is_player: 1,
                 have_valid_key: false,
+                username: null,
+                polling_timeout: null,
+                is_polling: false,
                 startPolling: function () {
                     // every second, ask host for current game state
                     // allowed_to_take_turn = false sometimes
@@ -521,11 +524,89 @@
                     // eff it. grug brain
                     // raw dog the state, no animations, nothing. just pass in pure states
                     // set_which_player_you_are(X) && check that in ocean battle stuff
-                    wasm.exports.should_redraw_everything();
-                    RAF.render();
+                    // wasm.exports.should_redraw_everything();
+                    // RAF.render();
+
+                    MULTIPLAYER.polling_timeout = setInterval(() => {
+                        if (MULTIPLAYER.is_polling === false)
+                        {
+                            MULTIPLAYER.is_polling = true;
+                            fetch("http://localhost:3333/getgamestate", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json"
+                                },
+                                body: JSON.stringify({
+                                    username: MULTIPLAYER.username,
+                                    keyString: MULTIPLAYER.keyString,
+                                })
+                            }).then((response) => {
+                                MULTIPLAYER.is_polling = false;
+                                if (response.ok) {
+                                    return response.json();
+                                }
+                            }).then((json) => {
+                                MULTIPLAYER.is_polling = false;
+                                if (json && json.success === true)
+                                {
+                                    console.log(json);
+                                }
+                            }).catch((error) => {
+                                MULTIPLAYER.is_polling = false;
+                                console.error(error);
+                            });
+                        }
+                    }, 5000);
+                    // This way I can do clearInterval(MULTIPLAYER.polling_timeout)
+                },
+                validateKey: function () {
+                    fetch("http://localhost:3333/validatekey", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            username: MULTIPLAYER.username,
+                            keyString: MULTIPLAYER.keyString,
+                        })
+                    }).then((response) => {
+                        if (response.ok) {
+                            return response.json();
+                        }
+                    }).then((json) => {
+                        if (json.success === true)
+                        {
+                            MULTIPLAYER.has_valid_key = true;
+                            MULTIPLAYER.startPolling();
+                        }
+                    }).catch((error) => {
+                        console.error(error);
+                    });
                 },
                 sendToHost: function (action)
                 {
+                    action.keyString = MULTIPLAYER.keyString;
+                    action.username = MULTIPLAYER.username;
+                    clearInterval(MULTIPLAYER.polling_timeout);
+                    fetch("http://localhost:3333/playeraction", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(action)
+                    }).then((response) => {
+                        if (response.ok) {
+                            return response.json();
+                        }
+                    }).then((json) => {
+                        MULTIPLAYER.startPolling();
+                        if (json && json.success === true)
+                        {
+                            console.log(json);
+                        }
+                    }).catch((error) => {
+                        console.error(error);
+                    });
                     alert("Waiting for host");
                 }
             };
@@ -2170,14 +2251,15 @@
                 {
                     IS_MULTIPLAYER = true;
                     MULTIPLAYER.host = url_params.get('host');
-                    if (!url_params.get('key') || url_params.get('key') === "")
+                    if (!url_params.get('keyString') || url_params.get('keyString') === "")
                     {
                         alert("Please go to https://discord.gg/7ZrQHjUsJ4 and ask a mod for a key");
                     }
                     else
                     {
-                        MULTIPLAYER.key = url_params.get('key');
-                        MULTIPLAYER.startPolling();
+                        MULTIPLAYER.keyString = url_params.get('keyString');
+                        MULTIPLAYER.username = url_params.get("username");
+                        MULTIPLAYER.validateKey();
                     }
                 }
 

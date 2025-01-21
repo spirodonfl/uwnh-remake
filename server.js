@@ -1,5 +1,5 @@
 import { serve } from "bun";
-import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4, parse as uuidParse } from "uuid";
 import database from "bun:sqlite";
 import * as fs from "fs";
 
@@ -152,10 +152,20 @@ function beginGame()
     // ????? issue is that players will have their own local wasm run npc actions WITHOUT server consent because of single player mode
     // when the server sends updated state data, everybody will get re-synced
     // -----------------------------------------------------------------------------------------
+
+
+    // clear_ocean_battle_fleets()
+    // add_fleet_to_battle(get_fleet_id_by_general_id(get_npc_id_by_machine_name("npc_nakor")));
 }
 
 serve({
     port: 3333,
+    static: {
+        // NOTE: Cannot hot reload. HTML is static-ized
+        "/index.html": new Response(await Bun.file("./index.html").bytes(), {
+            header: { "Content-Type": "text/html" }
+        })
+    },
     async fetch(req)
     {
         const url = new URL(req.url);
@@ -169,19 +179,21 @@ serve({
         if (url.pathname === "/generatekey")
         {
             const { username } = body;
-            const key = uuidv4.parse(uuidv4());
+            const keyString = uuidv4();
+            const key = uuidParse(keyString);
 
             db.run(`INSERT OR IGNORE INTO users (username) VALUES (?)`, [username]);
             db.run(`INSERT INTO keys (key, username) VALUES (?, ?)`, [key, username]);
 
-            return new Response(JSON.stringify({ key }), {
+            return new Response(JSON.stringify({ keyString, key, username }), {
                 header: { "Content-Type": "application/json" }
             });
         }
         else if (url.pathname === "/validatekey" && req.method === "POST")
         {
-            const { key, username } = body;
-            const result = db.query("SELECT username FROM keys WHERE key = ?", [key]).get();
+            const { keyString, username } = body;
+            const key = uuidParse(keyString);
+            const result = db.query("SELECT username FROM keys WHERE key = ?").get(key);
 
             if (result && result.username === username)
             {
@@ -224,7 +236,89 @@ serve({
             else
             {
                 return new Response(JSON.stringify({
+                    success: false,
+                    message: "Invalid key or username mismatch"
+                }), {
+                    header: { "Content-Type": "application/json" }
+                });
+            }
+        }
+        else if (url.pathname === "/getgamestate")
+        {
+            const { keyString, username } = body;
+            const key = uuidParse(keyString);
+            const result = db.query("SELECT username FROM keys WHERE key = ?").get(key);
+
+            if (result && result.username === username)
+            {
+                return new Response(JSON.stringify({
                     success: true,
+                    data: [32, 33, 69, 420],
+                }), {
+                    header: { "Content-Type": "application/json" }
+                });
+            }
+            else
+            {
+                return new Response(JSON.stringify({
+                    success: false,
+                    message: "Invalid key or username mismatch"
+                }), {
+                    header: { "Content-Type": "application/json" }
+                });
+            }
+        }
+        else if (url.pathname === "/playeraction")
+        {
+            const { keyString, username, action, choice_id, chosen_target } = body;
+            const key = uuidParse(keyString);
+            const result = db.query("SELECT username FROM keys WHERE key = ?").get(key);
+
+            if (choice_id !== "" && choice_id !== undefined && choice_id !== null)
+            {
+                choice_id = parseInt(choice_id);
+            }
+            // chosen_target.x && chosen_target.y
+            // wasmInstance.exports.get_current_scene() -> clients set_current_scene()
+            // wasmInstance.exports.get_current_scene_state()
+            // ....get_current_world_total_world_npcs()
+            // for (npc = 0; npc < total; ++npc) -> 
+            /**
+             *  get_world_npc_npc_id(npc) -> ....
+                WORLD_NPC_CAPTAIN_ID,
+                WORLD_NPC_POSITION_X,
+                WORLD_NPC_POSITION_Y,
+                WORLD_NPC_DIRECTION,
+                WORLD_NPC_IS_INTERACTABLE,
+                WORLD_NPC_IS_CAPTAIN,
+                WORLD_NPC_INTERACTION_SCENE,
+                WORLD_NPC_IS_PLAYER,
+                WORLD_NPC_INVENTORY_ID,
+                WORLD_NPC_ENTITY_ID,
+                -> set_world_npc_npc_id(npc)
+            */
+
+            if (result && result.username === username)
+            {
+                // TODO: Match username to internal/wasm player id and ensure you're allowed to take action
+
+                return new Response(JSON.stringify({
+                    success: true,
+                    message: "Good job!",
+                    state: {
+                        scene_name: "",
+                        scene_state_name: "",
+                        world_npcs: [{}, {}],
+                        ships: [],
+                    }
+                }), {
+                    header: { "Content-Type": "application/json" }
+                });
+            }
+            else
+            {
+                return new Response(JSON.stringify({
+                    success: false,
                     message: "Invalid key or username mismatch"
                 }), {
                     header: { "Content-Type": "application/json" }
