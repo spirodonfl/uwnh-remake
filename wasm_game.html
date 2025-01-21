@@ -362,20 +362,6 @@
                             output_array_buffers.shift();
                         }
                     },
-                    js_test_js_out: function(a)
-                    {
-                        console.log(a);
-                        var b = new Uint32Array(wasm.exports.memory.buffer, a, 2);
-                        console.log(b[0], b[1]);
-                        var c = new Uint8Array(wasm.exports.memory.buffer, a + 8, 13);
-                        console.log(new TextDecoder('utf-8').decode(c));
-                    },
-                    js_test_js_out_array: function(a)
-                    {
-                        console.log(a);
-                        var b = new Uint32Array(wasm.exports.memory.buffer, a, 3);
-                        console.log(b[0], b[1], b[2]);
-                    }
                 }
             }
 
