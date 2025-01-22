@@ -18,8 +18,8 @@ typedef uint32_t u8;
 void console_log(const char* message);
 void console_log_format(const char* format, ...);
 char* string_format(const char* format, ...);
-unsigned long strlen(const char* str);
-int strcmp(const char* str1, const char* str2);
+unsigned long my_strlen(const char* str);
+int my_strcmp(const char* str1, const char* str2);
 #define SENTRY UINT32_MAX
 __attribute__((visibility("default")))
 u32 get_sentry()
@@ -31,7 +31,7 @@ void console_log(const char* message)
 {
     if (message != NULL)
     {
-        js_console_log((void*)message, (u32)(sizeof(char) * strlen(message)));
+        js_console_log((void*)message, (u32)(sizeof(char) * my_strlen(message)));
     }
 }
 char* string_format(const char* format, ...)
@@ -545,13 +545,13 @@ u32 get_string_data_offset(u32 index)
 {
     return index * MAX_STRING_LENGTH * 2;
 }
-unsigned long strlen(const char* str)
+unsigned long my_strlen(const char* str)
 {
     unsigned long len = 0;
     while (str[len] != '\0') len++;
     return len;
 }
-int strcmp(const char* str1, const char* str2)
+int my_strcmp(const char* str1, const char* str2)
 {
     while (*str1 && (*str1 == *str2)) {
         str1++;
@@ -590,7 +590,7 @@ u32 get_string_id_by_machine_name(const char* machine_name)
         
         // console_log_format("Comparing '%s' with '%s'", stored_name, machine_name);
         
-        if (strcmp(stored_name, machine_name) == 0)
+        if (my_strcmp(stored_name, machine_name) == 0)
         {
             return i;
         }
@@ -2387,7 +2387,7 @@ void to_output_string_buffer(const char* message)
 {
     if (message != NULL)
     {
-        js_output_string_buffer((void*)message, (u32)(sizeof(char) * strlen(message)));
+        js_output_string_buffer((void*)message, (u32)(sizeof(char) * my_strlen(message)));
     }
 }
 void to_output_array_buffer(u32 array[])
@@ -2446,7 +2446,7 @@ char* format_input_string()
         return formatted;
     }
     
-    u32 len = strlen(input);
+    u32 len = my_strlen(input);
     for (u32 i = 0; i < len && i < 255; i++)
     {
         formatted[i] = input[i];
@@ -2461,7 +2461,7 @@ void write_to_output_buffer(char* str)
     {
         output_string_buffer[i] = 0;
     }
-    for (u32 i = 0; i < strlen(str); ++i)
+    for (u32 i = 0; i < my_strlen(str); ++i)
     {
         output_string_buffer[i] = str[i];
     }
@@ -2804,7 +2804,7 @@ void generate_world(char* world_name)
     clear_storage_world_npc();
     clear_storage_entity();
 
-    if (strcmp(world_name, "dingus_land") == 0)
+    if (my_strcmp(world_name, "dingus_land") == 0)
     {
         previous_game_mode = current_game_mode;
         current_game_mode = GAME_MODE_IN_PORT;
@@ -2883,7 +2883,7 @@ void generate_world(char* world_name)
         add_world_npc(world_npc_data);
         should_redraw_everything();
     }
-    else if (strcmp(world_name, "athens") == 0)
+    else if (my_strcmp(world_name, "athens") == 0)
     {
         previous_game_mode = current_game_mode;
         current_game_mode = GAME_MODE_IN_PORT;
