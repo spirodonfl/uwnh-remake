@@ -60,12 +60,36 @@ bool write_db_to_file(const char* filename)
         return false;
     }
 
-    size_t player_key_count = sizeof(db_player_key) / sizeof(PlayerKey);
-    fwrite(&player_key_count, sizeof(size_t), 1, file);
-    fwrite(&db_player_key, sizeof(PlayerKey), player_key_count, file);
+    // Count valid entries
+    size_t player_key_count = 0;
+    for (int i = 0; i < MAX_PLAYER_KEY_ENTRIES; i++) {
+        if (db_player_key[i].key != NULL && db_player_key[i].username != NULL) {
+            player_key_count++;
+        }
+    }
+
+    // Write count
+    if (fwrite(&player_key_count, sizeof(size_t), 1, file) != 1) {
+        fclose(file);
+        return false;
+    }
+
+    // Write each entry's data
+    for (size_t i = 0; i < MAX_PLAYER_KEY_ENTRIES; i++) {
+        if (db_player_key[i].key != NULL && db_player_key[i].username != NULL) {
+            // Write key length and data
+            size_t key_len = strlen(db_player_key[i].key);
+            if (fwrite(&key_len, sizeof(size_t), 1, file) != 1) break;
+            if (fwrite(db_player_key[i].key, 1, key_len, file) != key_len) break;
+
+            // Write username length and data
+            size_t username_len = strlen(db_player_key[i].username);
+            if (fwrite(&username_len, sizeof(size_t), 1, file) != 1) break;
+            if (fwrite(db_player_key[i].username, 1, username_len, file) != username_len) break;
+        }
+    }
 
     // todo: meta
-
     // todo: server player data
 
     fclose(file);
@@ -79,9 +103,44 @@ bool read_from_db_file(const char* filename)
         return false;
     }
 
+    // Read the count
     size_t player_key_count;
-    fread(&player_key_count, sizeof(size_t), 1, file);
-    fread(&db_player_key, sizeof(PlayerKey), player_key_count, file);
+    if (fread(&player_key_count, sizeof(size_t), 1, file) != 1) {
+        fclose(file);
+        return false;
+    }
+
+    // Validate count is within bounds
+    if (player_key_count > MAX_PLAYER_KEY_ENTRIES) {
+        fclose(file);
+        return false;
+    }
+
+    // Clear existing data first
+    for (int i = 0; i < MAX_PLAYER_KEY_ENTRIES; i++) {
+        free(db_player_key[i].key);
+        free(db_player_key[i].username);
+        db_player_key[i].key = NULL;
+        db_player_key[i].username = NULL;
+    }
+
+    // Read each entry individually to properly handle strings
+    for (size_t i = 0; i < player_key_count; i++) {
+        // Read key length and string
+        size_t key_len;
+        if (fread(&key_len, sizeof(size_t), 1, file) != 1) break;
+        db_player_key[i].key = malloc(key_len + 1);
+        if (fread(db_player_key[i].key, 1, key_len, file) != key_len) break;
+        db_player_key[i].key[key_len] = '\0';
+
+        // Read username length and string
+        size_t username_len;
+        if (fread(&username_len, sizeof(size_t), 1, file) != 1) break;
+        db_player_key[i].username = malloc(username_len + 1);
+        if (fread(db_player_key[i].username, 1, username_len, file) != username_len) break;
+        db_player_key[i].username[username_len] = '\0';
+    }
+    printf("first entry %s", db_player_key[0].key);
 
     fclose(file);
     return true;
@@ -244,7 +303,6 @@ bool handle_validate_key(GameState* state, const char* key_str, const char* user
         }
         return false;
     }
-    printf("Made it here");
     
     // Search for matching key in our db_player_key array
     bool found = false;
@@ -428,11 +486,39 @@ ssize_t receive_full_request(int socket, char** buffer) {
     return total_size;
 }
 
+u32 get_http_body_start_index(const char* buffer, char* response)
+{
+    char* body_start = strstr(buffer, "\r\n\r\n");
+    if (body_start) {
+        body_start += 4;  // Skip the \r\n\r\n
+        printf("Previous body_start %s\n", body_start);
+        return body_start ? body_start - buffer : -1;
+    }
+    else
+    {
+        sprintf(response, 
+            "HTTP/1.1 400 Bad Request\r\n"
+            "Content-Type: application/json\r\n\r\n"
+            "{\"success\":false,\"message\":\"Missing key or username\"}");
+    }
+    return -1;
+}
+
+bool players_in_game[MAX_PLAYERS];
+bool players_have_pulled_game_state[MAX_PLAYERS];
+
 int main() {
     GameState state = {0};
 
     // THIS IS GAME FUNCTIONALITY
     initialize_game();
+    set_viewport_size(1, 1);
+    tick();
+    u32 new_x = 8;
+    move_world_npc_to(0, new_x, 9);
+
+    players_in_game[0] = true;
+    players_have_pulled_game_state[0] = false;
 
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
@@ -467,6 +553,8 @@ int main() {
     }
 
     while (1) {
+        tick();
+
         struct sockaddr_in client_addr;
         socklen_t addr_len = sizeof(client_addr);
         
@@ -507,80 +595,31 @@ int main() {
         printf("Received request of size: %ld\n", request_size);
         char response[REQUEST_BUFFER_SIZE] = {0};
 
+        // TODO: Potential for multiple requests to share these buffers. Keep this in mind
+        bool have_json_data = false;
+        char json_data[1024];
+        bool have_binary_data = false;
+        u32 binary_data[1024];
+
         if (strncmp(buffer, "GET ", 4) == 0) {
             handle_http_request(buffer, new_socket);
         } else if (strstr(buffer, "POST /generatekey")) {
             handle_generate_key(&state, "username", response);
             send(new_socket, response, strlen(response), 0);
         } else if (strstr(buffer, "POST /validatekey")) {
-            // Parse JSON body from request
-            char* body_start = strstr(buffer, "\r\n\r\n");
-            if (body_start) {
-                body_start += 4;  // Skip the \r\n\r\n
-
-                u32 data_start_index = body_start ? body_start - buffer : -1;
+            u32 data_start_index = get_http_body_start_index(buffer, response);
+            if (data_start_index >= 0)
+            {
                 AuthData auth = parse_auth_data(buffer, &data_start_index);
-                printf("keystring is %s\n", auth.keystring);
-                printf("username is %s\n", auth.username);
-
-                u32 value_count;
-                u32* raw_values = parse_raw_data(buffer, data_start_index, request_size, &value_count);
-                for (u32 i = 0; i < value_count; ++i) {
-                    printf("raw value %d\n", raw_values[i]);
-                }
-                free(raw_values);
-
-                // u32 indx = body_start ? body_start - buffer : -1;
-                // u8 keystring_length = buffer[indx];
-                // u8 username_length = buffer[indx+1];
-                // indx += 2;
-                // u32 total = keystring_length + username_length;
-                // printf("Total body length %d\n", total);
-                // printf("first value %d\n", keystring_length);
-                // printf("second value %d\n", username_length);
-                // printf("index %d\n", indx);
-
-                // char keystring[keystring_length + 1];
-                // for (u32 c = 0; c < keystring_length; ++c)
-                // {
-                //     keystring[c] = (char)buffer[indx + c];
-                // }
-                // keystring[keystring_length] = '\0';
-                // printf("keystring is %s\n", (char *)keystring);
-
-                // indx += keystring_length;
-                // char username[username_length + 1];
-                // for (u32 c = 0; c < username_length; ++c)
-                // {
-                //     username[c] = (char)buffer[indx + c];
-                // }
-                // username[username_length] = '\0';
-                // printf("username is %s\n", (char *)username);
-                // indx += username_length;
-
-                // u32 remaining = (buffer[indx] << 24) |
-                //     (buffer[indx + 1] << 16) |
-                //     (buffer[indx + 2] << 8) |
-                //     (buffer[indx + 3]);
-                // indx += 4;
-                // printf("DEBUG -> rest of data %d\n", remaining);
-                // // iterate from indx to remaining and every 4 iterations, add a u32 value
-                // u32 rest_of_data[remaining];
-                // for (u32 c = 0; c < remaining; ++c)
-                // {
-                //     rest_of_data[c] = (buffer[indx] << 24) |
-                //         (buffer[indx + 1] << 16) |
-                //         (buffer[indx + 2] << 8) |
-                //         (buffer[indx + 3]);
-                //     indx += 4;
-                // }
-                // printf("DEBUG -> rod 1 %d\n", rest_of_data[0]);
-                // printf("DEBUG -> rod 2 %d\n", rest_of_data[1]);
                 
                 if (strlen(auth.keystring) > 0 && strlen(auth.username) > 0)
                 {
                     printf("Validating key: %s for user: %s\n", auth.keystring, auth.username);  // Debug log
-                    handle_validate_key(&state, auth.keystring, auth.username, response, true);
+                    if (handle_validate_key(&state, auth.keystring, auth.username, response, true))
+                    {
+                        // TODO: Add player to players_in_game as long as there is a game open
+                        // - If players_in_game >= 2 , start a timer so that game auto start after 30 seconds
+                    }
                 }
                 else
                 {
@@ -589,42 +628,117 @@ int main() {
                         "Content-Type: application/json\r\n\r\n"
                         "{\"success\":false,\"message\":\"Missing key or username\"}");
                 }
-                // TODO: Does this actually free the memory?
                 free(auth.keystring);
                 free(auth.username);
-            } else {
-                printf("No request body found\n");  // Debug log
-                sprintf(response, 
-                    "HTTP/1.1 400 Bad Request\r\n"
-                    "Content-Type: application/json\r\n\r\n"
-                    "{\"success\":false,\"message\":\"Missing request body\"}");
             }
             send(new_socket, response, strlen(response), 0);
-        } else if (strstr(buffer, "POST /getgamestate")) {
-            // First validate, then send game state
-            // if (!handle_validate_key(&state, keystring, username, response, false)) {
-            //     sprintf(response, 
-            //         "HTTP/1.1 401 Unauthorized\r\n"
-            //         "Content-Type: application/json\r\n\r\n"
-            //         "{\"success\":false,\"message\":\"Invalid credentials\"}");
-            //     send(new_socket, response, strlen(response), 0);
-            //     continue;
-            // }
-            // g_storage_ships[MAX_SHIPS]
-            char gamedata[256] = "";
-            u32 gamestatedata[10] = {6, 69, 69, 69, 69, 69, 69, 69, 429496700, 69};
-            for (int i = 0; i < 10; ++i)
+            if (have_json_data)
             {
-                char buffer[32];
-                sprintf(buffer, "%d%s", gamestatedata[i], (i < 9 ? "," : ""));
-                strcat(gamedata, buffer);
+                send(new_socket, json_data, strlen(json_data), 0);
             }
-            sprintf(response, 
-                "HTTP/1.1 200 OK\r\n"
-                "Content-Type: application/json\r\n\r\n"
-                "{\"success\":true,\"message\":\"Missing request body\",\"data\":[%s]}",
-                gamedata);
+            if (have_binary_data)
+            {
+                send(new_socket, binary_data, sizeof(binary_data), 0);
+            }
+        } else if (strstr(buffer, "POST /getgamestate")) {
+            u32 data_start_index = get_http_body_start_index(buffer, response);
+            if (data_start_index >= 0)
+            {
+                printf("Got gamestate request\n");
+                AuthData auth = parse_auth_data(buffer, &data_start_index);
+                
+                if (strlen(auth.keystring) > 0 && strlen(auth.username) > 0)
+                {
+                    printf("Validating key: %s for user: %s\n", auth.keystring, auth.username);  // Debug log
+                    if (handle_validate_key(&state, auth.keystring, auth.username, response, false))
+                    {
+                        binary_data[0] = 33; // move world npc to
+                        binary_data[1] = 0; // which npc
+                        binary_data[2] = new_x; // position x
+                        binary_data[3] = 9; // position y
+
+                        // CONTRACT
+                        // current_scene
+                        // current_scene_state
+                        // all ships (filtered by ships that actually have a value)
+                        // -- TODO: Future issue - do not screw up someones single player game by overriding these things
+                        // all world npcs (also filtered)
+                        // all captains (also filtered, perhaps by only captains in current battle)
+                        // all fleet data (fleets, fleet ships & fleet captains)
+                        // -- does not need to be filtered because only data that SHOULD exist WILL exist
+                        // all ocean battle data (ocean_battle_fleets, ocean_battle_data, ocean_battle_turn_order)
+                        sprintf(json_data,
+                            "{\"success\":true,\"message\":\"Missing request body\"}");
+                        sprintf(response,
+                            "HTTP/1.1 200 OK\r\n"
+                            "Content-Length: %zu\r\n"
+                            "Content-Type: application/json\r\n"
+                            "\r\n",
+                            strlen(json_data) + sizeof(binary_data));
+                        have_binary_data = true;
+                        have_json_data = true;
+
+                        players_have_pulled_game_state[0] = true;
+                    }
+                }
+                free(auth.keystring);
+                free(auth.username);
+            }
             send(new_socket, response, strlen(response), 0);
+            if (have_json_data)
+            {
+                send(new_socket, json_data, strlen(json_data), 0);
+            }
+            if (have_binary_data)
+            {
+                send(new_socket, binary_data, sizeof(binary_data), 0);
+            }
+            // TODO: If all players_in_game have players_have_pulled_game_state set to true, we can move forward
+            // reset players_have_pulled_game_state to all false
+        }
+        else if (strstr(buffer, "POST /playeraction"))
+        {
+            u32 data_start_index = get_http_body_start_index(buffer, response);
+            if (data_start_index >= 0)
+            {
+                AuthData auth = parse_auth_data(buffer, &data_start_index);
+                
+                if (strlen(auth.keystring) > 0 && strlen(auth.username) > 0)
+                {
+                    printf("Validating key: %s for user: %s\n", auth.keystring, auth.username);  // Debug log
+                    if (handle_validate_key(&state, auth.keystring, auth.username, response, false))
+                    {
+                        // action_type = menu_choice/confirm | move | cannon attack | boarding attack
+                        // menu_choice_id
+                        // target_x
+                        // target_y
+                        u32 value_count;
+                        u32* raw_values = parse_raw_data(buffer, data_start_index, request_size, &value_count);
+                        for (u32 i = 0; i < value_count; ++i) {
+                            printf("raw value %d\n", raw_values[i]);
+                        }
+                        free(raw_values);
+                        // TODO: Remove below, we're not sending game data here
+                        // instead return true/false (valid action or not)
+                        sprintf(json_data,
+                            "{\"success\":true,\"message\":\"Player action dealt with\"}");
+                        have_json_data = true;
+                        sprintf(response, 
+                            "HTTP/1.1 200 OK\r\n"
+                            "Content-Type: application/json\r\n"
+                            "\r\n");
+                    }
+                }
+            }
+            send(new_socket, response, strlen(response), 0);
+            if (have_json_data)
+            {
+                send(new_socket, json_data, strlen(json_data), 0);
+            }
+            if (have_binary_data)
+            {
+                send(new_socket, binary_data, sizeof(binary_data), 0);
+            }
         } else {
             printf("Unsupported request type\n");
             const char* not_found = "HTTP/1.1 404 Not Found\r\n"

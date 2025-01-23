@@ -1585,6 +1585,7 @@ enum SceneOceanBattleChoices
 // ------------------------------------------------------------------------------------------------
 // - ENUM - OCEAN BATTLE DATA
 // ------------------------------------------------------------------------------------------------
+// TODO: Why are you not using this?
 enum OceanBattleData
 {
     OCEAN_BATTLE_DATA_INITIALIZED,
@@ -3201,8 +3202,14 @@ void generate_world(char* world_name)
 void move_world_npc_to(u32 world_npc_id, u32 x, u32 y)
 {
     console_log_format("Moving world npc id %d to x %d and y %d", world_npc_id, x, y);
-    set_world_npc_position_x(world_npc_id, x);
-    set_world_npc_position_y(world_npc_id, y);
+    if (x >= 0 && x < get_current_world_width() && are_coordinates_blocked(x, y) != 1)
+    {
+        set_world_npc_position_x(world_npc_id, x);
+    }
+    if (y >= 0 && y < get_current_world_height() && are_coordinates_blocked(x, y) != 1)
+    {
+        set_world_npc_position_y(world_npc_id, y);
+    }
 }
 void move_world_npc_left(u32 world_npc_id)
 {

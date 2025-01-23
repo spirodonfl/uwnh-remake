@@ -527,6 +527,28 @@
                     // wasm.exports.should_redraw_everything();
                     // RAF.render();
 
+                    var data_array = [
+                        MULTIPLAYER.keyString.length,
+                        MULTIPLAYER.username.length,
+                    ];
+                    for (var c = 0; c < MULTIPLAYER.keyString.length; ++c)
+                    {
+                        data_array.push(MULTIPLAYER.keyString[c].charCodeAt(0));
+                    }
+                    for (var c = 0; c < MULTIPLAYER.username.length; ++c)
+                    {
+                        data_array.push(MULTIPLAYER.username[c].charCodeAt(0));
+                    }
+                    function addToArray(array, value)
+                    {
+                        array.push((value >> 24) & 0xFF);
+                        array.push((value >> 16) & 0xFF);
+                        array.push((value >> 8) & 0xFF);
+                        array.push(value & 0xFF);
+                    }
+                    addToArray(data_array, 2);
+                    addToArray(data_array, 69420);
+                    addToArray(data_array, 69);
                     MULTIPLAYER.polling_timeout = setInterval(() => {
                         if (MULTIPLAYER.is_polling === false)
                         {
@@ -536,22 +558,34 @@
                                 headers: {
                                     "Content-Type": "application/json"
                                 },
-                                body: JSON.stringify({
-                                    username: MULTIPLAYER.username,
-                                    keyString: MULTIPLAYER.keyString,
-                                })
+                                body: new Uint8Array(data_array),
                             }).then((response) => {
                                 MULTIPLAYER.is_polling = false;
-                                if (response.ok) {
-                                    return response.json();
-                                }
-                            }).then((json) => {
-                                MULTIPLAYER.is_polling = false;
-                                if (json && json.success === true)
+                                if (response.ok)
                                 {
-                                    console.log(json);
-                                    console.log(new Uint32Array(json.data));
+                                    return response.arrayBuffer();
                                 }
+                            }).then((arraybuffer) => {
+                                MULTIPLAYER.is_polling = false;
+                                
+                                var decoder = new TextDecoder();
+                                var text = decoder.decode(arraybuffer);
+                                var json_end_index = text.indexOf("}") + 1;
+
+                                var json_data = JSON.parse(text.slice(0, json_end_index));
+
+                                var binary_data = new Uint32Array(arraybuffer.slice(json_end_index));
+
+                                console.log(json_data);
+                                console.log(binary_data);
+
+                                var action = binary_data[0];
+                                var which_npc = binary_data[1];
+                                var which_npc_x = binary_data[2];
+                                var which_npc_y = binary_data[3];
+                                wasm.exports.move_world_npc_to(which_npc, which_npc_x, which_npc_y);
+                                wasm.exports.should_redraw_everything();
+                                RAF.render();
                             }).catch((error) => {
                                 MULTIPLAYER.is_polling = false;
                                 console.error(error);
@@ -621,14 +655,22 @@
                     {
                         dummy_array.push(action.username[c].charCodeAt(0));
                     }
-                    console.log("UINT8", new Uint8Array(dummy_array));
-                    
+                    function addToArray(array, value)
+                    {
+                        array.push((value >> 24) & 0xFF);
+                        array.push((value >> 16) & 0xFF);
+                        array.push((value >> 8) & 0xFF);
+                        array.push(value & 0xFF);
+                    }
+                    addToArray(dummy_array, 2);
+                    addToArray(dummy_array, 69420);
+                    addToArray(dummy_array, 69);
                     fetch("http://localhost:3333/playeraction", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json"
                         },
-                        body: dummy_array,
+                        body: new Uint8Array(dummy_array),
                         // body: JSON.stringify(action)
                     }).then((response) => {
                         if (response.ok) {
