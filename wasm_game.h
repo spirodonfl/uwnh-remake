@@ -6527,34 +6527,14 @@ u32 scene_ocean_battle(u32 action)
                     u32 cc = current_scene_get_current_choice();
                     if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
                     {
-                        // If you confirm a victory then just go back to normal game mode
-                        clear_current_scene();
-                        current_game_mode = GAME_MODE_IN_PORT;
+                        // TODO: Cleanup here
+                        // clear_current_scene();
+                        // current_game_mode = GAME_MODE_IN_PORT;
+                        // Unless you need to do things like post-victory management
+                        // - take ships, take cargo kinda thing
+                        // THEN cleanup world npcs && current scene
+                        // keep ship damage the way it was so you have to deal with after the battle as a challenge
                         should_redraw_everything();
-                        // TODO: You have to clear the world npcs that are ships
-                        // [BATTLE SHIP CLEAR]
-                        // TODO: Update this so only the active fleets in the battle are placed
-                        for (u32 i = 0; i < ocean_battle_total_fleets; ++i)
-                        {
-                            u32 fleet_id = ocean_battle_fleets[i];
-                            for (u32 s = 0; s < MAX_FLEET_SHIPS; ++s)
-                            {
-                                u32 ship_id = mda_fleet_ship[fleet_id][s];
-                                if (ship_id == SENTRY)
-                                {
-                                    continue;
-                                }
-                                for (u32 wn = 0; wn < MAX_WORLD_NPCS; ++wn)
-                                {
-                                    if (get_world_npc_entity_id(wn) == ship_id)
-                                    {
-                                        set_ship_hull(ship_id, 100);
-                                        set_ship_crew(ship_id, 50);
-                                        remove_world_npc(wn);
-                                    }
-                                }
-                            }
-                        }
                         break;
                     }
                     break;

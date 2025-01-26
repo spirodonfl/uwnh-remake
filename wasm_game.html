@@ -529,6 +529,11 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                 top: 0px;
                 left: 0px;
             }
+            #htmx-multiplayer-div #content
+            {
+                background-color: rgba(0, 0, 0, 0.6);
+                padding: 6px;
+            }
 
             .scene_choice.current
             {
@@ -3033,7 +3038,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                         var layer_id = gh.getCurrentLayerIDByString("npc_layer")
                                         if (layer_id !== wasm.exports.get_sentry())
                                         {
-                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y)
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y);
                                             if (layer_value !== wasm.exports.get_sentry())
                                             {
                                                 // TODO: One approach: Check the machine name of the player and see if it's a player
@@ -3427,7 +3432,16 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                     uih.clearMultiHighlights();
                                     // Exiting target choice for attack so we don't need
                                     // to send this off to the multiplayer host
-                                    wasm.exports.current_scene_make_choice(1);
+                                    if (IS_MULTIPLAYER)
+                                    {
+                                        MULTIPLAYER.sendToHost({
+                                            type: "back_button"
+                                        });
+                                    }
+                                    else
+                                    {
+                                        wasm.exports.current_scene_make_choice(1);
+                                    }
                                 }
                             }
                             else

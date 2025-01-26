@@ -18,214 +18,221 @@ function shuffleArray(array) {
 // ------------------------------------------------------------------------------------------------
 // C GAME CODE
 // ------------------------------------------------------------------------------------------------
+var import_symbols = {
+    // Define your C functions here
+    initialize_game:
+    { args: [], returns: "void", },
+    tick:
+    { args: [], returns: "void", },
+    get_sentry:
+    { args: [], returns: "u32", },
+    get_current_game_mode:
+    { args: [], returns: "u32", },
+    get_max_world_npcs:
+    { args: [], returns: "u32", },
+    get_max_ships:
+    { args: [], returns: "u32", },
+    get_max_fleets:
+    { args: [], returns: "u32", },
+    get_max_fleet_ships:
+    { args: [], returns: "u32", },
+    get_max_captains:
+    { args: [], returns: "u32", },
+    get_max_ocean_battle_fleets:
+    { args: [], returns: "u32", },
+    get_max_players:
+    { args: [], returns: "u32", },
+    get_world_npc_position_x:
+    { args: ["u32"], returns: "u32", },
+    get_world_npc_position_y:
+    { args: ["u32"], returns: "u32", },
+    get_world_npc_npc_id:
+    { args: ["u32"], returns: "u32", },
+    get_world_npc_type:
+    { args: ["u32"], returns: "u32", },
+    get_world_npc_entity_id:
+    { args: ["u32"], returns: "u32", },
+    set_world_npc_type:
+    { args: ["u32", "u32"], returns: "void", },
+    get_ship_name_id:
+    { args: ["u32"], returns: "u32", },
+    get_ship_base_ship_id:
+    { args: ["u32"], returns: "u32", },
+    get_ship_crew:
+    { args: ["u32"], returns: "u32", },
+    get_ship_hull:
+    { args: ["u32"], returns: "u32", },
+    get_captain_npc_id:
+    { args: ["u32"], returns: "u32", },
+    get_captain_world_npc_id:
+    { args: ["u32"], returns: "u32", },
+    get_captain_player_id:
+    { args: ["u32"], returns: "u32", },
+    get_captain_fleet_id:
+    { args: ["u32"], returns: "u32", },
+    get_ocean_battle_data_size:
+    { args: [], returns: "u32", },
+    get_ocean_battle_data_value:
+    { args: ["u32"], returns: "u32", },
+    get_captain_to_player_value:
+    { args: ["u32"], returns: "u32", },
+    get_ocean_battle_total_fleets:
+    { args: [], returns: "u32", },
+    get_ocean_battle_fleets_value:
+    { args: ["u32"], returns: "u32", },
+    get_ocean_battle_turn_order_value:
+    { args: ["u32"], returns: "u32", },
+    set_ocean_battle_turn_order_value:
+    { args: ["u32", "u32"], returns: "void", },
+    get_max_ocean_battle_turn_orders:
+    { args: [], returns: "u32", },
+    move_world_npc_to:
+    { args: ["u32", "u32", "u32"], returns: "void", },
+    scene_ocean_battle:
+    { args: ["u32"], returns: "u32" },
+    get_current_scene:
+    { args: [], returns: "u32" },
+    get_current_scene_state:
+    { args: [], returns: "u32" },
+    get_current_scene_state_string_id:
+    { args: [], returns: "u32" },
+    clear_ocean_battle_fleets:
+    { args: [], returns: "void", },
+    add_fleet_to_battle:
+    { args: ["u32"], returns: "void", },
+    get_fleet_id_by_general_id:
+    { args: ["u32"], returns: "u32", },
+    get_npc_id_by_machine_name:
+    { args: ["cstring"], returns: "u32", },
+    get_string_id_by_machine_name:
+    { args: ["cstring"], returns: "u32", },
+    get_npc_id_by_string_id:
+    { args: ["u32"], returns: "u32", },
+    get_layer_id_by_machine_name:
+    { args: ["cstring"], returns: "u32", },
+    get_player_value:
+    { args: ["u32"], returns: "u32", },
+    set_global_storage_world_npcs_used:
+    { args: ["u32"], returns: "void", },
+    set_global_storage_ships_used:
+    { args: ["u32"], returns: "void", },
+    set_global_storage_captains_used:
+    { args: ["u32"], returns: "void", },
+    set_global_storage_fleets_used:
+    { args: ["u32"], returns: "void", },
+    set_global_storage_fleet_ships_used:
+    { args: ["u32"], returns: "void", },
+    current_scene_make_choice:
+    { args: ["u32"], returns: "void", },
+    ocean_battle_get_total_valid_movement_coordinates:
+    { args: [], returns: "u32",},
+    ocean_battle_get_total_valid_boarding_coordinates:
+    { args: [], returns: "u32",},
+    ocean_battle_get_total_valid_cannon_coordinates:
+    { args: [], returns: "u32",},
+    ocean_battle_get_valid_boarding_coordinates_x:
+    { args: ["u32"], returns: "u32",},
+    ocean_battle_get_valid_boarding_coordinates_y:
+    { args: ["u32"], returns: "u32",},
+    ocean_battle_get_valid_cannon_coordinates_x:
+    { args: ["u32"], returns: "u32",},
+    ocean_battle_get_valid_cannon_coordinates_y:
+    { args: ["u32"], returns: "u32",},
+    ocean_battle_get_valid_movement_coordinates_x:
+    { args: ["u32"], returns: "u32",},
+    ocean_battle_get_valid_movement_coordinates_y:
+    { args: ["u32"], returns: "u32",},
+    set_ocean_battle_data_intended_move_x:
+    { args: ["u32"], returns: "void",},
+    set_ocean_battle_data_intended_move_y:
+    { args: ["u32"], returns: "void",},
+    set_ocean_battle_data_intended_boarding_x:
+    { args: ["u32"], returns: "void",},
+    set_ocean_battle_data_intended_boarding_y:
+    { args: ["u32"], returns: "void",},
+    set_ocean_battle_data_intended_cannon_x:
+    { args: ["u32"], returns: "void",},
+    set_ocean_battle_data_intended_cannon_y:
+    { args: ["u32"], returns: "void",},
+    set_ocean_battle_data_manual_setup:
+    { args: ["u32"], returns: "void", },
+    get_current_ocean_battle_turn_player_id:
+    { args: [], returns: "u32", },
+    set_fleet_total_ships:
+    { args: ["u32", "u32"], returns: "u32", },
+    set_fleet_total_captains:
+    { args: ["u32", "u32"], returns: "u32", },
+    set_fleet_general_id:
+    { args: ["u32", "u32"], returns: "u32", },
+    create_string:
+    { args: ["cstring", "cstring"], returns: "u32", },
+    pull_storage_ships_next_open_slot:
+    { args: [], returns: "u32", },
+    pull_storage_world_npcs_next_open_slot:
+    { args: [], returns: "u32", },
+    pull_storage_fleets_next_open_slot:
+    { args: [], returns: "u32", },
+    pull_storage_fleet_ships_next_open_slot:
+    { args: [], returns: "u32", },
+    set_ship_name_id:
+    { args: ["u32", "u32"], returns: "void", },
+    set_ship_base_ship_id:
+    { args: ["u32", "u32"], returns: "void", },
+    set_ship_crew:
+    { args: ["u32", "u32"], returns: "void", },
+    set_ship_hull:
+    { args: ["u32", "u32"], returns: "void", },
+    add_ship_to_fleet:
+    { args: ["u32", "u32"], returns: "void", },
+    add_value_to_global_world_data:
+    { args: ["u32", "u32", "u32", "u32"], returns: "void", },
+    get_base_ship_id_by_machine_name:
+    { args: ["cstring"], returns: "u32", },
+    set_world_npc_entity_id:
+    { args: ["u32", "u32"], returns: "void", },
+    set_world_npc_position_x:
+    { args: ["u32", "u32"], returns: "void", },
+    set_world_npc_position_y:
+    { args: ["u32", "u32"], returns: "void", },
+    set_world_npc_npc_id:
+    { args: ["u32", "u32"], returns: "void", },
+    set_ocean_battle_data_total_ships_in_play:
+    { args: ["u32"], returns: "void", },
+    increment_global_storage_world_npcs_count:
+    { args: [], returns: "void", },
+    increment_global_storage_ships_count:
+    { args: [], returns: "void", },
+    increment_global_storage_captains_count:
+    { args: [], returns: "void", },
+    increment_global_storage_fleets_count:
+    { args: [], returns: "void", },
+    increment_global_storage_fleet_ships_count:
+    { args: [], returns: "void", },
+    set_which_player_you_are:
+    { args: ["u32"], returns: "void", },
+    get_fleet_general_id:
+    { args: ["u32"], returns: "u32", },
+    get_fleet_total_ships:
+    { args: ["u32"], returns: "u32", },
+    get_fleet_total_captains:
+    { args: ["u32"], returns: "u32", },
+    get_fleet_ship_fleet_id:
+    { args: ["u32"], returns: "u32", },
+    get_fleet_ship_ship_id:
+    { args: ["u32"], returns: "u32", },
+    get_viewport_value_at_coordinates:
+    { args: ["u32", "u32", "u32"], returns: "u32", },
+};
 import { cc } from "bun:ffi";
 import source from "./bun_server.c" with { type: "file" };
+// const { secondsymbols } = cc({
+//     source,
+//     symbols: import_symbols,
+//     flags: ["-DTINYCC", "-w"]
+// });
 const { symbols } = cc({
     source,
-    symbols:
-    {
-        // Define your C functions here
-        initialize_game:
-        { args: [], returns: "void", },
-        tick:
-        { args: [], returns: "void", },
-        get_sentry:
-        { args: [], returns: "u32", },
-        get_current_game_mode:
-        { args: [], returns: "u32", },
-        get_max_world_npcs:
-        { args: [], returns: "u32", },
-        get_max_ships:
-        { args: [], returns: "u32", },
-        get_max_fleets:
-        { args: [], returns: "u32", },
-        get_max_fleet_ships:
-        { args: [], returns: "u32", },
-        get_max_captains:
-        { args: [], returns: "u32", },
-        get_max_ocean_battle_fleets:
-        { args: [], returns: "u32", },
-        get_max_players:
-        { args: [], returns: "u32", },
-        get_world_npc_position_x:
-        { args: ["u32"], returns: "u32", },
-        get_world_npc_position_y:
-        { args: ["u32"], returns: "u32", },
-        get_world_npc_npc_id:
-        { args: ["u32"], returns: "u32", },
-        get_world_npc_type:
-        { args: ["u32"], returns: "u32", },
-        get_world_npc_entity_id:
-        { args: ["u32"], returns: "u32", },
-        set_world_npc_type:
-        { args: ["u32", "u32"], returns: "void", },
-        get_ship_name_id:
-        { args: ["u32"], returns: "u32", },
-        get_ship_base_ship_id:
-        { args: ["u32"], returns: "u32", },
-        get_ship_crew:
-        { args: ["u32"], returns: "u32", },
-        get_ship_hull:
-        { args: ["u32"], returns: "u32", },
-        get_captain_npc_id:
-        { args: ["u32"], returns: "u32", },
-        get_captain_world_npc_id:
-        { args: ["u32"], returns: "u32", },
-        get_captain_player_id:
-        { args: ["u32"], returns: "u32", },
-        get_captain_fleet_id:
-        { args: ["u32"], returns: "u32", },
-        get_ocean_battle_data_size:
-        { args: [], returns: "u32", },
-        get_ocean_battle_data_value:
-        { args: ["u32"], returns: "u32", },
-        get_captain_to_player_value:
-        { args: ["u32"], returns: "u32", },
-        get_ocean_battle_total_fleets:
-        { args: [], returns: "u32", },
-        get_ocean_battle_fleets_value:
-        { args: ["u32"], returns: "u32", },
-        get_ocean_battle_turn_order_value:
-        { args: ["u32"], returns: "u32", },
-        set_ocean_battle_turn_order_value:
-        { args: ["u32", "u32"], returns: "void", },
-        get_max_ocean_battle_turn_orders:
-        { args: [], returns: "u32", },
-        move_world_npc_to:
-        { args: ["u32", "u32", "u32"], returns: "void", },
-        scene_ocean_battle:
-        { args: ["u32"], returns: "u32" },
-        get_current_scene:
-        { args: [], returns: "u32" },
-        get_current_scene_state:
-        { args: [], returns: "u32" },
-        get_current_scene_state_string_id:
-        { args: [], returns: "u32" },
-        clear_ocean_battle_fleets:
-        { args: [], returns: "void", },
-        add_fleet_to_battle:
-        { args: ["u32"], returns: "void", },
-        get_fleet_id_by_general_id:
-        { args: ["u32"], returns: "u32", },
-        get_npc_id_by_machine_name:
-        { args: ["cstring"], returns: "u32", },
-        get_string_id_by_machine_name:
-        { args: ["cstring"], returns: "u32", },
-        get_npc_id_by_string_id:
-        { args: ["u32"], returns: "u32", },
-        get_layer_id_by_machine_name:
-        { args: ["cstring"], returns: "u32", },
-        get_player_value:
-        { args: ["u32"], returns: "u32", },
-        set_global_storage_world_npcs_used:
-        { args: ["u32"], returns: "void", },
-        set_global_storage_ships_used:
-        { args: ["u32"], returns: "void", },
-        set_global_storage_captains_used:
-        { args: ["u32"], returns: "void", },
-        set_global_storage_fleets_used:
-        { args: ["u32"], returns: "void", },
-        set_global_storage_fleet_ships_used:
-        { args: ["u32"], returns: "void", },
-        current_scene_make_choice:
-        { args: ["u32"], returns: "void", },
-        ocean_battle_get_total_valid_movement_coordinates:
-        { args: [], returns: "u32",},
-        ocean_battle_get_total_valid_boarding_coordinates:
-        { args: [], returns: "u32",},
-        ocean_battle_get_total_valid_cannon_coordinates:
-        { args: [], returns: "u32",},
-        ocean_battle_get_valid_boarding_coordinates_x:
-        { args: ["u32"], returns: "u32",},
-        ocean_battle_get_valid_boarding_coordinates_y:
-        { args: ["u32"], returns: "u32",},
-        ocean_battle_get_valid_cannon_coordinates_x:
-        { args: ["u32"], returns: "u32",},
-        ocean_battle_get_valid_cannon_coordinates_y:
-        { args: ["u32"], returns: "u32",},
-        ocean_battle_get_valid_movement_coordinates_x:
-        { args: ["u32"], returns: "u32",},
-        ocean_battle_get_valid_movement_coordinates_y:
-        { args: ["u32"], returns: "u32",},
-        set_ocean_battle_data_intended_move_x:
-        { args: ["u32"], returns: "void",},
-        set_ocean_battle_data_intended_move_y:
-        { args: ["u32"], returns: "void",},
-        set_ocean_battle_data_intended_boarding_x:
-        { args: ["u32"], returns: "void",},
-        set_ocean_battle_data_intended_boarding_y:
-        { args: ["u32"], returns: "void",},
-        set_ocean_battle_data_intended_cannon_x:
-        { args: ["u32"], returns: "void",},
-        set_ocean_battle_data_intended_cannon_y:
-        { args: ["u32"], returns: "void",},
-        set_ocean_battle_data_manual_setup:
-        { args: ["u32"], returns: "void", },
-        get_current_ocean_battle_turn_player_id:
-        { args: [], returns: "u32", },
-        set_fleet_total_ships:
-        { args: ["u32", "u32"], returns: "u32", },
-        set_fleet_total_captains:
-        { args: ["u32", "u32"], returns: "u32", },
-        set_fleet_general_id:
-        { args: ["u32", "u32"], returns: "u32", },
-        create_string:
-        { args: ["cstring", "cstring"], returns: "u32", },
-        pull_storage_ships_next_open_slot:
-        { args: [], returns: "u32", },
-        pull_storage_world_npcs_next_open_slot:
-        { args: [], returns: "u32", },
-        pull_storage_fleets_next_open_slot:
-        { args: [], returns: "u32", },
-        pull_storage_fleet_ships_next_open_slot:
-        { args: [], returns: "u32", },
-        set_ship_name_id:
-        { args: ["u32", "u32"], returns: "void", },
-        set_ship_base_ship_id:
-        { args: ["u32", "u32"], returns: "void", },
-        set_ship_crew:
-        { args: ["u32", "u32"], returns: "void", },
-        set_ship_hull:
-        { args: ["u32", "u32"], returns: "void", },
-        add_ship_to_fleet:
-        { args: ["u32", "u32"], returns: "void", },
-        add_value_to_global_world_data:
-        { args: ["u32", "u32", "u32", "u32"], returns: "void", },
-        get_base_ship_id_by_machine_name:
-        { args: ["cstring"], returns: "u32", },
-        set_world_npc_entity_id:
-        { args: ["u32", "u32"], returns: "void", },
-        set_world_npc_position_x:
-        { args: ["u32", "u32"], returns: "void", },
-        set_world_npc_position_y:
-        { args: ["u32", "u32"], returns: "void", },
-        set_world_npc_npc_id:
-        { args: ["u32", "u32"], returns: "void", },
-        set_ocean_battle_data_total_ships_in_play:
-        { args: ["u32"], returns: "void", },
-        increment_global_storage_world_npcs_count:
-        { args: [], returns: "void", },
-        increment_global_storage_ships_count:
-        { args: [], returns: "void", },
-        increment_global_storage_captains_count:
-        { args: [], returns: "void", },
-        increment_global_storage_fleets_count:
-        { args: [], returns: "void", },
-        increment_global_storage_fleet_ships_count:
-        { args: [], returns: "void", },
-        set_which_player_you_are:
-        { args: ["u32"], returns: "void", },
-        get_fleet_general_id:
-        { args: ["u32"], returns: "u32", },
-        get_fleet_total_ships:
-        { args: ["u32"], returns: "u32", },
-        get_fleet_total_captains:
-        { args: ["u32"], returns: "u32", },
-        get_fleet_ship_fleet_id:
-        { args: ["u32"], returns: "u32", },
-        get_fleet_ship_ship_id:
-        { args: ["u32"], returns: "u32", },
-    },
+    symbols: import_symbols,
     flags: ["-DTINYCC", "-w"]
 });
 var GAME_INITIALIZED = false;
@@ -305,19 +312,14 @@ function beginGame()
         symbols.set_fleet_total_ships(fleet_id, 0);
         symbols.set_fleet_total_captains(fleet_id, 1);
         symbols.set_fleet_general_id(fleet_id, npc_id);
-        symbols.set_global_storage_fleets_used(fleet_id);
-        symbols.increment_global_storage_fleets_count();
 
         console.log("-- FLEET SHIP SETUP --");
         ship_id = symbols.pull_storage_ships_next_open_slot();
-        symbols.set_global_storage_ships_used(ship_id);
         symbols.set_ship_name_id(ship_id, ship_name_id);
         symbols.set_ship_base_ship_id(ship_id, base_ship_id);
         symbols.set_ship_crew(ship_id, 50);
         symbols.set_ship_hull(ship_id, 100);
         symbols.set_global_storage_ships_used(ship_id);
-        symbols.increment_global_storage_ships_count();
-        symbols.add_ship_to_fleet(fleet_id, ship_id);
         ++OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY;
         console.log("-- CREATING WORLD NPC --");
         world_npc_id = symbols.pull_storage_world_npcs_next_open_slot();
@@ -328,19 +330,14 @@ function beginGame()
         symbols.set_world_npc_type(world_npc_id, 3);
         ++position_x;
         symbols.set_world_npc_position_y(world_npc_id, position_y);
-        symbols.set_global_storage_world_npcs_used(world_npc_id);
-        symbols.increment_global_storage_world_npcs_count();
         OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
 
         console.log("-- FLEET SHIP SETUP --");
         ship_id = symbols.pull_storage_ships_next_open_slot();
-        symbols.set_global_storage_ships_used(ship_id);
         symbols.set_ship_name_id(ship_id, ship_name_id);
         symbols.set_ship_base_ship_id(ship_id, base_ship_id);
         symbols.set_ship_crew(ship_id, 50);
         symbols.set_ship_hull(ship_id, 100);
-        symbols.set_global_storage_ships_used(ship_id);
-        symbols.increment_global_storage_ships_count();
         symbols.add_ship_to_fleet(fleet_id, ship_id);
         ++OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY;
         console.log("-- CREATING WORLD NPC --");
@@ -352,8 +349,6 @@ function beginGame()
         symbols.set_world_npc_type(world_npc_id, 3);
         ++position_x;
         symbols.set_world_npc_position_y(world_npc_id, position_y);
-        symbols.set_global_storage_world_npcs_used(world_npc_id);
-        symbols.increment_global_storage_world_npcs_count();
         OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
 
         console.log("-- ADDING FLEET TO BATTLE --");
@@ -361,7 +356,6 @@ function beginGame()
     }
 
     // kraken
-    // blackbeard
     // davey jones
     console.log("-- BLACKBEARD --");
     ship_name_id = symbols.get_string_id_by_machine_name(createWasmString("blackbeards_ship"));
@@ -371,17 +365,12 @@ function beginGame()
     symbols.set_fleet_total_ships(fleet_id, 0);
     symbols.set_fleet_total_captains(fleet_id, 1);
     symbols.set_fleet_general_id(fleet_id, npc_id);
-    symbols.set_global_storage_fleets_used(fleet_id);
-    symbols.increment_global_storage_fleets_count();
     console.log("-- BLACKBEARD FLEET SHIP SETUP --");
     ship_id = symbols.pull_storage_ships_next_open_slot();
-    symbols.set_global_storage_ships_used(ship_id);
     symbols.set_ship_name_id(ship_id, ship_name_id);
     symbols.set_ship_base_ship_id(ship_id, base_ship_id);
     symbols.set_ship_crew(ship_id, 50);
     symbols.set_ship_hull(ship_id, 100);
-    symbols.set_global_storage_ships_used(ship_id);
-    symbols.increment_global_storage_ships_count();
     symbols.add_ship_to_fleet(fleet_id, ship_id);
     ++OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY;
     console.log("-- BLACKBEARD CREATING WORLD NPC --");
@@ -397,13 +386,10 @@ function beginGame()
     OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
     console.log("-- BLACKBEARD FLEET SHIP SETUP --");
     ship_id = symbols.pull_storage_ships_next_open_slot();
-    symbols.set_global_storage_ships_used(ship_id);
     symbols.set_ship_name_id(ship_id, ship_name_id);
     symbols.set_ship_base_ship_id(ship_id, base_ship_id);
     symbols.set_ship_crew(ship_id, 50);
     symbols.set_ship_hull(ship_id, 100);
-    symbols.set_global_storage_ships_used(ship_id);
-    symbols.increment_global_storage_ships_count();
     symbols.add_ship_to_fleet(fleet_id, ship_id);
     ++OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY;
     console.log("-- BLACKBEARD CREATING WORLD NPC --");
@@ -435,6 +421,7 @@ function beginGame()
 }
 function endGame()
 {
+    console.log("-- TODO: END GAME --");
     /**
      * Reset GAME_INITIALIZED
      * Reset IN_GAME
@@ -622,8 +609,6 @@ db.run(`
         FOREIGN KEY(username) REFERENCES users(username)
     );
 `);
-// db.query(`UPDATE users SET score = score + ? WHERE username = ?`, [points, username]).run();
-// const new_score = db.query("SELECT score FROM users WHERE username = ?", [username]).get().score;
 
 // ------------------------------------------------------------------------------------------------
 // GLOBAL VARIABLES
@@ -673,10 +658,11 @@ function playerJoinedGameHTML()
     var html = `
     <div id='content'>
         <div id='countdown_timer'></div>
+        <div id='players'></div>
         <form id='send_chat' ws-send>
             <input type='text' name='chat_message' />
             <input type='hidden' name='type' value='chat_message' />
-            <button type='submit'>Send</button>
+            <button type='submit'>Send Trash Talk</button>
         </form>
         <div id='chat'></div>
     </div>`;
@@ -697,6 +683,29 @@ function countdownTimerHTML()
     var html = `
         <div id='countdown_timer'>${COUNTDOWN_CURRENT_SECONDS}</div>
     `;
+    return String.raw`${html}`.replace(/`/g, '"').replace(/\n/g, '');
+}
+function playersHTML()
+{
+    var html = `<div id='players'>`;
+    for (var p = 0; p < players.length; ++p)
+    {
+        var username = players[p].username;
+        db.run(`INSERT OR IGNORE INTO users (username) VALUES (?)`, [username]);
+        var db_user = db.query(`SELECT * FROM users WHERE username = $username`).get({$username: username});
+        var score = null;
+        if (db_user !== null)
+        {
+            score = db_user.score;
+        }
+        else
+        {
+            console.log("Could not find user " + username + " in the db");
+        }
+        var player_number = p + 1;
+        html += `<div><span>[Player ${player_number}]</span> <span>${username}</span> <span>(Score: ${score})</span></div>`;
+    }
+    html += '</div>';
     return String.raw`${html}`.replace(/`/g, '"').replace(/\n/g, '');
 }
 
@@ -888,6 +897,10 @@ const server = serve({
                                 type: "set_which_player_you_are",
                                 value: ws.player_id,
                             }));
+                            ws.send(JSON.stringify({
+                                type: "htmx_message",
+                                html: playersHTML(),
+                            }));
 
                             if (players.length >= REQUIRED_PLAYERS && IN_GAME !== true)
                             {
@@ -927,7 +940,7 @@ const server = serve({
                         if (!confirmKeyInData(ws, "validate_key", data)) { break; }
                         if (validateKey(ws, "validate_key", data.username, data.keystring))
                         {
-                            // TODO: We need to implement the turn order. This is getting too messy.
+                            // TURN ORDER IMPLEMENTATION
                             // If current player id == SENTRY then it's an NPC turn, continue until not sentry
                             // - That should store all the moves the npcs make
                             // When not sentry, update all players
@@ -938,6 +951,10 @@ const server = serve({
                             // - only send a boarding after confirmation (not during)
                             // -- if move & attack has been done just check on server and send updated game if turn auto ends
                             // - only send end turn
+                            // GameData would include the current turn order from the wasm stuff on the server (nobody elses)
+                            // - client renders & overrides turn order
+
+                            // TODO: PROBLEM -> if current players turn is 1 but 0 hits confirm, does nothing but if 1 does something then everyone moves forward
                             console.log("-- current turn player id is " + symbols.get_current_ocean_battle_turn_player_id() + ":" + ws.player_id);
                             if (symbols.get_current_ocean_battle_turn_player_id() === ws.player_id)
                             {
@@ -947,6 +964,10 @@ const server = serve({
                                 {
                                     symbols.current_scene_make_choice(parseInt(data.action.choice_id));
                                     symbols.scene_ocean_battle(0);
+                                }
+                                if (data.action.type === "back_button")
+                                {
+                                    symbols.current_scene_make_choice(1);
                                 }
                                 else if (data.action.type === "moving_choose_target")
                                 {
@@ -965,8 +986,15 @@ const server = serve({
                                     // Fake out the selection of the confirmation button
                                     symbols.current_scene_make_choice(0);
                                     symbols.scene_ocean_battle(0);
-                                    // get world_npc at target coords, check hull value
-                                    // TODO: If hull of target <= 0, player gets a score update
+                                    
+                                    var npc_layer_id = symbols.get_layer_id_by_machine_name(createWasmString("npc_layer"));
+                                    var world_value = symbols.get_viewport_value_at_coordinates(npc_layer_id, data.action.chosen_target.x, data.action.chosen_target.y);
+                                    var ship_id = symbols.get_world_npc_entity_id(world_value);
+                                    // TODO: differentiate between kraken, blackbeard, davey jones and player ships
+                                    if (symbols.get_ship_hull(ship_id) <= 0)
+                                    {
+                                        db.query(`UPDATE users SET score = score + ? WHERE username = ?`, [10, ws.username]).run();
+                                    }
                                 }
                                 else if (data.action.type === "boarding_attack_choose_target")
                                 {
@@ -976,8 +1004,15 @@ const server = serve({
                                     // Fake out the selection of the confirmation button
                                     symbols.current_scene_make_choice(0);
                                     symbols.scene_ocean_battle(0);
-                                    // get world_npc at target coords, check crew value
-                                    // TODO: If crew of target <= 0, player gets a score update
+
+                                    var npc_layer_id = symbols.get_layer_id_by_machine_name(createWasmString("npc_layer"));
+                                    var world_value = symbols.get_viewport_value_at_coordinates(npc_layer_id, data.action.chosen_target.x, data.action.chosen_target.y);
+                                    var ship_id = symbols.get_world_npc_entity_id(world_value);
+                                    // TODO: differentiate between kraken, blackbeard, davey jones and player ships
+                                    if (symbols.get_ship_crew(ship_id) <= 0)
+                                    {
+                                        db.query(`UPDATE users SET score = score + ? WHERE username = ?`, [10, ws.username]).run();
+                                    }
                                 }
                                 // TODO: Special, if kraken, no crew, so all attacks are hull attacks
 
@@ -1003,11 +1038,20 @@ const server = serve({
                             // TODO: This is going to thrash the connection with messages to all players
                             // every time a player mashes the button during their turn
                             sendGameDataToAllPlayers();
-                            if (get_current_scene_state_string_id() === symbols.get_string_id_by_machine_name(createWasmString("ocean_battle_victory")))
+                            ws.send(JSON.stringify({
+                                type: "htmx_message",
+                                html: playersHTML(),
+                            }));
+                            var victory_string_id = symbols.get_string_id_by_machine_name(createWasmString("ocean_battle_victory"));
+                            console.log("Victory String ID: " + victory_string_id);
+                            console.log("Current scene state string id: " + symbols.get_current_scene_state_string_id());
+                            if (symbols.get_current_scene_state_string_id() === victory_string_id)
                             {
+                                endGame();
                                 console.log("VICTORY!");
                                 process.exit();
                                 // TODO: Reset the game here or whatever
+                                // TODO: Send a special message here
                             }
                         }
                         break;
