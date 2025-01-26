@@ -504,6 +504,20 @@ u32 get_http_body_start_index(const char* buffer, char* response)
     return -1;
 }
 
+void add_to_binary_data(u32* data, u32* start_index, const u32* new_data, u32 new_data_length)
+{
+    if ((new_data_length + *start_index) > 1024)
+    {
+        printf("BINARY DATA SIZE EXCEEDED\n");
+        return;
+    }
+    for (u32 i = 0; i < new_data_length; ++i)
+    {
+        data[*start_index] = new_data[i];
+        (*start_index)++;
+    }
+}
+
 bool players_in_game[MAX_PLAYERS];
 bool players_have_pulled_game_state[MAX_PLAYERS];
 
@@ -600,6 +614,7 @@ int main() {
         char json_data[1024];
         bool have_binary_data = false;
         u32 binary_data[1024];
+        u32 binary_data_iterator = 0;
 
         if (strncmp(buffer, "GET ", 4) == 0) {
             handle_http_request(buffer, new_socket);
@@ -652,10 +667,8 @@ int main() {
                     printf("Validating key: %s for user: %s\n", auth.keystring, auth.username);  // Debug log
                     if (handle_validate_key(&state, auth.keystring, auth.username, response, false))
                     {
-                        binary_data[0] = 33; // move world npc to
-                        binary_data[1] = 0; // which npc
-                        binary_data[2] = new_x; // position x
-                        binary_data[3] = 9; // position y
+                        u32 new_data[4] = {33, 0, new_x, 9};
+                        add_to_binary_data(binary_data, &binary_data_iterator, new_data, sizeof(new_data));
 
                         // CONTRACT
                         // current_scene
