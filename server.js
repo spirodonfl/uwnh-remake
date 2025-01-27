@@ -800,9 +800,14 @@ const server = serve({
     },
     async fetch(req, server)
     {
-        if (server.upgrade(req))
-        {
-            return;
+        // Check if it's a WebSocket request
+        if (req.headers.get("Upgrade") === "websocket") {
+            const success = server.upgrade(req, {
+                headers: {
+                    "Sec-WebSocket-Protocol": req.headers.get("Sec-WebSocket-Protocol") || "",
+                }
+            });
+            if (success) return;
         }
 
         const url = new URL(req.url);

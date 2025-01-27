@@ -93,7 +93,7 @@ async function getRoleName(guildId, roleId) {
 async function handleMessage(message) {
     if (message.author.bot) return;
 
-    // console.log("Hello!");
+    console.log("Message!");
     
     // Get guild roles
     const roles = await Promise.all(
@@ -132,7 +132,7 @@ async function handleMessage(message) {
         db.run(`INSERT INTO keys (key, username) VALUES (?, ?)`, [key, message.author.username]);
         
         sendMessage(message.channel_id, {
-            content: `Here is your link to play the game: ${GAME_URL}?host=${Bun.env.HOST}&is_multiplayer=true&key=${keystring}`,
+            content: `Here is your link to play the game: ${GAME_URL}?host=${Bun.env.REMOTE_HOST}&is_multiplayer=true&username=${message.author.username}&keystring=${keystring}`,
             message_reference: { message_id: message.id }
         });
     }
