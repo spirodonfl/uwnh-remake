@@ -1166,6 +1166,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                         host = MULTIPLAYER.host;
                     }
                     this.socket = new WebSocket(host);
+                    // TODO: Need a heartbeat otherwise the client disconnects after 120 seconds
                     this.socket.onopen = this.onopen;
                     this.socket.onmessage = this.onmessage;
                     this.socket.onclose = this.onclose;
@@ -1741,25 +1742,6 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                     this.el.scene_text_wrapper.inventory = document.getElementById('scene_inventory');
                     this.el.scene_text_wrapper.choices = document.getElementById('scene_choices');
                     this.el.blackjack_table = document.getElementById('blackjack_table');
-
-                    // var atlas_image = new Image();
-                    // atlas_image.src = "data:image/png;base64,   " + atlasBase64;
-                    var atlas_element = document.createElement('div');
-                    atlas_element.id = "spiros_atlas_element";
-                    atlas_element.classList.add('atlas');
-                    atlas_element.style.width = '32px';
-                    atlas_element.style.height = '32px';
-                    document.body.appendChild(atlas_element);
-                    // 3008 / 64
-                    // 2304 / 64
-                    // spriteimagearray[sea_tile_square_one] = 0/0, [sea_tile_bitcoin_mining_square_two]=32/0 [2]
-                    // Player sprite
-                    // atlas class
-                    // backgroundPosition = x/y of spriteimagearray @ given index
-                    // --> convert PX (xpx ypx)
-                    // create a dom element for player inside of viewport element
-                    // --> use image blending (mix-blend-mode) technique for multiple sprite images in the viewport parent dom element
-                    // --> remap keybinds to move only player dom element, not change background color of viewport dom element
                 },
                 getViewportTile: function (x, y)
                 {
@@ -2293,8 +2275,13 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                         console.log("Target", target_tile_element);
                         console.log("Attacker", attacker_tile_element);
                     }
+                },
+
+                toggleHelp: function ()
+                {
+                    document.getElementById("help_dialog").showModal();
                 }
-            }
+            };
 
             var OceanBattlePlayerMoving = {
                 intended_x: null,
@@ -3161,6 +3148,9 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                 var multiplayer = URLPARAMS.get('is_multiplayer');
                 if (multiplayer === 1 || multiplayer === true || multiplayer === "true" || multiplayer === "1")
                 {
+                    document.getElementById("debug").style.display = "none";
+                    document.getElementById("toggle_blocks").style.display = "none";
+                    document.getElementById("toggle_entities").style.display = "none";
                     IS_MULTIPLAYER = true;
                     MULTIPLAYER.host = URLPARAMS.get('host');
                     // alert("Please go to https://discord.gg/7ZrQHjUsJ4 and ask a mod for a key");
@@ -3326,6 +3316,11 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
 
                 document.addEventListener('keyup', function (e)
                 {
+                    if (IS_MULTIPLAYER && e.target.matches("#multiplayer-chat-message-input"))
+                    {
+                        ctrl_down = false;
+                        return;
+                    }
                     game_mode = gh.getGameMode();
                     switch (e.code)
                     {
@@ -3852,6 +3847,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
             <div id="blackjack_dealer_total"></div>
         </div>
         <div id="viewport" style="display: none;"></div>
+        <button id="help" onclick="uih.toggleHelp();">Help</button>
         <button id="debug" onclick="wasm.exports.test();">DEBUG</button>
         <button id="should3d" onclick="toggleShouldThreeD();">3D</button>
         <button id="toggle_blocks" onclick="toggleBlocks();">Toggle Blocks</button>
@@ -3871,5 +3867,60 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
             <div id="drag-handle" class="drag-bar">Drag Here</div>
             <div id="content"></div>
         </div>
+        <dialog id="help_dialog" style="position: absolute; top: 0px; left: 0px; z-index: 1000;">
+            <header>Help</header>
+            <p>TODO: Mouse (not currently working)</p>
+            <p>Keyboard</p>
+            <table style="color: black;">
+                <tr>
+                    <td>Key</td>
+                    <td>Action</td>
+                </tr>
+                <tr>
+                    <td>W</td>
+                    <td>Up</td>
+                </tr>
+                <tr>
+                    <td>S</td>
+                    <td>Down</td>
+                </tr>
+                <tr>
+                    <td>A</td>
+                    <td>Left</td>
+                </tr>
+                <tr>
+                    <td>D</td>
+                    <td>Right</td>
+                </tr>
+                <tr>
+                    <td>Z</td>
+                    <td>A/Confirm</td>
+                </tr>
+                <tr>
+                    <td>X</td>
+                    <td>B/Back</td>
+                </tr>
+                <tr>
+                    <td>I</td>
+                    <td>Move Camera Up</td>
+                </tr>
+                <tr>
+                    <td>K</td>
+                    <td>Move Camera Down</td>
+                </tr>
+                <tr>
+                    <td>J</td>
+                    <td>Move Camera Left</td>
+                </tr>
+                <tr>
+                    <td>L</td>
+                    <td>Move Camera Right</td>
+                </tr>
+            </table>
+            <p>If you toggle 3D mode on, just hold down the Left CTRL key and drag the mouse around the screen. The entire world will rotate in 3D.</p>
+            <form method="dialog">
+                <button>ok</button>
+            </form>
+        </dialog>
     </body>
 </html>

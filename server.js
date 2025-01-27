@@ -244,8 +244,91 @@ const { symbols } = cc({
 });
 var GAME_INITIALIZED = false;
 var GLOBAL_WORLD_DATA = [];
-// {layer_id, x, y, value}
-// -> client will run add_value_to_global_world_data() and then a re-render
+function generateMatrix(numPlayers)
+{
+    // Initialize 100x100 matrix with zeros
+    const matrix = Array(100).fill().map(() => Array(100).fill(0));
+    const usedPositions = new Set();
+
+    // Helper to check if position is valid and unused
+    function isValidPosition(x, y) {
+        return x >= 0 && x < 100 && y >= 0 && y < 100 && !usedPositions.has(`${x},${y}`);
+    }
+
+    // Helper to get random position
+    function getRandomPosition() {
+        return Math.floor(Math.random() * 100);
+    }
+
+    // Helper to find nearby empty position
+    function findNearbyPosition(x, y) {
+        const offsets = [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]];
+        const shuffledOffsets = offsets.sort(() => Math.random() - 0.5);
+        
+        for (const [dx, dy] of shuffledOffsets) {
+            const newX = x + dx;
+            const newY = y + dy;
+            if (isValidPosition(newX, newY)) {
+                return [newX, newY];
+            }
+        }
+        return null;
+    }
+
+    // Place 30 squares with value 42
+    let count42 = 0;
+    while (count42 < 200) {
+        const x = getRandomPosition();
+        const y = getRandomPosition();
+        
+        if (isValidPosition(x, y)) {
+            matrix[x][y] = 42;
+            usedPositions.add(`${x},${y}`);
+            count42++;
+        }
+    }
+
+    // Place players and their cohorts
+    for (let player = 1; player <= numPlayers; player++) {
+        const playerValue = 100 + player;
+        
+        // Place main player
+        let playerPlaced = false;
+        while (!playerPlaced) {
+            const x = getRandomPosition();
+            const y = getRandomPosition();
+            
+            if (isValidPosition(x, y)) {
+                matrix[x][y] = playerValue;
+                usedPositions.add(`${x},${y}`);
+                
+                // Place two cohorts near the player
+                let cohortsPlaced = 0;
+                let attempts = 0;
+                while (cohortsPlaced < 2 && attempts < 8) {
+                    const nearbyPos = findNearbyPosition(x, y);
+                    if (nearbyPos) {
+                        const [cohortX, cohortY] = nearbyPos;
+                        matrix[cohortX][cohortY] = playerValue;
+                        usedPositions.add(`${cohortX},${cohortY}`);
+                        cohortsPlaced++;
+                    }
+                    attempts++;
+                }
+                
+                if (cohortsPlaced === 2) {
+                    playerPlaced = true;
+                } else {
+                    // If we couldn't place cohorts, reset and try again
+                    matrix[x][y] = 0;
+                    usedPositions.delete(`${x},${y}`);
+                }
+            }
+        }
+    }
+
+    return matrix;
+}
 function beginGame()
 {
     var str;
@@ -377,7 +460,7 @@ function beginGame()
     symbols.set_ship_name_id(ship_id, ship_name_id);
     symbols.set_ship_base_ship_id(ship_id, base_ship_id);
     symbols.set_ship_crew(ship_id, 50);
-    symbols.set_ship_hull(ship_id, 2);
+    symbols.set_ship_hull(ship_id, 100);
     symbols.add_ship_to_fleet(fleet_id, ship_id);
     ++OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY;
     console.log("-- BLACKBEARD CREATING WORLD NPC --");
@@ -396,7 +479,7 @@ function beginGame()
     symbols.set_ship_name_id(ship_id, ship_name_id);
     symbols.set_ship_base_ship_id(ship_id, base_ship_id);
     symbols.set_ship_crew(ship_id, 50);
-    symbols.set_ship_hull(ship_id, 2);
+    symbols.set_ship_hull(ship_id, 100);
     symbols.add_ship_to_fleet(fleet_id, ship_id);
     ++OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY;
     console.log("-- BLACKBEARD CREATING WORLD NPC --");
@@ -409,6 +492,18 @@ function beginGame()
     symbols.set_world_npc_type(world_npc_id, 3);
     symbols.set_global_storage_world_npcs_used(world_npc_id);
     symbols.increment_global_storage_world_npcs_count();
+    // NOTE: This works! We can now intersperse ships into having MULTIPLE turns between other turns
+    // AKA KRAKEN IS READY
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
     OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
     console.log("-- BLACKBEARD ADDING FLEET TO BATTLE --");
     symbols.add_fleet_to_battle(fleet_id);
@@ -429,16 +524,21 @@ function beginGame()
 function endGame()
 {
     console.log("-- TODO: END GAME --");
+    console.log("-- KICKING OFF ALL PLAYERS --");
+    for (var p = 0; p < players.length; ++p)
+    {
+        // TODO: Remove their key from the DB so they can't use this key again
+        players[p].unsubscribe("gamestate");
+        players[p].close();
+    }
+    GAME_INITIALIZED = false;
+    IN_GAME = false;
     /**
-     * Reset GAME_INITIALIZED
-     * Reset IN_GAME
-     * Reset players (?) and kick them off?
      * Reset game data somehow. Maybe clear all the associated arrays you set before
+     * Clear all storages for sure
+     * Definitely clear global world data if you added things in to the layers dynamically
+     * You can leave the scene as-is but maybe set the scene_state_id to SENTRY so we re-initialize it again
      */
-}
-function clearGame()
-{
-    // TODO: clear all storages
 }
 function generateGameData()
 {
@@ -672,7 +772,7 @@ function playerJoinedGameHTML()
         <div id='countdown_timer'></div>
         <div id='players'></div>
         <form id='send_chat' ws-send>
-            <input type='text' name='chat_message' />
+            <input type='text' name='chat_message' id='multiplayer-chat-message-input' />
             <input type='hidden' name='type' value='chat_message' />
             <button type='submit'>Send Trash Talk</button>
         </form>
@@ -802,11 +902,7 @@ const server = serve({
     {
         // Check if it's a WebSocket request
         if (req.headers.get("Upgrade") === "websocket") {
-            const success = server.upgrade(req, {
-                headers: {
-                    "Sec-WebSocket-Protocol": req.headers.get("Sec-WebSocket-Protocol") || "",
-                }
-            });
+            const success = server.upgrade(req);
             if (success) return;
         }
 
@@ -844,6 +940,12 @@ const server = serve({
                             html: playerConnectedHTML(),
                         }));
                         break;
+                    // case "cage_the_kraken": // manually override and put the kraken away
+                    // case "increase_ship_id_hull": // and crew and subsequent decrease commands
+                    // case "force_reload": // clears all storage and forces everyones browser to reload
+                    // case "give_points_to": // give X points to username Y
+                    // case "remove_user_key": // remove key from db so players can't join using that key
+                    // TODO: Add a new game state called "waiting" which is just one state and its only for multiplayer during ocean battle which gets all other players put into while current player is taking turn
                     case "release_the_kraken":
                         if (data.keystring && data.keystring === ADMIN_KEY)
                         {
@@ -1177,6 +1279,7 @@ const server = serve({
         {
             console.log("Client connected");
             ws.subscribe("gamestate");
+            console.log("Subscribed");
             ws.send(JSON.stringify({
                 type: "welcome",
                 message: "Connected to game server"

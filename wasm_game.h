@@ -5268,17 +5268,15 @@ u32 scene_general_shop(u32 action)
 // ------------------------------------------------------------------------------------------------ //
 void clear_ocean_battle_data(u32 data[OCEAN_BATTLE_DATA_SIZE])
 {
-    for (u32 i = 0; i < OCEAN_BATTLE_DATA_SIZE; ++i)
-    {
-        data[i] = SENTRY;
-    }
+    CLEAR_DATA(data, OCEAN_BATTLE_DATA_SIZE);
+}
+void clear_ocean_battle_turn_order()
+{
+    CLEAR_DATA(ocean_battle_turn_order, MAX_OCEAN_BATTLE_TURN_ORDERS);
 }
 void clear_ocean_battle_fleets()
 {
-    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
-    {
-        ocean_battle_fleets[i] = SENTRY;
-    }
+    CLEAR_DATA(ocean_battle_fleets, MAX_OCEAN_BATTLE_FLEETS);
     ocean_battle_total_fleets = 0;
 }
 void add_fleet_to_battle(u32 fleet_id)
@@ -5700,8 +5698,18 @@ void scene_ocean_battle_increment_turn_order()
 {
     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] = false;
     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] = false;
-    ++ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX];
-    if (ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX] >= ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY])
+    u32 current = ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX];
+    u32 next = SENTRY;
+    for (u32 i = (current + 1); i < MAX_OCEAN_BATTLE_TURN_ORDERS; ++i)
+    {
+        if (ocean_battle_turn_order[i] != SENTRY)
+        {
+            next = i;
+            break;
+        }
+    }
+    ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX] = next;
+    if (next == SENTRY)
     {
         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX] = 0;
     }
@@ -5795,6 +5803,7 @@ u32 scene_ocean_battle(u32 action)
         if (ocean_battle_data[OCEAN_BATTLE_DATA_MANUAL_SETUP] == SENTRY || ocean_battle_data[OCEAN_BATTLE_DATA_MANUAL_SETUP] == false)
         {
             clear_ocean_battle_data(ocean_battle_data);
+            clear_ocean_battle_turn_order();
         }
         // Assumption is that we've run clear_ocean_battle_fleets
         // before this point and our fleets are already setup
@@ -5826,7 +5835,6 @@ u32 scene_ocean_battle(u32 action)
 
                     if (ocean_battle_data[OCEAN_BATTLE_DATA_MANUAL_SETUP] == SENTRY || ocean_battle_data[OCEAN_BATTLE_DATA_MANUAL_SETUP] == false)
                     {
-                        CLEAR_DATA(ocean_battle_turn_order, MAX_OCEAN_BATTLE_TURN_ORDERS);
                         console_log("PLACEMENT PHASE");
                         u32 world_npc_data[WORLD_NPC_DATA_SIZE];
                         CLEAR_DATA(world_npc_data, WORLD_NPC_DATA_SIZE);
