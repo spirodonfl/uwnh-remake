@@ -1189,3 +1189,4 @@ const server = serve({
         }
     }
 });
+console.log("Server start at port " + Bun.env.PORT);
