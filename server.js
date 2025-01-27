@@ -3,6 +3,8 @@ import { v4 as uuidv4, parse as uuidParse } from "uuid";
 import database from "bun:sqlite";
 import * as fs from "fs";
 
+var ADMIN_KEY = Bun.env.ADMIN_KEY;
+
 function createWasmString(string)
 {
     return Buffer.concat([Buffer.from(string), Buffer.from([0])]);
@@ -13,6 +15,9 @@ function shuffleArray(array) {
         [array[i], array[j]] = [array[j], array[i]];
     }
     return array;
+}
+function stripHTMLTags(str) {
+    return str.replace(/<[^>]*>/g, '');
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -431,6 +436,10 @@ function endGame()
      * Reset game data somehow. Maybe clear all the associated arrays you set before
      */
 }
+function clearGame()
+{
+    // TODO: clear all storages
+}
 function generateGameData()
 {
     var game_data = [];
@@ -731,6 +740,10 @@ function confirmKeyInData(ws, type, data)
 function validateKey(ws, type, username, keystring)
 {
     var key = uuidParse(keystring);
+    if (key === ADMIN_KEY)
+    {
+        return true;
+    }
     var result = db.query("SELECT username FROM keys WHERE key = ?").get(key);
 
     if (result && result.username === username)
@@ -774,7 +787,7 @@ function sendGameDataToAllPlayers()
 // SERVER INITIALIZATION
 // ------------------------------------------------------------------------------------------------
 const server = serve({
-    port: 3333,
+    port: Bun.env.PORT,
     static:
     {
         // NOTE: Cannot hot reload. HTML is static-ized
@@ -826,27 +839,36 @@ const server = serve({
                             html: playerConnectedHTML(),
                         }));
                         break;
-                    case "generate_key":
-                        if (!data.username)
+                    case "release_the_kraken":
+                        if (data.keystring && data.keystring === ADMIN_KEY)
                         {
+                            // TODO OR user and user role is special
+                        }
+                        break;
+                    case "generate_key":
+                        if (!data.keystring && data.keystring !== ADMIN_KEY)
+                        {
+                            if (!data.for_username)
+                            {
+                                ws.send(JSON.stringify({
+                                    type: "generate_key",
+                                    success: false,
+                                    message: "You must provide a for_username to generate a key for",
+                                }));
+                                break;
+                            }
+                            var keystring = uuidv4();
+                            var key = uuidParse(keystring);
+
+                            db.run(`INSERT OR IGNORE INTO users (username) VALUES (?)`, [data.for_username]);
+                            db.run(`INSERT INTO keys (key, username) VALUES (?, ?)`, [key, data.for_username]);
+
                             ws.send(JSON.stringify({
                                 type: "generate_key",
-                                success: false,
-                                error: "[E] Must provide a username to generate a key with!"
+                                success: true,
+                                keystring,
                             }));
-                            break;
                         }
-                        var keystring = uuidv4();
-                        var key = uuidParse(keystring);
-
-                        db.run(`INSERT OR IGNORE INTO users (username) VALUES (?)`, [data.username]);
-                        db.run(`INSERT INTO keys (key, username) VALUES (?, ?)`, [key, data.username]);
-
-                        ws.send(JSON.stringify({
-                            type: "generate_key",
-                            success: true,
-                            keystring,
-                        }));
                         break;
                     case "validate_key":
                         if (!confirmKeyInData(ws, "validate_key", data)) { break; }
@@ -1120,7 +1142,7 @@ const server = serve({
                                 break;
                             }
                             chat_messages.push({
-                                text: data.chat_message,
+                                text: stripHTMLTags(data.chat_message),
                                 username: data.username,
                             });
                             if (chat_messages.length > 10)
