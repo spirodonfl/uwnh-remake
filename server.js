@@ -222,6 +222,8 @@ var import_symbols = {
     { args: ["u32"], returns: "u32", },
     get_viewport_value_at_coordinates:
     { args: ["u32", "u32", "u32"], returns: "u32", },
+    get_fleet_ship_id_by_ship_id:
+    { args: ["u32"], returns: "u32", },
 };
 import { cc } from "bun:ffi";
 import source from "./bun_server.c" with { type: "file" };
@@ -319,7 +321,7 @@ function beginGame()
         symbols.set_ship_base_ship_id(ship_id, base_ship_id);
         symbols.set_ship_crew(ship_id, 50);
         symbols.set_ship_hull(ship_id, 100);
-        symbols.set_global_storage_ships_used(ship_id);
+        symbols.add_ship_to_fleet(fleet_id, ship_id);
         ++OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY;
         console.log("-- CREATING WORLD NPC --");
         world_npc_id = symbols.pull_storage_world_npcs_next_open_slot();
@@ -370,7 +372,7 @@ function beginGame()
     symbols.set_ship_name_id(ship_id, ship_name_id);
     symbols.set_ship_base_ship_id(ship_id, base_ship_id);
     symbols.set_ship_crew(ship_id, 50);
-    symbols.set_ship_hull(ship_id, 100);
+    symbols.set_ship_hull(ship_id, 2);
     symbols.add_ship_to_fleet(fleet_id, ship_id);
     ++OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY;
     console.log("-- BLACKBEARD CREATING WORLD NPC --");
@@ -389,7 +391,7 @@ function beginGame()
     symbols.set_ship_name_id(ship_id, ship_name_id);
     symbols.set_ship_base_ship_id(ship_id, base_ship_id);
     symbols.set_ship_crew(ship_id, 50);
-    symbols.set_ship_hull(ship_id, 100);
+    symbols.set_ship_hull(ship_id, 2);
     symbols.add_ship_to_fleet(fleet_id, ship_id);
     ++OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY;
     console.log("-- BLACKBEARD CREATING WORLD NPC --");
@@ -408,7 +410,7 @@ function beginGame()
 
     console.log("-- SETTING UP BATTLE --");
     symbols.set_ocean_battle_data_total_ships_in_play(OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY);
-    OCEAN_BATTLE_TURN_ORDER = shuffleArray(OCEAN_BATTLE_TURN_ORDER);
+    // OCEAN_BATTLE_TURN_ORDER = shuffleArray(OCEAN_BATTLE_TURN_ORDER);
     for (var o = 0; o < OCEAN_BATTLE_TURN_ORDER.length; ++o)
     {
         symbols.set_ocean_battle_turn_order_value(o, OCEAN_BATTLE_TURN_ORDER[o]);
@@ -621,6 +623,7 @@ var COUNTDOWN_CURRENT_SECONDS = 0;
 var COUNTDOWN_SECONDS = 3;
 var COUNTDOWN_INTERVAL;
 var chat_messages = [];
+var GAME_LAST_ATTACKED_SHIP_ID = null;
 
 // ------------------------------------------------------------------------------------------------
 // HTML FUNCTIONS
@@ -897,10 +900,14 @@ const server = serve({
                                 type: "set_which_player_you_are",
                                 value: ws.player_id,
                             }));
-                            ws.send(JSON.stringify({
-                                type: "htmx_message",
-                                html: playersHTML(),
-                            }));
+
+                            for (var p = 0; p < players.length; ++p)
+                            {
+                                players[p].send(JSON.stringify({
+                                    type: "htmx_message",
+                                    html: playersHTML(),
+                                }));
+                            }
 
                             if (players.length >= REQUIRED_PLAYERS && IN_GAME !== true)
                             {
@@ -954,7 +961,6 @@ const server = serve({
                             // GameData would include the current turn order from the wasm stuff on the server (nobody elses)
                             // - client renders & overrides turn order
 
-                            // TODO: PROBLEM -> if current players turn is 1 but 0 hits confirm, does nothing but if 1 does something then everyone moves forward
                             console.log("-- current turn player id is " + symbols.get_current_ocean_battle_turn_player_id() + ":" + ws.player_id);
                             if (symbols.get_current_ocean_battle_turn_player_id() === ws.player_id)
                             {
@@ -964,6 +970,42 @@ const server = serve({
                                 {
                                     symbols.current_scene_make_choice(parseInt(data.action.choice_id));
                                     symbols.scene_ocean_battle(0);
+                                    if (GAME_LAST_ATTACKED_SHIP_ID !== null)
+                                    {
+                                        // NOTE: The issue is that the scene state to do a cannon || boarding attack
+                                        // does the attack *AFTER* confirmation so we have to check it here.
+                                        // TODO: Fix this out of order issue inside the game itself
+                                        console.log(GAME_LAST_ATTACKED_SHIP_ID);
+                                        console.log("Ship destroyed? " + symbols.get_ship_hull(GAME_LAST_ATTACKED_SHIP_ID));
+                                        console.log("Ship destroyed? " + symbols.get_ship_crew(GAME_LAST_ATTACKED_SHIP_ID));
+                                        // TODO: differentiate between kraken, blackbeard, davey jones and player ships
+                                        var destruction = false;
+                                        if (symbols.get_ship_hull(GAME_LAST_ATTACKED_SHIP_ID) <= 0)
+                                        {
+                                            console.log("SHIP HULL ZERO");
+                                            destruction = true;
+                                        }
+                                        if (symbols.get_ship_crew(GAME_LAST_ATTACKED_SHIP_ID) <= 0)
+                                        {
+                                            console.log("SHIP CREW ZERO");
+                                            destruction = true;
+                                        }
+                                        if (destruction)
+                                        {
+                                            for (var p = 0; p < players.length; ++p)
+                                            {
+                                                players[p].send(JSON.stringify({
+                                                    type: "htmx_message",
+                                                    html: playersHTML(),
+                                                }));
+                                            }
+                                            db.query("UPDATE users SET score = score + $points WHERE username = $username").run({
+                                                $points: 10,
+                                                $username: data.username,
+                                            });
+                                        }
+                                        GAME_LAST_ATTACKED_SHIP_ID = null;
+                                    }
                                 }
                                 if (data.action.type === "back_button")
                                 {
@@ -990,11 +1032,7 @@ const server = serve({
                                     var npc_layer_id = symbols.get_layer_id_by_machine_name(createWasmString("npc_layer"));
                                     var world_value = symbols.get_viewport_value_at_coordinates(npc_layer_id, data.action.chosen_target.x, data.action.chosen_target.y);
                                     var ship_id = symbols.get_world_npc_entity_id(world_value);
-                                    // TODO: differentiate between kraken, blackbeard, davey jones and player ships
-                                    if (symbols.get_ship_hull(ship_id) <= 0)
-                                    {
-                                        db.query(`UPDATE users SET score = score + ? WHERE username = ?`, [10, ws.username]).run();
-                                    }
+                                    GAME_LAST_ATTACKED_SHIP_ID = ship_id;
                                 }
                                 else if (data.action.type === "boarding_attack_choose_target")
                                 {
@@ -1008,11 +1046,7 @@ const server = serve({
                                     var npc_layer_id = symbols.get_layer_id_by_machine_name(createWasmString("npc_layer"));
                                     var world_value = symbols.get_viewport_value_at_coordinates(npc_layer_id, data.action.chosen_target.x, data.action.chosen_target.y);
                                     var ship_id = symbols.get_world_npc_entity_id(world_value);
-                                    // TODO: differentiate between kraken, blackbeard, davey jones and player ships
-                                    if (symbols.get_ship_crew(ship_id) <= 0)
-                                    {
-                                        db.query(`UPDATE users SET score = score + ? WHERE username = ?`, [10, ws.username]).run();
-                                    }
+                                    GAME_LAST_ATTACKED_SHIP_ID = ship_id;
                                 }
                                 // TODO: Special, if kraken, no crew, so all attacks are hull attacks
 
@@ -1021,7 +1055,11 @@ const server = serve({
                                 symbols.tick();
                                 symbols.tick();
                             }
-                            // else if (symbols.get_current_ocean_battle_turn_player_id() === SENTRY)
+                            else if (symbols.get_current_ocean_battle_turn_player_id() === symbols.get_sentry())
+                            {
+                                symbols.current_scene_make_choice(0);
+                                symbols.scene_ocean_battle(0);
+                            }
                             else if (symbols.get_current_ocean_battle_turn_player_id() > players.length)
                             {
                                 // Note: The idea here is you gotta be able to say "ok" for non-player (npc) turns

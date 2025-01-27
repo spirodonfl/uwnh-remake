@@ -11,3 +11,6 @@ bun.lockb
 node_modules
 *.db
 *.sqlite
+
+sync_to_server.sh
+download_db_from_server.sh

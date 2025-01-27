@@ -196,6 +196,11 @@ u32 max(u32 a, u32 b)
         { \
             g_storage_##LOWERSCORE##s.data[i] = SENTRY; \
         } \
+        for (u32 i = 0; i < MAX_COUNT; ++i) \
+        { \
+            g_storage_##LOWERSCORE##s.used[i] = false; \
+        } \
+        g_storage_##LOWERSCORE##s.count = 0; \
     } \
     u32 add_##LOWERSCORE(u32 data[UPPERSCORE##_DATA_SIZE]) \
     { \
@@ -231,6 +236,26 @@ u32 max(u32 a, u32 b)
         g_storage_##LOWERSCORE##s.used[id] = false; \
         --g_storage_##LOWERSCORE##s.count; \
         g_storage_##LOWERSCORE##s.next_open_slot = id; \
+    } \
+    void set_global_storage_##LOWERSCORE##s_used(u32 id) \
+    { \
+        g_storage_##LOWERSCORE##s.used[id] = true; \
+    } \
+    void set_global_storage_##LOWERSCORE##s_unused(u32 id) \
+    { \
+        g_storage_##LOWERSCORE##s.used[id] = true; \
+    } \
+    u32 get_global_storage_##LOWERSCORE##s_used(u32 id) \
+    { \
+        return g_storage_##LOWERSCORE##s.used[id]; \
+    } \
+    void increment_global_storage_##LOWERSCORE##s_count() \
+    { \
+        ++g_storage_##LOWERSCORE##s.count; \
+    } \
+    void decrement_global_storage_##LOWERSCORE##s_count() \
+    { \
+        ++g_storage_##LOWERSCORE##s.count; \
     }
 
 #define GENERATE_FIELD_ACCESSORS(CAMEL, LOWERSCORE, UPPERSCORE, MAX_COUNT, LOWERFIELD, UPPERFIELD) \
@@ -1744,46 +1769,6 @@ u32 get_max_ocean_battle_turn_orders()
 u32 get_player_value(u32 id)
 {
     return players[id];
-}
-void set_global_storage_world_npcs_used(u32 id)
-{
-    g_storage_world_npcs.used[id] = true;
-}
-void set_global_storage_ships_used(u32 id)
-{
-    g_storage_ships.used[id] = true;
-}
-void set_global_storage_captains_used(u32 id)
-{
-    g_storage_captains.used[id] = true;
-}
-void set_global_storage_fleets_used(u32 id)
-{
-    g_storage_fleets.used[id] = true;
-}
-void set_global_storage_fleet_ships_used(u32 id)
-{
-    g_storage_fleet_ships.used[id] = true;
-}
-void increment_global_storage_world_npcs_count()
-{
-    ++g_storage_world_npcs.count;
-}
-void increment_global_storage_ships_count()
-{
-    ++g_storage_ships.count;
-}
-void increment_global_storage_captains_count()
-{
-    ++g_storage_captains.count;
-}
-void increment_global_storage_fleets_count()
-{
-    ++g_storage_fleets.count;
-}
-void increment_global_storage_fleet_ships_count()
-{
-    ++g_storage_fleet_ships.count;
 }
 void set_ocean_battle_total_fleets(u32 value)
 {
@@ -3507,13 +3492,21 @@ void clear_mda_fleet_ship()
 }
 void add_ship_to_fleet(u32 fleet_id, u32 ship_id)
 {
+    if (fleet_id == SENTRY)
+    {
+        console_log("[E] add_ship_to_fleet got a fleet_id of SENTRY");
+        return;
+    }
+    if (ship_id == SENTRY)
+    {
+        console_log("[E] add_ship_to_fleet got a ship_id of SENTRY");
+    }
     u32 fleet_ship_data[FLEET_SHIP_DATA_SIZE];
     CLEAR_DATA(fleet_ship_data, FLEET_SHIP_DATA_SIZE);
     fleet_ship_data[FLEET_SHIP_FLEET_ID] = fleet_id;
     fleet_ship_data[FLEET_SHIP_SHIP_ID] = ship_id;
-    add_fleet_ship(fleet_ship_data);
+    u32 fleet_ship_id = add_fleet_ship(fleet_ship_data);
     increment_fleet_total_ships(fleet_id);
-
     for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
     {
         if (mda_fleet_ship[fleet_id][i] == SENTRY)
@@ -3535,7 +3528,7 @@ u32 get_fleet_id_by_ship_id(u32 ship_id)
     }
     return SENTRY;
 }
-u32 get_ship_id_by_fleet_ship_id(u32 ship_id)
+u32 get_fleet_ship_id_by_ship_id(u32 ship_id)
 {
     for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
     {
@@ -5310,20 +5303,17 @@ u32 get_current_ocean_battle_turn_player_id()
     u32 ship_id = get_world_npc_entity_id(world_npc_id);
     u32 fleet_id = get_fleet_id_by_ship_id(ship_id);
     u32 general_id = get_fleet_general_id(fleet_id);
-    FormatArg args[5];
-    args[0].i = world_npc_id;
-    args[1].i = ship_id;
-    args[2].i = fleet_id;
-    args[3].i = general_id;
-    args[4].i = captain_to_player[general_id];
-    console_log_format("get_current_ocean_battle_turn_player_id wnpcid:%d ship:%d fleet:%d general:%d cap_to_player:%d", args, 5);
-    return captain_to_player[general_id];
+    if (general_id != SENTRY)
+    {
+        return captain_to_player[general_id];
+    }
+    return SENTRY;
 }
 u32 ocean_battle_total_targets_within_cannon_range()
 {
     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
     u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
-    u32 attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
+    u32 attacker_fleet_ship_id = get_fleet_ship_id_by_ship_id(attacker_ship_id);
     u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
     u32 total = SENTRY;
     // TODO: Properly get cannon range
@@ -5334,7 +5324,7 @@ u32 ocean_battle_total_targets_within_cannon_range()
         {
             u32 target_npc_id = ocean_battle_turn_order[i];
             u32 target_ship_id = get_world_npc_entity_id(target_npc_id);
-            u32 target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
+            u32 target_fleet_ship_id = get_fleet_ship_id_by_ship_id(target_ship_id);
             u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
             if (target_fleet_id == attacker_fleet_id)
             {
@@ -5361,7 +5351,7 @@ u32 ocean_battle_total_targets_within_boarding_range()
 {
     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
     u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
-    u32 attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
+    u32 attacker_fleet_ship_id = get_fleet_ship_id_by_ship_id(attacker_ship_id);
     u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
     u32 total = 0;
     // TODO: Properly get cannon range
@@ -5372,7 +5362,7 @@ u32 ocean_battle_total_targets_within_boarding_range()
         {
             u32 target_npc_id = ocean_battle_turn_order[i];
             u32 target_ship_id = get_world_npc_entity_id(target_npc_id);
-            u32 target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
+            u32 target_fleet_ship_id = get_fleet_ship_id_by_ship_id(target_ship_id);
             u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
             if (target_fleet_id == attacker_fleet_id)
             {
@@ -5387,15 +5377,6 @@ u32 ocean_battle_total_targets_within_boarding_range()
             u32 b_x = get_world_npc_position_x(world_npc_id);
             u32 b_y = get_world_npc_position_y(world_npc_id);
             console_log("ocean battle targets within boarding range");
-            FormatArg args[3];
-            args[0].i = target_npc_id;
-            args[1].i = a_x;
-            args[2].i = a_y;
-            console_log_format("target_npc_id:%d %d %d", args, 3);
-            args[0].i = world_npc_id;
-            args[1].i = b_x;
-            args[2].i = b_y;
-            console_log_format("world_npc_id:%d %d %d", args, 3);
             // TODO: Don't target ships in fleet or allies
             if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, boarding_range))
             {
@@ -5558,7 +5539,7 @@ void ocean_battle_build_valid_boarding_coordinates()
     }
     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
     u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
-    u32 attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
+    u32 attacker_fleet_ship_id = get_fleet_ship_id_by_ship_id(attacker_ship_id);
     u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
     ocean_battle_total_valid_boarding_coordinates = 0;
     u32 total = 0;
@@ -5570,7 +5551,7 @@ void ocean_battle_build_valid_boarding_coordinates()
         {
             u32 target_npc_id = ocean_battle_turn_order[i];
             u32 target_ship_id = get_world_npc_entity_id(target_npc_id);
-            u32 target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
+            u32 target_fleet_ship_id = get_fleet_ship_id_by_ship_id(target_ship_id);
             u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
             if (target_fleet_id == attacker_fleet_id)
             {
@@ -5644,10 +5625,12 @@ void ocean_battle_build_valid_cannon_coordinates()
     {
         ocean_battle_valid_cannon_coordinates[i] = SENTRY;
     }
+
     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
     u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
-    u32 attacker_fleet_ship_id = get_ship_id_by_fleet_ship_id(attacker_ship_id);
+    u32 attacker_fleet_ship_id = get_fleet_ship_id_by_ship_id(attacker_ship_id);
     u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
+
     ocean_battle_total_valid_cannon_coordinates = 0;
     u32 total = 0;
     // TODO: Properly get cannon range
@@ -5658,7 +5641,7 @@ void ocean_battle_build_valid_cannon_coordinates()
         {
             u32 target_npc_id = ocean_battle_turn_order[i];
             u32 target_ship_id = get_world_npc_entity_id(target_npc_id);
-            u32 target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
+            u32 target_fleet_ship_id = get_fleet_ship_id_by_ship_id(target_ship_id);
             u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
             u32 a_x = get_world_npc_position_x(target_npc_id);
             u32 a_y = get_world_npc_position_y(target_npc_id);
@@ -5932,14 +5915,21 @@ u32 scene_ocean_battle(u32 action)
                     // Maybe it's good to find if the current turn is npc or player by the following
                     u32 attacker_fleet_id = get_fleet_id_by_ship_id(attacker_ship_id);
                     u32 attacker_general_id = get_fleet_general_id(attacker_fleet_id);
-                    u32 attacker_player_id = captain_to_player[attacker_general_id];
                     bool npcs_turn = true;
-                    if (attacker_player_id != SENTRY)
+                    if (attacker_general_id == SENTRY)
                     {
-                        npcs_turn = false;
-                        set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_PLAYER_TAKE_TURN);
-                        scene_ocean_battle(SCENE_ACTION_INIT);
-                        should_redraw_everything();
+                        console_log("During ocean battle, we got a general id with SENTRY value for a fleet");
+                    }
+                    else
+                    {
+                        u32 attacker_player_id = captain_to_player[attacker_general_id];
+                        if (attacker_player_id != SENTRY)
+                        {
+                            npcs_turn = false;
+                            set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_PLAYER_TAKE_TURN);
+                            scene_ocean_battle(SCENE_ACTION_INIT);
+                            should_redraw_everything();
+                        }
                     }
                     if (npcs_turn == true)
                     {
@@ -5983,7 +5973,7 @@ u32 scene_ocean_battle(u32 action)
                                 {
                                     u32 target_npc_id = ocean_battle_turn_order[i];
                                     u32 target_ship_id = get_world_npc_entity_id(target_npc_id);
-                                    u32 target_fleet_ship_id = get_ship_id_by_fleet_ship_id(target_ship_id);
+                                    u32 target_fleet_ship_id = get_fleet_ship_id_by_ship_id(target_ship_id);
                                     u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
                                     if (target_fleet_id == attacker_fleet_id)
                                     {
@@ -6155,6 +6145,7 @@ u32 scene_ocean_battle(u32 action)
                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_BACK),
                         get_string_id_by_machine_name("exit")
                     );
+                    console_log("Building valid cannon attack coordinates");
                     ocean_battle_build_valid_cannon_coordinates();
                     u32 string_id = get_string_id_by_machine_name("ocean_battle_cannon_attack_choose_target");
                     set_current_scene_state_string_id(string_id);
@@ -6318,6 +6309,7 @@ u32 scene_ocean_battle(u32 action)
                     u32 choice = current_scene_get_choice(cc);
                     if (choice == SCENE_OCEAN_BATTLE_CHOICE_FIRE_CANNONS)
                     {
+                        console_log("Player made choice to fire cannons");
                         if (
                             ocean_battle_total_targets_within_cannon_range() > 0 &&
                             ocean_battle_total_targets_within_cannon_range() != SENTRY &&

@@ -1157,9 +1157,15 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                 username: null,
                 keystring: null,
                 initialized: false,
+                host: null,
                 connect: function ()
                 {
-                    this.socket = new WebSocket("ws://localhost:3333");
+                    var host = "ws://localhost:3333";
+                    if (this.host !== null)
+                    {
+                        host = MULTIPLAYER.host;
+                    }
+                    this.socket = new WebSocket(host);
                     this.socket.onopen = this.onopen;
                     this.socket.onmessage = this.onmessage;
                     this.socket.onclose = this.onclose;
@@ -3075,7 +3081,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                                         if (scene_name == "scene_ocean_battle")
                                                         {
                                                             // to get css to offset properly to the ships in question
-                                                            var fleet_ship_id = wasm.exports.get_ship_id_by_fleet_ship_id(ship_id);
+                                                            var fleet_ship_id = wasm.exports.get_fleet_ship_id_by_ship_id(ship_id);
                                                             var fleet_id = wasm.exports.get_fleet_ship_fleet_id(fleet_ship_id);
                                                             npc_element.classList.add("ocean_battle");
                                                             npc_element.classList.add("fleet-" + fleet_id);
