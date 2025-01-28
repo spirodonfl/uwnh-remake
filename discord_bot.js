@@ -4,6 +4,7 @@ const db = database.open("game.sqlite");
 
 const GAME_URL = "https://spirodonfl.github.io/uwnh-remake/";
 const SPECIAL_ROLE = "CanPlayGame";
+const ADMIN_ROLE = "Admins";
 const DISCORD_GATEWAY = "wss://gateway.discord.gg/?v=10&encoding=json";
 
 const ws = new WebSocket(DISCORD_GATEWAY);
@@ -34,6 +35,7 @@ ws.onmessage = async (event) => {
         );
         
         const hasRole = roles.includes(SPECIAL_ROLE);
+        const hasAdminRole = roles.includes(ADMIN_ROLE);
 
         if (!hasRole) {
             // Respond with ephemeral error message

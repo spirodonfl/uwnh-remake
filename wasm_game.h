@@ -2900,8 +2900,6 @@ void generate_world(char* world_name)
         current_world = get_world_id_by_machine_name("dingus_land");
         if (current_world == SENTRY)
         {
-            FormatArg args[1];
-            args[0].s = world_name;
             console_log_format("Could not find world %s", args, 1);
         }
         u32 world_width = get_current_world_width();
@@ -2966,8 +2964,6 @@ void generate_world(char* world_name)
         current_world = get_world_id_by_machine_name("athens");
         if (current_world == SENTRY)
         {
-            FormatArg args[1];
-            args[0].s = world_name;
             console_log_format("Could not find world %s", args, 1);
         }
 
@@ -3612,6 +3608,15 @@ void tick()
         // TODO: Anything here?
     }
     // TODO: fsm_tick();
+}
+
+void wasm_load_world_dingus_land()
+{
+    generate_world("dingus_land");
+}
+void wasm_load_world_athens()
+{
+    generate_world("athens");
 }
 
 void initialize_game()

@@ -755,7 +755,7 @@ function playerConnectedHTML()
             <input type='text' id='htmx-ws-username' name='username' />
             <input type='password' id='htmx-ws-keystring' name='keystring' />
             <input type='hidden' name='type' value='join_game' />
-            <button type='submit'>Login</button>
+            <button type='submit' class='button-with-icon'><span class='svg svg-anchor'></span> <span>Login</span></button>
         </form>
     `;
 
@@ -771,7 +771,9 @@ function playerJoinedGameHTML()
     <div id='content'>
         <div id='countdown_timer'></div>
         <div id='players'></div>
+        <hr/>
         <form id='send_chat' ws-send>
+            <span class='svg svg-chat-white'></span>
             <input type='text' name='chat_message' id='multiplayer-chat-message-input' />
             <input type='hidden' name='type' value='chat_message' />
             <button type='submit'>Send Trash Talk</button>
@@ -815,7 +817,12 @@ function playersHTML()
             console.log("Could not find user " + username + " in the db");
         }
         var player_number = p + 1;
-        html += `<div><span>[Player ${player_number}]</span> <span>${username}</span> <span>(Score: ${score})</span></div>`;
+        html += `
+        <div>
+            <span><span class='svg svg-ship-white'></span> ${player_number}</span> <span>${username}</span>
+            <span>(Score: ${score})</span>
+            <div style='display: block; background-color: rgb(96 165 250 / 1); border-radius: 9999px; width: 5rem; height: 0.5rem;'></div>
+        </div>`;
     }
     html += '</div>';
     return String.raw`${html}`.replace(/`/g, '"').replace(/\n/g, '');
