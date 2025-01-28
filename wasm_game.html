@@ -1640,6 +1640,17 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                     dragElement(document.getElementById("htmx-multiplayer-div"), document.getElementById("htmx-ws-drag-handle"));
                     this.connect();
                 },
+                __admin_give_points_to: function (origin_button)
+                {
+                    var username = origin_button.getAttribute("data-username");
+                    this.socket.send(JSON.stringify({
+                        type: "give_points_to",
+                        username: MULTIPLAYER.username,
+                        keystring: MULTIPLAYER.keystring,
+                        to_username: username,
+                        points: 10,
+                    }));
+                },
                 sendToHost: function (action)
                 {
                     this.socket.send(JSON.stringify({

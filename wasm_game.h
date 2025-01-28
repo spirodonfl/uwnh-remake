@@ -1873,6 +1873,10 @@ void set_current_scene_state_string_id(u32 value)
 {
     CurrentScene[SCENE_CURRENT_STATE_STRING_ID] = value;
 }
+void set_current_scene_state_string_id_to_sentry()
+{
+    CurrentScene[SCENE_CURRENT_STATE_STRING_ID] = SENTRY;
+}
 u32 get_current_scene_state_string_id()
 {
     return CurrentScene[SCENE_CURRENT_STATE_STRING_ID];

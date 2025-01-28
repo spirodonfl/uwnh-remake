@@ -103,6 +103,10 @@ var import_symbols = {
     { args: [], returns: "u32" },
     clear_ocean_battle_fleets:
     { args: [], returns: "void", },
+    clear_ocean_battle_data:
+    { args: [], returns: "void", },
+    clear_ocean_battle_turn_order:
+    { args: [], returns: "void", },
     add_fleet_to_battle:
     { args: ["u32"], returns: "void", },
     get_fleet_id_by_general_id:
@@ -229,6 +233,14 @@ var import_symbols = {
     { args: ["u32", "u32", "u32"], returns: "u32", },
     get_fleet_ship_id_by_ship_id:
     { args: ["u32"], returns: "u32", },
+    generate_world:
+    { args: ["cstring"], returns: "void", },
+    clear_global_world_data:
+    { args: [], returns: "void", },
+    clear_storage_ship:
+    { args: [], returns: "void", },
+    set_current_scene_state_string_id_to_sentry:
+    { args: ["u32"], returns: "void", },
 };
 import { cc } from "bun:ffi";
 import source from "./bun_server.c" with { type: "file" };
@@ -350,8 +362,8 @@ function beginGame()
 
     var MAX_TURN_ORDERS = symbols.get_max_ocean_battle_turn_orders();
     // TODO: make sure max is never exceeded
-    var OCEAN_BATTLE_TURN_ORDER = [];
-    var OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY = 0;
+    OCEAN_BATTLE_TURN_ORDER = [];
+    OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY = 0;
 
     console.log("-- SETTING UP SHIPS --");
     var base_ship_id = symbols.get_base_ship_id_by_machine_name(createWasmString("balsa"));
@@ -496,8 +508,27 @@ function beginGame()
     ship_id = symbols.pull_storage_ships_next_open_slot();
     symbols.set_ship_name_id(ship_id, ship_name_id);
     symbols.set_ship_base_ship_id(ship_id, base_ship_id);
-    symbols.set_ship_crew(ship_id, 50);
-    symbols.set_ship_hull(ship_id, 100);
+    symbols.set_ship_crew(ship_id, 20);
+    symbols.set_ship_hull(ship_id, 50);
+    symbols.add_ship_to_fleet(fleet_id, ship_id);
+    ++OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY;
+    console.log("-- BLACKBEARD CREATING WORLD NPC --");
+    world_npc_id = symbols.pull_storage_world_npcs_next_open_slot();
+    symbols.set_world_npc_npc_id(world_npc_id, npc_id);
+    symbols.set_world_npc_entity_id(world_npc_id, ship_id);
+    symbols.set_world_npc_position_x(world_npc_id, 2);
+    symbols.set_world_npc_position_y(world_npc_id, 4);
+    // TODO: 3 is the magic number for SHIP but we should get this number in a better way
+    symbols.set_world_npc_type(world_npc_id, 3);
+    symbols.set_global_storage_world_npcs_used(world_npc_id);
+    symbols.increment_global_storage_world_npcs_count();
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    console.log("-- BLACKBEARD FLEET SHIP SETUP --");
+    ship_id = symbols.pull_storage_ships_next_open_slot();
+    symbols.set_ship_name_id(ship_id, ship_name_id);
+    symbols.set_ship_base_ship_id(ship_id, base_ship_id);
+    symbols.set_ship_crew(ship_id, 20);
+    symbols.set_ship_hull(ship_id, 50);
     symbols.add_ship_to_fleet(fleet_id, ship_id);
     ++OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY;
     console.log("-- BLACKBEARD CREATING WORLD NPC --");
@@ -559,12 +590,13 @@ function endGame()
     }
     GAME_INITIALIZED = false;
     IN_GAME = false;
-    /**
-     * Reset game data somehow. Maybe clear all the associated arrays you set before
-     * Clear all storages for sure
-     * Definitely clear global world data if you added things in to the layers dynamically
-     * You can leave the scene as-is but maybe set the scene_state_id to SENTRY so we re-initialize it again
-     */
+    symbols.clear_ocean_battle_fleets();
+    symbols.clear_ocean_battle_turn_order();
+    symbols.clear_ocean_battle_data();
+    symbols.clear_global_world_data();
+    symbols.clear_storage_ship();
+    symbols.set_current_scene_state_string_id_to_sentry();
+    symbols.generate_world(createWasmString("dingus_land"));
 }
 function generateGameData()
 {
@@ -759,6 +791,8 @@ var COUNTDOWN_SECONDS = 3;
 var COUNTDOWN_INTERVAL;
 var chat_messages = [];
 var GAME_LAST_ATTACKED_SHIP_ID = null;
+var OCEAN_BATTLE_TURN_ORDER = [];
+var OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY = 0;
 
 // ------------------------------------------------------------------------------------------------
 // HTML FUNCTIONS
@@ -797,6 +831,7 @@ function playerJoinedGameHTML()
     <div id='content'>
         <div id='countdown_timer'></div>
         <div id='players'></div>
+        <div id='admin'></div>
         <hr/>
         <form id='send_chat' ws-send>
             <span class='svg svg-chat-white'></span>
@@ -806,6 +841,21 @@ function playerJoinedGameHTML()
         </form>
         <div id='chat'></div>
     </div>`;
+    return String.raw`${html}`.replace(/`/g, '"').replace(/\n/g, '');
+}
+function adminHTML()
+{
+    var html = `
+    <div id='admin'>
+    `;
+    for (var p = 0; p < players.length; ++p)
+    {
+        var username = players[p].username;
+        html += `<div><span>Give Points To</span> <button onclick='MULTIPLAYER.__admin_give_points_to(this);' data-username='${username}'>${username}</button></div>`;
+    }
+    html += `
+    </div>
+    `;
     return String.raw`${html}`.replace(/`/g, '"').replace(/\n/g, '');
 }
 function chatHTML()
@@ -872,11 +922,11 @@ function confirmKeyInData(ws, type, data)
 }
 function validateKey(ws, type, username, keystring)
 {
-    var key = uuidParse(keystring);
-    if (key === ADMIN_KEY)
+    if (keystring === ADMIN_KEY)
     {
         return true;
     }
+    var key = uuidParse(keystring);
     var result = db.query("SELECT username FROM keys WHERE key = ?").get(key);
 
     if (result && result.username === username)
@@ -976,7 +1026,25 @@ const server = serve({
                     // case "cage_the_kraken": // manually override and put the kraken away
                     // case "increase_ship_id_hull": // and crew and subsequent decrease commands
                     // case "force_reload": // clears all storage and forces everyones browser to reload
-                    // case "give_points_to": // give X points to username Y
+                    case "give_points_to":
+                        if (data.keystring && data.keystring === ADMIN_KEY)
+                        {
+                            // data.to_username
+                            // data.points
+                            var current_points = db.query("SELECT * FROM users WHERE username = ?").get([data.to_username]).score;
+                            db.query("UPDATE users SET score = $points WHERE username = $username").run({
+                                $points: parseInt(data.points + current_points),
+                                $username: data.to_username,
+                            });
+                            for (var p = 0; p < players.length; ++p)
+                            {
+                                players[p].send(JSON.stringify({
+                                    type: "htmx_message",
+                                    html: playersHTML(),
+                                }));
+                            }
+                        }
+                        break;
                     // case "remove_user_key": // remove key from db so players can't join using that key
                     // TODO: Add a new game state called "waiting" which is just one state and its only for multiplayer during ocean battle which gets all other players put into while current player is taking turn
                     case "release_the_kraken":
@@ -1103,6 +1171,14 @@ const server = serve({
                                     --COUNTDOWN_CURRENT_SECONDS;
                                 }, 1000);
                             }
+
+                            if (data.keystring === ADMIN_KEY)
+                            {
+                                ws.send(JSON.stringify({
+                                    type: "htmx_message",
+                                    html: adminHTML(),
+                                }));
+                            }
                         }
                         break;
                     case "player_action":
@@ -1154,6 +1230,11 @@ const server = serve({
                                         }
                                         if (destruction)
                                         {
+                                            var current_points = db.query("SELECT * FROM users WHERE username = ?").get([data.username]).score;
+                                            db.query("UPDATE users SET score = $points WHERE username = $username").run({
+                                                $points: parseInt(current_points + 10),
+                                                $username: data.username,
+                                            });
                                             for (var p = 0; p < players.length; ++p)
                                             {
                                                 players[p].send(JSON.stringify({
@@ -1161,10 +1242,6 @@ const server = serve({
                                                     html: playersHTML(),
                                                 }));
                                             }
-                                            db.query("UPDATE users SET score = score + $points WHERE username = $username").run({
-                                                $points: 10,
-                                                $username: data.username,
-                                            });
                                         }
                                         GAME_LAST_ATTACKED_SHIP_ID = null;
                                     }
