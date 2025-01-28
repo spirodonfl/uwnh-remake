@@ -1651,6 +1651,17 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                         points: 10,
                     }));
                 },
+                __admin_take_points_from: function (origin_button)
+                {
+                    var username = origin_button.getAttribute("data-username");
+                    this.socket.send(JSON.stringify({
+                        type: "take_points_from",
+                        username: MULTIPLAYER.username,
+                        keystring: MULTIPLAYER.keystring,
+                        to_username: username,
+                        points: 10,
+                    }));
+                },
                 sendToHost: function (action)
                 {
                     this.socket.send(JSON.stringify({

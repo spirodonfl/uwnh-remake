@@ -256,38 +256,63 @@ const { symbols } = cc({
 });
 var GAME_INITIALIZED = false;
 var GLOBAL_WORLD_DATA = [];
-function generateMatrix(numPlayers)
-{
+function generateMatrix(players) {
+    // Validate input: players should be an array of objects with fleet sizes
+    if (!Array.isArray(players) || players.length > 10) {
+        throw new Error('Players must be an array with maximum 10 fleets');
+    }
+
     // Initialize 100x100 matrix with zeros
     const matrix = Array(100).fill().map(() => Array(100).fill(0));
     const usedPositions = new Set();
 
-    // Helper to check if position is valid and unused
+    // Special center coordinate reserved for later
+    const CENTER_POINT = { x: 50, y: 50 };
+    usedPositions.add(`${CENTER_POINT.x},${CENTER_POINT.y}`);
+
+    // Define spawn points in corners/edges
+    const spawnPoints = [
+        { x: 0, y: 0 },      // Top left
+        { x: 0, y: 99 },     // Top right
+        { x: 99, y: 0 },     // Bottom left
+        { x: 99, y: 99 },    // Bottom right
+        { x: 0, y: 50 },     // Middle left
+        { x: 99, y: 50 },    // Middle right
+        { x: 50, y: 0 },     // Middle top
+        { x: 50, y: 99 },    // Middle bottom
+        { x: 25, y: 0 },     // Additional top
+        { x: 75, y: 0 }      // Additional top
+    ];
+
     function isValidPosition(x, y) {
-        return x >= 0 && x < 100 && y >= 0 && y < 100 && !usedPositions.has(`${x},${y}`);
+        return x >= 0 && x < 100 && 
+               y >= 0 && y < 100 && 
+               !usedPositions.has(`${x},${y}`) &&
+               !(x === CENTER_POINT.x && y === CENTER_POINT.y);
     }
 
-    // Helper to get random position
     function getRandomPosition() {
         return Math.floor(Math.random() * 100);
     }
 
-    // Helper to find nearby empty position
-    function findNearbyPosition(x, y) {
-        const offsets = [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]];
-        const shuffledOffsets = offsets.sort(() => Math.random() - 0.5);
-        
-        for (const [dx, dy] of shuffledOffsets) {
-            const newX = x + dx;
-            const newY = y + dy;
-            if (isValidPosition(newX, newY)) {
-                return [newX, newY];
+    function findNearbyPosition(x, y, radius = 3) {
+        const positions = [];
+        for (let dx = -radius; dx <= radius; dx++) {
+            for (let dy = -radius; dy <= radius; dy++) {
+                if (dx === 0 && dy === 0) continue;
+                const newX = x + dx;
+                const newY = y + dy;
+                if (isValidPosition(newX, newY)) {
+                    positions.push([newX, newY]);
+                }
             }
         }
-        return null;
+        return positions.length > 0 ? 
+            positions[Math.floor(Math.random() * positions.length)] : 
+            null;
     }
 
-    // Place 30 squares with value 42
+    // Place 200 squares with value 42
     let count42 = 0;
     while (count42 < 200) {
         const x = getRandomPosition();
@@ -300,44 +325,36 @@ function generateMatrix(numPlayers)
         }
     }
 
-    // Place players and their cohorts
-    for (let player = 1; player <= numPlayers; player++) {
-        const playerValue = 100 + player;
+    // Place players and their fleets
+    players.forEach((player, index) => {
+        if (player.fleetSize < 0 || player.fleetSize > 9) {
+            throw new Error(`Fleet size must be between 0 and 9 for player ${index + 1}`);
+        }
+
+        const playerValue = 100 + (100 * index) + 1;
+        const spawnPoint = spawnPoints[index];
         
-        // Place main player
-        let playerPlaced = false;
-        while (!playerPlaced) {
-            const x = getRandomPosition();
-            const y = getRandomPosition();
+        if (isValidPosition(spawnPoint.x, spawnPoint.y)) {
+            // Place main player
+            matrix[spawnPoint.x][spawnPoint.y] = playerValue;
+            usedPositions.add(`${spawnPoint.x},${spawnPoint.y}`);
             
-            if (isValidPosition(x, y)) {
-                matrix[x][y] = playerValue;
-                usedPositions.add(`${x},${y}`);
-                
-                // Place two cohorts near the player
-                let cohortsPlaced = 0;
-                let attempts = 0;
-                while (cohortsPlaced < 2 && attempts < 8) {
-                    const nearbyPos = findNearbyPosition(x, y);
-                    if (nearbyPos) {
-                        const [cohortX, cohortY] = nearbyPos;
-                        matrix[cohortX][cohortY] = playerValue;
-                        usedPositions.add(`${cohortX},${cohortY}`);
-                        cohortsPlaced++;
-                    }
-                    attempts++;
+            // Place fleet ships
+            let shipsPlaced = 0;
+            let attempts = 0;
+            
+            while (shipsPlaced < player.fleetSize && attempts < 20) {
+                const nearbyPos = findNearbyPosition(spawnPoint.x, spawnPoint.y, 3);
+                if (nearbyPos) {
+                    const [shipX, shipY] = nearbyPos;
+                    matrix[shipX][shipY] = playerValue;
+                    usedPositions.add(`${shipX},${shipY}`);
+                    shipsPlaced++;
                 }
-                
-                if (cohortsPlaced === 2) {
-                    playerPlaced = true;
-                } else {
-                    // If we couldn't place cohorts, reset and try again
-                    matrix[x][y] = 0;
-                    usedPositions.delete(`${x},${y}`);
-                }
+                attempts++;
             }
         }
-    }
+    });
 
     return matrix;
 }
@@ -852,6 +869,7 @@ function adminHTML()
     {
         var username = players[p].username;
         html += `<div><span>Give Points To</span> <button onclick='MULTIPLAYER.__admin_give_points_to(this);' data-username='${username}'>${username}</button></div>`;
+        html += `<div><span>Take Points From</span> <button onclick='MULTIPLAYER.__admin_take_points_from(this);' data-username='${username}'>${username}</button></div>`;
     }
     html += `
     </div>
@@ -1034,6 +1052,25 @@ const server = serve({
                             var current_points = db.query("SELECT * FROM users WHERE username = ?").get([data.to_username]).score;
                             db.query("UPDATE users SET score = $points WHERE username = $username").run({
                                 $points: parseInt(data.points + current_points),
+                                $username: data.to_username,
+                            });
+                            for (var p = 0; p < players.length; ++p)
+                            {
+                                players[p].send(JSON.stringify({
+                                    type: "htmx_message",
+                                    html: playersHTML(),
+                                }));
+                            }
+                        }
+                        break;
+                    case "take_points_from":
+                        if (data.keystring && data.keystring === ADMIN_KEY)
+                        {
+                            // data.to_username
+                            // data.points
+                            var current_points = db.query("SELECT * FROM users WHERE username = ?").get([data.to_username]).score;
+                            db.query("UPDATE users SET score = $points WHERE username = $username").run({
+                                $points: parseInt(current_points - data.points),
                                 $username: data.to_username,
                             });
                             for (var p = 0; p < players.length; ++p)
@@ -1403,3 +1440,11 @@ const server = serve({
     }
 });
 console.log("Server start at port " + Bun.env.PORT);
+
+console.log(generateMatrix([
+    { fleetSize: 3 },  // Player 1 with 3 ships
+    { fleetSize: 5 },  // Player 2 with 5 ships
+    { fleetSize: 0 },  // Player 3 with no ships
+    { fleetSize: 9 },  // NPC 1 with 9 ships
+    { fleetSize: 2 }   // NPC 2 with 2 ships
+]));
