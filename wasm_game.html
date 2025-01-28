@@ -884,6 +884,11 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
             {
                 background-color: rgba(255, 255, 255, 0.3);
             }
+            .world-dingus_land.layer-npc_layer.npc_name-npc_kraken
+            {
+                --atlas-x: 18;
+                --atlas-y: 0;
+            }
         </style>
         <script type="text/javascript">
             const wasmBase64 = "<!-- WASM_FILE_HERE -->";
@@ -3165,8 +3170,8 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
 
                                                 if (type !== wasm.exports.get_sentry() && type === 3)
                                                 {
-                                                    npc_element.style.setProperty('--atlas-x', 19);
-                                                    npc_element.style.setProperty('--atlas-y', 0);
+                                                    // npc_element.style.setProperty('--atlas-x', 19);
+                                                    // npc_element.style.setProperty('--atlas-y', 0);
                                                     var ship_id = wasm.exports.get_world_npc_entity_id(layer_value);
                                                     var ship_crew = wasm.exports.get_ship_crew(ship_id);
                                                     var ship_hull = wasm.exports.get_ship_hull(ship_id);

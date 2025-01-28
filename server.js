@@ -446,7 +446,44 @@ function beginGame()
     }
 
     // kraken
+    console.log("-- KRAKEN --");
+    ship_name_id = symbols.get_string_id_by_machine_name(createWasmString("krakens_ship"));
+    npc_id = symbols.get_npc_id_by_machine_name(createWasmString("npc_kraken"));
+    console.log("-- KRAKEN FLEET SETUP --");
+    fleet_id = symbols.pull_storage_fleets_next_open_slot();
+    symbols.set_fleet_total_ships(fleet_id, 0);
+    symbols.set_fleet_total_captains(fleet_id, 1);
+    symbols.set_fleet_general_id(fleet_id, npc_id);
+    console.log("-- KRAKEN FLEET SHIP SETUP --");
+    ship_id = symbols.pull_storage_ships_next_open_slot();
+    symbols.set_ship_name_id(ship_id, ship_name_id);
+    symbols.set_ship_base_ship_id(ship_id, base_ship_id);
+    symbols.set_ship_crew(ship_id, 333);
+    symbols.set_ship_hull(ship_id, 333);
+    symbols.add_ship_to_fleet(fleet_id, ship_id);
+    ++OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY;
+    console.log("-- KRAKEN CREATING WORLD NPC --");
+    world_npc_id = symbols.pull_storage_world_npcs_next_open_slot();
+    symbols.set_world_npc_npc_id(world_npc_id, npc_id);
+    symbols.set_world_npc_entity_id(world_npc_id, ship_id);
+    symbols.set_world_npc_position_x(world_npc_id, 7);
+    symbols.set_world_npc_position_y(world_npc_id, 7);
+    // TODO: 3 is the magic number for SHIP but we should get this number in a better way
+    symbols.set_world_npc_type(world_npc_id, 3);
+    symbols.set_global_storage_world_npcs_used(world_npc_id);
+    symbols.increment_global_storage_world_npcs_count();
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
+
     // davey jones
+    
     console.log("-- BLACKBEARD --");
     ship_name_id = symbols.get_string_id_by_machine_name(createWasmString("blackbeards_ship"));
     npc_id = symbols.get_npc_id_by_machine_name(createWasmString("npc_blackbeard"));
@@ -478,8 +515,8 @@ function beginGame()
     ship_id = symbols.pull_storage_ships_next_open_slot();
     symbols.set_ship_name_id(ship_id, ship_name_id);
     symbols.set_ship_base_ship_id(ship_id, base_ship_id);
-    symbols.set_ship_crew(ship_id, 50);
-    symbols.set_ship_hull(ship_id, 100);
+    symbols.set_ship_crew(ship_id, 2);
+    symbols.set_ship_hull(ship_id, 2);
     symbols.add_ship_to_fleet(fleet_id, ship_id);
     ++OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY;
     console.log("-- BLACKBEARD CREATING WORLD NPC --");
@@ -493,24 +530,13 @@ function beginGame()
     symbols.set_global_storage_world_npcs_used(world_npc_id);
     symbols.increment_global_storage_world_npcs_count();
     // NOTE: This works! We can now intersperse ships into having MULTIPLE turns between other turns
-    // AKA KRAKEN IS READY
-    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
-    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
-    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
-    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
-    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
-    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
-    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
-    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
-    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
-    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
     OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
     console.log("-- BLACKBEARD ADDING FLEET TO BATTLE --");
     symbols.add_fleet_to_battle(fleet_id);
 
     console.log("-- SETTING UP BATTLE --");
     symbols.set_ocean_battle_data_total_ships_in_play(OCEAN_BATTLE_TOTAL_SHIPS_IN_PLAY);
-    // OCEAN_BATTLE_TURN_ORDER = shuffleArray(OCEAN_BATTLE_TURN_ORDER);
+    OCEAN_BATTLE_TURN_ORDER = shuffleArray(OCEAN_BATTLE_TURN_ORDER);
     for (var o = 0; o < OCEAN_BATTLE_TURN_ORDER.length; ++o)
     {
         symbols.set_ocean_battle_turn_order_value(o, OCEAN_BATTLE_TURN_ORDER[o]);
