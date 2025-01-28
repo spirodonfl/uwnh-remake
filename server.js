@@ -314,7 +314,8 @@ function generateMatrix(players) {
 
     // Place 200 squares with value 42
     let count42 = 0;
-    while (count42 < 200) {
+    // TODO: Remove magic number
+    while (count42 < 300) {
         const x = getRandomPosition();
         const y = getRandomPosition();
         
@@ -364,16 +365,39 @@ function beginGame()
     var str_id;
     symbols.initialize_game();
     symbols.tick();
+    symbols.clear_ocean_battle_turn_order();
     // TODO: (future) Add a health pack
     // TODO: Give special buffs to particular things
     // TODO: Sort out placement of world npcs too. Maybe random is ok.
     symbols.clear_ocean_battle_fleets();
 
+    var matrix = generateMatrix([
+        { fleetSize: 2 },  // Player 1
+        { fleetSize: 2 },  // Player 2
+        { fleetSize: 2 },  // Blackbeard
+        { fleetSize: 1 }   // Kraken
+    ]);
+    
     console.log("-- SETTING UP WORLD --");
     symbols.set_ocean_battle_data_manual_setup(1);
     var layer_one_id = symbols.get_layer_id_by_machine_name(createWasmString("layer_one"));
+    var block_layer_id = symbols.get_layer_id_by_machine_name(createWasmString("block_layer"));
     GLOBAL_WORLD_DATA.push({ layer_id: layer_one_id, x: 0, y: 0, value: 33 });
     symbols.add_value_to_global_world_data(layer_one_id, 0, 0, 33);
+    // TODO: Remove the magic number
+    for (var x = 0; x < 100; ++x)
+    {
+        for (var y = 0; y < 100; ++y)
+        {
+            if (matrix[x][y] === 42)
+            {
+                GLOBAL_WORLD_DATA.push({ layer_id: layer_one_id, x, y, value: 42 });
+                symbols.add_value_to_global_world_data(layer_one_id, x, y, 42);
+                GLOBAL_WORLD_DATA.push({ layer_id: block_layer_id, x, y, value: 1 });
+                symbols.add_value_to_global_world_data(block_layer_id, x, y, 1);
+            }
+        }
+    }
     // can setup blocks now
     // layer two
 
@@ -444,11 +468,24 @@ function beginGame()
         world_npc_id = symbols.pull_storage_world_npcs_next_open_slot();
         symbols.set_world_npc_npc_id(world_npc_id, npc_id);
         symbols.set_world_npc_entity_id(world_npc_id, ship_id);
-        symbols.set_world_npc_position_x(world_npc_id, position_x);
         // TODO: 3 is the magic number for SHIP but we should get this number in a better way
         symbols.set_world_npc_type(world_npc_id, 3);
-        ++position_x;
-        symbols.set_world_npc_position_y(world_npc_id, position_y);
+        var player_index = 100 + (100 * p) + 1;
+        var found = false;
+        for (var x = 0; x < 100; ++x)
+        {
+            for (var y = 0; y < 100; ++y)
+            {
+                if (matrix[x][y] === player_index)
+                {
+                    symbols.set_world_npc_position_x(world_npc_id, x);
+                    symbols.set_world_npc_position_y(world_npc_id, y);
+                    found = true;
+                }
+                if (found) { break; }
+            }
+            if (found) { break; }
+        }
         OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
 
         console.log("-- FLEET SHIP SETUP --");
@@ -463,11 +500,24 @@ function beginGame()
         world_npc_id = symbols.pull_storage_world_npcs_next_open_slot();
         symbols.set_world_npc_npc_id(world_npc_id, npc_id);
         symbols.set_world_npc_entity_id(world_npc_id, ship_id);
-        symbols.set_world_npc_position_x(world_npc_id, position_x);
         // TODO: 3 is the magic number for SHIP but we should get this number in a better way
         symbols.set_world_npc_type(world_npc_id, 3);
-        ++position_x;
-        symbols.set_world_npc_position_y(world_npc_id, position_y);
+        ++player_index;
+        found = false;
+        for (var x = 0; x < 100; ++x)
+        {
+            for (var y = 0; y < 100; ++y)
+            {
+                if (matrix[x][y] === player_index)
+                {
+                    symbols.set_world_npc_position_x(world_npc_id, x);
+                    symbols.set_world_npc_position_y(world_npc_id, y);
+                    found = true;
+                }
+                if (found) { break; }
+            }
+            if (found) { break; }
+        }
         OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
 
         console.log("-- ADDING FLEET TO BATTLE --");
@@ -507,9 +557,6 @@ function beginGame()
     OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
     OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
     OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
-    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
-    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
-    OCEAN_BATTLE_TURN_ORDER.push(world_npc_id);
 
     // davey jones
     
@@ -533,8 +580,22 @@ function beginGame()
     world_npc_id = symbols.pull_storage_world_npcs_next_open_slot();
     symbols.set_world_npc_npc_id(world_npc_id, npc_id);
     symbols.set_world_npc_entity_id(world_npc_id, ship_id);
-    symbols.set_world_npc_position_x(world_npc_id, 2);
-    symbols.set_world_npc_position_y(world_npc_id, 4);
+    var player_index = 100 + (100 * 3) + 1;
+    var found = false;
+    for (var x = 0; x < 100; ++x)
+    {
+        for (var y = 0; y < 100; ++y)
+        {
+            if (matrix[x][y] === player_index)
+            {
+                symbols.set_world_npc_position_x(world_npc_id, x);
+                symbols.set_world_npc_position_y(world_npc_id, y);
+                found = true;
+            }
+            if (found) { break; }
+        }
+        if (found) { break; }
+    }
     // TODO: 3 is the magic number for SHIP but we should get this number in a better way
     symbols.set_world_npc_type(world_npc_id, 3);
     symbols.set_global_storage_world_npcs_used(world_npc_id);
@@ -552,8 +613,22 @@ function beginGame()
     world_npc_id = symbols.pull_storage_world_npcs_next_open_slot();
     symbols.set_world_npc_npc_id(world_npc_id, npc_id);
     symbols.set_world_npc_entity_id(world_npc_id, ship_id);
-    symbols.set_world_npc_position_x(world_npc_id, 2);
-    symbols.set_world_npc_position_y(world_npc_id, 4);
+    var player_index = 100 + (100 * 3) + 2;
+    var found = false;
+    for (var x = 0; x < 100; ++x)
+    {
+        for (var y = 0; y < 100; ++y)
+        {
+            if (matrix[x][y] === player_index)
+            {
+                symbols.set_world_npc_position_x(world_npc_id, x);
+                symbols.set_world_npc_position_y(world_npc_id, y);
+                found = true;
+            }
+            if (found) { break; }
+        }
+        if (found) { break; }
+    }
     // TODO: 3 is the magic number for SHIP but we should get this number in a better way
     symbols.set_world_npc_type(world_npc_id, 3);
     symbols.set_global_storage_world_npcs_used(world_npc_id);
@@ -571,8 +646,22 @@ function beginGame()
     world_npc_id = symbols.pull_storage_world_npcs_next_open_slot();
     symbols.set_world_npc_npc_id(world_npc_id, npc_id);
     symbols.set_world_npc_entity_id(world_npc_id, ship_id);
-    symbols.set_world_npc_position_x(world_npc_id, 3);
-    symbols.set_world_npc_position_y(world_npc_id, 4);
+    // var player_index = 100 + (100 * 3) + 4;
+    // var found = false;
+    // for (var x = 0; x < 100; ++x)
+    // {
+    //     for (var y = 0; y < 100; ++y)
+    //     {
+    //         if (matrix[x][y] === player_index)
+    //         {
+                symbols.set_world_npc_position_x(world_npc_id, 3);
+                symbols.set_world_npc_position_y(world_npc_id, 3);
+    //             found = true;
+    //         }
+    //         if (found) { break; }
+    //     }
+    //     if (found) { break; }
+    // }
     // TODO: 3 is the magic number for SHIP but we should get this number in a better way
     symbols.set_world_npc_type(world_npc_id, 3);
     symbols.set_global_storage_world_npcs_used(world_npc_id);
@@ -846,6 +935,7 @@ function playerJoinedGameHTML()
 {
     var html = `
     <div id='content'>
+        <div><button onclick='MULTIPLAYER.__player_manually_get_game_state();'>Refresh Game</button></div>
         <div id='countdown_timer'></div>
         <div id='players'></div>
         <div id='admin'></div>
@@ -1440,11 +1530,3 @@ const server = serve({
     }
 });
 console.log("Server start at port " + Bun.env.PORT);
-
-console.log(generateMatrix([
-    { fleetSize: 3 },  // Player 1 with 3 ships
-    { fleetSize: 5 },  // Player 2 with 5 ships
-    { fleetSize: 0 },  // Player 3 with no ships
-    { fleetSize: 9 },  // NPC 1 with 9 ships
-    { fleetSize: 2 }   // NPC 2 with 2 ships
-]));

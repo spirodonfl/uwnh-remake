@@ -855,6 +855,11 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                 --atlas-x: 3;
                 --atlas-y: 1;
             }
+            .world-dingus_land.layer-layer_one.value-42
+            {
+                --atlas-x: 16;
+                --atlas-y: 0;
+            }
             .world-dingus_land.layer-npc_layer
             {
                 --atlas-x: 20;
@@ -1660,6 +1665,14 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                         keystring: MULTIPLAYER.keystring,
                         to_username: username,
                         points: 10,
+                    }));
+                },
+                __player_manually_get_game_state: function ()
+                {
+                    MULTIPLAYER.socket.send(JSON.stringify({
+                        type: "get_game_state",
+                        username: MULTIPLAYER.username,
+                        keystring: MULTIPLAYER.keystring,
                     }));
                 },
                 sendToHost: function (action)

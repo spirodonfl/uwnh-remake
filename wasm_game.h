@@ -455,6 +455,9 @@ u32 scene_bank(u32 action);
 
 void generate_world(char* world_name);
 
+u32 get_viewport_width();
+u32 get_viewport_height();
+
 void test();
 
 // ------------------------------------------------------------------------------------------------
@@ -2665,6 +2668,42 @@ u32 get_camera_offset_y()
 {
     return camera_offset_y;
 }
+void center_camera_on(u32 world_x, u32 world_y)
+{
+    if (world_x >= get_current_world_width())
+    {
+        console_log("[E] Tried to center camera beyond world width");
+        return;
+    }
+    if (world_y >= get_current_world_height())
+    {
+        console_log("[E] Tried to center camera beyond world height");
+        return;
+    }
+    u32 intended_x = 0;
+    u32 intended_y = 0;
+    if (world_x < get_viewport_width())
+    {
+        intended_x = 0;
+    }
+    else
+    {
+        intended_x = world_x - (get_viewport_width() / 2);
+    }
+    if (world_y < get_viewport_height())
+    {
+        intended_y = 0;
+    }
+    else
+    {
+        intended_y = world_y - (get_viewport_height() / 2);
+    }
+
+    camera_offset_x = intended_x;
+    camera_offset_y = intended_y;
+
+    should_redraw_everything();
+}
 
 // ------------------------------------------------------------------------------------------------
 // VIEWPORT
@@ -2952,6 +2991,18 @@ void generate_world(char* world_name)
         layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
         layer_data[LAYER_WIDTH] = world_width;
         layer_data[LAYER_HEIGHT] = world_height;
+        layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
+        GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
+        layer_id = add_layer(layer_data);
+        // console_log_format("layer one is %d", layer_id);
+        increment_world_total_layers(current_world);
+        // BLOCK LAYER
+        CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
+        layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("block_layer");
+        layer_data[LAYER_TYPE] = LAYER_TYPE_MATCHES_WORLD_SIZE;
+        layer_data[LAYER_WIDTH] = world_width;
+        layer_data[LAYER_HEIGHT] = world_height;
+        layer_data[LAYER_IS_BLOCK] = true;
         layer_data[LAYER_GLOBAL_WORLD_DATA_OFFSET] = GLOBAL_WORLD_DATA_ITERATOR;
         GLOBAL_WORLD_DATA_ITERATOR += (world_width * world_height);
         layer_id = add_layer(layer_data);
@@ -5307,6 +5358,10 @@ u32 get_current_ocean_battle_turn_world_npc_id()
 u32 get_current_ocean_battle_turn_player_id()
 {
     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
+    center_camera_on(
+        get_world_npc_position_x(world_npc_id),
+        get_world_npc_position_y(world_npc_id)
+    );
     u32 ship_id = get_world_npc_entity_id(world_npc_id);
     u32 fleet_id = get_fleet_id_by_ship_id(ship_id);
     u32 general_id = get_fleet_general_id(fleet_id);
@@ -5956,6 +6011,10 @@ u32 scene_ocean_battle(u32 action)
                         // TODO: Have NPC ships capable of running away when health is low
                         console_log("NPC TAKES ACTION");
                         world_npc_id = get_current_ocean_battle_turn_world_npc_id();
+                        center_camera_on(
+                            get_world_npc_position_x(world_npc_id),
+                            get_world_npc_position_y(world_npc_id)
+                        );
                         if (get_ship_hull(attacker_ship_id) > 0 && get_ship_crew(attacker_ship_id) > 0)
                         {
                             u32 rando = get_random_number(1, 4);
@@ -6305,6 +6364,10 @@ u32 scene_ocean_battle(u32 action)
                     }
                     FormatArg args[1];
                     args[0].i = (player_id + 1);
+                    if (args[0].i == 0)
+                    {
+                        console_log("[E] BRO WTF");
+                    }
                     u32 string_id = create_string(
                         "scene_ocean_battle_current_players_turn",
                         string_format(
@@ -6315,6 +6378,8 @@ u32 scene_ocean_battle(u32 action)
                             1
                         )
                     );
+                    args[0].i = player_id;
+                    console_log_format("Player id in scene state is %d", args, 1);
                     set_current_scene_state_string_id(string_id);
                     set_current_scene_dialogue_string_id(string_id);
                     should_redraw_everything();
