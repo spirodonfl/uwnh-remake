@@ -526,12 +526,50 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                 position: absolute;
                 top: 0px;
                 left: 0px;
-                width: 500px;
+                min-width: 200px;
+            }
+            #htmx-multiplayer-div form#content,
+            #htmx-multiplayer-div form#send_chat,
+            #htmx-multiplayer-div #players
+            {
+                display: grid;
+                grid-gap: 10px;
             }
             #htmx-multiplayer-div #content
             {
                 margin: 0px;
                 padding: 6px;
+            }
+            #htmx-multiplayer-div #players div
+            {
+                display: grid;
+            }
+            #htmx-multiplayer-div #players .multiplayer-info-wrapper span:first-of-type
+            {
+                display: grid;
+                grid-auto-flow: column;
+                align-items: center;
+                grid-gap: 8px;
+            }
+            #htmx-multiplayer-div #players .multiplayer-info-wrapper
+            {
+                display: grid;
+                grid-auto-flow: column;
+                align-items: center;
+                justify-content: left;
+                grid-gap: 10px;
+                margin-bottom: 5px;
+            }
+            #htmx-multiplayer-div #players .multiplayer-health-bar
+            {
+                background-color: rgb(96 165 250 / 1);
+                border-radius: 9999px;
+                height: 0.5rem;
+            }
+            #htmx-multiplayer-div #multiplayer-actions,
+            #htmx-multiplayer-div #countdown_timer
+            {
+                margin-bottom: 10px;
             }
 
             #meta-game
@@ -698,8 +736,8 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                 top: 0px;
                 left: 0px;
                 z-index: 999999;
-                border: 1px solid rgb(30 64 175 / 1);
-                background-color: rgb(23 37 84 / 0.96);
+                border: 1px solid white;
+                background-color: rgb(34 64 166 / 96%);
                 padding: 1rem;
                 border-radius: 0.5rem;
                 color: rgb(220 235 235 / 1);
@@ -709,13 +747,18 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                 padding: 0.3rem;
                 padding-left: 0.6rem;
                 padding-right: 0.6rem;
-                background: linear-gradient(180deg, #447def, #214887 86%, #0b1928);
-                color: white;
-                border: 1px solid #ffffff;
                 border-radius: 4px;
                 cursor: pointer;
                 min-width: 75px;
                 text-align: center;
+
+                background: linear-gradient(to bottom,#f2f2f2 45%,#ebebeb 45%,#cfcfcf);
+                color: #222;
+                border: 1px solid black;
+            }
+            .popup button:hover
+            {
+                background: linear-gradient(to bottom,#eaf6fd 45%,#bee6fd 45%,#a7d9f5);
             }
             .popup .button-with-icon
             {
@@ -1694,10 +1737,10 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                             <p>Would you like to connect to the multiplayer server?</p>
                             <form method="dialog">
                                 <button onclick="MULTIPLAYER.userWantsToConnect();">
-                                    <div class="svg svg-checkmark-white"></div>
+                                    <div class="svg svg-checkmark"></div>
                                 </button>
                                 <button>
-                                    <div class="svg svg-cancel-white"></div>
+                                    <div class="svg svg-cancel"></div>
                                 </button>
                             </form>
                         </dialog>
@@ -3152,13 +3195,15 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                 {
                                     for (var j = 0; j < wasm.exports.get_viewport_height(); ++j)
                                     {
-                                        var tile = document.querySelector('[world_x="' + x + '"][world_y="' + j + '"]');
+                                        var tile = document.querySelector('[viewport_x="' + x + '"][viewport_y="' + j + '"]');
                                         // var world_x = wasm.exports.get_world_coordinate_x_from_viewport_coordinate(i, j);
                                         // var world_y = wasm.exports.get_world_coordinate_y_from_viewport_coordinate(i, j);
-                                        world_x = x;
-                                        world_y = j;
-                                        // tile.setAttribute('world_x', world_x);
-                                        // tile.setAttribute('world_y', world_y);
+                                        var viewport_x = x;
+                                        var viewport_y = j;
+                                        var world_x = wasm.exports.get_camera_offset_x() + x;
+                                        var world_y = wasm.exports.get_camera_offset_y() + j;
+                                        tile.setAttribute('world_x', world_x);
+                                        tile.setAttribute('world_y', world_y);
 
                                         // One approach: get values for all layers, read through array buffer
                                         // var total_layers = wasm.exports.get_viewport_values_at_coordinates(i, j)
@@ -3205,7 +3250,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                         var layer_id = gh.getCurrentLayerIDByString("background_layer");
                                         if (layer_id !== wasm.exports.get_sentry())
                                         {
-                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y);
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, viewport_x, viewport_y);
                                             if (layer_value !== wasm.exports.get_sentry())
                                             {
                                                 // tile.style.backgroundColor = 'rgba(0, 0, 100, 0.8)'
@@ -3223,7 +3268,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                         }
                                         var layer_id = gh.getCurrentLayerIDByString("layer_one");
                                         if (layer_id !== wasm.exports.get_sentry()) {
-                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y);
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, viewport_x, viewport_y);
                                             if (layer_value !== wasm.exports.get_sentry())
                                             {
                                                 var layer_element = document.createElement('div');
@@ -3242,7 +3287,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                         var layer_id = gh.getCurrentLayerIDByString("layer_two");
                                         if (layer_id !== wasm.exports.get_sentry())
                                         {
-                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y);
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, viewport_x, viewport_y);
                                             if (layer_value !== wasm.exports.get_sentry())
                                             {
                                                 var layer_element = document.createElement('div');
@@ -3261,7 +3306,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                         var layer_id = gh.getCurrentLayerIDByString("npc_layer")
                                         if (layer_id !== wasm.exports.get_sentry())
                                         {
-                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y);
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, viewport_x, viewport_y);
                                             if (layer_value !== wasm.exports.get_sentry())
                                             {
                                                 // TODO: One approach: Check the machine name of the player and see if it's a player
@@ -3319,7 +3364,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                         var layer_id = gh.getCurrentLayerIDByString("block_layer");
                                         if (layer_id !== wasm.exports.get_sentry())
                                         {
-                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y);
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, viewport_x, viewport_y);
                                             if (layer_value !== wasm.exports.get_sentry() && debug_blocks)
                                             {
                                                 tile.classList.add("debug_block");
@@ -3331,7 +3376,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                         }
                                         var layer_id = gh.getCurrentLayerIDByString("entity_layer");
                                         if (layer_id !== wasm.exports.get_sentry()) {
-                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, world_x, world_y);
+                                            var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, viewport_x, viewport_y);
                                             if (layer_value !== wasm.exports.get_sentry() && debug_entities)
                                             {
                                                 tile.classList.add("debug_entity");

@@ -984,8 +984,8 @@ function playerJoinedGameHTML()
 {
     var html = `
     <div id='content'>
-        <div><button onclick='MULTIPLAYER.__player_manually_get_game_state();'>Refresh Game</button></div>
-        <div id='countdown_timer'></div>
+        <div id='multiplayer-actions'><button onclick='MULTIPLAYER.__player_manually_get_game_state();'>Refresh Game</button></div>
+        <div id='countdown_timer'>Waiting for more players...</div>
         <div id='players'></div>
         <div id='admin'></div>
         <hr/>
@@ -1052,10 +1052,13 @@ function playersHTML()
         }
         var player_number = p + 1;
         html += `
-        <div>
-            <span><span class='svg svg-ship-white'></span> ${player_number}</span> <span>${username}</span>
-            <span>(Score: ${score})</span>
-            <div style='display: block; background-color: rgb(96 165 250 / 1); border-radius: 9999px; width: 5rem; height: 0.5rem;'></div>
+        <div class='multiplayer-info'>
+            <div class='multiplayer-info-wrapper'>
+                <span><span class='svg svg-ship-white'></span> ${player_number}</span>
+                <span>${username}</span>
+                <span>(Score: ${score})</span>
+            </div>
+            <div class='multiplayer-health-bar'></div>
         </div>`;
     }
     html += '</div>';
