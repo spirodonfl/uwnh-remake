@@ -389,7 +389,7 @@ function beginGame()
     var matrix = generateMatrix([
         { fleetSize: 1 },  // Player 1 (note: fleetSize is player + 1)
         { fleetSize: 1 },  // Player 2
-        { fleetSize: 0 },   // Kraken
+        { fleetSize: 0 },  // Kraken
         { fleetSize: 2 },  // Blackbeard
     ]);
     
