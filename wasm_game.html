@@ -485,11 +485,12 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                 background-color: rgb(20, 20, 20);
                 color: white;
                 font-family: monospace, fangsong;
-                font-size: 24px;
+                font-size: 12px;
             }
             *
             {
                 box-sizing: border-box;
+                font-size: 12px;
             }
 
             .drag-bar {
@@ -525,11 +526,23 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                 position: absolute;
                 top: 0px;
                 left: 0px;
+                width: 500px;
             }
             #htmx-multiplayer-div #content
             {
                 margin: 0px;
                 padding: 6px;
+            }
+
+            #meta-game
+            {
+                width: 300px;
+            }
+            #meta-content
+            {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-gap: 10px;
             }
 
             .scene_choice.current
@@ -588,51 +601,95 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
             }
             .svg-anchor
             {
-                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='svg svg-anchor'><path d='M12 22V8'></path><path d='M5 12H2a10 10 0 0 0 20 0h-3'></path><circle cx='12' cy='5' r='3'></circle></svg>");
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 22V8'></path><path d='M5 12H2a10 10 0 0 0 20 0h-3'></path><circle cx='12' cy='5' r='3'></circle></svg>");
             }
             .svg-anchor-white
             {
-                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='svg svg-anchor'><path d='M12 22V8'></path><path d='M5 12H2a10 10 0 0 0 20 0h-3'></path><circle cx='12' cy='5' r='3'></circle></svg>");
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 22V8'></path><path d='M5 12H2a10 10 0 0 0 20 0h-3'></path><circle cx='12' cy='5' r='3'></circle></svg>");
             }
             .svg-ship
             {
-                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='svg svg-ship'><path d='M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1'></path><path d='M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76'></path><path d='M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6'></path><path d='M12 10v4'></path><path d='M12 2v3'></path></svg>");
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1'></path><path d='M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76'></path><path d='M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6'></path><path d='M12 10v4'></path><path d='M12 2v3'></path></svg>");
             }
             .svg-ship-white
             {
-                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='svg svg-ship'><path d='M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1'></path><path d='M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76'></path><path d='M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6'></path><path d='M12 10v4'></path><path d='M12 2v3'></path></svg>");
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1'></path><path d='M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76'></path><path d='M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6'></path><path d='M12 10v4'></path><path d='M12 2v3'></path></svg>");
             }
             .svg-gamepad
             {
-                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='svg svg-gamepad'><line x1='6' x2='10' y1='11' y2='11'></line><line x1='8' x2='8' y1='9' y2='13'></line><line x1='15' x2='15.01' y1='12' y2='12'></line><line x1='18' x2='18.01' y1='10' y2='10'></line><path d='M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z'></path></svg>");
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='6' x2='10' y1='11' y2='11'></line><line x1='8' x2='8' y1='9' y2='13'></line><line x1='15' x2='15.01' y1='12' y2='12'></line><line x1='18' x2='18.01' y1='10' y2='10'></line><path d='M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z'></path></svg>");
             }
             .svg-gamepad-white
             {
-                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='svg svg-gamepad'><line x1='6' x2='10' y1='11' y2='11'></line><line x1='8' x2='8' y1='9' y2='13'></line><line x1='15' x2='15.01' y1='12' y2='12'></line><line x1='18' x2='18.01' y1='10' y2='10'></line><path d='M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z'></path></svg>");
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='6' x2='10' y1='11' y2='11'></line><line x1='8' x2='8' y1='9' y2='13'></line><line x1='15' x2='15.01' y1='12' y2='12'></line><line x1='18' x2='18.01' y1='10' y2='10'></line><path d='M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z'></path></svg>");
             }
             .svg-chat
             {
-                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='svg svg-chat'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'></path></svg>");
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'></path></svg>");
             }
             .svg-chat-white
             {
-                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='svg svg-chat'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'></path></svg>");
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'></path></svg>");
             }
             .svg-compass
             {
-                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='svg svg-compass'><circle cx='12' cy='12' r='10'></circle><polygon points='16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76'></polygon></svg>");
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><polygon points='16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76'></polygon></svg>");
             }
             .svg-compass-white
             {
-                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='svg svg-compass'><circle cx='12' cy='12' r='10'></circle><polygon points='16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76'></polygon></svg>");
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><polygon points='16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76'></polygon></svg>");
             }
             .svg-handle-bar
             {
-                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='svg svg-grip-vertical'><circle cx='9' cy='12' r='1'></circle><circle cx='9' cy='5' r='1'></circle><circle cx='9' cy='19' r='1'></circle><circle cx='15' cy='12' r='1'></circle><circle cx='15' cy='5' r='1'></circle><circle cx='15' cy='19' r='1'></circle></svg>");
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='12' r='1'></circle><circle cx='9' cy='5' r='1'></circle><circle cx='9' cy='19' r='1'></circle><circle cx='15' cy='12' r='1'></circle><circle cx='15' cy='5' r='1'></circle><circle cx='15' cy='19' r='1'></circle></svg>");
             }
             .svg-handle-bar-white
             {
-                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='svg svg-grip-vertical'><circle cx='9' cy='12' r='1'></circle><circle cx='9' cy='5' r='1'></circle><circle cx='9' cy='19' r='1'></circle><circle cx='15' cy='12' r='1'></circle><circle cx='15' cy='5' r='1'></circle><circle cx='15' cy='19' r='1'></circle></svg>");
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='12' r='1'></circle><circle cx='9' cy='5' r='1'></circle><circle cx='9' cy='19' r='1'></circle><circle cx='15' cy='12' r='1'></circle><circle cx='15' cy='5' r='1'></circle><circle cx='15' cy='19' r='1'></circle></svg>");
+            }
+            .svg-question
+            {
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 19V18.99M12 16C12 11.5 16 12.5 16 9C16 6.79086 14.2091 5 12 5C10.1361 5 8.57002 6.27477 8.12598 8' /></svg>");
+            }
+            .svg-question
+            {
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 19V18.99M12 16C12 11.5 16 12.5 16 9C16 6.79086 14.2091 5 12 5C10.1361 5 8.57002 6.27477 8.12598 8' /></svg>");
+            }
+            .svg-checkmark
+            {
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 13.3636L8.03559 16.3204C8.42388 16.6986 9.04279 16.6986 9.43108 16.3204L19 7' /></svg>");
+            }
+            .svg-checkmark-white
+            {
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 13.3636L8.03559 16.3204C8.42388 16.6986 9.04279 16.6986 9.43108 16.3204L19 7' /></svg>");
+            }
+            .svg-3d
+            {
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path fill-rule='evenodd' clip-rule='evenodd' d='M11.5144 1.12584C11.8164 0.958052 12.1836 0.958052 12.4856 1.12584L21.4845 6.12522C21.4921 6.12942 21.4996 6.13372 21.5071 6.13813C21.8125 6.31781 22 6.64568 22 7V17C22 17.3632 21.8031 17.6978 21.4856 17.8742L12.4856 22.8742C12.1791 23.0445 11.8059 23.0416 11.5022 22.8673L2.51436 17.874C2.19689 17.6977 2 17.3631 2 16.9999V7C2 6.64568 2.18749 6.3177 2.49287 6.13802L2.5073 6.13784L2.51436 6.12584L11.5144 1.12584ZM12.0001 10.856L5.05923 6.99995L12 3.14396L18.9409 7L12.0001 10.856ZM4 8.69951V16.4115L11 20.3004V12.5884L4 8.69951ZM13 12.5884V20.3005L20 16.4116V8.69951L13 12.5884Z' /></svg>");
+            }
+            .svg-3d-white
+            {
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path fill-rule='evenodd' clip-rule='evenodd' d='M11.5144 1.12584C11.8164 0.958052 12.1836 0.958052 12.4856 1.12584L21.4845 6.12522C21.4921 6.12942 21.4996 6.13372 21.5071 6.13813C21.8125 6.31781 22 6.64568 22 7V17C22 17.3632 21.8031 17.6978 21.4856 17.8742L12.4856 22.8742C12.1791 23.0445 11.8059 23.0416 11.5022 22.8673L2.51436 17.874C2.19689 17.6977 2 17.3631 2 16.9999V7C2 6.64568 2.18749 6.3177 2.49287 6.13802L2.5073 6.13784L2.51436 6.12584L11.5144 1.12584ZM12.0001 10.856L5.05923 6.99995L12 3.14396L18.9409 7L12.0001 10.856ZM4 8.69951V16.4115L11 20.3004V12.5884L4 8.69951ZM13 12.5884V20.3005L20 16.4116V8.69951L13 12.5884Z' /></svg>");
+            }
+            .svg-cancel
+            {
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M6 6L18 18M6 18L18 6' stroke='currentColor' stroke-width='2' stroke-linecap='round'/></svg>");
+            }
+            .svg-cancel-white
+            {
+                background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M6 6L18 18M6 18L18 6' stroke='white' stroke-width='2' stroke-linecap='round'/></svg>");
+            }
+            .svg-refresh
+            {
+                /*<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M20 12c0-4.4-3.6-8-8-8s-8 3.6-8 8 3.6 8 8 8v-2c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6h-3l4 4 4-4h-3z" fill="#000000"/></svg>*/
+            }
+            .svg-plus
+            {
+                /*<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 4L12 20M4 12L20 12" stroke="#000000" stroke-width="2" stroke-linecap="round"/></svg>*/
+            }
+            .svg-minus
+            {
+                /*<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M4 12L20 12" stroke="#000000" stroke-width="2" stroke-linecap="round"/></svg>*/
             }
 
             .popup
@@ -641,23 +698,24 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                 top: 0px;
                 left: 0px;
                 z-index: 999999;
-                border: 1px solid rgb(30 64 175 / var(--tw-border-opacity, 1));
-                background-color: rgb(23 37 84 / 0.8);
-                padding: 0.5rem;
+                border: 1px solid rgb(30 64 175 / 1);
+                background-color: rgb(23 37 84 / 0.96);
+                padding: 1rem;
                 border-radius: 0.5rem;
                 color: rgb(220 235 235 / 1);
             }
             .popup button
             {
-                background-color: white;
-                padding-right: 0.75rem;
-                padding-left: 0.75rem;
-                color: black;
-                font-weight: 500;
-                line-height: 1.25rem;
-                height: 2.25rem;
-                border-radius: 6px;
+                padding: 0.3rem;
+                padding-left: 0.6rem;
+                padding-right: 0.6rem;
+                background: linear-gradient(180deg, #447def, #214887 86%, #0b1928);
+                color: white;
+                border: 1px solid #ffffff;
+                border-radius: 4px;
                 cursor: pointer;
+                min-width: 75px;
+                text-align: center;
             }
             .popup .button-with-icon
             {
@@ -669,8 +727,8 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
             .popup input
             {
                 display: block;
-                border: 1px solid rgb(30 64 175 / var(--tw-border-opacity, 1));
-                background-color: rgb(23 37 84 / 0.8);
+                border: 2px solid rgb(255 255 255);
+                background: linear-gradient(180deg, #10172e, #405c9b);
                 padding: 0.5rem;
                 border-radius: 0.5rem;
                 color: rgb(220 235 235 / 1);
@@ -684,8 +742,15 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
             }
             .popup .svg
             {
+                margin: 0px auto;
                 width: 16px;
                 height: 16px;
+            }
+            .popup .svg.drag-bar
+            {
+                width: 30px;
+                height: 100%;
+                margin-right: 10px;
             }
             .popup span.svg
             {
@@ -1392,7 +1457,11 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                         }
                                     }
 
-                                    if (message.game_data[i].type === "set_which_player_you_are")
+                                    if (message.game_data[i].type === "force_reload")
+                                    {
+                                        window.location.reload();
+                                    }
+                                    else if (message.game_data[i].type === "set_which_player_you_are")
                                     {
                                         var value = parseInt(message.game_data[i].value);
                                         wasm.exports.set_which_player_you_are(value);
@@ -1624,8 +1693,12 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                         <dialog class="popup" open>
                             <p>Would you like to connect to the multiplayer server?</p>
                             <form method="dialog">
-                                <button onclick="MULTIPLAYER.userWantsToConnect();">OK</button>
-                                <button>Cancel</button>
+                                <button onclick="MULTIPLAYER.userWantsToConnect();">
+                                    <div class="svg svg-checkmark-white"></div>
+                                </button>
+                                <button>
+                                    <div class="svg svg-cancel-white"></div>
+                                </button>
                             </form>
                         </dialog>
                     `;
@@ -1665,6 +1738,14 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                         keystring: MULTIPLAYER.keystring,
                         to_username: username,
                         points: 10,
+                    }));
+                },
+                __admin_force_reload: function (origin_button)
+                {
+                    this.socket.send(JSON.stringify({
+                        type: "force_reload",
+                        username: MULTIPLAYER.username,
+                        keystring: MULTIPLAYER.keystring,
                     }));
                 },
                 __player_manually_get_game_state: function ()
@@ -4006,7 +4087,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                     <button id="should3d" onclick="toggleShouldThreeD();">3D</button>
                     <button id="toggle_blocks" onclick="toggleBlocks();">Toggle Blocks</button>
                     <button id="toggle_entities" onclick="toggleEntities();">Toggle Entities</button>
-                    <div style="font-size: 12px;">
+                    <div>
                         <div id="debug_viewport_x">Viewport X: 0</div>
                         <div id="debug_viewport_y">Viewport Y: 0</div>
                         <div id="debug_world_x">World X: 0</div>

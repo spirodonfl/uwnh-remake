@@ -40,6 +40,7 @@ typedef union {
     const char* s;
     void* p;
 } FormatArg;
+FormatArg args[100];
 char* string_format(const char* format, FormatArg* args, int arg_count) {
     static char local_buffer[BUFFER_SIZE];
     
@@ -263,7 +264,6 @@ u32 max(u32 a, u32 b)
     { \
         if (id >= MAX_COUNT) \
         { \
-            FormatArg args[2]; \
             args[0].i = id; \
             args[1].i = MAX_COUNT; \
             console_log_format("[E] Tried to get " #LOWERFIELD " for " #LOWERSCORE " with ID greater than max (id:%d max:%d)", args, 2); \
@@ -515,10 +515,6 @@ u32 get_string_id_by_machine_name(const char* machine_name)
 {
     for (u32 i = 0; i < MAX_STRINGS; ++i)
     {
-        // FormatArg args[1];
-        // args[0].s = slice;
-        // args[0].s = machine_name;
-        // console_log_format("Comparing %s", args, 1);
         u32 info_offset = i * STRING_DATA_SIZE;
         // Check if this slot is occupied first
         if (g_string_info[info_offset + STRING_MACHINE_NAME_LENGTH] == SENTRY)
@@ -540,7 +536,6 @@ u32 get_string_id_by_machine_name(const char* machine_name)
             return i;
         }
     }
-    FormatArg args[1];
     args[0].s = machine_name;
     console_log_format("== could not find string id by machine name %s ==", args, 1);
     return SENTRY;
@@ -594,7 +589,6 @@ u32 get_string_text_len(u32 index)
     if (index >= MAX_STRINGS)
     {
         console_log("Tried to get the length of a string that doesn't exist");
-        FormatArg args[1];
         args[0].i = index;
         console_log_format("Index: %d", args, 1);
         return SENTRY;
@@ -1008,10 +1002,6 @@ u32 get_world_npc_name_id(u32 id)
 u32 get_world_npc_type(u32 id)
 {
     u32 npc_id = get_world_npc_npc_id(id);
-    // FormatArg args[2];
-    // args[0].i = id;
-    // args[1].i = npc_id;
-    // console_log_format("Finding NPC type for id %d and npc_id %d", args, 2);
     return get_npc_type(npc_id);
 }
 void set_world_npc_type(u32 id, u32 value)
@@ -2100,10 +2090,6 @@ void add_value_to_global_world_data(u32 layer_id, u32 x, u32 y, u32 value)
         console_log("ERROR: Global world data not big enough for layer data");
         return;
     }
-    FormatArg args[2];
-    args[0].i = value;
-    args[1].i = offset;
-    console_log_format("Putting value %d in gwd offset %d", args, 2);
     GLOBAL_WORLD_DATA[offset] = value;
 }
 void clear_global_world_data()
@@ -2670,14 +2656,20 @@ u32 get_camera_offset_y()
 }
 void center_camera_on(u32 world_x, u32 world_y)
 {
+    u32 half_viewport_x = (get_viewport_width() / 2);
+    u32 half_viewport_y = (get_viewport_height() / 2);
     if (world_x >= get_current_world_width())
     {
-        console_log("[E] Tried to center camera beyond world width");
+        args[0].i = world_x;
+        args[1].i = get_current_world_width();
+        console_log_format("[E] Tried to center camera beyond world width (%d:%d)", args, 2);
         return;
     }
     if (world_y >= get_current_world_height())
     {
-        console_log("[E] Tried to center camera beyond world height");
+        args[0].i = world_y;
+        args[1].i = get_current_world_height();
+        console_log_format("[E] Tried to center camera beyond world height (%d:%d)", args, 2);
         return;
     }
     u32 intended_x = 0;
@@ -2688,7 +2680,7 @@ void center_camera_on(u32 world_x, u32 world_y)
     }
     else
     {
-        intended_x = world_x - (get_viewport_width() / 2);
+        intended_x = world_x - half_viewport_x;
     }
     if (world_y < get_viewport_height())
     {
@@ -2696,7 +2688,16 @@ void center_camera_on(u32 world_x, u32 world_y)
     }
     else
     {
-        intended_y = world_y - (get_viewport_height() / 2);
+        intended_y = world_y - half_viewport_y;
+    }
+
+    if (intended_x >= (get_current_world_width() - get_viewport_width()))
+    {
+        intended_x = get_current_world_width() - get_viewport_width();
+    }
+    if (intended_y >= (get_current_world_height() - get_viewport_height()))
+    {
+        intended_y = get_current_world_height() - get_viewport_height();
     }
 
     camera_offset_x = intended_x;
@@ -2926,7 +2927,6 @@ u32 are_coordinates_blocked(u32 x, u32 y)
 
 void generate_world(char* world_name)
 {
-    FormatArg args[1];
     args[0].s = world_name;
     console_log_format("Generating world %s", args, 1);
 
@@ -3317,7 +3317,6 @@ void generate_world(char* world_name)
     }
     else
     {
-        FormatArg args[1];
         args[0].s = world_name;
         console_log_format("Could not find world %s", args, 1);
     }
@@ -3328,7 +3327,6 @@ void generate_world(char* world_name)
 // ------------------------------------------------------------------------------------------------
 void move_world_npc_to(u32 world_npc_id, u32 x, u32 y)
 {
-    FormatArg args[3];
     args[0].i = world_npc_id;
     args[1].i = x;
     args[2].i = y;
@@ -4370,7 +4368,6 @@ void blackjack_start_game()
 void blackjack_dealer_turn()
 {
     u32 dealer_total = blackjack_get_dealers_deck_value();
-    FormatArg args[1];
     args[0].i = dealer_total;
     console_log_format("dealer total %d", args, 1);
     if (dealer_total >= 17)
@@ -4453,7 +4450,6 @@ u32 blackjack_check_winner()
         }
         console_log("??? NOTHING >????");
     }
-    FormatArg args[2];
     args[0].i = blackjack_dealer_standing;
     args[1].i = blackjack_player_standing;
     console_log_format("WTF? dealer_standing:%d player_standing:%d", args, 2);
@@ -5358,10 +5354,6 @@ u32 get_current_ocean_battle_turn_world_npc_id()
 u32 get_current_ocean_battle_turn_player_id()
 {
     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-    center_camera_on(
-        get_world_npc_position_x(world_npc_id),
-        get_world_npc_position_y(world_npc_id)
-    );
     u32 ship_id = get_world_npc_entity_id(world_npc_id);
     u32 fleet_id = get_fleet_id_by_ship_id(ship_id);
     u32 general_id = get_fleet_general_id(fleet_id);
@@ -6259,7 +6251,6 @@ u32 scene_ocean_battle(u32 action)
                         should_redraw_everything();
                         break;
                     }
-                    FormatArg args[1];
                     args[0].i = current_scene_get_choice(cc);
                     console_log_format("No valid choice for ATTACK CHOOSE TARGET %d", args, 1);
                     break;
@@ -6319,7 +6310,6 @@ u32 scene_ocean_battle(u32 action)
                         should_redraw_everything();
                         break;
                     }
-                    FormatArg args[1];
                     args[0].i = current_scene_get_choice(cc);
                     console_log_format("No valid choice for ATTACK CHOOSE TARGET %d", args, 1);
                     break;
@@ -6362,12 +6352,16 @@ u32 scene_ocean_battle(u32 action)
                             get_string_id_by_machine_name("ocean_battle_end_turn")
                         );
                     }
-                    FormatArg args[1];
                     args[0].i = (player_id + 1);
                     if (args[0].i == 0)
                     {
                         console_log("[E] BRO WTF");
                     }
+                    u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
+                    center_camera_on(
+                        get_world_npc_position_x(world_npc_id),
+                        get_world_npc_position_y(world_npc_id)
+                    );
                     u32 string_id = create_string(
                         "scene_ocean_battle_current_players_turn",
                         string_format(

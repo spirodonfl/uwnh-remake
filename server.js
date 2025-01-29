@@ -1,3 +1,12 @@
+/**
+ * Random kraken instead of built-in kraken (requires re-adjusting ocean_battle_turn_order and creating world npcs and all that jazz)
+ BUGS TO FIX
+ * if ship is beyond viewport, they magically teleport into viewport
+ * who the hell is player 0? I DUNNO BRO WTF -> ACKSHUALLY the issue is that players local states are getting into a wonky place. Meanwhile, the server state is fine. There's an out of sync issue here which locks local player state. The band-aid fix is to ask for game state from server again. This is not a GAME STATE issue in c/h, it's an issue of server <--> communication
+ * multi-highlight issue where camera is not accounted for on client so when you do move/attack the highlight is way out of screen if camera is beyond viewport size
+*/
+
+
 import { serve } from "bun";
 import { v4 as uuidv4, parse as uuidParse } from "uuid";
 import database from "bun:sqlite";
@@ -328,17 +337,20 @@ function generateMatrix(players) {
 
     // Place players and their fleets
     players.forEach((player, index) => {
+        var fleet_ship_index = 0;
         if (player.fleetSize < 0 || player.fleetSize > 9) {
             throw new Error(`Fleet size must be between 0 and 9 for player ${index + 1}`);
         }
 
-        const playerValue = 100 + (100 * index) + 1;
+        var playerValue = 100 + (100 * index) + fleet_ship_index;
         const spawnPoint = spawnPoints[index];
         
         if (isValidPosition(spawnPoint.x, spawnPoint.y)) {
             // Place main player
             matrix[spawnPoint.x][spawnPoint.y] = playerValue;
             usedPositions.add(`${spawnPoint.x},${spawnPoint.y}`);
+            console.log("(GenerateMatrix) - playerValue:" + playerValue + " " + spawnPoint.x + ":" + spawnPoint.y);
+            ++fleet_ship_index;
             
             // Place fleet ships
             let shipsPlaced = 0;
@@ -347,10 +359,13 @@ function generateMatrix(players) {
             while (shipsPlaced < player.fleetSize && attempts < 20) {
                 const nearbyPos = findNearbyPosition(spawnPoint.x, spawnPoint.y, 3);
                 if (nearbyPos) {
+                    playerValue = 100 + (100 * index) + fleet_ship_index;
                     const [shipX, shipY] = nearbyPos;
                     matrix[shipX][shipY] = playerValue;
+                    console.log("(GenerateMatrix) - playerValue:" + playerValue + " " + shipX + ":" + shipY);
                     usedPositions.add(`${shipX},${shipY}`);
                     shipsPlaced++;
+                    ++fleet_ship_index;
                 }
                 attempts++;
             }
@@ -372,10 +387,10 @@ function beginGame()
     symbols.clear_ocean_battle_fleets();
 
     var matrix = generateMatrix([
-        { fleetSize: 2 },  // Player 1
-        { fleetSize: 2 },  // Player 2
+        { fleetSize: 1 },  // Player 1 (note: fleetSize is player + 1)
+        { fleetSize: 1 },  // Player 2
+        { fleetSize: 0 },   // Kraken
         { fleetSize: 2 },  // Blackbeard
-        { fleetSize: 1 }   // Kraken
     ]);
     
     console.log("-- SETTING UP WORLD --");
@@ -415,6 +430,10 @@ function beginGame()
     var world_npc_id;
     var position_y = 7;
     var position_x = 0;
+    var matrix_index = 0;
+    var found = false;
+    var fleet_index = 0;
+    var ship_index = 0;
     for (var p = 0; p < players.length; ++p)
     {
         var ship_name_id;
@@ -470,14 +489,16 @@ function beginGame()
         symbols.set_world_npc_entity_id(world_npc_id, ship_id);
         // TODO: 3 is the magic number for SHIP but we should get this number in a better way
         symbols.set_world_npc_type(world_npc_id, 3);
-        var player_index = 100 + (100 * p) + 1;
-        var found = false;
+        ship_index = 0;
+        matrix_index = 100 + (100 * fleet_index) + ship_index;
+        found = false;
         for (var x = 0; x < 100; ++x)
         {
             for (var y = 0; y < 100; ++y)
             {
-                if (matrix[x][y] === player_index)
+                if (matrix[x][y] === matrix_index)
                 {
+                    console.log("-- Set npc:" + world_npc_id + " position to " + x + ":" + y);
                     symbols.set_world_npc_position_x(world_npc_id, x);
                     symbols.set_world_npc_position_y(world_npc_id, y);
                     found = true;
@@ -502,14 +523,16 @@ function beginGame()
         symbols.set_world_npc_entity_id(world_npc_id, ship_id);
         // TODO: 3 is the magic number for SHIP but we should get this number in a better way
         symbols.set_world_npc_type(world_npc_id, 3);
-        ++player_index;
+        ++ship_index;
+        matrix_index = 100 + (100 * fleet_index) + ship_index;
         found = false;
         for (var x = 0; x < 100; ++x)
         {
             for (var y = 0; y < 100; ++y)
             {
-                if (matrix[x][y] === player_index)
+                if (matrix[x][y] === matrix_index)
                 {
+                    console.log("-- Set npc:" + world_npc_id + " position to " + x + ":" + y);
                     symbols.set_world_npc_position_x(world_npc_id, x);
                     symbols.set_world_npc_position_y(world_npc_id, y);
                     found = true;
@@ -522,6 +545,8 @@ function beginGame()
 
         console.log("-- ADDING FLEET TO BATTLE --");
         symbols.add_fleet_to_battle(fleet_id);
+
+        ++fleet_index;
     }
 
     // kraken
@@ -545,8 +570,24 @@ function beginGame()
     world_npc_id = symbols.pull_storage_world_npcs_next_open_slot();
     symbols.set_world_npc_npc_id(world_npc_id, npc_id);
     symbols.set_world_npc_entity_id(world_npc_id, ship_id);
-    symbols.set_world_npc_position_x(world_npc_id, 7);
-    symbols.set_world_npc_position_y(world_npc_id, 7);
+    ship_index = 0;
+    matrix_index = 100 + (100 * fleet_index) + ship_index;
+    found = false;
+    for (var x = 0; x < 100; ++x)
+    {
+        for (var y = 0; y < 100; ++y)
+        {
+            if (matrix[x][y] === matrix_index)
+            {
+                console.log("-- Set npc:" + world_npc_id + " position to " + x + ":" + y);
+                symbols.set_world_npc_position_x(world_npc_id, x);
+                symbols.set_world_npc_position_y(world_npc_id, y);
+                found = true;
+            }
+            if (found) { break; }
+        }
+        if (found) { break; }
+    }
     // TODO: 3 is the magic number for SHIP but we should get this number in a better way
     symbols.set_world_npc_type(world_npc_id, 3);
     symbols.set_global_storage_world_npcs_used(world_npc_id);
@@ -560,6 +601,7 @@ function beginGame()
 
     // davey jones
     
+    ++fleet_index;
     console.log("-- BLACKBEARD --");
     ship_name_id = symbols.get_string_id_by_machine_name(createWasmString("blackbeards_ship"));
     npc_id = symbols.get_npc_id_by_machine_name(createWasmString("npc_blackbeard"));
@@ -580,14 +622,16 @@ function beginGame()
     world_npc_id = symbols.pull_storage_world_npcs_next_open_slot();
     symbols.set_world_npc_npc_id(world_npc_id, npc_id);
     symbols.set_world_npc_entity_id(world_npc_id, ship_id);
-    var player_index = 100 + (100 * 3) + 1;
-    var found = false;
+    ship_index = 0;
+    matrix_index = 100 + (100 * fleet_index) + ship_index;
+    found = false;
     for (var x = 0; x < 100; ++x)
     {
         for (var y = 0; y < 100; ++y)
         {
-            if (matrix[x][y] === player_index)
+            if (matrix[x][y] === matrix_index)
             {
+                console.log("-- Set npc:" + world_npc_id + " position to " + x + ":" + y);
                 symbols.set_world_npc_position_x(world_npc_id, x);
                 symbols.set_world_npc_position_y(world_npc_id, y);
                 found = true;
@@ -613,14 +657,16 @@ function beginGame()
     world_npc_id = symbols.pull_storage_world_npcs_next_open_slot();
     symbols.set_world_npc_npc_id(world_npc_id, npc_id);
     symbols.set_world_npc_entity_id(world_npc_id, ship_id);
-    var player_index = 100 + (100 * 3) + 2;
-    var found = false;
+    ++ship_index;
+    matrix_index = 100 + (100 * fleet_index) + ship_index;
+    found = false;
     for (var x = 0; x < 100; ++x)
     {
         for (var y = 0; y < 100; ++y)
         {
-            if (matrix[x][y] === player_index)
+            if (matrix[x][y] === matrix_index)
             {
+                console.log("-- Set npc:" + world_npc_id + " position to " + x + ":" + y);
                 symbols.set_world_npc_position_x(world_npc_id, x);
                 symbols.set_world_npc_position_y(world_npc_id, y);
                 found = true;
@@ -646,22 +692,25 @@ function beginGame()
     world_npc_id = symbols.pull_storage_world_npcs_next_open_slot();
     symbols.set_world_npc_npc_id(world_npc_id, npc_id);
     symbols.set_world_npc_entity_id(world_npc_id, ship_id);
-    // var player_index = 100 + (100 * 3) + 4;
-    // var found = false;
-    // for (var x = 0; x < 100; ++x)
-    // {
-    //     for (var y = 0; y < 100; ++y)
-    //     {
-    //         if (matrix[x][y] === player_index)
-    //         {
-                symbols.set_world_npc_position_x(world_npc_id, 3);
-                symbols.set_world_npc_position_y(world_npc_id, 3);
-    //             found = true;
-    //         }
-    //         if (found) { break; }
-    //     }
-    //     if (found) { break; }
-    // }
+    ++ship_index;
+    matrix_index = 100 + (100 * fleet_index) + ship_index;
+    console.log("[matrix_index] " + matrix_index);
+    found = false;
+    for (var x = 0; x < 100; ++x)
+    {
+        for (var y = 0; y < 100; ++y)
+        {
+            if (matrix[x][y] === matrix_index)
+            {
+                console.log("-- Set npc:" + world_npc_id + " position to " + x + ":" + y);
+                symbols.set_world_npc_position_x(world_npc_id, x);
+                symbols.set_world_npc_position_y(world_npc_id, y);
+                found = true;
+            }
+            if (found) { break; }
+        }
+        if (found) { break; }
+    }
     // TODO: 3 is the magic number for SHIP but we should get this number in a better way
     symbols.set_world_npc_type(world_npc_id, 3);
     symbols.set_global_storage_world_npcs_used(world_npc_id);
@@ -962,6 +1011,7 @@ function adminHTML()
         html += `<div><span>Take Points From</span> <button onclick='MULTIPLAYER.__admin_take_points_from(this);' data-username='${username}'>${username}</button></div>`;
     }
     html += `
+        <div><span>Force Reload Game</span> <button onclick='MULTIPLAYER.__admin_force_reload();'>RED BUTTON</button></div>
     </div>
     `;
     return String.raw`${html}`.replace(/`/g, '"').replace(/\n/g, '');
@@ -1133,7 +1183,18 @@ const server = serve({
                         break;
                     // case "cage_the_kraken": // manually override and put the kraken away
                     // case "increase_ship_id_hull": // and crew and subsequent decrease commands
-                    // case "force_reload": // clears all storage and forces everyones browser to reload
+                    case "force_reload":
+                        if (data.keystring && data.keystring === ADMIN_KEY)
+                        {
+                            for (var p = 0; p < players.length; ++p)
+                            {
+                                players[p].send(JSON.stringify({
+                                    type: "force_reload"
+                                }));
+                                endGame();
+                            }
+                        }
+                        break;
                     case "give_points_to":
                         if (data.keystring && data.keystring === ADMIN_KEY)
                         {
