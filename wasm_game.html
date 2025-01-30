@@ -480,6 +480,13 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
 })();
         </script>
         <style type="text/css">
+            :root
+            {
+                --atlas-width: 16px;
+                --atlas-height: 16px;
+                --atlas-image: url("data:image/png;base64, <!-- ATLAS_FILE_HERE -->");
+                --bg-size: calc(3008px/2) calc(2304px/2);
+            }
             body
             {
                 background-color: rgb(20, 20, 20);
@@ -574,7 +581,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
 
             #meta-game
             {
-                width: 300px;
+                min-width: 300px;
             }
             #meta-content
             {
@@ -602,8 +609,14 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
 
             .atlas
             {
-                background-image: url("data:image/png;base64, <!-- ATLAS_FILE_HERE -->");
-                background-size: calc(3008px/2) calc(2304px/2);
+                width: var(--atlas-width);
+                height: var(--atlas-height);
+                /* DEFAULT COORDS ARE BLANK TRANSPARENT SPACE */
+                --atlas-x: 0;
+                --atlas-y: 45;
+                background-image: var(--atlas-image);
+                background-size: var(--bg-size);
+                background-position: calc(-1 * calc(32px * var(--atlas-x))) calc(-1 * calc(32px * var(--atlas-y)));
             }
 
             .should_3d .tile_element
@@ -736,8 +749,8 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                 top: 0px;
                 left: 0px;
                 z-index: 999999;
-                border: 1px solid white;
-                background-color: rgb(34 64 166 / 96%);
+                border: 1px solid #709aff;
+                background: linear-gradient(1deg, rgb(36 65 163 / 96%), #162070);
                 padding: 1rem;
                 border-radius: 0.5rem;
                 color: rgb(220 235 235 / 1);
@@ -759,6 +772,10 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
             .popup button:hover
             {
                 background: linear-gradient(to bottom,#eaf6fd 45%,#bee6fd 45%,#a7d9f5);
+            }
+            .popup button.active
+            {
+                border: 2px solid red;
             }
             .popup .button-with-icon
             {
@@ -803,176 +820,394 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
             .layer_element
             {
                 position: absolute;
-                width: 32px;
-                height: 32px;
-                background-position: calc(-1 * calc(32px * var(--atlas-x))) calc(-1 * calc(32px * var(--atlas-y)));
             }
 
-            .world-athens.layer-layer_one.value-33
-            {
-                --atlas-x: 3;
-                --atlas-y: 1;
-            }
-            .world-athens.layer-layer_one.value-34
-            {
-                --atlas-x: 33;
-                --atlas-y: 0;
-            }
-            .world-athens.layer-layer_one.value-35
-            {
-                --atlas-x: 41;
-                --atlas-y: 0;
-            }
-            .world-athens.layer-layer_one.value-36
-            {
-                --atlas-x: 28;
-                --atlas-y: 1;
-            }
-            .world-athens.layer-layer_one.value-37
-            {
-                --atlas-x: 7;
-                --atlas-y: 1;
-            }
-            .world-athens.layer-layer_one.value-38
-            {
-                --atlas-x: 32;
-                --atlas-y: 1;
-            }
-            .world-athens.layer-layer_one.value-39
-            {
-                --atlas-x: 8;
-                --atlas-y: 1;
-            }
-            .world-athens.layer-layer_one.value-40
-            {
-                --atlas-x: 46;
-                --atlas-y: 0;
-            }
-            .world-athens.layer-layer_one.value-41
-            {
-                --atlas-x: 44;
-                --atlas-y: 0;
-            }
-            .world-athens.layer-layer_two.value-69
-            {
-                --atlas-x: 12;
-                --atlas-y: 0;
-            }
-            .world-athens.layer-layer_two.value-70
-            {
-                --atlas-x: 12;
-                --atlas-y: 0;
-            }
-            .world-athens.layer-layer_two.value-71
-            {
-                --atlas-x: 18;
-                --atlas-y: 3;
-            }
-            .world-athens.layer-layer_two.value-72
-            {
-                --atlas-x: 18;
-                --atlas-y: 4;
-            }
-            .world-athens.layer-npc_layer.npc_name-bank_teller
-            {
-                --atlas-x: 34;
-                --atlas-y: 1;
-            }
-            .world-athens.layer-npc_layer.npc_name-general_shop_owner
-            {
-                --atlas-x: 35;
-                --atlas-y: 2;
-            }
-            .world-athens.layer-npc_layer.npc_name-blackjack_player
-            {
-                --atlas-x: 36;
-                --atlas-y: 2;
-            }
-            .world-athens.layer-npc_layer.npc_name-npc_ocean_battle
-            {
-                --atlas-x: 37;
-                --atlas-y: 2;
-            }
-            .world-athens.layer-npc_layer.npc_name-npc_rvice
-            {
-                --atlas-x: 40;
-                --atlas-y: 2;
-            }
-            .world-athens.layer-npc_layer.npc_name-npc_lafolie
-            {
-                --atlas-x: 41;
-                --atlas-y: 2;
-            }
-            .world-athens.layer-npc_layer.npc_name-npc_nakor
-            {
-                --atlas-x: 42;
-                --atlas-y: 2;
-            }
-            .world-athens.layer-npc_layer.npc_name-npc_travis
-            {
-                --atlas-x: 43;
-                --atlas-y: 2;
-            }
-            .world-athens.layer-npc_layer.npc_name-npc_loller
-            {
-                --atlas-x: 44;
-                --atlas-y: 2;
-            }
-            .world-athens.layer-npc_layer.value-3
-            {
-                --atlas-x: 19;
-                --atlas-y: 0;
-            }
-            .world-athens.layer-entity.value-0
-            {
-                --atlas-x: 12;
-                --atlas-y: 1;
-            }
+            .atlas-x-0 { --atlas-x: 0; }
+            .atlas-y-0 { --atlas-y: 0; }
+            .atlas-x-1 { --atlas-x: 1; }
+            .atlas-y-1 { --atlas-y: 1; }
+            .atlas-x-2 { --atlas-x: 2; }
+            .atlas-y-2 { --atlas-y: 2; }
+            .atlas-x-3 { --atlas-x: 3; }
+            .atlas-y-3 { --atlas-y: 3; }
+            .atlas-x-4 { --atlas-x: 4; }
+            .atlas-y-4 { --atlas-y: 4; }
+            .atlas-x-5 { --atlas-x: 5; }
+            .atlas-y-5 { --atlas-y: 5; }
+            .atlas-x-6 { --atlas-x: 6; }
+            .atlas-y-6 { --atlas-y: 6; }
+            .atlas-x-7 { --atlas-x: 7; }
+            .atlas-y-7 { --atlas-y: 7; }
+            .atlas-x-8 { --atlas-x: 8; }
+            .atlas-y-8 { --atlas-y: 8; }
+            .atlas-x-9 { --atlas-x: 9; }
+            .atlas-y-9 { --atlas-y: 9; }
+            .atlas-x-10 { --atlas-x: 10; }
+            .atlas-y-10 { --atlas-y: 10; }
+            .atlas-x-11 { --atlas-x: 11; }
+            .atlas-y-11 { --atlas-y: 11; }
+            .atlas-x-12 { --atlas-x: 12; }
+            .atlas-y-12 { --atlas-y: 12; }
+            .atlas-x-13 { --atlas-x: 13; }
+            .atlas-y-13 { --atlas-y: 13; }
+            .atlas-x-14 { --atlas-x: 14; }
+            .atlas-y-14 { --atlas-y: 14; }
+            .atlas-x-15 { --atlas-x: 15; }
+            .atlas-y-15 { --atlas-y: 15; }
+            .atlas-x-16 { --atlas-x: 16; }
+            .atlas-y-16 { --atlas-y: 16; }
+            .atlas-x-17 { --atlas-x: 17; }
+            .atlas-y-17 { --atlas-y: 17; }
+            .atlas-x-18 { --atlas-x: 18; }
+            .atlas-y-18 { --atlas-y: 18; }
+            .atlas-x-19 { --atlas-x: 19; }
+            .atlas-y-19 { --atlas-y: 19; }
+            .atlas-x-20 { --atlas-x: 20; }
+            .atlas-y-20 { --atlas-y: 20; }
+            .atlas-x-21 { --atlas-x: 21; }
+            .atlas-y-21 { --atlas-y: 21; }
+            .atlas-x-22 { --atlas-x: 22; }
+            .atlas-y-22 { --atlas-y: 22; }
+            .atlas-x-23 { --atlas-x: 23; }
+            .atlas-y-23 { --atlas-y: 23; }
+            .atlas-x-24 { --atlas-x: 24; }
+            .atlas-y-24 { --atlas-y: 24; }
+            .atlas-x-25 { --atlas-x: 25; }
+            .atlas-y-25 { --atlas-y: 25; }
+            .atlas-x-26 { --atlas-x: 26; }
+            .atlas-y-26 { --atlas-y: 26; }
+            .atlas-x-27 { --atlas-x: 27; }
+            .atlas-y-27 { --atlas-y: 27; }
+            .atlas-x-28 { --atlas-x: 28; }
+            .atlas-y-28 { --atlas-y: 28; }
+            .atlas-x-29 { --atlas-x: 29; }
+            .atlas-y-29 { --atlas-y: 29; }
+            .atlas-x-30 { --atlas-x: 30; }
+            .atlas-y-30 { --atlas-y: 30; }
+            .atlas-x-31 { --atlas-x: 31; }
+            .atlas-y-31 { --atlas-y: 31; }
+            .atlas-x-32 { --atlas-x: 32; }
+            .atlas-y-32 { --atlas-y: 32; }
+            .atlas-x-33 { --atlas-x: 33; }
+            .atlas-y-33 { --atlas-y: 33; }
+            .atlas-x-34 { --atlas-x: 34; }
+            .atlas-y-34 { --atlas-y: 34; }
+            .atlas-x-35 { --atlas-x: 35; }
+            .atlas-y-35 { --atlas-y: 35; }
+            .atlas-x-36 { --atlas-x: 36; }
+            .atlas-y-36 { --atlas-y: 36; }
+            .atlas-x-37 { --atlas-x: 37; }
+            .atlas-y-37 { --atlas-y: 37; }
+            .atlas-x-38 { --atlas-x: 38; }
+            .atlas-y-38 { --atlas-y: 38; }
+            .atlas-x-39 { --atlas-x: 39; }
+            .atlas-y-39 { --atlas-y: 39; }
+            .atlas-x-40 { --atlas-x: 40; }
+            .atlas-y-40 { --atlas-y: 40; }
+            .atlas-x-41 { --atlas-x: 41; }
+            .atlas-y-41 { --atlas-y: 41; }
+            .atlas-x-42 { --atlas-x: 42; }
+            .atlas-y-42 { --atlas-y: 42; }
+            .atlas-x-43 { --atlas-x: 43; }
+            .atlas-y-43 { --atlas-y: 43; }
+            .atlas-x-44 { --atlas-x: 44; }
+            .atlas-y-44 { --atlas-y: 44; }
+            .atlas-x-45 { --atlas-x: 45; }
+            .atlas-y-45 { --atlas-y: 45; }
+            .atlas-x-46 { --atlas-x: 46; }
+            .atlas-y-46 { --atlas-y: 46; }
+            .atlas-x-47 { --atlas-x: 47; }
+            .atlas-y-47 { --atlas-y: 47; }
+            .atlas-x-48 { --atlas-x: 48; }
+            .atlas-y-48 { --atlas-y: 48; }
+            .atlas-x-49 { --atlas-x: 49; }
+            .atlas-y-49 { --atlas-y: 49; }
+            .atlas-x-50 { --atlas-x: 50; }
+            .atlas-y-50 { --atlas-y: 50; }
+            .atlas-x-51 { --atlas-x: 51; }
+            .atlas-y-51 { --atlas-y: 51; }
+            .atlas-x-52 { --atlas-x: 52; }
+            .atlas-y-52 { --atlas-y: 52; }
+            .atlas-x-53 { --atlas-x: 53; }
+            .atlas-y-53 { --atlas-y: 53; }
+            .atlas-x-54 { --atlas-x: 54; }
+            .atlas-y-54 { --atlas-y: 54; }
+            .atlas-x-55 { --atlas-x: 55; }
+            .atlas-y-55 { --atlas-y: 55; }
+            .atlas-x-56 { --atlas-x: 56; }
+            .atlas-y-56 { --atlas-y: 56; }
+            .atlas-x-57 { --atlas-x: 57; }
+            .atlas-y-57 { --atlas-y: 57; }
+            .atlas-x-58 { --atlas-x: 58; }
+            .atlas-y-58 { --atlas-y: 58; }
+            .atlas-x-59 { --atlas-x: 59; }
+            .atlas-y-59 { --atlas-y: 59; }
+            .atlas-x-60 { --atlas-x: 60; }
+            .atlas-y-60 { --atlas-y: 60; }
+            .atlas-x-61 { --atlas-x: 61; }
+            .atlas-y-61 { --atlas-y: 61; }
+            .atlas-x-62 { --atlas-x: 62; }
+            .atlas-y-62 { --atlas-y: 62; }
+            .atlas-x-63 { --atlas-x: 63; }
+            .atlas-y-63 { --atlas-y: 63; }
+            .atlas-x-64 { --atlas-x: 64; }
+            .atlas-y-64 { --atlas-y: 64; }
+            .atlas-x-65 { --atlas-x: 65; }
+            .atlas-y-65 { --atlas-y: 65; }
+            .atlas-x-66 { --atlas-x: 66; }
+            .atlas-y-66 { --atlas-y: 66; }
+            .atlas-x-67 { --atlas-x: 67; }
+            .atlas-y-67 { --atlas-y: 67; }
+            .atlas-x-68 { --atlas-x: 68; }
+            .atlas-y-68 { --atlas-y: 68; }
+            .atlas-x-69 { --atlas-x: 69; }
+            .atlas-y-69 { --atlas-y: 69; }
+            .atlas-x-70 { --atlas-x: 70; }
+            .atlas-y-70 { --atlas-y: 70; }
+            .atlas-x-71 { --atlas-x: 71; }
+            .atlas-y-71 { --atlas-y: 71; }
+            .atlas-x-72 { --atlas-x: 72; }
+            .atlas-y-72 { --atlas-y: 72; }
+            .atlas-x-73 { --atlas-x: 73; }
+            .atlas-y-73 { --atlas-y: 73; }
+            .atlas-x-74 { --atlas-x: 74; }
+            .atlas-y-74 { --atlas-y: 74; }
+            .atlas-x-75 { --atlas-x: 75; }
+            .atlas-y-75 { --atlas-y: 75; }
+            .atlas-x-76 { --atlas-x: 76; }
+            .atlas-y-76 { --atlas-y: 76; }
+            .atlas-x-77 { --atlas-x: 77; }
+            .atlas-y-77 { --atlas-y: 77; }
+            .atlas-x-78 { --atlas-x: 78; }
+            .atlas-y-78 { --atlas-y: 78; }
+            .atlas-x-79 { --atlas-x: 79; }
+            .atlas-y-79 { --atlas-y: 79; }
+            .atlas-x-80 { --atlas-x: 80; }
+            .atlas-y-80 { --atlas-y: 80; }
+            .atlas-x-81 { --atlas-x: 81; }
+            .atlas-y-81 { --atlas-y: 81; }
+            .atlas-x-82 { --atlas-x: 82; }
+            .atlas-y-82 { --atlas-y: 82; }
+            .atlas-x-83 { --atlas-x: 83; }
+            .atlas-y-83 { --atlas-y: 83; }
+            .atlas-x-84 { --atlas-x: 84; }
+            .atlas-y-84 { --atlas-y: 84; }
+            .atlas-x-85 { --atlas-x: 85; }
+            .atlas-y-85 { --atlas-y: 85; }
+            .atlas-x-86 { --atlas-x: 86; }
+            .atlas-y-86 { --atlas-y: 86; }
+            .atlas-x-87 { --atlas-x: 87; }
+            .atlas-y-87 { --atlas-y: 87; }
+            .atlas-x-88 { --atlas-x: 88; }
+            .atlas-y-88 { --atlas-y: 88; }
+            .atlas-x-89 { --atlas-x: 89; }
+            .atlas-y-89 { --atlas-y: 89; }
+            .atlas-x-90 { --atlas-x: 90; }
+            .atlas-y-90 { --atlas-y: 90; }
+            .atlas-x-91 { --atlas-x: 91; }
+            .atlas-y-91 { --atlas-y: 91; }
+            .atlas-x-92 { --atlas-x: 92; }
+            .atlas-y-92 { --atlas-y: 92; }
+            .atlas-x-93 { --atlas-x: 93; }
+            .atlas-y-93 { --atlas-y: 93; }
+            .atlas-x-94 { --atlas-x: 94; }
+            .atlas-y-94 { --atlas-y: 94; }
+            .atlas-x-95 { --atlas-x: 95; }
+            .atlas-y-95 { --atlas-y: 95; }
+            .atlas-x-96 { --atlas-x: 96; }
+            .atlas-y-96 { --atlas-y: 96; }
+            .atlas-x-97 { --atlas-x: 97; }
+            .atlas-y-97 { --atlas-y: 97; }
+            .atlas-x-98 { --atlas-x: 98; }
+            .atlas-y-98 { --atlas-y: 98; }
+            .atlas-x-99 { --atlas-x: 99; }
+            .atlas-y-99 { --atlas-y: 99; }
+            .atlas-x-100 { --atlas-x: 100; }
+            .atlas-y-100 { --atlas-y: 100; }
+            .atlas-x-101 { --atlas-x: 101; }
+            .atlas-y-101 { --atlas-y: 101; }
+            .atlas-x-102 { --atlas-x: 102; }
+            .atlas-y-102 { --atlas-y: 102; }
+            .atlas-x-103 { --atlas-x: 103; }
+            .atlas-y-103 { --atlas-y: 103; }
+            .atlas-x-104 { --atlas-x: 104; }
+            .atlas-y-104 { --atlas-y: 104; }
+            .atlas-x-105 { --atlas-x: 105; }
+            .atlas-y-105 { --atlas-y: 105; }
+            .atlas-x-106 { --atlas-x: 106; }
+            .atlas-y-106 { --atlas-y: 106; }
+            .atlas-x-107 { --atlas-x: 107; }
+            .atlas-y-107 { --atlas-y: 107; }
+            .atlas-x-108 { --atlas-x: 108; }
+            .atlas-y-108 { --atlas-y: 108; }
+            .atlas-x-109 { --atlas-x: 109; }
+            .atlas-y-109 { --atlas-y: 109; }
+            .atlas-x-110 { --atlas-x: 110; }
+            .atlas-y-110 { --atlas-y: 110; }
+            .atlas-x-111 { --atlas-x: 111; }
+            .atlas-y-111 { --atlas-y: 111; }
+            .atlas-x-112 { --atlas-x: 112; }
+            .atlas-y-112 { --atlas-y: 112; }
+            .atlas-x-113 { --atlas-x: 113; }
+            .atlas-y-113 { --atlas-y: 113; }
+            .atlas-x-114 { --atlas-x: 114; }
+            .atlas-y-114 { --atlas-y: 114; }
+            .atlas-x-115 { --atlas-x: 115; }
+            .atlas-y-115 { --atlas-y: 115; }
+            .atlas-x-116 { --atlas-x: 116; }
+            .atlas-y-116 { --atlas-y: 116; }
+            .atlas-x-117 { --atlas-x: 117; }
+            .atlas-y-117 { --atlas-y: 117; }
+            .atlas-x-118 { --atlas-x: 118; }
+            .atlas-y-118 { --atlas-y: 118; }
+            .atlas-x-119 { --atlas-x: 119; }
+            .atlas-y-119 { --atlas-y: 119; }
+            .atlas-x-120 { --atlas-x: 120; }
+            .atlas-y-120 { --atlas-y: 120; }
+            .atlas-x-121 { --atlas-x: 121; }
+            .atlas-y-121 { --atlas-y: 121; }
+            .atlas-x-122 { --atlas-x: 122; }
+            .atlas-y-122 { --atlas-y: 122; }
+            .atlas-x-123 { --atlas-x: 123; }
+            .atlas-y-123 { --atlas-y: 123; }
+            .atlas-x-124 { --atlas-x: 124; }
+            .atlas-y-124 { --atlas-y: 124; }
+            .atlas-x-125 { --atlas-x: 125; }
+            .atlas-y-125 { --atlas-y: 125; }
+            .atlas-x-126 { --atlas-x: 126; }
+            .atlas-y-126 { --atlas-y: 126; }
+            .atlas-x-127 { --atlas-x: 127; }
+            .atlas-y-127 { --atlas-y: 127; }
+            .atlas-x-128 { --atlas-x: 128; }
+            .atlas-y-128 { --atlas-y: 128; }
+            .atlas-x-129 { --atlas-x: 129; }
+            .atlas-y-129 { --atlas-y: 129; }
+            .atlas-x-130 { --atlas-x: 130; }
+            .atlas-y-130 { --atlas-y: 130; }
+            .atlas-x-131 { --atlas-x: 131; }
+            .atlas-y-131 { --atlas-y: 131; }
+            .atlas-x-132 { --atlas-x: 132; }
+            .atlas-y-132 { --atlas-y: 132; }
+            .atlas-x-133 { --atlas-x: 133; }
+            .atlas-y-133 { --atlas-y: 133; }
+            .atlas-x-134 { --atlas-x: 134; }
+            .atlas-y-134 { --atlas-y: 134; }
+            .atlas-x-135 { --atlas-x: 135; }
+            .atlas-y-135 { --atlas-y: 135; }
+            .atlas-x-136 { --atlas-x: 136; }
+            .atlas-y-136 { --atlas-y: 136; }
+            .atlas-x-137 { --atlas-x: 137; }
+            .atlas-y-137 { --atlas-y: 137; }
+            .atlas-x-138 { --atlas-x: 138; }
+            .atlas-y-138 { --atlas-y: 138; }
+            .atlas-x-139 { --atlas-x: 139; }
+            .atlas-y-139 { --atlas-y: 139; }
+            .atlas-x-140 { --atlas-x: 140; }
+            .atlas-y-140 { --atlas-y: 140; }
+            .atlas-x-141 { --atlas-x: 141; }
+            .atlas-y-141 { --atlas-y: 141; }
+            .atlas-x-142 { --atlas-x: 142; }
+            .atlas-y-142 { --atlas-y: 142; }
+            .atlas-x-143 { --atlas-x: 143; }
+            .atlas-y-143 { --atlas-y: 143; }
+            .atlas-x-144 { --atlas-x: 144; }
+            .atlas-y-144 { --atlas-y: 144; }
+            .atlas-x-145 { --atlas-x: 145; }
+            .atlas-y-145 { --atlas-y: 145; }
+            .atlas-x-146 { --atlas-x: 146; }
+            .atlas-y-146 { --atlas-y: 146; }
+            .atlas-x-147 { --atlas-x: 147; }
+            .atlas-y-147 { --atlas-y: 147; }
+            .atlas-x-148 { --atlas-x: 148; }
+            .atlas-y-148 { --atlas-y: 148; }
+            .atlas-x-149 { --atlas-x: 149; }
+            .atlas-y-149 { --atlas-y: 149; }
+            .atlas-x-150 { --atlas-x: 150; }
+            .atlas-y-150 { --atlas-y: 150; }
+            .atlas-x-151 { --atlas-x: 151; }
+            .atlas-y-151 { --atlas-y: 151; }
+            .atlas-x-152 { --atlas-x: 152; }
+            .atlas-y-152 { --atlas-y: 152; }
+            .atlas-x-153 { --atlas-x: 153; }
+            .atlas-y-153 { --atlas-y: 153; }
+            .atlas-x-154 { --atlas-x: 154; }
+            .atlas-y-154 { --atlas-y: 154; }
+            .atlas-x-155 { --atlas-x: 155; }
+            .atlas-y-155 { --atlas-y: 155; }
+            .atlas-x-156 { --atlas-x: 156; }
+            .atlas-y-156 { --atlas-y: 156; }
+            .atlas-x-157 { --atlas-x: 157; }
+            .atlas-y-157 { --atlas-y: 157; }
+            .atlas-x-158 { --atlas-x: 158; }
+            .atlas-y-158 { --atlas-y: 158; }
+            .atlas-x-159 { --atlas-x: 159; }
+            .atlas-y-159 { --atlas-y: 159; }
+            .atlas-x-160 { --atlas-x: 160; }
+            .atlas-y-160 { --atlas-y: 160; }
+            .atlas-x-161 { --atlas-x: 161; }
+            .atlas-y-161 { --atlas-y: 161; }
+            .atlas-x-162 { --atlas-x: 162; }
+            .atlas-y-162 { --atlas-y: 162; }
+            .atlas-x-163 { --atlas-x: 163; }
+            .atlas-y-163 { --atlas-y: 163; }
+            .atlas-x-164 { --atlas-x: 164; }
+            .atlas-y-164 { --atlas-y: 164; }
+            .atlas-x-165 { --atlas-x: 165; }
+            .atlas-y-165 { --atlas-y: 165; }
+            .atlas-x-166 { --atlas-x: 166; }
+            .atlas-y-166 { --atlas-y: 166; }
+            .atlas-x-167 { --atlas-x: 167; }
+            .atlas-y-167 { --atlas-y: 167; }
+            .atlas-x-168 { --atlas-x: 168; }
+            .atlas-y-168 { --atlas-y: 168; }
+            .atlas-x-169 { --atlas-x: 169; }
+            .atlas-y-169 { --atlas-y: 169; }
+            .atlas-x-170 { --atlas-x: 170; }
+            .atlas-y-170 { --atlas-y: 170; }
+            .atlas-x-171 { --atlas-x: 171; }
+            .atlas-y-171 { --atlas-y: 171; }
+            .atlas-x-172 { --atlas-x: 172; }
+            .atlas-y-172 { --atlas-y: 172; }
+            .atlas-x-173 { --atlas-x: 173; }
+            .atlas-y-173 { --atlas-y: 173; }
+            .atlas-x-174 { --atlas-x: 174; }
+            .atlas-y-174 { --atlas-y: 174; }
+            .atlas-x-175 { --atlas-x: 175; }
+            .atlas-y-175 { --atlas-y: 175; }
+            .atlas-x-176 { --atlas-x: 176; }
+            .atlas-y-176 { --atlas-y: 176; }
+            .atlas-x-177 { --atlas-x: 177; }
+            .atlas-y-177 { --atlas-y: 177; }
+            .atlas-x-178 { --atlas-x: 178; }
+            .atlas-y-178 { --atlas-y: 178; }
+            .atlas-x-179 { --atlas-x: 179; }
+            .atlas-y-179 { --atlas-y: 179; }
+            .atlas-x-180 { --atlas-x: 180; }
+            .atlas-y-180 { --atlas-y: 180; }
+            .atlas-x-181 { --atlas-x: 181; }
+            .atlas-y-181 { --atlas-y: 181; }
+            .atlas-x-182 { --atlas-x: 182; }
+            .atlas-y-182 { --atlas-y: 182; }
+            .atlas-x-183 { --atlas-x: 183; }
+            .atlas-y-183 { --atlas-y: 183; }
+            .atlas-x-184 { --atlas-x: 184; }
+            .atlas-y-184 { --atlas-y: 184; }
+            .atlas-x-185 { --atlas-x: 185; }
+            .atlas-y-185 { --atlas-y: 185; }
+            .atlas-x-186 { --atlas-x: 186; }
+            .atlas-y-186 { --atlas-y: 186; }
+            .atlas-x-187 { --atlas-x: 187; }.atlas-y-187 { --atlas-y: 187; }.atlas-x-188 { --atlas-x: 188; }.atlas-y-188 { --atlas-y: 188; }
+            .atlas-x-189 { --atlas-x: 189; }.atlas-y-189 { --atlas-y: 189; }.atlas-x-190 { --atlas-x: 190; }.atlas-y-190 { --atlas-y: 190; }
+            .atlas-x-191 { --atlas-x: 191; }.atlas-y-191 { --atlas-y: 191; }.atlas-x-192 { --atlas-x: 192; }.atlas-y-192 { --atlas-y: 192; }
+            .atlas-x-193 { --atlas-x: 193; }.atlas-y-193 { --atlas-y: 193; }.atlas-x-194 { --atlas-x: 194; }.atlas-y-194 { --atlas-y: 194; }
+            .atlas-x-195 { --atlas-x: 195; }.atlas-y-195 { --atlas-y: 195; }.atlas-x-196 { --atlas-x: 196; }.atlas-y-196 { --atlas-y: 196; }
+            .atlas-x-197 { --atlas-x: 197; }.atlas-y-197 { --atlas-y: 197; }.atlas-x-198 { --atlas-x: 198; }.atlas-y-198 { --atlas-y: 198; }
+            .atlas-x-199 { --atlas-x: 199; }.atlas-y-199 { --atlas-y: 199; }.atlas-x-200 { --atlas-x: 200; }.atlas-y-200 { --atlas-y: 200; }
+
 
             // DINGUS LAND
             // atlas layer_element world-dingus_land layer-npc_layer value-0 npc_name-player_one
             // KRAKEN IS x:18 y:0
-            .world-dingus_land.layer-background_layer
-            {
-                z-index: 0;
-            }
-            .world-dingus_land.layer-layer_one
-            {
-                z-index: 1;
-            }
-            .world-dingus_land.layer-layer_two
-            {
-                z-index: 2;
-            }
-            .world-dingus_land.layer-npc_layer
-            {
-                z-index: 3;
-            }
-            .world-dingus_land.layer-layer_one.value-36
-            {
-                --atlas-x: 36;
-                --atlas-y: 1;
-            }
-            .world-dingus_land.layer-background_layer.value-1
-            {
-                --atlas-x: 0;
-                --atlas-y: 0;
-            }
-            .world-dingus_land.layer-layer_one.value-33
-            {
-                --atlas-x: 3;
-                --atlas-y: 1;
-            }
-            .world-dingus_land.layer-layer_one.value-42
-            {
-                --atlas-x: 16;
-                --atlas-y: 0;
-            }
-            .world-dingus_land.layer-npc_layer
-            {
-                --atlas-x: 20;
-                --atlas-y: 0;
-            }
             .world-dingus_land.layer-npc_layer.npc_name-player_one
             {
                 background-color: rgba(255, 0, 0, 0.3);
@@ -996,11 +1231,6 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
             .world-dingus_land.layer-npc_layer.npc_name-npc_blackbeard
             {
                 background-color: rgba(255, 255, 255, 0.3);
-            }
-            .world-dingus_land.layer-npc_layer.npc_name-npc_kraken
-            {
-                --atlas-x: 18;
-                --atlas-y: 0;
             }
         </style>
         <script type="text/javascript">
@@ -1280,35 +1510,68 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                 return readStringFromWasm(start, length);
             }
 
+            var BG_CALC_CSS = function (atlas_x, atlas_y)
+            {
+                return "calc(-1 * calc(" + TILE_SIZE_SCALED + "px * " + atlas_x + ")) calc(-1 * calc(" + TILE_SIZE_SCALED + "px * " + atlas_y + "))";
+            }
             var LAYER_ATLAS_MAP = {
                 // Note: array values are "layer_value", "atlas-x", "atlas-y"
                 "athens": {
+                    "background_layer": [],
                     "layer_one":[],
                     "layer_two":[],
-                    "npc_layer":{},
+                    "npc_layer":[],
+                },
+                "dingus_land": {
+                    "background_layer": [],
+                    "layer_one":[],
+                    "layer_two":[],
+                    "npc_layer":[],
                 },
             };
-            // LAYER_ATLAS_MAP["athens"]["layer_one"][33] = [3, 1];
-            // LAYER_ATLAS_MAP["athens"]["layer_one"][34] = [33, 0];
-            // LAYER_ATLAS_MAP["athens"]["layer_one"][35] = [41, 0];
-            // LAYER_ATLAS_MAP["athens"]["layer_one"][36] = [28, 1];
-            // LAYER_ATLAS_MAP["athens"]["layer_one"][37] = [7, 1];
-            // LAYER_ATLAS_MAP["athens"]["layer_one"][38] = [32, 1];
-            // LAYER_ATLAS_MAP["athens"]["layer_one"][39] = [8, 1];
-            // LAYER_ATLAS_MAP["athens"]["layer_one"][40] = [46, 0];
-            // LAYER_ATLAS_MAP["athens"]["layer_one"][41] = [44, 0];
-            // LAYER_ATLAS_MAP["athens"]["layer_two"][69] = [12, 0];
-            // LAYER_ATLAS_MAP["athens"]["layer_two"][70] = [12, 0];
-            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["bank_teller"] = [34, 1];
-            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["general_shop_owner"] = [35, 2];
-            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["blackjack_player"] = [36, 2];
-            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_ocean_battle"] = [37, 2];
-            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_rvice"] = [40, 2];
-            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_lafolie"] = [41, 2];
-            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_nakor"] = [42, 2];
-            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_travis"] = [43, 2];
-            // LAYER_ATLAS_MAP["athens"]["npc_layer"]["npc_loller"] = [44, 2];
-            // LAYER_ATLAS_MAP["athens"]["npc_layer"][3] = [19, 0];
+            LAYER_ATLAS_MAP["athens"]["background_layer"][1] = [0, 0];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][33] = [3, 1];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][34] = [33, 0];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][35] = [41, 0];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][36] = [28, 1];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][37] = [7, 1];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][38] = [32, 1];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][39] = [8, 1];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][40] = [46, 0];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][41] = [44, 0];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][50] = [16, 5];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][51] = [16, 6];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][52] = [16, 7];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][53] = [16, 4];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][54] = [24, 5];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][55] = [24, 7];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][56] = [24, 4];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][57] = [21, 8];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][58] = [24, 6];
+            LAYER_ATLAS_MAP["athens"]["layer_one"][59] = [16, 3];
+            LAYER_ATLAS_MAP["athens"]["layer_two"][69] = [12, 0];
+            LAYER_ATLAS_MAP["athens"]["layer_two"][70] = [12, 0];
+            LAYER_ATLAS_MAP["athens"]["layer_two"][71] = [18, 3];
+            LAYER_ATLAS_MAP["athens"]["layer_two"][72] = [18, 4];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"][0] = [34, 1];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"][1] = [35, 2];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"][2] = [36, 2];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"][3] = [19, 0];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"][4] = [37, 2];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"][5] = [40, 2];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"][6] = [41, 2];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"][7] = [42, 2];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"][8] = [43, 2];
+            LAYER_ATLAS_MAP["athens"]["npc_layer"][9] = [44, 2];
+            LAYER_ATLAS_MAP["dingus_land"]["background_layer"][1] = [0, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["layer_one"][42] = [16, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["player_one"] = [20, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["player_two"] = [20, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["player_three"] = [20, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["player_four"] = [20, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["player_five"] = [20, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["npc_blackbeard"] = [20, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["npc_kraken"] = [18, 0];
             var LAYER_COORDINATES_VALUE_HISTORY = [];
             var LAYER_COORDINATES_VALUE_UNDO_COUNTER = 0;
             var LAYER_COORDINATES_VALUE_REDO_COUNTER = 0;
@@ -1940,6 +2203,87 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                     return wasm.exports.get_current_ocean_battle_turn_world_npc_id();
                 },
 
+                editor:
+                {
+                    layer_strings: [],
+                    active_layer_id: null,
+                    current_wasm_value: null,
+                    current_atlas_x: null,
+                    current_atlas_y: null,
+                    previous_wasm_value: null,
+                    previous_atlas_x: null,
+                    previous_atlas_y: null,
+                    mode: null,
+                },
+                editorUpdateAtlasPreview: function ()
+                {
+                    var atlas_x = parseInt(document.getElementById("atlas_asset_x").value);
+                    var atlas_y = parseInt(document.getElementById("atlas_asset_y").value);
+                    document.getElementById("atlas_preview").style.setProperty("--atlas-x", atlas_x);
+                    document.getElementById("atlas_preview").style.setProperty("--atlas-y", atlas_y);
+                },
+                editorSetModeToPull: function ()
+                {
+                    this.editor.mode = null;
+                    document.getElementById("pull_layer_value").classList.remove("active");
+                    document.getElementById("set_layer_value").classList.remove("active");
+                    document.getElementById("pull_layer_value").classList.add("active");
+                    this.editor.mode = "pull";
+                },
+                editorSetModeToSet: function ()
+                {
+                    this.editor.mode = null;
+                    document.getElementById("pull_layer_value").classList.remove("active");
+                    document.getElementById("set_layer_value").classList.remove("active");
+                    document.getElementById("set_layer_value").classList.add("active");
+                    this.editor.mode = "set";
+                },
+                editorSetLayerActiveID: function (id)
+                {
+                    this.editor.active_layer_id = id;
+                    var editor_layer_buttons = document.querySelectorAll(".editor_layer");
+                    for (var e = 0; e < editor_layer_buttons.length; ++e)
+                    {
+                        if (editor_layer_buttons[e] instanceof HTMLElement)
+                        {
+                            editor_layer_buttons[e].classList.remove("active");
+                        }
+                    }
+                    document.getElementById("editor_layer_" + id).classList.add("active");
+                },
+                editorGetLayers: function ()
+                {
+                    document.getElementById("layers_list").innerHTML = '';
+                    var total_layers = wasm.exports.get_current_world_total_layers();
+                    this.editor.layer_strings = [];
+                    this.editor.active_layer_id = null;
+                    this.editor.current_wasm_value = null;
+                    this.editor.current_atlas_x = null;
+                    this.editor.current_atlas_y = null;
+                    this.editor.previous_wasm_value = null;
+                    this.editor.previous_atlas_x = null;
+                    this.editor.previous_atlas_y = null;
+                    this.editor.mode = null;
+                    for (var t = 0; t < total_layers; ++t)
+                    {
+                        var string_id = wasm.exports.get_layer_name_id(t);
+                        if (string_id === wasm.exports.get_sentry())
+                        {
+                            console.error("Got a sentry value for a layer string id?", string_id, t, total_layers);
+                            continue;
+                        }
+                        this.editor.layer_strings.push({
+                            layer_id: t,
+                            string_id,
+                            machine_name: readDbStringFromWasm(string_id, true),
+                            name: readDbStringFromWasm(string_id, false),
+                        });
+                        document.getElementById("layers_list").innerHTML += "<button class='editor_layer' id='editor_layer_" + t + "' onclick='gh.editorSetLayerActiveID(" + t + ")'>" + readDbStringFromWasm(string_id, false) + "</button>";
+                    }
+                    document.getElementById("pull_layer_value").classList.remove("active");
+                    document.getElementById("set_layer_value").classList.remove("active");
+                    console.log(this.editor.layer_strings);
+                },
                 editorSetLayerCoordinatesValue: function(layer_id, x, y, value)
                 {
                     var original_value = wasm.exports.get_layer_data_by_coordinates(layer_id, x, y);
@@ -2015,6 +2359,57 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                     this.el.blackjack_table = document.getElementById('blackjack_table');
 
                     dragElement(document.getElementById("meta-game"), document.getElementById("meta-game-drag-handle"));
+                },
+                applyDynamicLayerAtlas: function (world_name, layer_name, layer_value, layer_element, type, name)
+                {
+                    if (!layer_element || layer_element === null || layer_element === undefined)
+                    {
+                        console.error("Cannot apply dynamic atlas to a non-existent element");
+                        return;
+                    }
+                    if (
+                        LAYER_ATLAS_MAP[world_name]
+                        &&
+                        LAYER_ATLAS_MAP[world_name][layer_name]
+                    )
+                    {
+                        var atlas_x, atlas_y;
+                        if (name && LAYER_ATLAS_MAP[world_name][layer_name][name])
+                        {
+                            atlas_x = LAYER_ATLAS_MAP[world_name][layer_name][name][0];
+                            atlas_y = LAYER_ATLAS_MAP[world_name][layer_name][name][1];
+                        }
+                        else if (type && LAYER_ATLAS_MAP[world_name][layer_name][type])
+                        {
+                            atlas_x = LAYER_ATLAS_MAP[world_name][layer_name][type][0];
+                            atlas_y = LAYER_ATLAS_MAP[world_name][layer_name][type][1];
+                        }
+                        else if (LAYER_ATLAS_MAP[world_name][layer_name][layer_value])
+                        {
+                            atlas_x = LAYER_ATLAS_MAP[world_name][layer_name][layer_value][0];
+                            atlas_y = LAYER_ATLAS_MAP[world_name][layer_name][layer_value][1];
+                        }
+                        layer_element.classList.add("atlas-x-" + atlas_x);
+                        layer_element.classList.add("atlas-y-" + atlas_y);
+                    }
+                },
+                getLayerAtlasXY: function (world_name, layer_name, layer_value)
+                {
+                    if (
+                        LAYER_ATLAS_MAP[world_name]
+                        &&
+                        LAYER_ATLAS_MAP[world_name][layer_name]
+                        &&
+                        LAYER_ATLAS_MAP[world_name][layer_name][layer_value]
+                    )
+                    {
+                        return LAYER_ATLAS_MAP[world_name][layer_name][layer_value];
+                    }
+                    else
+                    {
+                        console.error("No atlas XY for ", {world_name, layer_name, layer_value});
+                        return null;
+                    }
                 },
                 getViewportTile: function (x, y)
                 {
@@ -2625,25 +3020,24 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                     {
                         if (RAF.frame_count % 15 == 0)
                         {
-                            // TODO: This is not animating anymore because we changed the tile element animations we were doing
-                            var bg_elements = document.querySelectorAll('.bg_element');
-                            for (var bge = 0; bge < bg_elements.length; ++bge)
-                            {
-                                if (bg_elements[bge] instanceof HTMLElement)
-                                {
-                                    if (bg_elements[bge].bgTick == undefined || bg_elements[bge].bgTick == NaN)
-                                    {
-                                        bg_elements[bge].bgTick = 0;
-                                    }
-                                    var bgTick = bg_elements[bge].bgTick;
-                                    ++bg_elements[bge].bgTick;
-                                    if (bg_elements[bge].bgTick > 7)
-                                    {
-                                        bg_elements[bge].bgTick = 0;
-                                    }
-                                    bg_elements[bge].style.backgroundPosition = 'calc(-1 * calc(32px * ' + bgTick + ')) 0px';
-                                }
-                            }
+                            // var bg_elements = document.querySelectorAll('.layer-background_layer');
+                            // for (var bge = 0; bge < bg_elements.length; ++bge)
+                            // {
+                            //     if (bg_elements[bge] instanceof HTMLElement)
+                            //     {
+                            //         if (bg_elements[bge].bgTick == undefined || bg_elements[bge].bgTick == NaN)
+                            //         {
+                            //             bg_elements[bge].bgTick = 0;
+                            //         }
+                            //         var bgTick = bg_elements[bge].bgTick;
+                            //         ++bg_elements[bge].bgTick;
+                            //         if (bg_elements[bge].bgTick > 7)
+                            //         {
+                            //             bg_elements[bge].bgTick = 0;
+                            //         }
+                            //         bg_elements[bge].style.backgroundPosition = 'calc(-1 * calc(32px * ' + bgTick + ')) 0px';
+                            //     }
+                            // }
                         }
                         should_render_tiles = true;
                         // console.log("Current memory:", formatMemorySize(wasm.exports.memory.buffer.byteLength))
@@ -3253,7 +3647,6 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                             var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, viewport_x, viewport_y);
                                             if (layer_value !== wasm.exports.get_sentry())
                                             {
-                                                // tile.style.backgroundColor = 'rgba(0, 0, 100, 0.8)'
                                                 var bg_element = document.createElement('div');
                                                 bg_element.classList.add('atlas');
                                                 bg_element.classList.add('layer_element');
@@ -3262,8 +3655,18 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                                 bg_element.classList.add("layer-background_layer");
                                                 bg_element.classList.add("value-" + layer_value);
 
+                                                bg_element.dataset.layerId = layer_id;
+                                                bg_element.dataset.layerValue = layer_value;
+
                                                 tile.appendChild(bg_element);
                                                 tile.style.mixBlendMode = 'normal';
+
+                                                uih.applyDynamicLayerAtlas(
+                                                    gh.getCurrentWorldName(),
+                                                    "background_layer",
+                                                    layer_value,
+                                                    bg_element
+                                                );
                                             }
                                         }
                                         var layer_id = gh.getCurrentLayerIDByString("layer_one");
@@ -3278,10 +3681,20 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                                 layer_element.classList.add("world-" + gh.getCurrentWorldName());
                                                 layer_element.classList.add("layer-layer_one");
                                                 layer_element.classList.add("value-" + layer_value);
-                                                
+
+                                                layer_element.dataset.layerId = layer_id;
+                                                layer_element.dataset.layerValue = layer_value;
+
                                                 tile.appendChild(layer_element);
                                                 tile.style.mixBlendMode = 'normal';
                                                 // tile.style.backgroundColor = 'purple'
+
+                                                uih.applyDynamicLayerAtlas(
+                                                    gh.getCurrentWorldName(),
+                                                    "layer_one",
+                                                    layer_value,
+                                                    layer_element
+                                                );
                                             }
                                         }
                                         var layer_id = gh.getCurrentLayerIDByString("layer_two");
@@ -3298,9 +3711,19 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                                 layer_element.classList.add("layer-layer_two");
                                                 layer_element.classList.add("value-" + layer_value);
 
+                                                layer_element.dataset.layerId = layer_id;
+                                                layer_element.dataset.layerValue = layer_value;
+
                                                 tile.appendChild(layer_element);
                                                 tile.style.mixBlendMode = 'normal';
                                                 // tile.style.backgroundColor = 'purple'
+
+                                                uih.applyDynamicLayerAtlas(
+                                                    gh.getCurrentWorldName(),
+                                                    "layer_two",
+                                                    layer_value,
+                                                    layer_element
+                                                );
                                             }
                                         }
                                         var layer_id = gh.getCurrentLayerIDByString("npc_layer")
@@ -3328,6 +3751,9 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                                 npc_element.classList.add("value-" + layer_value);
                                                 npc_element.classList.add("npc_name-" + name);
                                                 npc_element.classList.add("type-" + type);
+
+                                                npc_element.dataset.layerId = layer_id;
+                                                npc_element.dataset.layerValue = layer_value;
 
                                                 if (type !== wasm.exports.get_sentry() && type === 3)
                                                 {
@@ -3359,12 +3785,32 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                                 }
                                                 tile.appendChild(npc_element);
                                                 tile.style.mixBlendMode = 'normal';
+
+                                                uih.applyDynamicLayerAtlas(
+                                                    gh.getCurrentWorldName(),
+                                                    "npc_layer",
+                                                    layer_value,
+                                                    npc_element,
+                                                    type,
+                                                    name,
+                                                );
                                             }
                                         }
                                         var layer_id = gh.getCurrentLayerIDByString("block_layer");
                                         if (layer_id !== wasm.exports.get_sentry())
                                         {
                                             var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, viewport_x, viewport_y);
+                                            if (layer_value !== wasm.exports.get_sentry())
+                                            {
+                                                var layer_element = document.createElement('div');
+                                                layer_element.classList.add('layer_element');
+                                                layer_element.classList.add("world-" + gh.getCurrentWorldName());
+                                                layer_element.classList.add("layer-block_layer");
+                                                layer_element.classList.add("value-" + layer_value);
+                                                layer_element.dataset.layerId = layer_id;
+                                                layer_element.dataset.layerValue = layer_value;
+                                                tile.appendChild(layer_element);
+                                            }
                                             if (layer_value !== wasm.exports.get_sentry() && debug_blocks)
                                             {
                                                 tile.classList.add("debug_block");
@@ -3377,6 +3823,17 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                                         var layer_id = gh.getCurrentLayerIDByString("entity_layer");
                                         if (layer_id !== wasm.exports.get_sentry()) {
                                             var layer_value = wasm.exports.get_viewport_value_at_coordinates(layer_id, viewport_x, viewport_y);
+                                            if (layer_value !== wasm.exports.get_sentry())
+                                            {
+                                                var layer_element = document.createElement('div');
+                                                layer_element.classList.add('layer_element');
+                                                layer_element.classList.add("world-" + gh.getCurrentWorldName());
+                                                layer_element.classList.add("layer-entity_layer");
+                                                layer_element.classList.add("value-" + layer_value);
+                                                layer_element.dataset.layerId = layer_id;
+                                                layer_element.dataset.layerValue = layer_value;
+                                                tile.appendChild(layer_element);
+                                            }
                                             if (layer_value !== wasm.exports.get_sentry() && debug_entities)
                                             {
                                                 tile.classList.add("debug_entity");
@@ -3426,6 +3883,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                     document.getElementById("debug").style.display = "none";
                     document.getElementById("toggle_blocks").style.display = "none";
                     document.getElementById("toggle_entities").style.display = "none";
+                    document.getElementById("load_athens").style.display = "none";
                     IS_MULTIPLAYER = true;
                     MULTIPLAYER.host = URLPARAMS.get('host');
                     // alert("Please go to https://discord.gg/7ZrQHjUsJ4 and ask a mod for a key");
@@ -3511,6 +3969,9 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                 wasm.exports.set_viewport_size(12, 12);
                 document.getElementById('viewport').style.width = (TILE_SIZE_SCALED * wasm.exports.get_viewport_width()) + 'px';
                 document.getElementById('viewport').style.height = (TILE_SIZE_SCALED * wasm.exports.get_viewport_height()) + 'px';
+                // :root update
+                document.documentElement.style.setProperty("--atlas-width", TILE_SIZE_SCALED + "px");
+                document.documentElement.style.setProperty("--atlas-height", TILE_SIZE_SCALED + "px");
                 for (var vty = 0; vty < wasm.exports.get_viewport_height(); ++vty)
                 {
                     for (var vtx = 0; vtx < wasm.exports.get_viewport_width(); ++vtx)
@@ -3518,7 +3979,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                         var tile = document.createElement('div');
                         tile.style.width = TILE_SIZE_SCALED + 'px';
                         tile.style.height = TILE_SIZE_SCALED + 'px';
-                        tile.style.backgroundColor = 'purple';
+                        // tile.style.backgroundColor = 'purple';
                         // tile.style.border = '1px solid white'
                         tile.setAttribute('viewport_x', vtx);
                         tile.setAttribute('viewport_y', vty);
@@ -3560,7 +4021,9 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                     }
                 });
 
-                document.getElementById('viewport').addEventListener('mousemove', function (e) {
+                document.getElementById("viewport").addEventListener("mousemove", function (e)
+                {
+                    // TODO: Repetitive code
                     var offsetX = Math.floor(e.clientX / TILE_SIZE_SCALED);
                     var offsetY = Math.floor(e.clientY / TILE_SIZE_SCALED);
                     var tile_element = uih.getViewportTile(offsetX, offsetY);
@@ -3568,14 +4031,83 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                     {
                         var world_x = parseInt(tile_element.getAttribute("world_x"));
                         var world_y = parseInt(tile_element.getAttribute("world_y"));
-                        // TODO: Why are the tiles not updating their world coordinates based on camera offset
-                        // and by tiles I mean the actual div tiles that contain coordinates for viewport and world
-                        world_x += wasm.exports.get_camera_offset_x();
-                        world_y += wasm.exports.get_camera_offset_y();
                         document.getElementById("debug_viewport_x").innerHTML = "Viewport X: " + offsetX;
                         document.getElementById("debug_viewport_y").innerHTML = "Viewport Y: " + offsetY;
                         document.getElementById("debug_world_x").innerHTML = "World X: " + world_x;
                         document.getElementById("debug_world_y").innerHTML = "World Y: " + world_y;
+                        document.getElementById("debug_layer_value").innerHTML = "Layer Value: null";
+
+                        if (gh.editor.active_layer_id !== null)
+                        {
+                            var layer_tile = tile_element.querySelector("[data-layer-id='" + gh.editor.active_layer_id + "']");
+                            if (layer_tile)
+                            {
+                                document.getElementById("debug_layer_value").innerHTML = "Layer Value: " + layer_tile.dataset.layerValue;
+                            }
+                        }
+                    }
+                });
+
+                document.getElementById("viewport").addEventListener("click", function (e)
+                {
+                    var offsetX = Math.floor(e.clientX / TILE_SIZE_SCALED);
+                    var offsetY = Math.floor(e.clientY / TILE_SIZE_SCALED);
+                    var tile_element = uih.getViewportTile(offsetX, offsetY);
+                    var world_x = null;
+                    var world_y = null;
+                    if (tile_element !== wasm.exports.get_sentry())
+                    {
+                        world_x = parseInt(tile_element.getAttribute("world_x"));
+                        world_y = parseInt(tile_element.getAttribute("world_y"));
+                    }
+
+                    if (world_x !== null && world_y !== null)
+                    {
+                        if (gh.editor.mode === "pull")
+                        {
+                            var the_element = document.querySelector("[world_x='" + world_x + "'][world_y='" + world_y + "'] [data-layer-id='" + gh.editor.active_layer_id + "']");
+                            document.getElementById("wasm_value").value = null;
+                            document.getElementById("atlas_asset_x").value = null;
+                            document.getElementById("atlas_asset_y").value = null;
+                            if (the_element)
+                            {
+                                var computed = window.getComputedStyle(the_element);
+                                var atlas_x = parseInt(computed.getPropertyValue("--atlas-x"));
+                                var atlas_y = parseInt(computed.getPropertyValue("--atlas-y"));
+                                document.getElementById("wasm_value").value = the_element.dataset.layerValue;
+                                document.getElementById("atlas_asset_x").value = atlas_x;
+                                document.getElementById("atlas_asset_y").value = atlas_y;
+
+                                document.getElementById("atlas_preview").style.setProperty("--atlas-x", atlas_x);
+                                document.getElementById("atlas_preview").style.setProperty("--atlas-y", atlas_y);
+                            }
+                        }
+                        else if (gh.editor.mode === "set")
+                        {
+                            // gh.editor.layer_strings[layer_id]
+                            var wasm_value = parseInt(document.getElementById("wasm_value").value);
+                            var atlas_x = parseInt(document.getElementById("atlas_asset_x").value);
+                            var atlas_y = parseInt(document.getElementById("atlas_asset_y").value);
+                            var layer_id = gh.editor.active_layer_id;
+                            var layer_name = gh.editor.layer_strings[layer_id].machine_name;
+                            gh.editorSetLayerCoordinatesValue(layer_id, world_x, world_y, wasm_value);
+                            if (!LAYER_ATLAS_MAP[gh.getCurrentWorldName()])
+                            {
+                                LAYER_ATLAS_MAP[gh.getCurrentWorldName()] = [];
+                            }
+                            if (!LAYER_ATLAS_MAP[gh.getCurrentWorldName()][layer_name])
+                            {
+                                LAYER_ATLAS_MAP[gh.getCurrentWorldName()][layer_name] = [];
+                            }
+                            if (!LAYER_ATLAS_MAP[gh.getCurrentWorldName()][layer_name][wasm_value])
+                            {
+                                LAYER_ATLAS_MAP[gh.getCurrentWorldName()][layer_name][wasm_value] = [];
+                            }
+                            LAYER_ATLAS_MAP[gh.getCurrentWorldName()][layer_name][wasm_value][0] = atlas_x;
+                            LAYER_ATLAS_MAP[gh.getCurrentWorldName()][layer_name][wasm_value][1] = atlas_y;
+                            wasm.exports.should_redraw_everything();
+                            RAF.render();
+                        }
                     }
                 });
 
@@ -4132,11 +4664,40 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
                     <button id="should3d" onclick="toggleShouldThreeD();">3D</button>
                     <button id="toggle_blocks" onclick="toggleBlocks();">Toggle Blocks</button>
                     <button id="toggle_entities" onclick="toggleEntities();">Toggle Entities</button>
+                    <button id="load_athens" onclick="wasm.exports.wasm_load_world_athens()">Load Athens</button>
                     <div>
                         <div id="debug_viewport_x">Viewport X: 0</div>
                         <div id="debug_viewport_y">Viewport Y: 0</div>
+                    </div>
+                    <div>
                         <div id="debug_world_x">World X: 0</div>
                         <div id="debug_world_y">World Y: 0</div>
+                        <div id="debug_layer_value">Layer Value: 0</div>
+                    </div>
+                    <button id="pull_layer_value" onclick="gh.editorSetModeToPull();">Pull Value</button>
+                    <button id="set_layer_value" onclick="gh.editorSetModeToSet();">Set Value</button>
+                    <div id="layers">
+                        <div>Layers</div>
+                        <button id="get_layers" onclick="gh.editorGetLayers();">Get Layers</button>
+                        <div id="layers_list" style="display: grid; grid-auto-flow: row;"></div>
+                    </div>
+                    <div id="atlas_assets">
+                        <div>Atlas</div>
+                        <div style="display: grid; grid-auto-flow: column; align-items: center; margin-bottom: 10px;">
+                            <div>V:</div>
+                            <input type="number" id="wasm_value" style="width: 80px;" />
+                        </div>
+                        <div id="atlas_asset" style="display: grid; grid-gap: 10px;">
+                            <div style="display: grid; grid-auto-flow: column; align-items: center;">
+                                <div>X:</div>
+                                <div><input type="number" value="0" id="atlas_asset_x" style="width: 80px;" onchange="gh.editorUpdateAtlasPreview()" /></div>
+                            </div>
+                            <div style="display: grid; grid-auto-flow: column; align-items: center;">
+                                <div>Y:</div>
+                                <div><input type="number" value="1" id="atlas_asset_y" style="width: 80px;" onchange="gh.editorUpdateAtlasPreview()" /></div>
+                            </div>
+                            <div id="atlas_preview" class="atlas"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4146,7 +4707,7 @@ This extension adds support for WebSockets to htmx.  See /www/extensions/ws.md f
             hx-ext="ws"
             ws-connect="ws://localhost:3333"
             id="htmx-multiplayer-div"
-            hx-disabled
+            hx-disable
             class="popup"
         >
             <div class="grid">

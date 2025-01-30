@@ -1,9 +1,9 @@
 /**
  * Random kraken instead of built-in kraken (requires re-adjusting ocean_battle_turn_order and creating world npcs and all that jazz)
  BUGS TO FIX
- * if ship is beyond viewport, they magically teleport into viewport
  * who the hell is player 0? I DUNNO BRO WTF -> ACKSHUALLY the issue is that players local states are getting into a wonky place. Meanwhile, the server state is fine. There's an out of sync issue here which locks local player state. The band-aid fix is to ask for game state from server again. This is not a GAME STATE issue in c/h, it's an issue of server <--> communication
  * multi-highlight issue where camera is not accounted for on client so when you do move/attack the highlight is way out of screen if camera is beyond viewport size
+ * multiplayer classes should have multiplayer-* prefix 
 */
 
 

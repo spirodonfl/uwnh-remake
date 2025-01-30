@@ -3098,6 +3098,37 @@ void generate_world(char* world_name)
             add_value_to_global_world_data(layer_id, column, 5, 40);
         }
         add_value_to_global_world_data(layer_id, 7, 5, 41);
+        add_value_to_global_world_data(layer_id, 4, 6, 53);
+        for (u32 column = 5; column < 10; ++column)
+        {
+            add_value_to_global_world_data(layer_id, column, 6, 54);
+        }
+        add_value_to_global_world_data(layer_id, 10, 6, 50);
+        for (u32 row = 7; row < 12; ++row)
+        {
+            add_value_to_global_world_data(layer_id, 4, row, 56);
+        }
+        add_value_to_global_world_data(layer_id, 4, 11, 52);
+        for (u32 column = 5; column < 10; ++column)
+        {
+            add_value_to_global_world_data(layer_id, column, 11, 55);
+        }
+        add_value_to_global_world_data(layer_id, 10, 11, 51);
+        for (u32 row = 7; row < 11; ++row)
+        {
+            add_value_to_global_world_data(layer_id, 10, row, 57);
+        }
+        for (u32 row = 7; row < 11; ++row)
+        {
+            add_value_to_global_world_data(layer_id, 5, row, 59);
+        }
+        for (u32 column = 6; column < 10; ++column)
+        {
+            for (u32 row = 7; row < 11; ++row)
+            {
+                add_value_to_global_world_data(layer_id, column, row, 58);
+            }
+        }
 
         CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
         layer_data[LAYER_NAME_ID] = get_string_id_by_machine_name("layer_two");
@@ -3296,14 +3327,14 @@ void generate_world(char* world_name)
         increment_world_total_layers(current_world);
         CLEAR_DATA(layer_data, LAYER_DATA_SIZE);
 
-        u32 entity[ENTITY_DATA_SIZE];
-        CLEAR_DATA(entity, ENTITY_DATA_SIZE);
-        entity[ENTITY_NAME_ID] = get_string_id_by_machine_name("load_test_world");
-        entity[ENTITY_IS_INTERACTABLE] = true;
-        entity[ENTITY_INTERACTION_ON_STEP_OVER] = true;
-        entity[ENTITY_WORLD_POSITION_X] = 8;
-        entity[ENTITY_WORLD_POSITION_Y] = 8;
-        add_entity(entity);
+        // u32 entity[ENTITY_DATA_SIZE];
+        // CLEAR_DATA(entity, ENTITY_DATA_SIZE);
+        // entity[ENTITY_NAME_ID] = get_string_id_by_machine_name("load_test_world");
+        // entity[ENTITY_IS_INTERACTABLE] = true;
+        // entity[ENTITY_INTERACTION_ON_STEP_OVER] = true;
+        // entity[ENTITY_WORLD_POSITION_X] = 8;
+        // entity[ENTITY_WORLD_POSITION_Y] = 8;
+        // add_entity(entity);
 
         should_redraw_everything();
 
