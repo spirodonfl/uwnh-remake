@@ -92,6 +92,79 @@ int main()
         return 1;
     }
 
+    // Read Game Strings file
+    FILE* game_strings_file = fopen("game_strings.json", "rb");
+    if (!game_strings_file)
+    {
+        printf("Error reading Game Strings file\n");
+        free(wasm_data);
+        free(atlas_data);
+        return 1;
+    }
+    // Get file size
+    fseek(game_strings_file, 0, SEEK_END);
+    size_t game_strings_length = ftell(game_strings_file);
+    fseek(game_strings_file, 0, SEEK_SET);
+    // Read the entire file into a buffer
+    char* game_strings_data = malloc(game_strings_length + 1);
+    if (!game_strings_data)
+    {
+        printf("Error allocating memory for Game Strings\n");
+        fclose(game_strings_file);
+        free(wasm_data);
+        free(atlas_data);
+        return 1;
+    }
+    if (fread(game_strings_data, 1, game_strings_length, game_strings_file) != game_strings_length)
+    {
+        printf("Error reading Game Strings data\n");
+        fclose(game_strings_file);
+        free(game_strings_data);
+        free(wasm_data);
+        free(atlas_data);
+        return 1;
+    }
+    game_strings_data[game_strings_length] = '\0';
+    fclose(game_strings_file);
+
+    // Read structs file
+    FILE* structs_file = fopen("structs.js", "rb");
+    if (!structs_file)
+    {
+        printf("Error reading structs file\n");
+        free(wasm_data);
+        free(atlas_data);
+        free(game_strings_data);
+        return 1;
+    }
+    // Get file size
+    fseek(structs_file, 0, SEEK_END);
+    size_t structs_length = ftell(structs_file);
+    fseek(structs_file, 0, SEEK_SET);
+    // Read the entire file into a buffer
+    char* structs_data = malloc(structs_length + 1);
+    if (!structs_data)
+    {
+        printf("Error allocating memory for structs\n");
+        fclose(structs_file);
+        free(wasm_data);
+        free(atlas_data);
+        free(game_strings_data);
+        return 1;
+    }
+    if (fread(structs_data, 1, structs_length, structs_file) != structs_length)
+    {
+        printf("Error reading structs data\n");
+        fclose(structs_file);
+        free(structs_data);
+        free(wasm_data);
+        free(atlas_data);
+        free(game_strings_data);
+        return 1;
+    }
+    structs_data[structs_length] = '\0';
+    fclose(structs_file);
+
     // Encode WASM to base64
     size_t base64_wasm_length;
     char* base64_wasm = base64_encode(wasm_data, wasm_length, &base64_wasm_length);
@@ -101,6 +174,8 @@ int main()
     {
         printf("Error encoding WASM to base64\n");
         free(atlas_data);
+        free(game_strings_data);
+        free(structs_data);
         return 1;
     }
 
@@ -113,10 +188,12 @@ int main()
     {
         printf("Error encoding Atlas to base64\n");
         free(base64_wasm);
+        free(game_strings_data);
+        free(structs_data);
         return 1;
     }
 
-    // Copy HTML file with both injections
+    // Copy HTML file with injections
     FILE* source = fopen("wasm_game.html", "rb");
     FILE* dest = fopen("index.html", "wb");
     if (!source || !dest)
@@ -124,12 +201,16 @@ int main()
         printf("Error opening HTML files\n");
         free(base64_wasm);
         free(base64_atlas);
+        free(game_strings_data);
+        free(structs_data);
         return 1;
     }
 
-    char buffer[1024];
+    char buffer[2048];
     char* wasm_placeholder = "<!-- WASM_FILE_HERE -->";
     char* atlas_placeholder = "<!-- ATLAS_FILE_HERE -->";
+    char* game_strings_placeholder = "<!-- GAME_STRINGS_HERE -->";
+    char* structs_placeholder = "<!-- STRUCTS_HERE -->";
 
     while (fgets(buffer, sizeof(buffer), source))
     {
@@ -155,6 +236,26 @@ int main()
             // Write everything after the placeholder
             fputs(placeholder_pos + strlen(atlas_placeholder), dest);
         }
+        else if ((placeholder_pos = strstr(buffer, game_strings_placeholder)))
+        {
+            // Write everything before the placeholder
+            *placeholder_pos = '\0';
+            fputs(buffer, dest);
+            // Write the JSON data directly
+            fputs(game_strings_data, dest);
+            // Write everything after the placeholder
+            fputs(placeholder_pos + strlen(game_strings_placeholder), dest);
+        }
+        else if ((placeholder_pos = strstr(buffer, structs_placeholder)))
+        {
+            // Write everything before the placeholder
+            *placeholder_pos = '\0';
+            fputs(buffer, dest);
+            // Write the JSON data directly
+            fputs(structs_data, dest);
+            // Write everything after the placeholder
+            fputs(placeholder_pos + strlen(structs_placeholder), dest);
+        }
         else
         {
             fputs(buffer, dest);
@@ -165,7 +266,9 @@ int main()
     fclose(dest);
     free(base64_wasm);
     free(base64_atlas);
+    free(game_strings_data);
+    free(structs_data);
 
-    printf("Successfully embedded WASM and Atlas in HTML\n");
+    printf("Successfully embedded WASM, Atlas, and Game Strings in HTML\n");
     return 0;
 }
