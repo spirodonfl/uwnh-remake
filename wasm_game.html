@@ -107,11 +107,12 @@
                 --rotate-y: 10deg;
                 --rotate-z: 0deg;
                 --perspective: 1000px;
+                zoom: 1.5;
             }
             .should_3d #viewport {
-                transform: perspective(var(--perspective)) rotateX(var(--rotate-x)) rotateY(var(--rotate-y)) rotateZ(var(--rotate-z));
+                /*transform: perspective(var(--perspective)) rotateX(var(--rotate-x)) rotateY(var(--rotate-y)) rotateZ(var(--rotate-z));
                 transform-style: preserve-3d;
-                will-change: transform;
+                will-change: transform;*/
             }
 
             .debug_entity
@@ -402,8 +403,20 @@
                     }),
                     js_console_log: function(ptr, len)
                     {
-                        var bytes = new Uint8Array(wasm.exports.memory.buffer, ptr, len);
+                        var bytes = new Uint8Array(
+                            wasm.exports.memory.buffer,
+                            ptr,
+                            len
+                        );
                         var message = new TextDecoder('utf-8').decode(bytes);
+                        if (message.startsWith("STRUCT_"))
+                        {
+                            var data = message.substring(
+                                message.indexOf('{'),
+                                message.indexOf('}') + 1
+                            );
+                            console.log(data, JSON.parse(data));
+                        }
                         console.log(message);
                     },
                 }
@@ -546,7 +559,17 @@
             LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["player_four"] = [20, 0];
             LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["player_five"] = [20, 0];
             LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["npc_blackbeard"] = [20, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["npc_davey_jones"] = [20, 0];
             LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["npc_kraken"] = [18, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["ship_player_one"] = [20, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["ship_player_two"] = [20, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["ship_player_three"] = [20, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["ship_player_four"] = [20, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["ship_player_five"] = [20, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["ship_npc_blackbeard"] = [20, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["ship_npc_davey_jones"] = [20, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["ship_npc_kraken"] = [18, 0];
+            LAYER_ATLAS_MAP["dingus_land"]["npc_layer"]["ship_ship"] = [20, 0];
             var LAYER_COORDINATES_VALUE_HISTORY = [];
             var LAYER_COORDINATES_VALUE_UNDO_COUNTER = 0;
             var LAYER_COORDINATES_VALUE_REDO_COUNTER = 0;
@@ -573,16 +596,22 @@
             STRINGS["LAYER_ENTITY"] = "Entity";
             STRINGS["DIALOG_BANK_WELCOME"] = "Welcome to Digi Tal Bank. How can we help?";
             STRINGS["ACTION_BANK_DEPOSIT_SUCCESS"] = "We've deposited your gold into your account. Our deposit accounts accrue %d% per year.";
+            STRINGS["BASE_SHIP_BALSA"] = "Balsa";
             var UNDERSTRINGS = [];
             UNDERSTRINGS["WORLD_ATHENS"] = "athens";
             UNDERSTRINGS["WORLD_DINGUS_LAND"] = "dingus_land";
             UNDERSTRINGS["NPC_PLAYER_ONE"] = "player_one";
+            UNDERSTRINGS["NPC_PLAYER_TWO"] = "player_two";
+            UNDERSTRINGS["NPC_PLAYER_THREE"] = "player_three";
+            UNDERSTRINGS["NPC_PLAYER_FOUR"] = "player_four";
+            UNDERSTRINGS["NPC_PLAYER_FIVE"] = "player_five";
             UNDERSTRINGS["NPC_OCEAN_BATTLE"] = "ocean_battle";
             UNDERSTRINGS["NPC_GENERAL_SHOP_OWNER"] = "general_shop_owner";
             UNDERSTRINGS["NPC_BANK_TELLER"] = "bank_teller";
             UNDERSTRINGS["NPC_BLACKJACK_PLAYER"] = "blackjack_player";
             UNDERSTRINGS["NPC_LOLLER"] = "loller";
             UNDERSTRINGS["NPC_RVICE"] = "rvice";
+            UNDERSTRINGS["NPC_SHIP"] = "ship";
             UNDERSTRINGS["LAYER_BACKGROUND"] = "background";
             UNDERSTRINGS["LAYER_ONE"] = "one";
             UNDERSTRINGS["LAYER_TWO"] = "two";
@@ -596,14 +625,58 @@
                 captain: null,
                 previous_world_npc_id: null,
                 world_npc: null,
+                inventory: null,
+                inventory_items: [],
+                fleet: null,
+                fleet_ships: [],
+                stats: null,
+                updateData: function ()
+                {
+                    PLAYER.captain = new GAME_DATA_CAPTAIN(wasm.exports, [0]);
+                    PLAYER.fleet = new GAME_DATA_FLEET(wasm.exports, [PLAYER.captain.general_of_fleet_id]);
+                    PLAYER.inventory = new GAME_DATA_INVENTORY(wasm.exports, [PLAYER.captain.inventory_id]);
+                    PLAYER.fleet_ships = [];
+                    for (var s = 0; s < PLAYER.fleet.ship_ids.length; ++s)
+                    {
+                        if (!is_sentry(PLAYER.fleet.ship_ids[s]))
+                        {
+                            var fsid = PLAYER.fleet.ship_ids[s];
+                            PLAYER.fleet_ships.push(
+                                new GAME_DATA_FLEET_SHIP(wasm.exports, [fsid])
+                            );
+                        }
+                    }
+                    for (var f = 0; f < PLAYER.fleet_ships.length; ++f)
+                    {
+                        var fs = PLAYER.fleet_ships[f];
+                        fs.name_game_string = GAME_STRINGS[fs.name_id];
+                        fs.name_string = STRINGS[fs.name_game_string];
+                        fs.ship = new GAME_DATA_SHIP(wasm.exports, [fs.ship_id]);
+                        fs.ship.name_game_string = GAME_STRINGS[fs.ship.name_id];
+                        fs.ship.name_string = STRINGS[fs.ship.name_game_string];
+                        fs.ship.base_ship = new GAME_DATA_BASE_SHIP(wasm.exports, [fs.ship.base_ship_id]);
+                        fs.ship.base_ship.name_game_string = GAME_STRINGS[fs.ship.base_ship.name_id];
+                        fs.ship.base_ship.name_string = STRINGS[fs.ship.base_ship.name_game_string];
+                    }
+                    PLAYER.inventory_items = [];
+                    for (var t = 0; t < PLAYER.inventory.inventory_items.length; ++t)
+                    {
+                        if (!is_sentry(PLAYER.inventory.inventory_items[t]))
+                        {
+                            var iid = PLAYER.inventory.inventory_items[t];
+                            PLAYER.inventory_items.push(
+                                new GAME_DATA_INVENTORY_ITEM(wasm.exports, [iid])
+                            );
+                        }
+                    }
+                    PLAYER.stats = new GAME_DATA_STATS(wasm.exports, [PLAYER.captain.stats_id]);
+                }
             };
 
             var UI_PLAYER_MENU =
             {
                 // TODO: If you hit the start button while this is open, close it and free it up
-                data: {
-                    inventory: null,
-                },
+                data: null,
                 rendered: false,
                 initialized: false,
                 initialize: function ()
@@ -611,36 +684,44 @@
                     if (!this.initialized)
                     {
                         this.initialized = true;
-                        var player_inventory_id = wasm.exports.get_player_inventory_id(0);
-                        this.data.inventory = new GAME_DATA_INVENTORY(wasm.exports, [player_inventory_id]);
                     }
                 },
                 render: function ()
                 {
+                    // TODO: This probably runs here too often, honestly. Reduce runs
+                    PLAYER.updateData();
                     if (!this.rendered)
                     {
-                        var html = `<div id="player_menu" style="max-width: fit-content; position: absolute; top: 0px;">`;
+                        var html = `<div id="player_menu" style="max-width: fit-content; position: absolute; top: 0px; background-color: rgba(0, 0, 0, 0.7); padding: 10px;">`;
                         html += `<div>Gold: ${wasm.exports.get_player_gold(0)}</div>`;
-                        html += `<div>${this.data.inventory.total_items} Items In Inventory</div>`;
-                        for (var i = 0; i < this.data.inventory.total_items; ++i)
+                        html += `<div>${PLAYER.inventory.total_items} Items In Inventory</div>`;
+                        for (var i = 0; i < PLAYER.inventory_items.length; ++i)
                         {
-                            if (!is_sentry(this.data.inventory.inventory_items[i]))
+                            if (!is_sentry(PLAYER.inventory_items[i]))
                             {
-                                var ghi = new GAME_DATA_INVENTORY_ITEM(wasm.exports, [this.data.inventory.inventory_items[i]]);
-                                var name = STRINGS[GAME_STRINGS[ghi.name_id]];
-                                html += `<div>${name} [${ghi.number_held}]</div>`;
+                                // TODO: Put strings inside object itself
+                                var ii = PLAYER.inventory_items[i];
+                                var name = STRINGS[GAME_STRINGS[ii.name_id]];
+                                html += `<div>${name} [${ii.number_held}]</div>`;
                             }
                         }
-                        // Player -> Fleet -> Fleet Ships -> Ships -> BaseShips
-                        // ---> Ships/BaseShips -> Material/Cannon Type/Cargo -> Goods/Figurehead
-                        // ---> Fleet->general_id = captain_id = player
-                        // ---> Fleet->ship_ids = fleet_ships
-                        // ---> Fleet->captain_ids = partners in crime
-                        // ---> FleetShips->captain_id = captain (if any)
-                        // ---> FleetShips->ship_id = ship = ship->base_ship
-                        // ---> FleetShips->is_flagship
-                        // TODO: Fleet, ships
-                        // TODO: Go into fleet and view all ships
+                        html += `<div>Player Stats</div>`;
+                        html += `<div>- Leadership: ${PLAYER.stats.leadership}</div>`;
+                        html += `<div>- Seamanship: ${PLAYER.stats.seamanship}</div>`;
+                        html += `<div>------</div>`;
+                        html += `<div>Ships In Fleet: ${PLAYER.fleet.total_ships}</div>`;
+                        for (var i = 0; i < PLAYER.fleet_ships.length; ++i)
+                        {
+                            if (!is_sentry(PLAYER.fleet_ships[i]))
+                            {
+                                var fi = PLAYER.fleet_ships[i];
+                                html += `<div>${fi.name_string}</div>`;
+                                html += `<div>- Total Cargo Items: ${fi.ship.total_cargo_goods}</div>`;
+                                html += `<div>- Tacking: ${fi.ship.tacking}</div>`;
+                                html += `<div>- Power: ${fi.ship.power}</div>`;
+                                html += `<div>- Speed: ${fi.ship.speed}</div>`;
+                            }
+                        }
                         // TODO: Go look at goods across all ships (lay out which ships goods are in)
                         // TODO: View captains along with you (skills, assignments, ship captaining, monthly wage)
                         // TODO: General things like -> total monthly costs (crew + captains) or ships that need repairs or low on supplies
@@ -659,6 +740,401 @@
                     gh.current.game_mode = GAME_STRINGS.indexOf("GAME_MODE_IN_PORT");
                     this.rendered = false;
                 }
+            }
+
+            var UI_OCEAN_BATTLE =
+            {
+                data: {
+                    scene: null,
+                    battle: null,
+                    original_coords:
+                    {
+                        x: null, y: null
+                    },
+                },
+                animating_cannons: false,
+                initialized: false,
+                initialize: function ()
+                {
+                    if (!this.initialized)
+                    {
+                        this.initialized = true;
+                        this.data.scene = new GAME_DATA_SCENE_OCEAN_BATTLE(wasm.exports);
+                        this.data.battle = new GAME_DATA_OCEAN_BATTLE(wasm.exports);
+                        this.render();
+                    }
+                },
+                hide: function ()
+                {
+                    document.getElementById("ocean_battle").outerHTML = `<div id="ocean_battle"></div>`;
+                    this.initialized = false;
+                },
+                render: function ()
+                {
+                    wasm.exports.ob_get_in_range();
+                    var html = `
+                        <div id="ocean_battle" class="popup" style="left: 200px; top: 200px;">
+                            <div class="outer_border" style="display: grid; grid-auto-flow: column;">
+                                <div id="ocean-battle-drag-handle" class="drag-bar svg svg-handle-bar-white"></div>
+                                <div>
+                                    <div class="inner_text">
+                                        Gonna fight!
+                                    </div>
+                                    <div id="battle_info">
+                                        <div>Total Fleets In Battle: ${this.data.battle.total_fleets}</div>
+                                        <div>Total Ships In Battle: ${this.data.battle.total_ships}</div>
+                                        `;
+                    for (var i = 0; i < this.data.battle.turn_order_fleets.length; ++i)
+                    {
+                        // Assumption is a linear layout with no gaps
+                        if (is_sentry(this.data.battle.turn_order_fleets[i]))
+                        {
+                            break;
+                        }
+                        var fleet_id = this.data.battle.turn_order_fleets[i];
+                        var fleet = new GAME_DATA_FLEET(wasm.exports, [fleet_id]);
+                        var general_id = fleet.general_id;
+                        var captain = new GAME_DATA_CAPTAIN(wasm.exports, [general_id]);
+                        html += `<div>Captain: ${GAME_STRINGS[captain.name_id]}</div>`;
+                    }
+                    var players_turn = false;
+                    for (var i = 0; i < this.data.battle.turn_order_ships.length; ++i)
+                    {
+                        // Assumption is a linear layout with no gaps
+                        if (is_sentry(this.data.battle.turn_order_ships[i]))
+                        {
+                            break;
+                        }
+                        var fleet_ship_id = this.data.battle.turn_order_fleet_ships[i];
+                        var ship_id = this.data.battle.turn_order_ships[i];
+                        var wnpc_id = this.data.battle.turn_order_world_npcs[i];
+                        var ship = new GAME_DATA_SHIP(wasm.exports, [ship_id]);
+                        var wnpc = new GAME_DATA_WORLD_NPC(wasm.exports, [wnpc_id]);
+                        var fleet_ship = new GAME_DATA_FLEET_SHIP(wasm.exports, [fleet_ship_id]);
+                        var fleet = new GAME_DATA_FLEET(wasm.exports, [fleet_ship.fleet_id]);
+                        if (i === this.data.battle.turn_order && fleet.general_id === 0)
+                        {
+                            players_turn = true;
+                        }
+                        if (i === this.data.battle.turn_order)
+                        {
+                            html += `<div onmouseover="this.style.cursor = 'pointer'; UI_OCEAN_BATTLE.highlightWorldNPC(${wnpc_id});" onmouseout="UI_OCEAN_BATTLE.clearWorldNPCHighlights();">* Ship [${ship_id}]</div>`;
+                        }
+                        else
+                        {
+                            html += `<div onmouseover="this.style.cursor = 'pointer'; UI_OCEAN_BATTLE.highlightWorldNPC(${wnpc_id});" onmouseout="UI_OCEAN_BATTLE.clearWorldNPCHighlights();">Ship [${ship_id}]</div>`;
+                        }
+                        html += `<div>Crew: <progress max="100" value="${ship.crew}" /></div>`;
+                        html += `<div>Hull: <progress max="100" value="${ship.hull}" /></div>`;
+                    }
+                    html += `
+                                    </div>
+                                    <div id="dialog_choices" style="display: grid; grid-auto-flow: row;">`;
+                    if (this.data.battle.victory)
+                    {
+                        if (this.data.battle.player_victory)
+                        {
+                            html += `<button onclick="UI_OCEAN_BATTLE.hide();">Claim Victory</button>`;
+                        }
+                        else
+                        {
+                            html += `<button>You Lost</button>`;
+                        }
+                    }
+                    else if (players_turn)
+                    {
+                        html += `<button disable>Escape</button>`;
+                        if (this.data.battle.moved !== 1)
+                        {
+                            html += `<button onclick="UI_OCEAN_BATTLE.highlightValidMoves();">Move</button>`;
+                            html += `<button id="ui_ocean_battle_confirm_move" onclick="UI_OCEAN_BATTLE.confirmMove();" style="display: none;">Confirm Move</button>`;
+                            html += `<button id="ui_ocean_battle_cancel_move" onclick="UI_OCEAN_BATTLE.cancelMove();" style="display: none;">Cancel Move</button>`;
+                        }
+                        if (this.data.battle.attacked !== 1)
+                        {
+                            html += `<button onclick="UI_OCEAN_BATTLE.highlightValidCannons();">Fire Cannons</button>`;
+                            html += `<button id="ui_ocean_battle_confirm_cannons" onclick="UI_OCEAN_BATTLE.confirmCannons();" style="display: none;">Confirm Cannons</button>`;
+                            html += `<button id="ui_ocean_battle_cancel_cannons" onclick="UI_OCEAN_BATTLE.cancelCannons();" style="display: none;">Cancel Cannons</button>`;
+                            html += `<button onclick="UI_OCEAN_BATTLE.highlightValidBoarding();">Board</button>`;
+                            html += `<button id="ui_ocean_battle_confirm_boarding" onclick="UI_OCEAN_BATTLE.confirmBoarding();" style="display: none;">Confirm Boarding</button>`;
+                            html += `<button id="ui_ocean_battle_cancel_boarding" onclick="UI_OCEAN_BATTLE.cancelBoarding();" style="display: none;">Cancel Boarding</button>`;
+                        }
+                        html += `<button disabled>Duel Captain</button>`;
+                        html += `<button>Order Fleet</button>`;
+                        html += `<button onclick="UI_OCEAN_BATTLE.endTurn();">End Turn</button>`;
+                    }
+                    else
+                    {
+                        html += `<button onclick="UI_OCEAN_BATTLE.takeNPCTurn();">Confirm</button>`;
+                    }
+                    html += `
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById("ocean_battle").outerHTML = html;
+                    dragElement(document.getElementById("ocean_battle"), document.getElementById("ocean-battle-drag-handle"));
+                },
+                takeNPCTurn: function ()
+                {
+                    // animations and stuff and then
+                    if (this.data.battle.total_valid_move_coords > 0)
+                    {
+                        var wnpcid = this.data.battle.turn_order_world_npcs[this.data.battle.turn_order];
+                        if (this.data.original_coords.x === null)
+                        {
+                            var wnpc = new GAME_DATA_WORLD_NPC(wasm.exports, [wnpcid]);
+                            this.data.original_coords.x = wnpc.position_x;
+                            this.data.original_coords.y = wnpc.position_y;
+                        }
+                        uih.renderOceanBattleShipMove().then(function () {
+                            if (UI_OCEAN_BATTLE.data.battle.total_valid_cannon_coords > 0)
+                            {
+                                uih.renderOceanBattleCannonAttack().then(function () {
+                                    wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_RUN_NPC_TURN"));
+                                    UI_OCEAN_BATTLE.data.original_coords.x = null;
+                                    UI_OCEAN_BATTLE.data.original_coords.y = null;
+                                    UI_OCEAN_BATTLE.render();
+                                });
+                            }
+                            else if (UI_OCEAN_BATTLE.data.battle.total_valid_boarding_coords > 0)
+                            {
+                                uih.renderOceanBattleBoardingAttack().then(function () {
+                                    wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_RUN_NPC_TURN"));
+                                    UI_OCEAN_BATTLE.data.original_coords.x = null;
+                                    UI_OCEAN_BATTLE.data.original_coords.y = null;
+                                    UI_OCEAN_BATTLE.render();
+                                });
+                            }
+                        });
+                    }
+                    else if (this.data.battle.total_valid_cannon_coords > 0)
+                    {
+                        uih.renderOceanBattleCannonAttack().then(function () {
+                            wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_RUN_NPC_TURN"));
+                            UI_OCEAN_BATTLE.data.original_coords.x = null;
+                            UI_OCEAN_BATTLE.data.original_coords.y = null;
+                            UI_OCEAN_BATTLE.render();
+                        });
+                    }
+                    else if (this.data.battle.total_valid_boarding_coords > 0)
+                    {
+                        uih.renderOceanBattleBoardingAttack().then(function () {
+                            wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_RUN_NPC_TURN"));
+                            UI_OCEAN_BATTLE.data.original_coords.x = null;
+                            UI_OCEAN_BATTLE.data.original_coords.y = null;
+                            UI_OCEAN_BATTLE.render();
+                        });
+                    }
+                    else
+                    {
+                        console.log("Nothing to animate");
+                        this.data.original_coords.x = null;
+                        this.data.original_coords.y = null;
+                        wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_RUN_NPC_TURN"));
+                        UI_OCEAN_BATTLE.render();
+                    }
+                },
+                endTurn: function ()
+                {
+                    wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_END_TURN"));
+                    this.data.original_coords.x = null;
+                    this.data.original_coords.y = null;
+                    UI_OCEAN_BATTLE.render();
+                },
+                highlightWorldNPC: function (wnpc_id)
+                {
+                    // var wnpc = new GAME_DATA_WORLD_NPC(wasm.exports, [wnpc_id]);
+                    // wnpc.position_x && position_y
+                    document.querySelector(`[data-npc-id="${wnpc_id}"]`).style.backgroundColor = "rgba(0, 0, 255, 0.2)";
+                },
+                clearWorldNPCHighlights: function ()
+                {
+                    var npcs = document.querySelectorAll(".layer-npc_layer");
+                    for (var i = 0; i < npcs.length; ++i)
+                    {
+                        if (npcs[i] instanceof HTMLElement)
+                        {
+                            npcs[i].style.backgroundColor = "unset";
+                        }
+                    }
+                },
+                highlightValidMoves: function()
+                {
+                    var x = null;
+                    var y = null;
+                    var xys = [];
+                    for (var i = 0; i < this.data.battle.valid_move_coords.length; ++i)
+                    {
+                        var coord = this.data.battle.valid_move_coords[i];
+                        if (is_sentry(coord))
+                        {
+                            break;
+                        }
+                        if (x === null)
+                        {
+                            x = coord;
+                        }
+                        else if (y === null)
+                        {
+                            y = coord;
+                            xys.push({x, y});
+                            x = null;
+                            y = null;
+                        }
+                    }
+                    for (var loc = 0; loc < xys.length; ++loc)
+                    {
+                        var el = document.querySelector(`[data-world-x="${xys[loc].x}"][data-world-y="${xys[loc].y}"]`);
+                        if (el instanceof HTMLElement)
+                        {
+                            el.setAttribute("onmouseover", "this.style.cursor = 'pointer'");
+                            el.setAttribute("onmousedown", `UI_OCEAN_BATTLE.moveWorldNPCTo(${xys[loc].x}, ${xys[loc].y})`);
+                            var bg = el.querySelector(`[data-layer="background"]`);
+                            if (bg instanceof HTMLElement)
+                            {
+                                bg.style.mixBlendMode = "color-dodge";
+                            }
+                        }
+                    }
+                },
+                moveWorldNPCTo: function (x, y)
+                {
+                    var wnpcid = this.data.battle.turn_order_world_npcs[this.data.battle.turn_order];
+                    if (this.data.original_coords.x === null)
+                    {
+                        var wnpc = new GAME_DATA_WORLD_NPC(wasm.exports, [wnpcid]);
+                        this.data.original_coords.x = wnpc.position_x;
+                        this.data.original_coords.y = wnpc.position_y;
+                    }
+                    wasm.exports.move_world_npc_to(wnpcid, x, y);
+                    this.data.battle.intended_move_coords[0] = x;
+                    this.data.battle.intended_move_coords[1] = y;
+                    document.getElementById("ui_ocean_battle_confirm_move").style.display = "block";
+                    document.getElementById("ui_ocean_battle_cancel_move").style.display = "block";
+                },
+                confirmMove: function ()
+                {
+                    var wnpcid = this.data.battle.turn_order_world_npcs[this.data.battle.turn_order];
+                    wasm.exports.move_world_npc_to(wnpcid, this.data.original_coords.x, this.data.original_coords.y);
+                    uih.renderOceanBattleShipMove().then(function () {
+                        wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_MOVE"));
+                        UI_OCEAN_BATTLE.render();
+                    });
+                },
+                // TODO: cancelMove: function ()
+                highlightValidCannons: function()
+                {
+                    if (uih.animations.indexOf(animateOceanBattleCannonCoords) < 0)
+                    {
+                        uih.animations.push(animateOceanBattleCannonCoords);
+                    }
+                },
+                setCannonsTo: function(x, y)
+                {
+                    this.data.battle.intended_cannon_coords[0] = x;
+                    this.data.battle.intended_cannon_coords[1] = y;
+                    document.getElementById("ui_ocean_battle_confirm_cannons").style.display = "block";
+                    document.getElementById("ui_ocean_battle_cancel_cannons").style.display = "block";
+                    if (uih.animations.indexOf(animateOceanBattleCannonIntendedCoords) < 0)
+                    {
+                        uih.animations.push(animateOceanBattleCannonIntendedCoords);
+                    }
+                },
+                confirmCannons: function ()
+                {
+                    if (!this.animating_cannons)
+                    {
+                        this.animating_cannons = true;
+                        uih.renderOceanBattleCannonAttack();
+                    }
+                    else if (animateOceanBattleCannon.animated === true)
+                    {
+                        for (var i = 0; i < uih.animations.length; ++i)
+                        {
+                            if (uih.animations[i].type === "ocean_battle")
+                            {
+                                uih.animations.splice(i, 1);
+                            }
+                        }
+                        wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_FIRE_CANNONS"));
+                        this.render();
+                    }
+                },
+                cancelCannons: function ()
+                {
+                    this.data.battle.intended_cannon_coords[0] = wasm.exports.get_sentry();
+                    this.data.battle.intended_cannon_coords[1] = wasm.exports.get_sentry();
+                    document.getElementById("ui_ocean_battle_confirm_cannons").style.display = "none";
+                    document.getElementById("ui_ocean_battle_cancel_cannons").style.display = "none";
+                    for (var i = 0; i < uih.animations.length; ++i)
+                    {
+                        if (uih.animations[i].type === "ocean_battle")
+                        {
+                            uih.animations.splice(i, 1);
+                        }
+                    }
+                },
+                highlightValidBoarding: function()
+                {
+                    var x = null;
+                    var y = null;
+                    var xys = [];
+                    for (var i = 0; i < this.data.battle.valid_boarding_coords.length; ++i)
+                    {
+                        var coord = this.data.battle.valid_boarding_coords[i];
+                        if (is_sentry(coord))
+                        {
+                            break;
+                        }
+                        if (x === null)
+                        {
+                            x = coord;
+                        }
+                        else if (y === null)
+                        {
+                            y = coord;
+                            xys.push({x, y});
+                            x = null;
+                            y = null;
+                        }
+                    }
+                    for (var loc = 0; loc < xys.length; ++loc)
+                    {
+                        var el = document.querySelector(`[data-world-x="${xys[loc].x}"][data-world-y="${xys[loc].y}"]`);
+                        if (el instanceof HTMLElement)
+                        {
+                            el.setAttribute("onmouseover", "this.style.cursor = 'pointer'");
+                            el.setAttribute("onmousedown", `UI_OCEAN_BATTLE.setBoardingTo(${xys[loc].x}, ${xys[loc].y})`);
+                            var bg = el.querySelector(`[data-layer="background"]`);
+                            if (bg instanceof HTMLElement)
+                            {
+                                bg.style.mixBlendMode = "color-dodge";
+                            }
+                        }
+                    }
+                },
+                setBoardingTo: function(x, y)
+                {
+                    this.data.battle.intended_boarding_coords[0] = x;
+                    this.data.battle.intended_boarding_coords[1] = y;
+                    var el = document.querySelector(`[data-world-x="${x}"][data-world-y="${y}"]`);
+                    if (el instanceof HTMLElement)
+                    {
+                        var npc = el.querySelector(`.layer-npc_layer`);
+                        npc.style.backgroundColor = "rgba(255, 0, 0, 0.2)";
+                        document.getElementById("ui_ocean_battle_confirm_boarding").style.display = "block";
+                        document.getElementById("ui_ocean_battle_cancel_boarding").style.display = "block";
+                    }
+                },
+                confirmBoarding: function ()
+                {
+                    uih.renderOceanBattleBoardingAttack().then(function () {
+                        wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_BOARD"));
+                        UI_OCEAN_BATTLE.render();
+                    });
+                },
             }
 
             var UI_SCENE_SINGLE_DIALOG =
@@ -1064,8 +1540,7 @@
                     }
                     // TODO: Inventories
                     // TODO: Captains
-                    // First captain always equals first player
-                    PLAYER.captain = new GAME_DATA_CAPTAIN(wasm.exports, [0]);
+                    PLAYER.updateData();
                 },
 
                 shouldRedrawEverything: function ()
@@ -1223,10 +1698,199 @@
                         --LAYER_COORDINATES_VALUE_UNDO_COUNTER;
                     }
                 },
+                editorHide: function ()
+                {
+                    document.getElementById("meta-game").style.display = "none";
+                }
             }
+
+            var animateOcean = {
+                current_x: 0,
+                max_x: 7,
+                current_frame: 0,
+                render_always: false,
+                frame_rate: 2000,
+                render: function () {
+                    ++this.current_frame;
+                    if (this.current_frame > this.frame_rate)
+                    {
+                        this.current_frame = 0;
+                        ++this.current_x;
+                        if (this.current_x > this.max_x)
+                        {
+                            this.current_x = 0;
+                        }
+                    }
+                }
+            };
+            var animateOceanBattleCannon = {
+                type: "ocean_battle",
+                start: {x: 0, y: 0},
+                current: {x: 0, y: 0},
+                end: {x: 0, y: 0},
+                animated: false,
+                current_frame: 0,
+                frame_rate: 1,
+                render_always: true,
+                move_by: 2,
+                cannon_tile: null,
+                reset: function ()
+                {
+                    if (this.cannon_tile !== null)
+                    {
+                        this.cannon_tile.remove();
+                    }
+                    this.start = {x: 0, y: 0};
+                    this.current = {x: 0, y: 0};
+                    this.end = {x: 0, y: 0};
+                    this.animated = false;
+                },
+                render: function ()
+                {
+                    if (this.cannon_tile === null)
+                    {
+                        this.cannon_tile = document.createElement('div');
+                        this.cannon_tile.id = "cannon_tile";
+                        this.cannon_tile.style.position = "absolute";
+                        this.cannon_tile.style.zIndex = "100";
+                        this.cannon_tile.style.width = TILE_SIZE_SCALED + "px";
+                        this.cannon_tile.style.height = TILE_SIZE_SCALED + "px";
+                        this.cannon_tile.classList.add("atlas");
+                        this.cannon_tile.style.backgroundPosition = "calc(-1 * calc(64px * 9)) calc(-1 * calc(64px * 1))";
+                        document.body.appendChild(this.cannon_tile);
+                        this.current.x = this.start.x;
+                        this.current.y = this.start.y;
+                        this.cannon_tile.style.top = this.current.x + "px";
+                        this.cannon_tile.style.left = this.current.y + "px";
+                    }
+
+                    ++this.current_frame;
+                    if (this.current_frame > this.frame_rate)
+                    {
+                        this.current_frame = 0;
+                        if (this.end.x > this.start.x)
+                        {
+                            this.current.x += this.move_by;
+                            if (this.current.x > this.end.x) {
+                                this.current.x = this.end.x;
+                            }
+                        }
+                        else
+                        {
+                            this.current.x -= this.move_by;
+                            if (this.current.x < this.end.x)
+                            {
+                                this.current.x = this.end.x;
+                            }
+                        }
+                        this.cannon_tile.style.left = this.current.x + "px";
+                        if (this.end.y > this.start.y)
+                        {
+                            this.current.y += this.move_by;
+                            if (this.current.y > this.end.y)
+                            {
+                                this.current.y = this.end.y;
+                            }
+                        }
+                        else
+                        {
+                            this.current.y -= this.move_by;
+                            if (this.current.y < this.end.y)
+                            {
+                                this.current.y = this.end.y;
+                            }
+                        }
+                        this.cannon_tile.style.top = this.current.y + "px";
+                        if (
+                            this.current.x == this.end.x
+                            &&
+                            this.current.y == this.end.y
+                        ) {
+                            this.cannon_tile.remove();
+                            this.animated = true;
+                            uih.animations.splice(uih.animations.indexOf(animateOceanBattleCannon), 1);
+                            UI_OCEAN_BATTLE.confirmCannons();
+                        }
+                    }
+                }
+            };
+            var animateOceanBattleCannonCoords = {
+                type: "ocean_battle",
+                render_always: false,
+                is_valid: function (x, y)
+                {
+                    var valid = false;
+                    for (var i = 0; i < UI_OCEAN_BATTLE.data.battle.valid_cannon_coords.length; i += 2)
+                    {
+                        var valid_x = UI_OCEAN_BATTLE.data.battle.valid_cannon_coords[0];
+                        var valid_y = UI_OCEAN_BATTLE.data.battle.valid_cannon_coords[1];
+                        if (valid_x === x && valid_y === y)
+                        {
+                            valid = true;
+                            break;
+                        }
+                    }
+                    return valid;
+                }
+            };
+            var animateOceanBattleCannonIntendedCoords = {
+                type: "ocean_battle",
+                render_always: false,
+                is_valid: function (x, y)
+                {
+                    if (
+                        x === UI_OCEAN_BATTLE.data.battle.intended_cannon_coords[0]
+                        &&
+                        y === UI_OCEAN_BATTLE.data.battle.intended_cannon_coords[1]
+                    )
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+            };
+            var animateOceanBattleMoveCoords = {
+                type: "ocean_battle",
+                render_always: false,
+                is_valid: function (x, y)
+                {
+                    var valid = false;
+                    for (var i = 0; i < UI_OCEAN_BATTLE.data.battle.valid_move_coords.length; i += 2)
+                    {
+                        var valid_x = UI_OCEAN_BATTLE.data.battle.valid_move_coords[0];
+                        var valid_y = UI_OCEAN_BATTLE.data.battle.valid_move_coords[1];
+                        if (valid_x === x && valid_y === y)
+                        {
+                            valid = true;
+                            break;
+                        }
+                    }
+                    return valid;
+                }
+            };
+            var animateOceanBattleBoardingCoords = {
+                type: "ocean_battle",
+                render_always: false,
+                is_valid: function (x, y)
+                {
+                    var valid = false;
+                    for (var i = 0; i < UI_OCEAN_BATTLE.data.battle.valid_boarding_coords.length; i += 2)
+                    {
+                        var valid_x = UI_OCEAN_BATTLE.data.battle.valid_boarding_coords[0];
+                        var valid_y = UI_OCEAN_BATTLE.data.battle.valid_boarding_coords[1];
+                        if (valid_x === x && valid_y === y)
+                        {
+                            valid = true;
+                            break;
+                        }
+                    }
+                    return valid;
+                }
+            };
 
             // uih = UIHelper
             var uih = {
+                animations: [],
                 getViewport: function ()
                 {
                     return document.getElementById("viewport");
@@ -1244,16 +1908,17 @@
                 },
                 updatedRender: function ()
                 {
+                    this.updateLayers();
                     var html = ``;
                     var total_layers = wasm.exports.get_storage_layer_total_used_slots();
-                    var block_layer_id = null;
+                    var bg_layer_id = null;
                     var layer_one_id = null;
                     var layer_two_id = null;
                     for (var t = 0; t < total_layers; ++t)
                     {
                         if (LAYERS[t].name_id === GAME_STRINGS.indexOf("LAYER_BACKGROUND"))
                         {
-                            block_layer_id = t;
+                            bg_layer_id = t;
                         }
                         if (LAYERS[t].name_id === GAME_STRINGS.indexOf("LAYER_ONE"))
                         {
@@ -1266,6 +1931,7 @@
                     }
                     var total_world_npcs = wasm.exports.get_storage_world_npc_total_used_slots();
                     var npcs_slots = game_get_storage_npc_used_slots(wasm.exports);
+                    // TODO: This is super wasteful. Only get world npcs if world npcs have actually changed
                     var world_npcs = [];
                     for (var n = 0; n < total_world_npcs; ++n)
                     {
@@ -1273,7 +1939,15 @@
                     }
 
                     var cached_lam = LAYER_ATLAS_MAP[UNDERSTRINGS[GAME_STRINGS[gh.current.world_name]]];
-                    var value, style;
+                    var value;
+                    var style, onmousedown = "";
+                    var viewport_style = `display: grid; grid-template-rows: repeat(${VIEWPORT.height}, 1fr); grid-template-columns: repeat(${VIEWPORT.width}, 1fr); width: ${VIEWPORT.width * TILE_SIZE_SCALED}px; height: ${VIEWPORT.height * TILE_SIZE_SCALED}px;`;
+                    if (should3d)
+                    {
+                        // Note: Holy shit... this was way faster. Eff. I have a lot of refactoring to do now
+                        viewport_style += ` transform: perspective(1000px) rotateX(${degy}deg) rotateY(${degx}deg) rotateZ(0deg); transform-style: preserve-3d; will-change: transform;`;
+                    }
+                    var viewport_html = `<div id="viewport" style="${viewport_style}">`;
                     for (var vy = 0; vy < VIEWPORT.height; ++vy)
                     {
                         for (var vx = 0; vx < VIEWPORT.width; ++vx)
@@ -1289,16 +1963,77 @@
                             {
                                 style += ` transform-style: preserve-3d; will-change: transform; backface-visibility: hidden;`;
                             }
+                            if (this.animations.indexOf(animateOceanBattleCannonCoords) >= 0)
+                            {
+                                if (animateOceanBattleCannonCoords.is_valid(world_x, world_y))
+                                {
+                                    style += ` cursor: pointer;`;
+                                    onmousedown += ` UI_OCEAN_BATTLE.setCannonsTo(${world_x}, ${world_y});`;
+                                }
+                            }
 
-                            html += `<div class="tile_element" data-world-x="${world_x}" data-world-y="${world_y}" data-viewport-x="${vx}" data-viewport-y="${vy}" style="${style}">`;
-                            
-                            value = get_layer_value(LAYERS[block_layer_id], world_x, world_y);
+                            html += `<div
+                                class="tile_element"
+                                data-world-x="${world_x}"
+                                data-world-y="${world_y}"
+                                data-viewport-x="${vx}"
+                                data-viewport-y="${vy}"
+                                style="${style}"
+                                onmousedown="${onmousedown}"
+                            >`;
+
+                            value = get_layer_value(LAYERS[bg_layer_id], world_x, world_y);
                             if (!is_sentry(value))
                             {
                                 var atlas_x = cached_lam["background_layer"][value][0];
                                 var atlas_y = cached_lam["background_layer"][value][1];
-                                style = `--atlas-x: ${atlas_x}; --atlas-y: ${atlas_y}; position: absolute;`;
-                                html += `<div class="atlas" data-layer-id="${block_layer_id}" data-layer="block" style="${style}"></div>`;
+                                onmousedown = ``;
+                                if (this.animations.indexOf(animateOcean) >= 0)
+                                {
+                                    animateOcean.render();
+                                    atlas_x += animateOcean.current_x;
+                                }
+                                atlas_x *= TILE_SIZE_SCALED;
+                                atlas_y *= TILE_SIZE_SCALED;
+                                style = `position: absolute;`;
+                                // No way... Apparently, using css calc is a huge perf drain when done repeatedly
+                                var bg_position = `-${atlas_x} -${atlas_y};`;
+                                var bg_image = `var(--atlas-image);`;
+                                if (
+                                    this.animations.indexOf(animateOceanBattleCannonCoords) >= 0
+                                    &&
+                                    animateOceanBattleCannonCoords.is_valid(world_x, world_y)
+                                )
+                                {
+                                    bg_image = `var(--atlas-image), ${bg_image}`;
+                                    bg_position = `
+                                        -${18 * TILE_SIZE_SCALED}
+                                        -${3 * TILE_SIZE_SCALED},
+                                        ${bg_position}
+                                    `;
+                                }
+                                if (
+                                    this.animations.indexOf(animateOceanBattleCannonIntendedCoords) >= 0
+                                    &&
+                                    animateOceanBattleCannonIntendedCoords.is_valid(world_x, world_y)
+                                )
+                                {
+                                    bg_image = `var(--atlas-image), ${bg_image}`;
+                                    bg_position = `
+                                        -${20 * TILE_SIZE_SCALED}
+                                        -${3 * TILE_SIZE_SCALED},
+                                        ${bg_position}
+                                    `;
+                                }
+                                style += ` background-image: ${bg_image}`;
+                                style += ` background-position: ${bg_position}`;
+                                html += `<div
+                                    class="atlas"
+                                    data-layer-id="${bg_layer_id}"
+                                    data-layer="background"
+                                    style="${style}"
+                                    onmousedown="${onmousedown}"
+                                ></div>`;
                             }
 
                             value = get_layer_value(LAYERS[layer_one_id], world_x, world_y);
@@ -1324,8 +2059,35 @@
                             {
                                 if (world_npcs[n].position_x === world_x && world_npcs[n].position_y === world_y)
                                 {
-                                    var atlas_x = cached_lam["npc_layer"][n][0];
-                                    var atlas_y = cached_lam["npc_layer"][n][1];
+                                    var atlas_x, atlas_y = null;
+                                    var wnpc_name = UNDERSTRINGS[GAME_STRINGS[world_npcs[n].name_id]];
+                                    var wnpc_type = GAME_STRINGS[world_npcs[n].type_id];
+                                    if (cached_lam["npc_layer"][wnpc_name])
+                                    {
+                                        atlas_x = cached_lam["npc_layer"][wnpc_name][0];
+                                        atlas_y = cached_lam["npc_layer"][wnpc_name][1];
+                                    }
+                                    if (cached_lam["npc_layer"][n])
+                                    {
+                                        atlas_x = cached_lam["npc_layer"][n][0];
+                                        atlas_y = cached_lam["npc_layer"][n][1];
+                                    }
+                                    if (wnpc_type === "NPC_TYPE_SHIP")
+                                    {
+                                        if (cached_lam["npc_layer"]["ship_" + wnpc_name])
+                                        {
+                                            atlas_x = cached_lam["npc_layer"]["ship_" + wnpc_name][0];
+                                            atlas_y = cached_lam["npc_layer"]["ship_" + wnpc_name][1];
+                                        }
+                                    }
+                                    if (atlas_x === null || atlas_y === null)
+                                    {
+                                        console.error(
+                                            "Could not place NPC for some reason",
+                                            {n, npc: world_npcs[n], wnpc_name, wnpc_type}
+                                        );
+                                        continue;
+                                    }
                                     style = `--atlas-x: ${atlas_x}; --atlas-y: ${atlas_y}; position: absolute;`;
                                     if (should3d)
                                     {
@@ -1344,7 +2106,9 @@
                             html += `</div>`;
                         }
                     }
-                    return html;
+                    viewport_html += `${html}`;
+                    viewport_html += `</div>`;
+                    return viewport_html;
                 },
                 updateRootProperties()
                 {
@@ -1356,21 +2120,37 @@
                 },
                 initialize: function ()
                 {
-                    this.getViewport().style.display = "grid";
-                    this.getViewport().style.gridTemplateRows = `repeat(${VIEWPORT.height}, 1fr)`;
-                    this.getViewport().style.gridTemplateColumns = `repeat(${VIEWPORT.width}, 1fr)`;
+                    // this.getViewport().style.display = "grid";
+                    // this.getViewport().style.gridTemplateRows = `repeat(${VIEWPORT.height}, 1fr)`;
+                    // this.getViewport().style.gridTemplateColumns = `repeat(${VIEWPORT.width}, 1fr)`;
                     dragElement(document.getElementById("meta-game"), document.getElementById("meta-game-drag-handle"));
 
                     wasm.exports.tick();
                     uih.updateLayers();
-                    uih.getViewport().innerHTML = uih.updatedRender();
+                    // uih.getViewport().innerHTML = uih.updatedRender();
+                    uih.getViewport().outerHTML = uih.updatedRender();
+
+                    // By default add ocean animation
+                    // TODO: In the future, only add ocean animation when ocean is the background
+                    this.animations.push(animateOcean);
                 },
 
-                // NOTE: Keeping this here so we can use it later
-                renderCannonAttack: function(attacker_tile_element, target_tile_element)
+                renderOceanBattleBoardingAttack: function()
                 {
-                    if (attacker_tile_element && target_tile_element)
+                    var wnpcid = UI_OCEAN_BATTLE.data.battle.turn_order_world_npcs[UI_OCEAN_BATTLE.data.battle.turn_order];
+                    var wnpc = new GAME_DATA_WORLD_NPC(wasm.exports, [wnpcid]);
+                    var start = {
+                        x: wnpc.position_x * TILE_SIZE_SCALED,
+                        y: wnpc.position_y * TILE_SIZE_SCALED,
+                    };
+                    var end =
                     {
+                        x: UI_OCEAN_BATTLE.data.battle.intended_boarding_coords[0] * TILE_SIZE_SCALED,
+                        y: UI_OCEAN_BATTLE.data.battle.intended_boarding_coords[1] * TILE_SIZE_SCALED,
+                    };
+                    var move_by = 1;
+                    var time = 10;
+                    return new Promise((resolve) => {
                         var cannon_tile = document.createElement('div');
                         cannon_tile.id = "cannon_tile";
                         cannon_tile.style.position = "absolute";
@@ -1379,63 +2159,143 @@
                         cannon_tile.style.height = TILE_SIZE_SCALED + "px";
                         cannon_tile.classList.add("atlas");
                         cannon_tile.style.backgroundPosition = "calc(-1 * calc(64px * 9)) calc(-1 * calc(64px * 1))";
-                        cannon_tile.style.top = attacker_tile_element.getClientRects()[0].top + "px";
-                        cannon_tile.style.left = attacker_tile_element.getClientRects()[0].left + "px";
-                        var attacker_animation_y = attacker_tile_element.getClientRects()[0].top;
-                        var attacker_animation_x = attacker_tile_element.getClientRects()[0].left;
-                        var target_animation_y = target_tile_element.getClientRects()[0].top;
-                        var target_animation_x = target_tile_element.getClientRects()[0].left;
+                        cannon_tile.style.top = start.x + "px";
+                        cannon_tile.style.left = start.y + "px";
                         // target_tile_element.style.border = "3px solid white";
                         document.body.appendChild(cannon_tile);
                         var animation_interval = setInterval(() => {
-                            if (target_animation_x > attacker_animation_x)
+                            if (end.x > start.x)
                             {
-                                attacker_animation_x += 5;
-                                if (attacker_animation_x > target_animation_x) {
-                                    attacker_animation_x = target_animation_x;
+                                start.x += move_by;
+                                if (start.x > end.x) {
+                                    start.x = end.x;
                                 }
                             }
                             else
                             {
-                                attacker_animation_x -= 5;
-                                if (attacker_animation_x < target_animation_x)
+                                start.x -= move_by;
+                                if (start.x < end.x)
                                 {
-                                    attacker_animation_x = target_animation_x;
+                                    start.x = end.x;
                                 }
                             }
-                            cannon_tile.style.left = attacker_animation_x + "px";
-                            if (target_animation_y > attacker_animation_y)
+                            cannon_tile.style.left = start.x + "px";
+                            if (end.y > start.y)
                             {
-                                attacker_animation_y += 5;
-                                if (attacker_animation_y > target_animation_y)
+                                start.y += move_by;
+                                if (start.y > end.y)
                                 {
-                                    attacker_animation_y = target_animation_y;
+                                    start.y = end.y;
                                 }
                             }
                             else
                             {
-                                attacker_animation_y -= 5;
-                                if (attacker_animation_y < target_animation_y)
+                                start.y -= move_by;
+                                if (start.y < end.y)
                                 {
-                                    attacker_animation_y = target_animation_y;
+                                    start.y = end.y;
                                 }
                             }
-                            cannon_tile.style.top = attacker_animation_y + "px";
+                            cannon_tile.style.top = start.y + "px";
                             if (
-                                attacker_animation_x == target_animation_x &&
-                                attacker_animation_y == target_animation_y
+                                start.x == end.x &&
+                                start.y == end.y
                             ) {
                                 cannon_tile.remove();
                                 clearInterval(animation_interval);
+                                resolve();
                             }
-                        }, 20);
-                    }
-                    else
-                    {
-                        console.log("Target", target_tile_element);
-                        console.log("Attacker", attacker_tile_element);
-                    }
+                        }, time);
+                    });
                 },
+                renderOceanBattleCannonAttack: function()
+                {
+                    var wnpc_id = UI_OCEAN_BATTLE.data.battle.turn_order_world_npcs[UI_OCEAN_BATTLE.data.battle.turn_order];
+                    var wnpc = new GAME_DATA_WORLD_NPC(wasm.exports, [wnpc_id]);
+                    animateOceanBattleCannon.reset();
+                    animateOceanBattleCannon.start.x = wnpc.position_x * TILE_SIZE_SCALED;
+                    animateOceanBattleCannon.start.y = wnpc.position_y * TILE_SIZE_SCALED;
+                    animateOceanBattleCannon.end.x = UI_OCEAN_BATTLE.data.battle.intended_cannon_coords[0] * TILE_SIZE_SCALED;
+                    animateOceanBattleCannon.end.y = UI_OCEAN_BATTLE.data.battle.intended_cannon_coords[1] * TILE_SIZE_SCALED;
+                    uih.animations.push(animateOceanBattleCannon)
+                    // animateOceanBattleCannon() == true
+                    
+                },
+                renderOceanBattleShipMove: function ()
+                {
+                    var start = UI_OCEAN_BATTLE.data.original_coords;
+                    if (start.x === null)
+                    {
+                        console.error("Need starting coordinates");
+                        return;
+                    }
+                    var end =
+                    {
+                        x: UI_OCEAN_BATTLE.data.battle.intended_move_coords[0] * TILE_SIZE_SCALED,
+                        y: UI_OCEAN_BATTLE.data.battle.intended_move_coords[1] * TILE_SIZE_SCALED,
+                    };
+                    console.log("end", end, UI_OCEAN_BATTLE.data.battle.intended_move_coords);
+                    var ship_tile;
+                    var el = document.querySelector(`[data-world-x="${start.x}"][data-world-y="${start.y}"]`);
+                    if (el instanceof HTMLElement)
+                    {
+                        ship_tile = el.querySelector(`.layer-npc_layer`);
+                    }
+                    if (!ship_tile)
+                    {
+                        console.error("Could not find ship element in DOM");
+                        return;
+                    }
+                    ship_tile.style.zIndex = 3;
+                    var move_by = 1;
+                    var time = 10;
+                    start.x = start.x * TILE_SIZE_SCALED;
+                    start.y = start.y * TILE_SIZE_SCALED;
+                    return new Promise((resolve) => {
+                        var animation_interval = setInterval(() => {
+                            if (end.x > start.x)
+                            {
+                                start.x += move_by;
+                                if (start.x > end.x) {
+                                    start.x = end.x;
+                                }
+                            }
+                            else
+                            {
+                                start.x -= move_by;
+                                if (start.x < end.x)
+                                {
+                                    start.x = end.x;
+                                }
+                            }
+                            ship_tile.style.left = start.x + "px";
+                            if (end.y > start.y)
+                            {
+                                start.y += move_by;
+                                if (start.y > end.y)
+                                {
+                                    start.y = end.y;
+                                }
+                            }
+                            else
+                            {
+                                start.y -= move_by;
+                                if (start.y < end.y)
+                                {
+                                    start.y = end.y;
+                                }
+                            }
+                            ship_tile.style.top = start.y + "px";
+                            if (
+                                start.x == end.x &&
+                                start.y == end.y
+                            ) {
+                                clearInterval(animation_interval);
+                                resolve();
+                            }
+                        }, time);
+                    });
+                }
             };
 
             var force_redraw = false;
@@ -1497,116 +2357,108 @@
                 can_tick: true,
                 render: function ()
                 {
-                    if (wasm)
+                    if (!wasm) { console.error("NO WASM"); return; }
+                    if (gh.current.game_mode === GAME_STRINGS.indexOf("GAME_MODE_IN_PLAYER_MENU"))
                     {
-                        if (RAF.frame_count % 15 == 0)
+                        // Note: This essentially disables rendering because of "shouldUpdate" function
+                        // gh.current.updated_state = GAME_STRINGS.indexOf("UPDATED_STATE_NOTHING");
+                        UI_PLAYER_MENU.initialize();
+                        UI_PLAYER_MENU.render();
+                    }
+                    else if (gh.current.game_mode === GAME_STRINGS.indexOf("GAME_MODE_IN_SCENE"))
+                    {
+                        scene_name = GAME_STRINGS[gh.current.scene];
+                        if (!gh.shouldUpdate("scene")) { return; }
+                        if (
+                            scene_name === "SCENE_NPC_RVICE"
+                            ||
+                            scene_name === "SCENE_NPC_LAFOLIE"
+                            ||
+                            scene_name === "SCENE_NPC_NAKOR"
+                            ||
+                            scene_name === "SCENE_NPC_TRAVIS"
+                            ||
+                            scene_name === "SCENE_NPC_LOLLER"
+                        )
                         {
-                            // var bg_elements = document.querySelectorAll('.layer-background_layer');
-                            // for (var bge = 0; bge < bg_elements.length; ++bge)
-                            // {
-                            //     if (bg_elements[bge] instanceof HTMLElement)
-                            //     {
-                            //         if (bg_elements[bge].bgTick == undefined || bg_elements[bge].bgTick == NaN)
-                            //         {
-                            //             bg_elements[bge].bgTick = 0;
-                            //         }
-                            //         var bgTick = bg_elements[bge].bgTick;
-                            //         ++bg_elements[bge].bgTick;
-                            //         if (bg_elements[bge].bgTick > 7)
-                            //         {
-                            //             bg_elements[bge].bgTick = 0;
-                            //         }
-                            //         bg_elements[bge].style.backgroundPosition = 'calc(-1 * calc(32px * ' + bgTick + ')) 0px';
-                            //     }
-                            // }
+                            // Note: This essentially disables rendering because of "shouldUpdate" function
+                            // gh.current.updated_state = GAME_STRINGS.indexOf("UPDATED_STATE_NOTHING");
+                            UI_SCENE_SINGLE_DIALOG.initialize();
+                            UI_SCENE_SINGLE_DIALOG.render();
                         }
-                        if (gh.current.game_mode === GAME_STRINGS.indexOf("GAME_MODE_IN_PLAYER_MENU"))
+                        else if (scene_name === "SCENE_GENERAL_SHOP")
                         {
-                            gh.current.updated_state = GAME_STRINGS.indexOf("UPDATED_STATE_NOTHING");
-                            UI_PLAYER_MENU.initialize();
-                            UI_PLAYER_MENU.render();
+                            // Note: This essentially disables rendering because of "shouldUpdate" function
+                            // gh.current.updated_state = GAME_STRINGS.indexOf("UPDATED_STATE_NOTHING");
+                            UI_GENERAL_SHOP.initialize();
+                            UI_GENERAL_SHOP.render();
                         }
-                        else if (gh.current.game_mode === GAME_STRINGS.indexOf("GAME_MODE_IN_SCENE"))
+                        else if (scene_name === "SCENE_BANK")
                         {
-                            scene_name = GAME_STRINGS[gh.current.scene];
-                            if (!gh.shouldUpdate("scene")) { return; }
+                            // Note: This essentially disables rendering because of "shouldUpdate" function
+                            // gh.current.updated_state = GAME_STRINGS.indexOf("UPDATED_STATE_NOTHING");
+                            UI_BANK.initialize();
+                            UI_BANK.render();
+                        }
+                        else if (scene_name === "SCENE_OCEAN_BATTLE")
+                        {
+                            // Note: This essentially disables rendering because of "shouldUpdate" function
+                            // gh.current.updated_state = GAME_STRINGS.indexOf("UPDATED_STATE_NOTHING");
+                            UI_OCEAN_BATTLE.initialize();
+                        }
+                    }
+                    else
+                    {
+                        if (PLAYER.previous_world_npc_id !== PLAYER.captain.world_npc_id)
+                        {
+                            PLAYER.world_npc = new GAME_DATA_WORLD_NPC(wasm.exports, [PLAYER.captain.world_npc_id]);
+                            PLAYER.previous_world_npc_id = PLAYER.captain.world_npc_id;
+                        }
+                        if (!is_sentry(PLAYER.world_npc.position_x))
+                        {
                             if (
-                                scene_name === "SCENE_NPC_RVICE"
-                                ||
-                                scene_name === "SCENE_NPC_LAFOLIE"
-                                ||
-                                scene_name === "SCENE_NPC_NAKOR"
-                                ||
-                                scene_name === "SCENE_NPC_TRAVIS"
-                                ||
-                                scene_name === "SCENE_NPC_LOLLER"
+                                (PLAYER.world_npc.position_x - CAMERA.offset.x) > (VIEWPORT.width / 2)
+                                &&
+                                (CAMERA.offset.x + VIEWPORT.width) < WORLDS[gh.current.world].width
                             )
                             {
-                                gh.current.updated_state = GAME_STRINGS.indexOf("UPDATED_STATE_NOTHING");
-                                UI_SCENE_SINGLE_DIALOG.initialize();
-                                UI_SCENE_SINGLE_DIALOG.render();
+                                CAMERA.moveRight();
                             }
-                            else if (scene_name === "SCENE_GENERAL_SHOP")
+                            else if (
+                                (PLAYER.world_npc.position_x - CAMERA.offset.x) < (VIEWPORT.width / 2)
+                                &&
+                                CAMERA.offset.x > 0
+                            )
                             {
-                                gh.current.updated_state = GAME_STRINGS.indexOf("UPDATED_STATE_NOTHING");
-                                UI_GENERAL_SHOP.initialize();
-                                UI_GENERAL_SHOP.render();
+                                CAMERA.moveLeft();
                             }
-                            else if (scene_name === "SCENE_BANK")
+                            if (
+                                (PLAYER.world_npc.position_y - CAMERA.offset.y) > (VIEWPORT.height / 2)
+                                &&
+                                (CAMERA.offset.y + VIEWPORT.height) < WORLDS[gh.current.world].height
+                            )
                             {
-                                gh.current.updated_state = GAME_STRINGS.indexOf("UPDATED_STATE_NOTHING");
-                                UI_BANK.initialize();
-                                UI_BANK.render();
+                                CAMERA.moveDown();
+                            }
+                            else if (
+                                (PLAYER.world_npc.position_y - CAMERA.offset.y) < (VIEWPORT.height / 2)
+                                &&
+                                CAMERA.offset.y > 0
+                            )
+                            {
+                                CAMERA.moveUp();
                             }
                         }
-                        else
-                        {
-                            if (PLAYER.previous_world_npc_id !== PLAYER.captain.world_npc_id)
-                            {
-                                PLAYER.world_npc = new GAME_DATA_WORLD_NPC(wasm.exports, [PLAYER.captain.world_npc_id]);
-                                PLAYER.previous_world_npc_id = PLAYER.captain.world_npc_id;
-                            }
-                            if (!is_sentry(PLAYER.world_npc.position_x))
-                            {
-                                if (
-                                    (PLAYER.world_npc.position_x - CAMERA.offset.x) > (VIEWPORT.width / 2)
-                                    &&
-                                    (CAMERA.offset.x + VIEWPORT.width) < WORLDS[gh.current.world].width
-                                )
-                                {
-                                    CAMERA.moveRight();
-                                }
-                                else if (
-                                    (PLAYER.world_npc.position_x - CAMERA.offset.x) < (VIEWPORT.width / 2)
-                                    &&
-                                    CAMERA.offset.x > 0
-                                )
-                                {
-                                    CAMERA.moveLeft();
-                                }
-                                if (
-                                    (PLAYER.world_npc.position_y - CAMERA.offset.y) > (VIEWPORT.height / 2)
-                                    &&
-                                    (CAMERA.offset.y + VIEWPORT.height) < WORLDS[gh.current.world].height
-                                )
-                                {
-                                    CAMERA.moveDown();
-                                }
-                                else if (
-                                    (PLAYER.world_npc.position_y - CAMERA.offset.y) < (VIEWPORT.height / 2)
-                                    &&
-                                    CAMERA.offset.y > 0
-                                )
-                                {
-                                    CAMERA.moveUp();
-                                }
-                            }
-                            uih.getViewport().innerHTML = uih.updatedRender();
-                        }
-                        wasm.exports.tick();
-                    } else {
-                        alert("NO WASM");
                     }
+                    uih.getViewport().innerHTML = uih.updatedRender();
+                    for (var a = 0; a < uih.animations.length; ++a)
+                    {
+                        if (uih.animations[a].render_always)
+                        {
+                            uih.animations[a].render();
+                        }
+                    }
+                    wasm.exports.tick();
                 },
                 togglePause: function ()
                 {
@@ -1688,12 +2540,14 @@
             var TILE_SIZE = 16;
             var TILE_SCALE = 2;
             var TILE_SIZE_SCALED = TILE_SIZE * TILE_SCALE;
+            var degx = 85;
+            var degy = 0;
             function start_game()
             {
                 console.log('Starting game here');
 
-                VIEWPORT.width = 20;
-                VIEWPORT.height = 20;
+                VIEWPORT.width = 10;
+                VIEWPORT.height = 10;
                 uih.getViewport().style.width = (TILE_SIZE_SCALED * VIEWPORT.width) + 'px';
                 uih.getViewport().style.height = (TILE_SIZE_SCALED * VIEWPORT.height) + 'px';
                 uih.updateRootProperties();
@@ -1707,8 +2561,6 @@
                     requestAnimationFrame(RAF.animate);
                 }
 
-                var degx = 85;
-                var degy = 0;
                 var ctrl_down = false;
                 document.addEventListener('mousemove', function (e)
                 {
@@ -1717,14 +2569,14 @@
                         degx += e.movementX;
                         degy += e.movementY;
                         // Note: Yes, it's backwards
-                        document
-                            .getElementById("viewport")
-                            .style
-                            .setProperty("--rotate-x", degy + "deg");
-                        document
-                            .getElementById("viewport")
-                            .style
-                            .setProperty("--rotate-y", degx + "deg");
+                        // document
+                        //     .getElementById("viewport")
+                        //     .style
+                        //     .setProperty("--rotate-x", degy + "deg");
+                        // document
+                        //     .getElementById("viewport")
+                        //     .style
+                        //     .setProperty("--rotate-y", degx + "deg");
                     }
                 });
 
@@ -1880,6 +2732,9 @@
                         case "KeyL":
                             CAMERA.moveRight();
                             break;
+                        case "KeyM":
+                            document.getElementById("meta-game").style.display = "block";
+                            break;
                         default:
                             should_redraw = false;
                             break;
@@ -1903,10 +2758,10 @@
             }
         </script>
     </head>
-    <body>
+    <body style="padding: 0px; margin: 0px;">
         <div id="viewport" style="display: none;"></div>
 
-        <div class="popup" id="meta-game">
+        <div class="popup" id="meta-game" style="top: 100px; left: 100px;">
             <div class="grid">
                 <div id="meta-game-drag-handle" class="drag-bar svg svg-handle-bar-white"></div>
                 <div id="meta-content">
@@ -1916,7 +2771,7 @@
                     <button id="toggle_blocks" onclick="toggleBlocks();">Toggle Blocks</button>
                     <button id="toggle_entities" onclick="toggleEntities();">Toggle Entities</button>
                     <button id="raf_toggle_pause" onclick="RAF.togglePause();">Pause Unpause Anims</button>
-                    <button id="debug_placeholder" onclick="">Placeholder</button>
+                    <button id="editor_hide" onclick="gh.editorHide()">Hide</button>
                     <button id="load_athens" onclick="wasm.exports.generate_world(GAME_STRINGS.indexOf('WORLD_ATHENS'))">Load Athens</button>
                     <div>
                         <div id="debug_viewport_x">Viewport X: 0</div>
@@ -2017,5 +2872,6 @@
         <div id="bank"></div>
         <div id="blackjack"></div>
         <div id="shipyard"></div>
+        <div id="ocean_battle"></div>
     </body>
 </html>

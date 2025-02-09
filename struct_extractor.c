@@ -217,6 +217,7 @@ void write_js_class(FILE* out, const char* struct_name, StructField* fields, int
     fprintf(out, "            this._ptr = wasm.exports.get_%s_ptr(input_array[0], input_array[1], input_array[2], input_array[3]);\n", lowercase_name);
     fprintf(out, "        }\n");
     // fprintf(out, "        this._ptr = ptr;\n");
+    fprintf(out, "        this._view = new DataView(this._memory.buffer);\n");
     fprintf(out, "    }\n\n");
 
     int offset = 0;
@@ -224,7 +225,7 @@ void write_js_class(FILE* out, const char* struct_name, StructField* fields, int
         if (fields[i].is_array) {
             // For arrays, create a new view each time to handle memory growth
             fprintf(out, "    get %s() {\n", fields[i].name);
-            fprintf(out, "        const view = new DataView(this._memory.buffer);\n");
+            // fprintf(out, "        const view = new DataView(this._memory.buffer);\n");
             fprintf(out, "        return new Uint32Array(this._memory.buffer, this._ptr + %d * 4, %d);\n", 
                     offset, fields[i].array_size);
             fprintf(out, "    }\n\n");
@@ -232,12 +233,11 @@ void write_js_class(FILE* out, const char* struct_name, StructField* fields, int
         } else {
             // For single values, use DataView for direct memory access
             fprintf(out, "    get %s() {\n", fields[i].name);
-            fprintf(out, "        const view = new DataView(this._memory.buffer);\n");
-            fprintf(out, "        return view.getUint32(this._ptr + %d * 4, true);\n", offset);
+            // fprintf(out, "        const view = new DataView(this._memory.buffer);\n");
+            fprintf(out, "        return this._view.getUint32(this._ptr + %d * 4, true);\n", offset);
             fprintf(out, "    }\n");
             fprintf(out, "    set %s(value) {\n", fields[i].name);
-            fprintf(out, "        const view = new DataView(this._memory.buffer);\n");
-            fprintf(out, "        view.setUint32(this._ptr + %d * 4, value, true);\n", offset);
+            fprintf(out, "        this._view.setUint32(this._ptr + %d * 4, value, true);\n", offset);
             fprintf(out, "    }\n\n");
             offset++;
         }

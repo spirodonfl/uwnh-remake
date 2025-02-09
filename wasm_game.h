@@ -189,18 +189,27 @@ u32 max(u32 a, u32 b)
     void update_storage_##LOWERSCORE##_used_slots() \
     { \
         u32 usi = 0; \
+        u32 total = 0; \
+        u32 open_slot = SENTRY; \
         for (u32 i = 0; i < MAX_COUNT; ++i) \
         { \
             if (storage_##LOWERSCORE.used[i] == true) \
             { \
                 storage_##LOWERSCORE##_used_slots[usi] = i; \
+                ++total; \
             } \
             else \
             { \
+                if (open_slot == SENTRY) \
+                { \
+                    open_slot = i; \
+                } \
                 storage_##LOWERSCORE##_used_slots[usi] = SENTRY; \
             } \
             ++usi; \
         } \
+        storage_##LOWERSCORE.count = total; \
+        storage_##LOWERSCORE.next_open_slot = open_slot; \
     } \
     u32 pull_storage_##LOWERSCORE##_next_open_slot() \
     { \
@@ -228,21 +237,21 @@ u32 max(u32 a, u32 b)
         if (storage_##LOWERSCORE.used[id] == true) \
         { \
             storage_##LOWERSCORE.used[id] = false; \
-            storage_##LOWERSCORE.next_open_slot = id; \
-            --storage_##LOWERSCORE.count; \
         } \
         update_storage_##LOWERSCORE##_used_slots(); \
     }
 
 #define ADD_STORAGE_FUNC(LOWERSCORE, UPPERSCORE) \
-    void add_storage_##LOWERSCORE(UPPERSCORE* source, bool force_clear) \
+    u32 add_storage_##LOWERSCORE(UPPERSCORE* source, bool force_clear) \
     { \
         u32 new_id = pull_storage_##LOWERSCORE##_next_open_slot(); \
         assign_storage_##LOWERSCORE(new_id, source); \
+        source->id = new_id; \
         if (force_clear) \
         { \
             CLEAR_STRUCT(source, SENTRY); \
         } \
+        return new_id; \
     }
 
 #define FIND_STORAGE_BY_NAME_ID_FUNC(LOWERSCORE, UPPERSCORE, MAX_COUNT) \
@@ -303,13 +312,12 @@ u32 get_max_worlds() { return MAX_WORLDS; }
 #define MAX_WORLD_WIDTH 50
 #define MAX_WORLD_HEIGHT 50
 #define MAX_LAYER_SIZE (MAX_WORLD_WIDTH * MAX_WORLD_HEIGHT)
+#define MAX_SHIP_CARGO_SPACE 1000
 
 // -----------------------------------------------------------------------------
 // FORWARD DECLARATIONS
 // -----------------------------------------------------------------------------
 u32 get_player_npc_id(u32 player_id);
-void set_which_player_you_are(u32 player_id);
-u32 which_player_are_you = SENTRY;
 
 void move_player_left(u32 player_id);
 void move_player_right(u32 player_id);
@@ -322,6 +330,7 @@ u32 get_player_in_world(u32 player_id);
 u32 get_player_in_world_x(u32 player_id);
 u32 get_player_in_world_y(u32 player_id);
 
+void fake_ocean_battle();
 u32 scene_blackjack(u32 action);
 u32 scene_general_shop(u32 action);
 u32 scene_ocean_battle(u32 action);
@@ -462,6 +471,14 @@ u32* get_storage_npc_used_slots_ptr()
 { return (u32*)&storage_npc_used_slots[0]; }
 STORAGE_STRUCT(npc, DATA_NPC, data_npc, MAX_NPCS)
 FIND_STORAGE_BY_NAME_ID_FUNC(npc, DATA_NPC, MAX_NPCS)
+void assign_storage_npc(u32 id, DATA_NPC* source)
+{
+    storage_npc.data[id].id = id;
+    source->id = id;
+    storage_npc.data[id].name_id = source->name_id;
+    storage_npc.data[id].type = source->type;
+}
+ADD_STORAGE_FUNC(npc, DATA_NPC)
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -476,6 +493,14 @@ u32* get_storage_general_item_used_slots_ptr()
 { return (u32*)&storage_general_item_used_slots[0]; }
 STORAGE_STRUCT(general_item, DATA_GENERAL_ITEM, data_general_item, MAX_GENERAL_ITEMS)
 FIND_STORAGE_BY_NAME_ID_FUNC(general_item, DATA_GENERAL_ITEM, MAX_GENERAL_ITEMS)
+void assign_storage_general_item(u32 id, DATA_GENERAL_ITEM* source)
+{
+    storage_general_item.data[id].id = id;
+    source->id = id;
+    storage_general_item.data[id].name_id = source->name_id;
+    storage_general_item.data[id].base_price = source->base_price;
+}
+ADD_STORAGE_FUNC(general_item, DATA_GENERAL_ITEM)
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -520,6 +545,11 @@ typedef struct __attribute__((packed))
     u32 tacking;
     u32 power;
     u32 speed;
+    u32 crew;
+    u32 hull;
+    u32 cargo_goods[MAX_SHIP_CARGO_SPACE];
+    u32 cargo_goods_qty[MAX_SHIP_CARGO_SPACE];
+    u32 total_cargo_goods;
 } DATA_SHIP;
 /** EXPORT TO JS **/
 u32 storage_ship_used_slots[MAX_SHIPS];
@@ -538,6 +568,15 @@ void assign_storage_ship(u32 id, DATA_SHIP* source)
     storage_ship.data[id].tacking = source->tacking;
     storage_ship.data[id].power = source->power;
     storage_ship.data[id].speed = source->speed;
+    storage_ship.data[id].total_cargo_goods = source->total_cargo_goods;
+    for (u32 i = 0; i < MAX_SHIP_CARGO_SPACE; ++i)
+    {
+        storage_ship.data[id].cargo_goods[i] = source->cargo_goods[i];
+    }
+    for (u32 i = 0; i < MAX_SHIP_CARGO_SPACE; ++i)
+    {
+        storage_ship.data[id].cargo_goods_qty[i] = source->cargo_goods_qty[i];
+    }
 }
 ADD_STORAGE_FUNC(ship, DATA_SHIP)
 
@@ -661,7 +700,8 @@ void assign_storage_world(u32 id, DATA_WORLD* source)
     storage_world.data[id].total_npcs = source->total_npcs;
     storage_world.data[id].total_captains = source->total_captains;
     storage_world.data[id].total_layers = source->total_layers;
-    for (u32 i = 0; i < MAX_LAYERS; ++i) {
+    for (u32 i = 0; i < MAX_LAYERS; ++i)
+    {
         storage_world.data[id].layers[i] = source->layers[i];
     }
 }
@@ -698,6 +738,25 @@ void clear_all_world_npcs()
         free_storage_world_npc_slot(i);
     }
 }
+void assign_storage_world_npc(u32 id, DATA_WORLD_NPC* source)
+{
+    storage_world_npc.data[id].id = id;
+    source->id = id;
+    storage_world_npc.data[id].name_id = source->name_id;
+    storage_world_npc.data[id].npc_id = source->npc_id;
+    storage_world_npc.data[id].position_x = source->position_x;
+    storage_world_npc.data[id].position_y = source->position_y;
+    storage_world_npc.data[id].direction = source->direction;
+    storage_world_npc.data[id].is_interactable = source->is_interactable;
+    storage_world_npc.data[id].is_captain = source->is_captain;
+    storage_world_npc.data[id].interaction_scene = source->interaction_scene;
+    storage_world_npc.data[id].is_player = source->is_player;
+    storage_world_npc.data[id].inventory_id = source->inventory_id;
+    storage_world_npc.data[id].entity_id = source->entity_id;
+    storage_world_npc.data[id].captain_id = source->captain_id;
+    storage_world_npc.data[id].type_id = source->type_id;
+}
+ADD_STORAGE_FUNC(world_npc, DATA_WORLD_NPC)
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -717,6 +776,9 @@ typedef struct __attribute__((packed))
     u32 inventory_id;
     u32 player_id;
     u32 general_of_fleet_id;
+    u32 stats_id;
+    u32 skills[20];
+    u32 test_for_pointer[20];
 } DATA_CAPTAIN;
 /** EXPORT TO JS **/
 u32 storage_captain_used_slots[MAX_CAPTAINS];
@@ -724,6 +786,58 @@ u32* get_storage_captain_used_slots_ptr()
 { return (u32*)&storage_captain_used_slots[0]; }
 STORAGE_STRUCT(captain, DATA_CAPTAIN, data_captain, MAX_CAPTAINS)
 FIND_STORAGE_BY_NAME_ID_FUNC(captain, DATA_CAPTAIN, MAX_CAPTAINS)
+void assign_storage_captain(u32 id, DATA_CAPTAIN* source)
+{
+    storage_captain.data[id].id = id;
+    source->id = id;
+    storage_captain.data[id].name_id = source->name_id;
+    storage_captain.data[id].npc_id = source->npc_id;
+    storage_captain.data[id].world_npc_id = source->world_npc_id;
+    storage_captain.data[id].in_world = source->in_world;
+    storage_captain.data[id].global_position_x = source->global_position_x;
+    storage_captain.data[id].global_position_y = source->global_position_y;
+    storage_captain.data[id].in_port = source->in_port;
+    storage_captain.data[id].on_land = source->on_land;
+    storage_captain.data[id].in_ocean = source->in_ocean;
+    storage_captain.data[id].sailing = source->sailing;
+    storage_captain.data[id].gold = source->gold;
+    storage_captain.data[id].inventory_id = source->inventory_id;
+    storage_captain.data[id].player_id = source->player_id;
+    storage_captain.data[id].stats_id = source->stats_id;
+    storage_captain.data[id].general_of_fleet_id = source->general_of_fleet_id;
+    for (u32 i = 0; i < 20; ++i)
+    {
+        storage_captain.data[id].skills[i] = source->skills[i];
+    }
+}
+ADD_STORAGE_FUNC(captain, DATA_CAPTAIN)
+// ------------------------- POINTER TESTING STARTS ------------------------- //
+// NOTE: This test proves that we can get a pointer to something directly into wasm
+// NOTE: This test also proves that we can get a pointer AND length in wasm (for dataview ops)
+// wasm.exports.do_what_now();
+// new Uint32Array(wasm.exports.memory.buffer, wasm.exports.say_what_now(), 56);
+typedef struct __attribute__((packed))
+{
+    DATA_CAPTAIN* some_ref;
+} SOME_REF;
+SOME_REF some_ref;
+void do_what_now()
+{
+    some_ref.some_ref = &storage_captain.data[0];
+}
+u32* say_what_now()
+{
+    args[0].i = (sizeof(DATA_CAPTAIN) / sizeof(u32));
+    args[1].i = (sizeof(storage_captain.data[0].test_for_pointer) / sizeof(u32));
+    args[2].i = (sizeof(storage_captain.data[0].world_npc_id) / sizeof(u32));
+    // We can replace struct_extractor.c with this
+    char* test_str =
+        "STRUCT_DATA_CAPTAIN->"
+        "{\"struct_size\":%d,\"ptr_test\":%d,\"wnpcid\":%d}";
+    console_log_format(test_str, args, 3);
+    return (u32*)some_ref.some_ref;
+}
+// ------------------------- POINTER TESTING ENDS ------------------------- //
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -873,6 +987,18 @@ void add_item_to_inventory(u32 item_id, u32 inventory_id)
     storage_inventory_item.data[item_id].inventory_id = inventory_id;
     update_inventory_items(inventory_id);
 }
+void assign_storage_inventory(u32 id, DATA_INVENTORY* source)
+{
+    storage_inventory.data[id].id = id;
+    source->id = id;
+    storage_inventory.data[id].name_id = source->name_id;
+    storage_inventory.data[id].total_items = source->total_items;
+    for (u32 i = 0; i < MAX_INVENTORY_ITEMS; ++i)
+    {
+        storage_inventory.data[id].inventory_items[i] = source->inventory_items[i];
+    }
+}
+ADD_STORAGE_FUNC(inventory, DATA_INVENTORY)
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -955,6 +1081,13 @@ typedef struct __attribute__((packed))
     u32 battle_level;
     u32 navigation_level;
     u32 leadership;
+    u32 seamanship;
+    u32 knowledge;
+    u32 intuition;
+    u32 courage;
+    u32 swordsmanship;
+    u32 charm;
+    u32 luck;
 } DATA_STATS;
 /** EXPORT TO JS **/
 u32 storage_stats_used_slots[MAX_STATS];
@@ -962,13 +1095,43 @@ u32* get_storage_stats_used_slots_ptr()
 { return (u32*)&storage_stats_used_slots[0]; }
 STORAGE_STRUCT(stats, DATA_STATS, data_stats, MAX_STATS)
 FIND_STORAGE_BY_NAME_ID_FUNC(stats, DATA_STATS, MAX_STATS)
+void assign_storage_stats(u32 id, DATA_STATS* source)
+{
+    storage_stats.data[id].id = id;
+    source->id = id;
+    storage_stats.data[id].name_id = source->name_id;
+    storage_stats.data[id].battle_level = source->battle_level;
+    storage_stats.data[id].navigation_level = source->navigation_level;
+    storage_stats.data[id].leadership = source->leadership;
+    storage_stats.data[id].seamanship = source->seamanship;
+    storage_stats.data[id].knowledge = source->knowledge;
+    storage_stats.data[id].intuition = source->intuition;
+    storage_stats.data[id].courage = source->courage;
+    storage_stats.data[id].swordsmanship = source->swordsmanship;
+    storage_stats.data[id].charm = source->charm;
+    storage_stats.data[id].luck = source->luck;
+}
+ADD_STORAGE_FUNC(stats, DATA_STATS)
+void default_stats(DATA_STATS* source)
+{
+    source->battle_level = 0;
+    source->navigation_level = 0;
+    source->leadership = 0;
+    source->seamanship = 0;
+    source->knowledge = 0;
+    source->intuition = 0;
+    source->courage = 0;
+    source->swordsmanship = 0;
+    source->charm = 0;
+    source->luck = 0;
+}
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
 {
     u32 id;
     u32 name_id;
-    u32 stats_requirements;
+    u32 stats_requirements_id;
 } DATA_SKILL;
 /** EXPORT TO JS **/
 u32 storage_skill_used_slots[MAX_SKILLS];
@@ -976,6 +1139,13 @@ u32* get_storage_skill_used_slots_ptr()
 { return (u32*)&storage_skill_used_slots[0]; }
 STORAGE_STRUCT(skill, DATA_SKILL, data_skill, MAX_SKILLS)
 FIND_STORAGE_BY_NAME_ID_FUNC(skill, DATA_SKILL, MAX_SKILLS)
+void assign_storage_skill(u32 id, DATA_SKILL* source)
+{
+    storage_skill.data[id].id = id;
+    source->id = id;
+    storage_skill.data[id].stats_requirements_id = source->stats_requirements_id;
+}
+ADD_STORAGE_FUNC(skill, DATA_SKILL)
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -1033,29 +1203,16 @@ void assign_storage_fleet(u32 id, DATA_FLEET* source)
     storage_fleet.data[id].accountant_id = source->accountant_id;
     storage_fleet.data[id].navigator_id = source->navigator_id;
     storage_fleet.data[id].general_id = source->general_id;
-    for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i) {
+    for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
+    {
         storage_fleet.data[id].ship_ids[i] = source->ship_ids[i];
     }
-    for (u32 i = 0; i < MAX_FLEET_CAPTAINS; ++i) {
+    for (u32 i = 0; i < MAX_FLEET_CAPTAINS; ++i)
+    {
         storage_fleet.data[id].captain_ids[i] = source->captain_ids[i];
     }
 }
 ADD_STORAGE_FUNC(fleet, DATA_FLEET)
-bool add_fleet_ship_to_fleet(u32 fleet_ship_id, u32 fleet_id)
-{
-    bool added = false;
-    for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
-    {
-        if (storage_fleet.data[fleet_id].ship_ids[i] != SENTRY)
-        {
-            continue;
-        }
-        added = true;
-        storage_fleet.data[fleet_id].ship_ids[i] = fleet_ship_id;
-        break;
-    }
-    return added;
-}
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -1083,6 +1240,23 @@ void assign_storage_fleet_ship(u32 id, DATA_FLEET_SHIP* source)
     storage_fleet_ship.data[id].is_flagship = source->is_flagship;
 }
 ADD_STORAGE_FUNC(fleet_ship, DATA_FLEET_SHIP)
+bool add_fleet_ship_to_fleet(u32 fleet_ship_id, u32 fleet_id)
+{
+    bool added = false;
+    for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
+    {
+        if (storage_fleet.data[fleet_id].ship_ids[i] != SENTRY)
+        {
+            continue;
+        }
+        added = true;
+        storage_fleet.data[fleet_id].ship_ids[i] = fleet_ship_id;
+        // Just to make sure the ship is assigned this fleet
+        storage_fleet_ship.data[fleet_ship_id].fleet_id = fleet_id;
+        break;
+    }
+    return added;
+}
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -1157,15 +1331,16 @@ enum GameStrings
 
     // Scenes
     SCENE_BLACKJACK, SCENE_GENERAL_SHOP, SCENE_DOCKYARD, SCENE_OCEAN_BATTLE,
+    SCENE_OCEAN_FAKE_BATTLE,
     SCENE_BANK, SCENE_NPC_RVICE, SCENE_NPC_LAFOLIE, SCENE_NPC_NAKOR,
     SCENE_NPC_TRAVIS, SCENE_NPC_LOLLER,
 
     // Inventories
-    INVENTORY_ATHENS_GENERAL_SHOP, INVENTORY_PLAYER_ONES_INVENTORY,
-    INVENTORY_PLAYER_TWOS_INVENTORY, INVENTORY_PLAYER_THREES_INVENTORY,
-    INVENTORY_PLAYER_FOURS_INVENTORY, INVENTORY_PLAYER_FIVES_INVENTORY,
+    INVENTORY_ATHENS_GENERAL_SHOP, INVENTORY_PLAYER_ONE,
+    INVENTORY_PLAYER_TWO, INVENTORY_PLAYER_THREE,
+    INVENTORY_PLAYER_FOUR, INVENTORY_PLAYER_FIVE, INVENTORY_NPC_LOLLER,
     INVENTORY_NPC_RVICE, INVENTORY_NPC_LAFOLIE, INVENTORY_NPC_NAKOR,
-    INVENTORY_NPC_TRAVIS,
+    INVENTORY_NPC_TRAVIS, INVENTORY_NPC_BLACKBEARD, INVENTORY_NPC_DAVEY_JONES,
 
     // Inventory Types
     INVENTORY_TYPE_GOOD, INVENTORY_TYPE_ARMOR, INVENTORY_TYPE_WEAPON,
@@ -1186,7 +1361,7 @@ enum GameStrings
     NPC_EMPTY, NPC_BLACKBEARD, NPC_DAVEY_JONES, NPC_KRAKEN, NPC_SHIP,
 
     // NPC types
-    NPC_TYPE_HUMAN, NPC_TYPE_SHIP,
+    NPC_TYPE_HUMAN, NPC_TYPE_SHIP, NPC_TYPE_MONSTER,
 
     // Worlds
     WORLD_DINGUS_LAND, WORLD_ATHENS,
@@ -1235,6 +1410,14 @@ enum GameStrings
 
     // Ship Materials
     SHIP_MATERIAL_TEAK, SHIP_MATERIAL_OAK,
+
+    // Skills
+    SKILL_CELESTIAL_NAVIGATION,
+
+    // Ocean Battle
+    OCEAN_BATTLE_END_TURN, OCEAN_BATTLE_EXIT, OCEAN_BATTLE_MOVE,
+    OCEAN_BATTLE_BOARD, OCEAN_BATTLE_FIRE_CANNONS,
+    OCEAN_BATTLE_RUN_NPC_TURN,
 
     GAME_STRINGS_COUNT,
 };
@@ -1292,6 +1475,11 @@ u32 current_scene_take_action(u32 action)
             return scene_general_shop(action);
         case SCENE_BANK:
             return scene_bank(action);
+        case SCENE_OCEAN_BATTLE:
+            return scene_ocean_battle(action);
+        default:
+            console_log("[I] Possibly missing scene map!");
+            break;
     }
     return SENTRY;
 }
@@ -1413,17 +1601,10 @@ void handle_interaction_scene(u32 interaction_scene, u32 world_npc_id)
         Scene_General_Shop.inventory_id = storage_world_npc.data[world_npc_id].inventory_id;
         scene_general_shop(ACTION);
     }
-    else if (interaction_scene == SCENE_OCEAN_BATTLE)
+    else if (interaction_scene == SCENE_OCEAN_FAKE_BATTLE)
     {
-        // clear_ocean_battle_fleets();
-        // add_fleet_to_battle(get_fleet_id_by_general_id(players[0]));
-        // add_fleet_to_battle(get_fleet_id_by_general_id(find_storage_npc_by_name_id(NPC_TRAVIS)));
-        // add_fleet_to_battle(get_fleet_id_by_general_id(find_storage_npc_by_name_id(NPC_LOLLER)));
-        // add_fleet_to_battle(get_fleet_id_by_general_id(players[1]));
-        // add_fleet_to_battle(get_fleet_id_by_general_id(find_storage_npc_by_name_id(NPC_LAFOLIE)));
-        // add_fleet_to_battle(get_fleet_id_by_general_id(find_storage_npc_by_name_id(NPC_NAKOR)));
-        // scene_ocean_battle(SCENE_ACTION_INIT);
-        console_log("TODO: Ocean battle scene");
+        fake_ocean_battle();
+        scene_ocean_battle(ACTION);
     }
     else if (interaction_scene == SCENE_NPC_RVICE)
     {
@@ -1612,6 +1793,8 @@ u32 are_coordinates_blocked(u32 x, u32 y)
             continue;
         }
         if (
+            storage_world_npc.used[i] == true
+            &&
             storage_world_npc.data[i].position_x == x
             &&
             storage_world_npc.data[i].position_y == y
@@ -1627,30 +1810,38 @@ u32 are_coordinates_blocked(u32 x, u32 y)
         u32 layer_value = layer_get_value(block_layer_id, x, y);
         if (layer_value > 0 && layer_value != SENTRY)
         {
+            console_log("Block layer block");
             return 1;
         }
     }
     return 0;
 }
 
+DATA_WORLD* get_current_world()
+{
+    return &storage_world.data[current.world];
+}
 void generate_world(u32 world_name_id)
 {
     clear_all_layers();
     clear_all_world_npcs();
     clear_all_entities();
+    // NOTE: An example of using pointers that have no perf cost
+    DATA_WORLD* current_world = get_current_world();
     // TODO: Function for this?
     for (u32 i = 0; i < MAX_LAYERS; ++i)
     {
-        storage_world.data[current.world].layers[i] = SENTRY;
+        current_world->layers[i] = SENTRY;
     }
+    current_world->total_layers = 0;
 
     if (world_name_id == WORLD_DINGUS_LAND)
     {
         previous_game_mode = current.game_mode;
         current.game_mode = GAME_MODE_IN_PORT;
         set_current_world(find_storage_world_by_name_id(WORLD_DINGUS_LAND));
-        u32 world_width = storage_world.data[current.world].width;
-        u32 world_height = storage_world.data[current.world].height;
+        u32 world_width = current_world->width;
+        u32 world_height = current_world->height;
 
         u32 lid = pull_storage_layer_next_open_slot();
         storage_layer.data[lid].name_id = LAYER_BACKGROUND;
@@ -1688,8 +1879,8 @@ void generate_world(u32 world_name_id)
 
         set_current_world(find_storage_world_by_name_id(WORLD_ATHENS));
 
-        u32 world_width = storage_world.data[current.world].width;
-        u32 world_height = storage_world.data[current.world].height;
+        u32 world_width = current_world->width;
+        u32 world_height = current_world->height;
 
         u32 lid = pull_storage_layer_next_open_slot();
         storage_layer.data[lid].name_id = LAYER_BACKGROUND;
@@ -1884,7 +2075,7 @@ void generate_world(u32 world_name_id)
         storage_world_npc.data[wnpcid].position_x = 0;
         storage_world_npc.data[wnpcid].position_y = 1;
         storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].interaction_scene = SCENE_OCEAN_BATTLE;
+        storage_world_npc.data[wnpcid].interaction_scene = SCENE_OCEAN_FAKE_BATTLE;
         storage_world_npc.data[wnpcid].is_interactable = true;
         ++storage_world.data[current.world].total_npcs;
         update_npc_layer(wnpcid);
@@ -2073,10 +2264,6 @@ void move_world_npc_down(u32 world_npc_id)
 // -----------------------------------------------------------------------------
 // PLAYERS
 // -----------------------------------------------------------------------------
-void set_which_player_you_are(u32 player_id)
-{
-    which_player_are_you = player_id;
-}
 u32 get_player_gold(u32 player_id)
 {
     u32 captain_id = players[player_id];
@@ -2195,6 +2382,130 @@ void tick()
     // TODO: fsm_tick();
 }
 
+u32 initialize_npc(u32 name_id, u32 type_id)
+{
+    DATA_NPC npc;
+    CLEAR_STRUCT(&npc, SENTRY);
+    npc.name_id = NPC_PLAYER_ONE;
+    npc.type = NPC_TYPE_HUMAN;
+    return add_storage_npc(&npc, false);
+}
+u32 initialize_general_item(u32 name_id, u32 base_price)
+{
+    DATA_GENERAL_ITEM item;
+    CLEAR_STRUCT(&item, SENTRY);
+    item.name_id = name_id;
+    item.base_price = base_price;
+    return add_storage_general_item(&item, true);
+}
+u32 initialize_inventory(u32 name_id)
+{
+    DATA_INVENTORY inventory;
+    CLEAR_STRUCT(&inventory, SENTRY);
+    inventory.name_id = name_id;
+    inventory.total_items = 0;
+    for (u32 i = 0; i < MAX_INVENTORY_ITEMS; ++i)
+    {
+        inventory.inventory_items[i] = SENTRY;
+    }
+    return add_storage_inventory(&inventory, true);
+}
+u32 initialize_stats()
+{
+    DATA_STATS stats;
+    CLEAR_STRUCT(&stats, SENTRY);
+    default_stats(&stats);
+    // TODO: Remove this later
+    stats.seamanship = 33;
+    return add_storage_stats(&stats, true);
+}
+u32 initialize_skill(u32 name_id)
+{
+    u32 stats_id = initialize_stats();
+    DATA_STATS* stats = &storage_stats.data[stats_id];
+    stats->battle_level = 2;
+    stats->navigation_level = 22;
+    stats->leadership = 3;
+    stats->seamanship = 4;
+    stats->knowledge = 30;
+    stats->intuition = 23;
+    stats->courage = 12;
+    stats->swordsmanship = 8;
+    stats->charm = 33;
+    stats->luck = 99;
+
+    DATA_SKILL skill;
+    CLEAR_STRUCT(&skill, SENTRY);
+    skill.name_id = name_id;
+    skill.stats_requirements_id = stats_id;
+    return add_storage_skill(&skill, true);
+}
+u32 initialize_fleet(u32 name_id, u32 general_id)
+{
+    DATA_FLEET fleet;
+    CLEAR_STRUCT(&fleet, SENTRY);
+    fleet.name_id = name_id;
+    fleet.total_ships = 1;
+    fleet.total_captains = 1;
+    fleet.general_id = general_id;
+    return add_storage_fleet(&fleet, true);
+}
+u32 initialize_ship(u32 name_id)
+{
+    DATA_SHIP ship;
+    CLEAR_STRUCT(&ship, SENTRY);
+    ship.name_id = name_id;
+    return add_storage_ship(&ship, true);
+}
+u32 initialize_fleet_ship(u32 name_id, u32 ship_id)
+{
+    DATA_FLEET_SHIP fleet_ship;
+    CLEAR_STRUCT(&fleet_ship, SENTRY);
+    fleet_ship.name_id = name_id;
+    fleet_ship.ship_id = ship_id;
+    return add_storage_fleet_ship(&fleet_ship, true);
+}
+u32 initialize_captain(u32 name_id, u32 type_id, u32 inventory_name_id)
+{
+    u32 npc_id = initialize_npc(name_id, type_id);
+
+    DATA_CAPTAIN captain;
+    CLEAR_STRUCT(&captain, SENTRY);
+    captain.name_id = name_id;
+    captain.npc_id = npc_id;
+    captain.gold = 100;
+    captain.inventory_id = initialize_inventory(inventory_name_id);
+    u32 stats_id = initialize_stats();
+    captain.stats_id = stats_id;
+    // We need to do this so we can get a captain id to reference later
+    u32 captain_id = add_storage_captain(&captain, true);
+    u32 fleet_id = initialize_fleet(name_id, captain.id);
+    storage_captain.data[captain_id].general_of_fleet_id = fleet_id;
+    storage_fleet.data[fleet_id].general_id = captain_id;
+
+    // TODO: This area is using defaults. Later on, split this out!
+    u32 base_ship_id = find_storage_base_ship_by_name_id(BASE_SHIP_BALSA);
+    u32 ship_material_id = find_storage_ship_material_by_name_id(SHIP_MATERIAL_OAK);
+    u32 ship_id = initialize_ship(BASE_SHIP_BALSA);
+    DATA_SHIP* new_ship = &storage_ship.data[ship_id];
+    new_ship->base_ship_id = base_ship_id;
+    new_ship->price = 400;
+    new_ship->material_id = ship_material_id;
+    new_ship->capacity = 400;
+    new_ship->tacking = 30;
+    new_ship->power = 103;
+    new_ship->speed = 333;
+    new_ship->crew = 50;
+    new_ship->hull = 100;
+    new_ship->total_cargo_goods = 0;
+
+    u32 fleet_ship_id = initialize_fleet_ship(BASE_SHIP_BALSA, ship_id);
+    storage_fleet_ship.data[fleet_ship_id].is_flagship = true;
+    add_fleet_ship_to_fleet(fleet_ship_id, fleet_id);
+
+    return captain_id;
+}
+
 void initialize_game()
 {
     // NOTE: can do initialization like
@@ -2205,6 +2516,17 @@ void initialize_game()
     current.game_mode = GAME_MODE_EMPTY;
     clear_all_layers();
     CLEAR_DATA(captain_to_player, MAX_CAPTAINS);
+
+    initialize_skill(SKILL_CELESTIAL_NAVIGATION);
+    // cartography
+    // gunnery
+    // accounting
+    // negotiation
+
+    initialize_general_item(ITEM_TELESCOPE, 200);
+    initialize_general_item(ITEM_QUADRANT, 201);
+    initialize_general_item(ITEM_THEODOLITE, 202);
+    initialize_general_item(ITEM_SEXTANT, 203);
 
     DATA_WORLD athens;
     CLEAR_STRUCT(&athens, SENTRY);
@@ -2223,147 +2545,6 @@ void initialize_game()
     athens.total_layers = 0;
     add_storage_world(&athens, true);
 
-    u32 player_one_npc_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[player_one_npc_id].name_id = NPC_PLAYER_ONE;
-    storage_npc.data[player_one_npc_id].type = NPC_TYPE_HUMAN;
-    u32 player_two_npc_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[player_two_npc_id].name_id = NPC_PLAYER_TWO;
-    storage_npc.data[player_two_npc_id].type = NPC_TYPE_HUMAN;
-    u32 player_three_npc_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[player_three_npc_id].name_id = NPC_PLAYER_THREE;
-    storage_npc.data[player_three_npc_id].type = NPC_TYPE_HUMAN;
-    u32 player_four_npc_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[player_four_npc_id].name_id = NPC_PLAYER_FOUR;
-    storage_npc.data[player_four_npc_id].type = NPC_TYPE_HUMAN;
-    u32 player_five_npc_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[player_five_npc_id].name_id = NPC_PLAYER_FIVE;
-    storage_npc.data[player_five_npc_id].type = NPC_TYPE_HUMAN;
-    u32 empty_npc_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[empty_npc_id].name_id = NPC_EMPTY;
-    storage_npc.data[empty_npc_id].type = NPC_TYPE_HUMAN;
-    empty_npc_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[empty_npc_id].name_id = NPC_BLACKBEARD;
-    storage_npc.data[empty_npc_id].type = NPC_TYPE_HUMAN;
-    empty_npc_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[empty_npc_id].name_id = NPC_DAVEY_JONES;
-    storage_npc.data[empty_npc_id].type = NPC_TYPE_HUMAN;
-    empty_npc_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[empty_npc_id].name_id = NPC_KRAKEN;
-    // TODO: NPC TYPE MONSTER
-    storage_npc.data[empty_npc_id].type = NPC_TYPE_HUMAN;
-    empty_npc_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[empty_npc_id].name_id = NPC_GENERAL_SHOP_OWNER;
-    storage_npc.data[empty_npc_id].type = NPC_TYPE_HUMAN;
-    empty_npc_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[empty_npc_id].name_id = NPC_BANK_TELLER;
-    storage_npc.data[empty_npc_id].type = NPC_TYPE_HUMAN;
-    empty_npc_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[empty_npc_id].name_id = NPC_BLACKJACK_PLAYER;
-    storage_npc.data[empty_npc_id].type = NPC_TYPE_HUMAN;
-    empty_npc_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[empty_npc_id].name_id = NPC_OCEAN_BATTLE;
-    storage_npc.data[empty_npc_id].type = NPC_TYPE_HUMAN;
-    empty_npc_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[empty_npc_id].name_id = NPC_SHIP;
-    storage_npc.data[empty_npc_id].type = NPC_TYPE_HUMAN;
-    u32 npc_rvice_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[empty_npc_id].name_id = NPC_RVICE;
-    storage_npc.data[empty_npc_id].type = NPC_TYPE_HUMAN;
-    u32 npc_lafolie_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[empty_npc_id].name_id = NPC_LAFOLIE;
-    storage_npc.data[empty_npc_id].type = NPC_TYPE_HUMAN;
-    u32 npc_nakor_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[empty_npc_id].name_id = NPC_NAKOR;
-    storage_npc.data[empty_npc_id].type = NPC_TYPE_HUMAN;
-    u32 npc_travis_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[empty_npc_id].name_id = NPC_TRAVIS;
-    storage_npc.data[empty_npc_id].type = NPC_TYPE_HUMAN;
-    u32 npc_loller_id = pull_storage_npc_next_open_slot();
-    storage_npc.data[empty_npc_id].name_id = NPC_LOLLER;
-    storage_npc.data[empty_npc_id].type = NPC_TYPE_HUMAN;
-
-    u32 inventory_id = pull_storage_inventory_next_open_slot();
-    storage_inventory.data[inventory_id].name_id = INVENTORY_PLAYER_ONES_INVENTORY;
-    storage_inventory.data[inventory_id].total_items = 0;
-
-    u32 captain_id;
-    // TODO: Down the road, we need to separate the inventory and whatnot or we will override player ones stuff
-    for (u32 c = 0; c < MAX_PLAYERS; ++c)
-    {
-        captain_id = pull_storage_captain_next_open_slot();
-        if (c == 0)
-        {
-            storage_captain.data[captain_id].npc_id = player_one_npc_id;
-        }
-        else if (c == 1)
-        {
-            storage_captain.data[captain_id].npc_id = player_two_npc_id;
-        }
-        else if (c == 2)
-        {
-            storage_captain.data[captain_id].npc_id = player_three_npc_id;
-        }
-        else if (c == 3)
-        {
-            storage_captain.data[captain_id].npc_id = player_four_npc_id;
-        }
-        else if (c == 4)
-        {
-            storage_captain.data[captain_id].npc_id = player_five_npc_id;
-        }
-        storage_captain.data[captain_id].player_id = 0;
-        storage_captain.data[captain_id].gold = 99;
-        storage_captain.data[captain_id].inventory_id = inventory_id;
-        players[c] = captain_id;
-        captain_to_player[captain_id] = c;
-    }
-    
-    inventory_id = pull_storage_inventory_next_open_slot();
-    storage_inventory.data[inventory_id].name_id = INVENTORY_NPC_RVICE;
-    storage_inventory.data[inventory_id].total_items = 0;
-    captain_id = pull_storage_captain_next_open_slot();
-    storage_captain.data[captain_id].npc_id = npc_rvice_id;
-    storage_captain.data[captain_id].player_id = 0;
-    storage_captain.data[captain_id].gold = 100;
-    storage_captain.data[captain_id].inventory_id = inventory_id;
-    inventory_id = pull_storage_inventory_next_open_slot();
-    storage_inventory.data[inventory_id].name_id = INVENTORY_NPC_LAFOLIE;
-    storage_inventory.data[inventory_id].total_items = 0;
-    captain_id = pull_storage_captain_next_open_slot();
-    storage_captain.data[captain_id].npc_id = npc_lafolie_id;
-    storage_captain.data[captain_id].player_id = 0;
-    storage_captain.data[captain_id].gold = 100;
-    storage_captain.data[captain_id].inventory_id = inventory_id;
-    inventory_id = pull_storage_inventory_next_open_slot();
-    storage_inventory.data[inventory_id].name_id = INVENTORY_NPC_NAKOR;
-    storage_inventory.data[inventory_id].total_items = 0;
-    captain_id = pull_storage_captain_next_open_slot();
-    storage_captain.data[captain_id].npc_id = npc_nakor_id;
-    storage_captain.data[captain_id].player_id = 0;
-    storage_captain.data[captain_id].gold = 100;
-    storage_captain.data[captain_id].inventory_id = inventory_id;
-    inventory_id = pull_storage_inventory_next_open_slot();
-    storage_inventory.data[inventory_id].name_id = INVENTORY_NPC_TRAVIS;
-    storage_inventory.data[inventory_id].total_items = 0;
-    captain_id = pull_storage_captain_next_open_slot();
-    storage_captain.data[captain_id].npc_id = npc_travis_id;
-    storage_captain.data[captain_id].player_id = 0;
-    storage_captain.data[captain_id].gold = 100;
-    storage_captain.data[captain_id].inventory_id = inventory_id;
-
-    u32 general_item_id = pull_storage_general_item_next_open_slot();
-    storage_general_item.data[general_item_id].name_id = ITEM_TELESCOPE;
-    storage_general_item.data[general_item_id].base_price = 200;
-    general_item_id = pull_storage_general_item_next_open_slot();
-    storage_general_item.data[general_item_id].name_id = ITEM_QUADRANT;
-    storage_general_item.data[general_item_id].base_price = 201;
-    general_item_id = pull_storage_general_item_next_open_slot();
-    storage_general_item.data[general_item_id].name_id = ITEM_THEODOLITE;
-    storage_general_item.data[general_item_id].base_price = 203;
-    general_item_id = pull_storage_general_item_next_open_slot();
-    storage_general_item.data[general_item_id].name_id = ITEM_SEXTANT;
-    storage_general_item.data[general_item_id].base_price = 222;
-
     DATA_SHIP_MATERIAL new_ship_material;
     CLEAR_STRUCT(&new_ship_material, SENTRY);
     new_ship_material.name_id = SHIP_MATERIAL_OAK;
@@ -2371,61 +2552,50 @@ void initialize_game()
     new_ship_material.mod_power = 30;
     new_ship_material.mod_tacking = 30;
     new_ship_material.mod_speed = 30;
-    add_storage_ship_material(&new_ship_material, false);
+    u32 sm_oak_id = add_storage_ship_material(&new_ship_material, true);
 
     DATA_BASE_SHIP new_base_ship;
     CLEAR_STRUCT(&new_base_ship, SENTRY);
     new_base_ship.name_id = BASE_SHIP_BALSA;
-    new_base_ship.top_material_id = new_ship_material.id;
+    new_base_ship.top_material_id = sm_oak_id;
     new_base_ship.base_price = 100;
     new_base_ship.max_capacity = 100;
     new_base_ship.tacking = 100;
     new_base_ship.power = 100;
     new_base_ship.speed = 100;
-    add_storage_base_ship(&new_base_ship, false);
-    DATA_SHIP new_ship;
-    CLEAR_STRUCT(&new_ship, SENTRY);
-    new_ship.name_id = BASE_SHIP_BALSA;
-    new_ship.base_ship_id = new_base_ship.id;
-    new_ship.price = 400;
-    new_ship.material_id = new_ship_material.id;
-    new_ship.capacity = 400;
-    new_ship.tacking = 30;
-    new_ship.power = 103;
-    new_ship.speed = 333;
-    add_storage_ship(&new_ship, false);
+    add_storage_base_ship(&new_base_ship, true);
 
-    DATA_FLEET new_fleet;
-    CLEAR_STRUCT(&new_fleet, SENTRY);
-    new_fleet.name_id = FLEET_NAME_PLAYERS;
-    new_fleet.total_ships = 1;
-    new_fleet.total_captains = 1;
-    // Always first captain which is 0 always
-    new_fleet.general_id = 0;
-    add_storage_fleet(&new_fleet, false);
-    DATA_FLEET_SHIP new_fleet_ship;
-    CLEAR_STRUCT(&new_fleet_ship, SENTRY);
-    new_fleet_ship.name_id = BASE_SHIP_BALSA;
-    new_fleet_ship.ship_id = new_ship.id;
-    new_fleet_ship.fleet_id = new_fleet.id;
-    new_fleet_ship.is_flagship = true;
-    add_storage_fleet_ship(&new_fleet_ship, false);
-    add_fleet_ship_to_fleet(new_fleet_ship.id, new_fleet.id);
-    // Because we didn't clear these before so we could retain their IDs
-    CLEAR_STRUCT(&new_ship_material, SENTRY);
-    CLEAR_STRUCT(&new_base_ship, SENTRY);
-    CLEAR_STRUCT(&new_ship, SENTRY);
-    CLEAR_STRUCT(&new_base_ship, SENTRY);
-    CLEAR_STRUCT(&new_fleet, SENTRY);
-    CLEAR_STRUCT(&new_fleet_ship, SENTRY);
+    // Captains
+    initialize_captain(NPC_PLAYER_ONE, NPC_TYPE_HUMAN, INVENTORY_PLAYER_ONE);
+    initialize_captain(NPC_PLAYER_TWO, NPC_TYPE_HUMAN, INVENTORY_PLAYER_TWO);
+    initialize_captain(NPC_PLAYER_THREE, NPC_TYPE_HUMAN, INVENTORY_PLAYER_THREE);
+    initialize_captain(NPC_PLAYER_FOUR, NPC_TYPE_HUMAN, INVENTORY_PLAYER_FOUR);
+    initialize_captain(NPC_PLAYER_FIVE, NPC_TYPE_HUMAN, INVENTORY_PLAYER_FIVE);
+    initialize_captain(NPC_BLACKBEARD, NPC_TYPE_HUMAN, INVENTORY_NPC_BLACKBEARD);
+    initialize_captain(NPC_DAVEY_JONES, NPC_TYPE_HUMAN, INVENTORY_NPC_DAVEY_JONES);
+    initialize_captain(NPC_RVICE, NPC_TYPE_HUMAN, INVENTORY_NPC_RVICE);
+    initialize_captain(NPC_LAFOLIE, NPC_TYPE_HUMAN, INVENTORY_NPC_LAFOLIE);
+    initialize_captain(NPC_LOLLER, NPC_TYPE_HUMAN, INVENTORY_NPC_LOLLER);
+    initialize_captain(NPC_NAKOR, NPC_TYPE_HUMAN, INVENTORY_NPC_NAKOR);
+    initialize_captain(NPC_TRAVIS, NPC_TYPE_HUMAN, INVENTORY_NPC_TRAVIS);
+    // Humans
+    initialize_npc(NPC_EMPTY, NPC_TYPE_HUMAN);
+    initialize_npc(NPC_GENERAL_SHOP_OWNER, NPC_TYPE_HUMAN);
+    initialize_npc(NPC_BANK_TELLER, NPC_TYPE_HUMAN);
+    initialize_npc(NPC_BLACKJACK_PLAYER, NPC_TYPE_HUMAN);
+    initialize_npc(NPC_OCEAN_BATTLE, NPC_TYPE_HUMAN);
+    // Monsters
+    initialize_npc(NPC_KRAKEN, NPC_TYPE_MONSTER);
+    // Ships
+    initialize_npc(NPC_SHIP, NPC_TYPE_SHIP);
 }
 
 void test()
 {
-    set_player_gold(0, 1000);
+    set_player_gold(0, 9000);
     console_log("Debug ran");
 
-    u32 base_ship_id = find_storage_base_ship_by_name_id(BASE_SHIP_BALSA);
+    // u32 base_ship_id = find_storage_base_ship_by_name_id(BASE_SHIP_BALSA);
 }
 
 // -----------------------------------------------------------------------------
@@ -2887,9 +3057,23 @@ u32 scene_general_shop(u32 action)
 // -----------------------------------------------------------------------------
 // OCEAN BATTLE
 // -----------------------------------------------------------------------------
+/** EXPORT TO JS **/
+typedef struct __attribute__((packed))
+{
+    u32 id;
+    u32 dialog_id;
+    u32 flag_initialized;
+    u32 flag_confirmed;
+    u32 previous_game_mode;
+    u32 error_code;
+} DATA_SCENE_OCEAN_BATTLE;
+DATA_SCENE_OCEAN_BATTLE Scene_Ocean_Battle;
+u32* get_data_scene_ocean_battle_ptr()
+{ return (u32*)&Scene_Ocean_Battle; }
 #define MAX_OCEAN_BATTLE_FLEETS 10
 #define MAX_OCEAN_BATTLE_FLEET_SHIPS (MAX_OCEAN_BATTLE_FLEETS * MAX_FLEET_SHIPS)
 #define MAX_OCEAN_BATTLE_TURN_HISTORY 3000
+// Currently at 50 x 2 (x/y)
 #define MAX_OCEAN_BATTLE_VALID_COORDS 100
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -2897,590 +3081,693 @@ typedef struct __attribute__((packed))
     u32 turn_order_fleets[MAX_OCEAN_BATTLE_FLEETS];
     u32 turn_order_fleet_ships[MAX_OCEAN_BATTLE_FLEET_SHIPS];
     u32 turn_order_world_npcs[MAX_OCEAN_BATTLE_FLEET_SHIPS];
+    u32 turn_order_ships[MAX_OCEAN_BATTLE_FLEET_SHIPS];
     u32 total_fleets;
     u32 attacker_id;
     u32 target_id;
-    u32 total_ships_in_play;
+    u32 total_ships;
+    u32 turn_order;
     u32 turn_history[MAX_OCEAN_BATTLE_TURN_HISTORY];
     u32 valid_move_coords[MAX_OCEAN_BATTLE_VALID_COORDS];
+    u32 total_valid_move_coords;
     u32 valid_cannon_coords[MAX_OCEAN_BATTLE_VALID_COORDS];
+    u32 total_valid_cannon_coords;
     u32 valid_boarding_coords[MAX_OCEAN_BATTLE_VALID_COORDS];
+    u32 total_valid_boarding_coords;
     u32 intended_move_coords[2];
     u32 intended_cannon_coords[2];
     u32 intended_boarding_coords[2];
+    u32 victory;
+    u32 player_victory;
+    u32 fleet_victory;
+    u32 who_won;
+    u32 moved;
+    u32 attacked;
 } DATA_OCEAN_BATTLE;
 DATA_OCEAN_BATTLE data_ocean_battle;
 u32* get_data_ocean_battle_ptr()
 { return (u32*)&data_ocean_battle; }
-// void clear_ocean_battle_data(u32 data[OCEAN_BATTLE_DATA_SIZE])
-// {
-//     CLEAR_DATA(data, OCEAN_BATTLE_DATA_SIZE);
-// }
-// void clear_ocean_battle_turn_order()
-// {
-//     CLEAR_DATA(ocean_battle_turn_order, MAX_OCEAN_BATTLE_TURN_ORDERS);
-// }
-// void clear_ocean_battle_fleets()
-// {
-//     CLEAR_DATA(ocean_battle_fleets, MAX_OCEAN_BATTLE_FLEETS);
-//     ocean_battle_total_fleets = 0;
-// }
-// void add_fleet_to_battle(u32 fleet_id)
-// {
-//     for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
-//     {
-//         if (ocean_battle_fleets[i] == SENTRY)
-//         {
-//             ocean_battle_fleets[i] = fleet_id;
-//             break;
-//         }
-//     }
-//     ++ocean_battle_total_fleets;
-// }
-// u32 get_current_ocean_battle_turn_world_npc_id()
-// {
-//     return ocean_battle_turn_order[ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX]];
-// }
-// u32 get_current_ocean_battle_turn_player_id()
-// {
-//     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-//     u32 ship_id = storage_world_npc.data[world_npc_id].entity_id;
-//     u32 fleet_id = get_fleet_id_by_ship_id(ship_id);
-//     u32 general_id = get_fleet_general_id(fleet_id);
-//     if (general_id != SENTRY)
-//     {
-//         return captain_to_player[general_id];
-//     }
-//     return SENTRY;
-// }
-// u32 ocean_battle_total_targets_within_cannon_range()
-// {
-//     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-//     u32 attacker_ship_id = storage_world_npc.data[world_npc_id].entity_id;
-//     u32 attacker_fleet_ship_id = get_fleet_ship_id_by_ship_id(attacker_ship_id);
-//     u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
-//     u32 total = SENTRY;
-//     // TODO: Properly get cannon range
-//     u32 cannon_range = 8;
-//     for (u32 i = 0; i < ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY]; ++i)
-//     {
-//         if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
-//         {
-//             u32 target_npc_id = ocean_battle_turn_order[i];
-//             u32 target_ship_id = storage_world_npc.data[target_npc_id].entity_id;
-//             u32 target_fleet_ship_id = get_fleet_ship_id_by_ship_id(target_ship_id);
-//             u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
-//             if (target_fleet_id == attacker_fleet_id)
-//             {
-//                 continue;
-//             }
-//             if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0)
-//             {
-//                 continue;
-//             }
-//             u32 a_x = storage_world_npc.data[target_npc_id].position_x;
-//             u32 a_y = storage_world_npc.data[target_npc_id].position_y;
-//             u32 b_x = storage_world_npc.data[world_npc_id].position_x;
-//             u32 b_y = storage_world_npc.data[world_npc_id].position_y;
-//             // TODO: Don't target npcs that are in your own fleet or an ally
-//             if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, cannon_range))
-//             {
-//                 ++total;
-//             }
-//         }
-//     }
-//     return total;
-// }
-// u32 ocean_battle_total_targets_within_boarding_range()
-// {
-//     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-//     u32 attacker_ship_id = storage_world_npc.data[world_npc_id].entity_id;
-//     u32 attacker_fleet_ship_id = get_fleet_ship_id_by_ship_id(attacker_ship_id);
-//     u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
-//     u32 total = 0;
-//     // TODO: Properly get cannon range
-//     u32 boarding_range = 2;
-//     for (u32 i = 0; i < ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY]; ++i)
-//     {
-//         if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
-//         {
-//             u32 target_npc_id = ocean_battle_turn_order[i];
-//             u32 target_ship_id = storage_world_npc.data[target_npc_id].entity_id;
-//             u32 target_fleet_ship_id = get_fleet_ship_id_by_ship_id(target_ship_id);
-//             u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
-//             if (target_fleet_id == attacker_fleet_id)
-//             {
-//                 continue;
-//             }
-//             if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0)
-//             {
-//                 continue;
-//             }
-//             u32 a_x = storage_world_npc.data[target_npc_id].position_x;
-//             u32 a_y = storage_world_npc.data[target_npc_id].position_y;
-//             u32 b_x = storage_world_npc.data[world_npc_id].position_x;
-//             u32 b_y = storage_world_npc.data[world_npc_id].position_y;
-//             console_log("ocean battle targets within boarding range");
-//             // TODO: Don't target ships in fleet or allies
-//             if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, boarding_range))
-//             {
-//                 ++total;
-//             }
-//         }
-//     }
-//     return total;
-// }
-// u32 get_current_ocean_battle_turn_npc_x()
-// {
-//     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-//     return storage_world_npc.data[world_npc_id].position_x;
-// }
-// u32 get_current_ocean_battle_turn_npc_y()
-// {
-//     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-//     return storage_world_npc.data[world_npc_id].position_y;
-// }
-// u32 ocean_battle_find_world_npc_id_by_coordinates(u32 x, u32 y)
-// {
-//     for (u32 i = 0; i < ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY]; ++i)
-//     {
-//         if (ocean_battle_turn_order[i] != SENTRY)
-//         {
-//             u32 target_npc_id = ocean_battle_turn_order[i];
-//             u32 a_x = storage_world_npc.data[target_npc_id].position_x;
-//             u32 a_y = storage_world_npc.data[target_npc_id].position_y;
-//             if (a_x == x && a_y == y)
-//             {
-//                 return target_npc_id;
-//             }
-//         }
-//     }
-//     return SENTRY;
-// }
-// u32 ocean_battle_get_total_valid_movement_coordinates()
-// {
-//     return ocean_battle_total_valid_movement_coordinates;
-// }
-// void ocean_battle_set_total_valid_movement_coordinates(u32 value)
-// {
-//     ocean_battle_total_valid_movement_coordinates = value;
-// }
-// u32 ocean_battle_get_valid_movement_coordinates_x(u32 index)
-// {
-//     u32 offset = index * 2;
-//     return ocean_battle_valid_movement_coordinates[offset];
-// }
-// u32 ocean_battle_get_valid_movement_coordinates_y(u32 index)
-// {
-//     u32 offset = index * 2;
-//     return ocean_battle_valid_movement_coordinates[offset + 1];
-// }
-// void ocean_battle_build_valid_move_coordinates()
-// {
-//     u32 x = get_current_ocean_battle_turn_npc_x();
-//     u32 y = get_current_ocean_battle_turn_npc_y();
-//     // TODO: Why does 5 lead to the right range (of 2)?
-//     u32 movement_range = 5;
-//     u32 x_diff = 0;
-//     u32 y_diff = 0;
-//     if (x -= movement_range < 0)
-//     {
-//         if (x > movement_range)
-//         {
-//             x_diff = x - movement_range;
-//         }
-//         else
-//         {
-//             x_diff = movement_range - x;
-//         }
-//         x = 0;
-//     }
-//     else
-//     {
-//         x -= movement_range;
-//     }
-//     if (y -= movement_range < 0)
-//     {
-//         if (y > movement_range)
-//         {
-//             y_diff = y - movement_range;
-//         }
-//         else
-//         {
-//             y_diff = movement_range - y;
-//         }
-//         y = 0;
-//     }
-//     else
-//     {
-//         y -= movement_range;
-//     }
-//     for (u32 i = 0; i < MAX_VALID_MOVEMENT_COORDINATES; ++i)
-//     {
-//         ocean_battle_valid_movement_coordinates[i] = SENTRY;
-//     }
-//     ocean_battle_total_valid_movement_coordinates = 0;
-//     u32 iterator = 0;
-//     u32 full_range = movement_range * 2;
-//     while (x < (full_range + x_diff))
-//     {
-//         for (u32 inner_y = y; inner_y < ((movement_range * 2) + y_diff); ++inner_y)
-//         {
-//             if (
-//                 ocean_battle_is_world_coordinate_in_ship_movement_range(x, inner_y)
-//                 &&
-//                 !are_coordinates_blocked(x, inner_y)
-//             )
-//             {
-//                 ocean_battle_valid_movement_coordinates[iterator] = x;
-//                 ++iterator;
-//                 ocean_battle_valid_movement_coordinates[iterator] = inner_y;
-//                 ++iterator;
-//                 ++ocean_battle_total_valid_movement_coordinates;
-//             }
-//         }
-//         ++x;
-//     }
-// }
-// u32 ocean_battle_is_valid_movement_coordinates(u32 x, u32 y)
-// {
-//     for (u32 i = 0; i < MAX_VALID_MOVEMENT_COORDINATES; i += 2)
-//     {
-//         if (
-//             ocean_battle_valid_movement_coordinates[i] != SENTRY &&
-//             ocean_battle_valid_movement_coordinates[i] == x &&
-//             ocean_battle_valid_movement_coordinates[i + 1] == y
-//         ) {
-//             return true;
-//         }
-//     }
-//     return SENTRY;
-// }
-// void ocean_battle_set_valid_movement_coordinates(u32 id, u32 x, u32 y)
-// {
-//     u32 offset = id * 2;
-//     ocean_battle_valid_movement_coordinates[offset] = x;
-//     ocean_battle_valid_movement_coordinates[offset + 1] = y;
-// }
-// void ocean_battle_set_intended_boarding_coordinates(u32 x, u32 y)
-// {
-//     ocean_battle_intended_boarding_coordinates[0] = x;
-//     ocean_battle_intended_boarding_coordinates[1] = y;
-// }
-// u32 ocean_battle_get_total_valid_boarding_coordinates()
-// {
-//     return ocean_battle_total_valid_boarding_coordinates;
-// }
-// void ocean_battle_set_total_valid_boarding_coordinates(u32 value)
-// {
-//     ocean_battle_total_valid_boarding_coordinates = value;
-// }
-// void ocean_battle_build_valid_boarding_coordinates()
-// {
-//     for (u32 i = 0; i < MAX_VALID_BOARDING_COORDINATES; ++i)
-//     {
-//         ocean_battle_valid_boarding_coordinates[i] = SENTRY;
-//     }
-//     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-//     u32 attacker_ship_id = storage_world_npc.data[world_npc_id].entity_id;
-//     u32 attacker_fleet_ship_id = get_fleet_ship_id_by_ship_id(attacker_ship_id);
-//     u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
-//     ocean_battle_total_valid_boarding_coordinates = 0;
-//     u32 total = 0;
-//     // TODO: Properly get boarding range
-//     u32 boarding_range = 1;
-//     for (u32 i = 0; i < ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY]; ++i)
-//     {
-//         if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
-//         {
-//             u32 target_npc_id = ocean_battle_turn_order[i];
-//             u32 target_ship_id = storage_world_npc.data[target_npc_id].entity_id;
-//             u32 target_fleet_ship_id = get_fleet_ship_id_by_ship_id(target_ship_id);
-//             u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
-//             if (target_fleet_id == attacker_fleet_id)
-//             {
-//                 continue;
-//             }
-//             if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0)
-//             {
-//                 continue;
-//             }
-//             u32 a_x = storage_world_npc.data[target_npc_id].position_x;
-//             u32 a_y = storage_world_npc.data[target_npc_id].position_y;
-//             u32 b_x = storage_world_npc.data[world_npc_id].position_x;
-//             u32 b_y = storage_world_npc.data[world_npc_id].position_y;
-//             if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, boarding_range))
-//             {
-//                 ocean_battle_valid_boarding_coordinates[total] = a_x;
-//                 ++total;
-//                 ocean_battle_valid_boarding_coordinates[total] = a_y;
-//                 ++total;
-//                 ++ocean_battle_total_valid_boarding_coordinates;
-//             }
-//         }
-//     }
-// }
-// void ocean_battle_set_valid_boarding_coordinates(u32 id, u32 x, u32 y)
-// {
-//     u32 offset = id * 2;
-//     ocean_battle_valid_boarding_coordinates[offset] = x;
-//     ocean_battle_valid_boarding_coordinates[offset + 1] = y;
-// }
-// u32 ocean_battle_get_valid_boarding_coordinates_x(u32 which)
-// {
-//     u32 offset = which * 2;
-//     return ocean_battle_valid_boarding_coordinates[offset];
-// }
-// u32 ocean_battle_get_valid_boarding_coordinates_y(u32 which)
-// {
-//     u32 offset = which * 2;
-//     return ocean_battle_valid_boarding_coordinates[offset + 1];
-// }
-// u32 ocean_battle_is_valid_boarding_coordinates(u32 x, u32 y)
-// {
-//     for (u32 i = 0; i < MAX_VALID_BOARDING_COORDINATES; i += 2)
-//     {
-//         if (
-//             ocean_battle_valid_boarding_coordinates[i] != SENTRY &&
-//             ocean_battle_valid_boarding_coordinates[i] == x &&
-//             ocean_battle_valid_boarding_coordinates[i + 1] == y
-//         ) {
-//             return true;
-//         }
-//     }
-//     return SENTRY;
-// }
-// void ocean_battle_set_intended_cannon_coordinates(u32 x, u32 y)
-// {
-//     ocean_battle_intended_cannon_coordinates[0] = x;
-//     ocean_battle_intended_cannon_coordinates[1] = y;
-// }
-// u32 ocean_battle_get_total_valid_cannon_coordinates()
-// {
-//     return ocean_battle_total_valid_cannon_coordinates;
-// }
-// void ocean_battle_set_total_valid_cannon_coordinates(u32 value)
-// {
-//     ocean_battle_total_valid_cannon_coordinates = value;
-// }
-// void ocean_battle_build_valid_cannon_coordinates()
-// {
-//     for (u32 i = 0; i < MAX_VALID_CANNON_COORDINATES; ++i)
-//     {
-//         ocean_battle_valid_cannon_coordinates[i] = SENTRY;
-//     }
+void clear_ocean_battle()
+{
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
+    {
+        data_ocean_battle.turn_order_fleets[i] = SENTRY;
+    }
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEET_SHIPS; ++i)
+    {
+        data_ocean_battle.turn_order_fleet_ships[i] = SENTRY;
+        data_ocean_battle.turn_order_world_npcs[i] = SENTRY;
+        data_ocean_battle.turn_order_ships[i] = SENTRY;
+    }
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_TURN_HISTORY; ++i)
+    {
+        data_ocean_battle.turn_history[i] = SENTRY;
+    }
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_VALID_COORDS; ++i)
+    {
+        data_ocean_battle.valid_move_coords[i] = SENTRY;
+        data_ocean_battle.valid_cannon_coords[i] = SENTRY;
+        data_ocean_battle.valid_boarding_coords[i] = SENTRY;
+    }
+    for (u32 i = 0; i < 2; ++i)
+    {
+        data_ocean_battle.intended_move_coords[i] = SENTRY;
+        data_ocean_battle.intended_cannon_coords[i] = SENTRY;
+        data_ocean_battle.intended_boarding_coords[i] = SENTRY;
+    }
+    data_ocean_battle.total_ships = 0;
+    data_ocean_battle.total_fleets = 0;
+}
 
-//     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-//     u32 attacker_ship_id = storage_world_npc.data[world_npc_id].entity_id;
-//     u32 attacker_fleet_ship_id = get_fleet_ship_id_by_ship_id(attacker_ship_id);
-//     u32 attacker_fleet_id = get_fleet_ship_fleet_id(attacker_fleet_ship_id);
+void ob_add_fleet(u32 fleet_id)
+{
+    bool is_already_in = false;
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
+    {
+        if (data_ocean_battle.turn_order_fleets[i] == fleet_id)
+        {
+            is_already_in = true;
+            return;
+        }
+    }
+    bool added = false;
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
+    {
+        if (data_ocean_battle.turn_order_fleets[i] != SENTRY) { continue; }
+        data_ocean_battle.turn_order_fleets[i] = fleet_id;
+        ++data_ocean_battle.total_fleets;
+        added = true;
+        break;
+    }
+    if (!added)
+    {
+        console_log("[E] Could not add fleet to battle");
+        return;
+    }
+    DATA_FLEET* fleet = &storage_fleet.data[fleet_id];
+    for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
+    {
+        if (fleet->ship_ids[i] != SENTRY)
+        {
+            data_ocean_battle.turn_order_fleet_ships[data_ocean_battle.total_ships] = fleet->ship_ids[i];
+            DATA_FLEET_SHIP* fleet_ship = &storage_fleet_ship.data[fleet->ship_ids[i]];
+            data_ocean_battle.turn_order_ships[data_ocean_battle.total_ships] = fleet_ship->ship_id;
+            // create world npcs?
+            DATA_WORLD_NPC world_npc;
+            CLEAR_STRUCT(&world_npc, SENTRY);
+            world_npc.name_id = NPC_SHIP;
+            world_npc.position_x = 0;
+            world_npc.position_y = 0;
+            world_npc.direction = DIRECTION_DOWN;
+            world_npc.entity_id = fleet_ship->id;
+            world_npc.type_id = NPC_TYPE_SHIP;
+            world_npc.is_player = false;
+            if (fleet->general_id == 0)
+            {
+                world_npc.is_player = true;
+            }
+            u32 wnpcid = add_storage_world_npc(&world_npc, true);
+            data_ocean_battle.turn_order_world_npcs[data_ocean_battle.total_ships] = wnpcid;
+            ++data_ocean_battle.total_ships;
+        }
+    }
+}
+void ob_setup_turn_order()
+{
+    u32 new_fleet_ships_turn_order[MAX_OCEAN_BATTLE_FLEET_SHIPS];
+    u32 new_world_npcs_turn_order[MAX_OCEAN_BATTLE_FLEET_SHIPS];
+    u32 new_ships_turn_order[MAX_OCEAN_BATTLE_FLEET_SHIPS];
+    // TODO: Replace existing data in struct
+    // A few ways you can do this. Since total turn array size is max_fleets
+    // x max_fleet_ships you can:
+    // - iterate over first ship on each fleet, put them all in the first section
+    // -- n+1 and next section (as long as a ship exists for fleet)
+    // -- when you want full turn order, just iterate and skip sentry values
+    // - sort by highest speed, then highest tack, then so on
+    data_ocean_battle.turn_order = 0;
+}
+void ob_get_moves_in_range()
+{
+    u32 current_turn_order = data_ocean_battle.turn_order;
+    u32 current_fsid = data_ocean_battle.turn_order_fleet_ships[current_turn_order];
+    DATA_FLEET_SHIP* current_fs = &storage_fleet_ship.data[current_fsid];
+    u32 current_wnpcid = data_ocean_battle.turn_order_world_npcs[current_turn_order];
+    DATA_WORLD_NPC* current_wnpc = &storage_world_npc.data[current_wnpcid];
+    // MAX_OCEAN_BATTLE_VALID_COORDS
+    u32 current_valid_coords_iterator = 0;
+    // console_log("[I] Ready to get valid coords");
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEET_SHIPS; ++i)
+    {
+        u32 fsid = data_ocean_battle.turn_order_fleet_ships[i];
+        DATA_FLEET_SHIP* fleet_ship = &storage_fleet_ship.data[fsid];
+        if (fleet_ship->id == current_fs->id || fleet_ship->fleet_id == current_fs->fleet_id)
+        {
+            continue;
+        }
+        u32 ship_id = data_ocean_battle.turn_order_ships[i];
+        DATA_SHIP* ship = &storage_ship.data[ship_id];
+        if (ship->hull <= 0 || ship->crew <= 0)
+        {
+            continue;
+        }
+        u32 wnpcid = data_ocean_battle.turn_order_world_npcs[i];
+        DATA_WORLD_NPC* wnpc = &storage_world_npc.data[wnpcid];
+        u32 cannon_range = 8;
+        u32 boarding_range = 1;
+        if (
+            is_coordinate_in_range_of_coordinate(
+                current_wnpc->position_x,
+                current_wnpc->position_y,
+                wnpc->position_x,
+                wnpc->position_y,
+                cannon_range
+            )
+        )
+        {
+            data_ocean_battle.valid_cannon_coords[current_valid_coords_iterator] = wnpc->position_x;
+            ++current_valid_coords_iterator;
+            data_ocean_battle.valid_cannon_coords[current_valid_coords_iterator] = wnpc->position_y;
+            ++current_valid_coords_iterator;
+            ++data_ocean_battle.total_valid_cannon_coords;
+        }
+        current_valid_coords_iterator = 0;
+        if (
+            is_coordinate_in_range_of_coordinate(
+                current_wnpc->position_x,
+                current_wnpc->position_y,
+                wnpc->position_x,
+                wnpc->position_y,
+                boarding_range
+            )
+        )
+        {
+            data_ocean_battle.valid_boarding_coords[current_valid_coords_iterator] = wnpc->position_x;
+            ++current_valid_coords_iterator;
+            data_ocean_battle.valid_boarding_coords[current_valid_coords_iterator] = wnpc->position_y;
+            ++current_valid_coords_iterator;
+            ++data_ocean_battle.total_valid_boarding_coords;
+        }
+    }
+    u32 move_range = 4;
+    u32 start_x = 0;
+    u32 start_y = 0;
+    DATA_WORLD* current_world = get_current_world();
+    u32 end_x = current_world->width;
+    u32 end_y = current_world->height;
+    current_valid_coords_iterator = 0;
+    if ((current_wnpc->position_x - move_range) <= (SENTRY - 100))
+    {
+        start_x = (current_wnpc->position_x - move_range);
+    }
+    if ((current_wnpc->position_y - move_range) <= (SENTRY - 100))
+    {
+        start_y = (current_wnpc->position_y - move_range);
+    }
+    if ((current_wnpc->position_x + move_range) <= current_world->width)
+    {
+        end_x = (current_wnpc->position_x + move_range);
+    }
+    if ((current_wnpc->position_y + move_range) <= current_world->height)
+    {
+        end_y = (current_wnpc->position_y + move_range);
+    }
+    u32 cx = current_wnpc->position_x;
+    u32 cy = current_wnpc->position_y;
+    for (u32 y = start_y; y < end_y; ++y)
+    {
+        for (u32 x = start_x; x < end_x; ++x)
+        {
+            if (
+                x == current_wnpc->position_x
+                &&
+                y == current_wnpc->position_y
+            ) { continue; }
+            if (are_coordinates_blocked(x, y)) { continue; }
+            if (!is_coordinate_in_range_of_coordinate(cx, cy, x, y, move_range))
+            { continue; }
+            data_ocean_battle.valid_move_coords[current_valid_coords_iterator] = x;
+            ++current_valid_coords_iterator;
+            data_ocean_battle.valid_move_coords[current_valid_coords_iterator] = y;
+            ++current_valid_coords_iterator;
+            ++data_ocean_battle.total_valid_move_coords;
+        }
+    }
+}
+void ob_get_in_range()
+{
+    ob_get_moves_in_range();
+    // TODO: MUST extract from above
+    // ob_get_cannons_in_range();
+    // ob_get_boardings_in_range();
+}
+void ob_increment_turn_order()
+{
+    data_ocean_battle.moved = false;
+    data_ocean_battle.attacked = false;
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_VALID_COORDS; ++i)
+    {
+        data_ocean_battle.valid_move_coords[i] = SENTRY;
+        data_ocean_battle.valid_cannon_coords[i] = SENTRY;
+        data_ocean_battle.valid_boarding_coords[i] = SENTRY;
+    }
+    data_ocean_battle.total_valid_move_coords = 0;
+    data_ocean_battle.total_valid_cannon_coords = 0;
+    data_ocean_battle.total_valid_boarding_coords = 0;
+    // TODO: If Kraken, you can't just use total ships. Kraken takes a turn every time
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEET_SHIPS; ++i)
+    {
+        if (i == data_ocean_battle.turn_order) { continue; }
+        u32 ship_id = data_ocean_battle.turn_order_ships[data_ocean_battle.turn_order];
+        if (ship_id == SENTRY)
+        {
+            continue;
+        }
+        DATA_SHIP* ship = &storage_ship.data[ship_id];
+        if (ship->crew == 0 || ship->hull == 0)
+        {
+            continue;
+        }
+        data_ocean_battle.turn_order = i;
+        break;
+    }
+    u32 wnpcid = data_ocean_battle.turn_order_world_npcs[data_ocean_battle.turn_order];
+    DATA_WORLD_NPC* wnpc = &storage_world_npc.data[wnpcid];
+    if (wnpc->is_player == SENTRY || wnpc->is_player == false)
+    {
+        ob_get_in_range();
+        // TODO: Move
+        if (data_ocean_battle.total_valid_move_coords > 0)
+        {
+            u32 rand_move = get_random_number(1, data_ocean_battle.total_valid_move_coords);
+            u32 x = data_ocean_battle.valid_move_coords[rand_move];
+            u32 y = data_ocean_battle.valid_move_coords[rand_move + 1];
+            if (x != SENTRY)
+            {
+                data_ocean_battle.intended_move_coords[0] = x;
+                data_ocean_battle.intended_move_coords[1] = y;
+            }
+            else
+            {
+                args[0].i = rand_move;
+                console_log_format("somehow got a bad rand move", args, 1);
+            }
+        }
+        // TODO: A cool way to determine best attack. For now, use cannons
+        if (data_ocean_battle.total_valid_cannon_coords > 0)
+        {
+            for (u32 i = 0; i < MAX_OCEAN_BATTLE_VALID_COORDS; i += 2)
+            {
+                u32 x = data_ocean_battle.valid_cannon_coords[i];
+                u32 y = data_ocean_battle.valid_cannon_coords[i + 1];
+                if (x == SENTRY)
+                {
+                    continue;
+                }
+                data_ocean_battle.intended_cannon_coords[0] = x;
+                data_ocean_battle.intended_cannon_coords[1] = y;
+                break;
+            }
+            data_ocean_battle.intended_boarding_coords[0] = SENTRY;
+            data_ocean_battle.intended_boarding_coords[1] = SENTRY;
+        }
+        else if (data_ocean_battle.total_valid_boarding_coords > 0)
+        {
+            for (u32 i = 0; i < MAX_OCEAN_BATTLE_VALID_COORDS; i += 2)
+            {
+                u32 x = data_ocean_battle.valid_boarding_coords[i];
+                u32 y = data_ocean_battle.valid_boarding_coords[i + 1];
+                if (x == SENTRY)
+                {
+                    continue;
+                }
+                data_ocean_battle.intended_boarding_coords[0] = x;
+                data_ocean_battle.intended_boarding_coords[1] = y;
+                break;
+            }
+            data_ocean_battle.intended_cannon_coords[0] = SENTRY;
+            data_ocean_battle.intended_cannon_coords[1] = SENTRY;
+        }
+        console_log("[I] got new coords for npc");
+    }
+}
+void ob_last_man_standing()
+{
+    // MAX_OCEAN_BATTLE_FLEETS
+    // one brute force way to do is to iterate over fleet ships, get ship, if no hull or crew, one ship down
+    u32 fleet_ship_count[MAX_OCEAN_BATTLE_FLEETS] = {0};
+    u32 fleet_ship_ids[MAX_OCEAN_BATTLE_FLEET_SHIPS];
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEET_SHIPS; ++i)
+    {
+        fleet_ship_ids[i] = SENTRY;
+    }
 
-//     ocean_battle_total_valid_cannon_coordinates = 0;
-//     u32 total = 0;
-//     // TODO: Properly get cannon range
-//     u32 cannon_range = 8;
-//     for (u32 i = 0; i < ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY]; ++i)
-//     {
-//         if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
-//         {
-//             u32 target_npc_id = ocean_battle_turn_order[i];
-//             u32 target_ship_id = storage_world_npc.data[target_npc_id].entity_id;
-//             u32 target_fleet_ship_id = get_fleet_ship_id_by_ship_id(target_ship_id);
-//             u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
-//             u32 a_x = storage_world_npc.data[target_npc_id].position_x;
-//             u32 a_y = storage_world_npc.data[target_npc_id].position_y;
-//             if (target_fleet_id == attacker_fleet_id)
-//             {
-//                 continue;
-//             }
-//             if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0)
-//             {
-//                 continue;
-//             }
-//             u32 b_x = storage_world_npc.data[world_npc_id].position_x;
-//             u32 b_y = storage_world_npc.data[world_npc_id].position_y;
-//             if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, cannon_range))
-//             {
-//                 ocean_battle_valid_cannon_coordinates[total] = a_x;
-//                 ++total;
-//                 ocean_battle_valid_cannon_coordinates[total] = a_y;
-//                 ++total;
-//                 ++ocean_battle_total_valid_cannon_coordinates;
-//             }
-//         }
-//     }
-// }
-// void ocean_battle_set_valid_cannon_coordinates(u32 id, u32 x, u32 y)
-// {
-//     u32 offset = id * 2;
-//     ocean_battle_valid_cannon_coordinates[offset] = x;
-//     ocean_battle_valid_cannon_coordinates[offset + 1] = y;
-// }
-// u32 ocean_battle_get_valid_cannon_coordinates_x(u32 which)
-// {
-//     u32 offset = which * 2;
-//     return ocean_battle_valid_cannon_coordinates[offset];
-// }
-// u32 ocean_battle_get_valid_cannon_coordinates_y(u32 which)
-// {
-//     u32 offset = which * 2;
-//     return ocean_battle_valid_cannon_coordinates[offset + 1];
-// }
-// u32 ocean_battle_is_valid_cannon_coordinates(u32 x, u32 y)
-// {
-//     for (u32 i = 0; i < MAX_VALID_CANNON_COORDINATES; i += 2)
-//     {
-//         if (
-//             ocean_battle_valid_cannon_coordinates[i] != SENTRY &&
-//             ocean_battle_valid_cannon_coordinates[i] == x &&
-//             ocean_battle_valid_cannon_coordinates[i + 1] == y
-//         ) {
-//             return true;
-//         }
-//     }
-//     return SENTRY;
-// }
-// void scene_ocean_battle_increment_turn_order()
-// {
-//     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] = false;
-//     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] = false;
-//     u32 current = ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX];
-//     u32 next = SENTRY;
-//     for (u32 i = (current + 1); i < MAX_OCEAN_BATTLE_TURN_ORDERS; ++i)
-//     {
-//         if (ocean_battle_turn_order[i] != SENTRY)
-//         {
-//             next = i;
-//             break;
-//         }
-//     }
-//     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX] = next;
-//     if (next == SENTRY)
-//     {
-//         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX] = 0;
-//     }
-// }
-// void set_ocean_battle_data_intended_move_x(u32 x)
-// {
-//     ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_X] = x;
-// }
-// void set_ocean_battle_data_intended_move_y(u32 y)
-// {
-//     ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_Y] = y;
-// }
-// void set_ocean_battle_data_intended_boarding_x(u32 x)
-// {
-//     ocean_battle_intended_boarding_coordinates[0] = x;
-// }
-// void set_ocean_battle_data_intended_boarding_y(u32 y)
-// {
-//     ocean_battle_intended_boarding_coordinates[1] = y;
-// }
-// void set_ocean_battle_data_intended_cannon_x(u32 x)
-// {
-//     ocean_battle_intended_cannon_coordinates[0] = x;
-// }
-// void set_ocean_battle_data_intended_cannon_y(u32 y)
-// {
-//     ocean_battle_intended_cannon_coordinates[1] = y;
-// }
-// void set_ocean_battle_data_manual_setup(u32 value)
-// {
-//     ocean_battle_data[OCEAN_BATTLE_DATA_MANUAL_SETUP] = value;
-// }
-// u32 get_ocean_battle_data_manual_setup()
-// {
-//     return ocean_battle_data[OCEAN_BATTLE_DATA_MANUAL_SETUP];
-// }
-// u32 get_ocean_battle_data_intended_move_x()
-// {
-//     return ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_X];
-// }
-// u32 get_ocean_battle_data_intended_move_y()
-// {
-//     return ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_Y];
-// }
-// u32 get_ocean_battle_attacker_world_npc_id()
-// {
-//     return ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID];
-// }
-// u32 get_ocean_battle_target_world_npc_id()
-// {
-//     return ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID];
-// }
-// u32 ocean_battle_is_world_coordinate_in_ship_movement_range(u32 world_x, u32 world_y)
-// {
-//     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-//     u32 current_ship_id = storage_world_npc.data[world_npc_id].entity_id;
-//     // TODO: Setup an actual movement range
-//     u32 movement_range = 2;
-//     u32 b_x = SENTRY;
-//     u32 b_y = SENTRY;
-//     for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
-//     {
-//         if (storage_world_npc.data[i].entity_id == current_ship_id)
-//         {
-//             b_x = storage_world_npc.data[i].position_x;
-//             b_y = storage_world_npc.data[i].position_y;
-//             break;
-//         }
-//     }
-//     if (b_x == SENTRY || b_y == SENTRY)
-//     {
-//         console_log("Could not find ship in world");
-//         return SENTRY;
-//     }
-//     return is_coordinate_in_range_of_coordinate(world_x, world_y, b_x, b_y, movement_range);
-// }
-// u32 get_ocean_battle_current_turn_ship_x()
-// {
-//     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-//     return storage_world_npc.data[world_npc_id].position_y;
-// }
-// u32 get_ocean_battle_current_turn_ship_y()
-// {
-//     u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-//     return storage_world_npc.data[world_npc_id].position_y;
-// }
+    bool players_fleet_standing = false;
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEET_SHIPS; ++i)
+    {
+        u32 fleet_ship_id = data_ocean_battle.turn_order_fleet_ships[i];
+        u32 ship_id = data_ocean_battle.turn_order_ships[i];
+        if (fleet_ship_id == SENTRY) { continue; }
+        DATA_SHIP* ship = &storage_ship.data[ship_id];
+        if (ship->crew > 0 && ship->hull > 0)
+        {
+            u32 fleet_id = storage_fleet_ship.data[fleet_ship_id].fleet_id;
+            if (storage_fleet.data[fleet_id].general_id == 0)
+            {
+                players_fleet_standing = true;
+            }
+            ++fleet_ship_count[i];
+            fleet_ship_ids[i] = fleet_id;
+        }
+    }
+
+    u32 total_fleets_with_ships = 0;
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
+    {
+        if (fleet_ship_count[i] > 0)
+        {
+            ++total_fleets_with_ships;
+        }
+    }
+
+    if (total_fleets_with_ships > 1)
+    {
+        console_log("[I] Still more than one fleet left in the battle");
+    }
+    else if (total_fleets_with_ships == 1)
+    {
+        for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEET_SHIPS; ++i)
+        {
+            if (fleet_ship_ids[i] != SENTRY)
+            {
+                data_ocean_battle.fleet_victory = fleet_ship_ids[i];
+            }
+        }
+
+        if (players_fleet_standing)
+        {
+            data_ocean_battle.player_victory = true;
+        }
+        data_ocean_battle.victory = true;
+        console_log("[I] One fleet left. Victory condition set.");
+    }
+    else
+    {
+        console_log("[E] Got into some unknown state when checking for fleets with ships left in battle");
+    }
+}
+void fake_ocean_battle()
+{
+    generate_world(WORLD_DINGUS_LAND);
+    clear_ocean_battle();
+    // Presumably the player I hope
+    ob_add_fleet(storage_captain.data[0].general_of_fleet_id);
+    // Player two I presume
+    ob_add_fleet(storage_captain.data[1].general_of_fleet_id);
+    // we know world dingus is pretty large so just start placing npcs wherever
+
+    // TODO: Fake placement!
+    u32 total = get_storage_world_npc_total_used_slots();
+    u32 x = 0;
+    u32 y = 0;
+    for (u32 i = 0; i < total; ++i)
+    {
+        move_world_npc_to(i, x, y);
+        y += 1;
+        x += 1;
+    }
+}
 u32 scene_ocean_battle(u32 action)
 {
+    if (Scene_Ocean_Battle.flag_initialized == 0)
+    {
+        console_log("[I] Setting up ocean battle scene");
+        current.scene = SCENE_OCEAN_BATTLE;
+        Scene_Ocean_Battle.id = SCENE_OCEAN_BATTLE;
+        // Scene_Ocean_Battle.dialog_id = scene_dialog_id; ???
+        Scene_Ocean_Battle.flag_initialized = 1;
+        Scene_Ocean_Battle.flag_confirmed = 0;
+        Scene_Ocean_Battle.previous_game_mode = current.game_mode;
+        current.updated_state = UPDATED_STATE_SCENE;
+        current.game_mode = GAME_MODE_IN_SCENE;
+    }
+    if (
+        current.scene != SENTRY
+        &&
+        current.scene != Scene_Ocean_Battle.id
+    )
+    {
+        console_log("[E] Already in scene and it's not this one");
+        return SENTRY;
+    }
     /*
     if (!initialized) { initialize }
     if (!setup && !manual_setup) {
         auto setup (use stats of ships to determine order)
     }
+    */
+    u32 intended_x;
+    u32 intended_y;
     switch (action)
-        case TAKE_TURN:
-            if (victory) { peace out }
-            if (turn === NPC)
-                - auto figure out actions based on available targets or just move towards a goal
-                - store actions of NPC to render
-            if (turn === PLAYER)
-                waiting for actions
-        case CANNON:
-            if (victory) { peace out }
-            if (attacked && moved) { fail, can't do any more }
-            attacked = true
-            store actions (do not execute until end turn is submitted)
-        case BOARD:
-            if (victory) { peace out }
-            if (attacked && moved) { fail, can't do any more }
-            attacked = true
-            store actions (do not execute until end turn is submitted)
-        case MOVE:
-            if (victory) { peace out }
-            if (attacked && moved) { fail, can't do any more }
-            moved = true
-            store actions (do not execute until end turn is submitted)
-        case END_TURN:
-            if (victory) { peace out }
-            - can be npc or player, doesn't matter
-            - check for victory conditions
-            -- if victory, set victory flag
-            -- if victory, go to post victory
-            - clear actions in turn
-            - reset attacked & moved
-            - increment turn order
+    {
+    case OCEAN_BATTLE_END_TURN:
+        if (data_ocean_battle.victory)
+        {
+            console_log("[I] Battle already has a victory. Cannot end turn");
+            break;
+        }
+        console_log("[I] Ending Turn");
+        u32 wnpcid = data_ocean_battle.turn_order_world_npcs[data_ocean_battle.turn_order];
+        DATA_WORLD_NPC* wnpc = &storage_world_npc.data[wnpcid];
+        if (wnpc->is_player)
+        {
+            data_ocean_battle.intended_move_coords[0] = SENTRY;
+            data_ocean_battle.intended_move_coords[1] = SENTRY;
+            data_ocean_battle.intended_cannon_coords[0] = SENTRY;
+            data_ocean_battle.intended_cannon_coords[1] = SENTRY;
+            data_ocean_battle.intended_boarding_coords[0] = SENTRY;
+            data_ocean_battle.intended_boarding_coords[1] = SENTRY;
+            ob_increment_turn_order();
+            // Good
+            // increment turn order
+            // ob_increment_turn_order -> if npc, let them take their full turn
+        }
+        else
+        {
+            console_log("[E] Player cannot end a turn when it's not their turn");
+        }
+        break;
+    case OCEAN_BATTLE_FIRE_CANNONS:
+        if (data_ocean_battle.victory)
+        {
+            console_log("[I] Battle already has a victory. Cannot fire cannons");
+            break;
+        }
+        if (data_ocean_battle.attacked)
+        {
+            console_log("[I] Already attacked with boarding. Cannot attack again");
+            break;
+        }
+        // TODO: Assume someone puts in invalid coords every time. Check.
+        intended_x = data_ocean_battle.intended_cannon_coords[0];
+        intended_y = data_ocean_battle.intended_cannon_coords[1];
+        for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
+        {
+            if (
+                storage_world_npc.data[i].position_x == intended_x
+                &&
+                storage_world_npc.data[i].position_y == intended_y
+            )
+            {
+                u32 ship_id = storage_world_npc.data[i].entity_id;
+                DATA_SHIP* ship = &storage_ship.data[ship_id];
+                u32 damage = get_random_number(1, 200);
+                if (damage > ship->hull)
+                {
+                    ship->hull = 0;
+                }
+                else
+                {
+                    ship->hull -= damage;
+                }
+                console_log("[I] Damage dealt");
+                break;
+            }
+        }
+        data_ocean_battle.attacked = true;
+        console_log("[I] Cannon attack complete");
+        ob_last_man_standing();
+        break;
+    case OCEAN_BATTLE_BOARD:
+        if (data_ocean_battle.victory)
+        {
+            console_log("[I] Battle already has a victory. Cannot fire cannons");
+            break;
+        }
+        if (data_ocean_battle.attacked)
+        {
+            console_log("[I] Already attacked with cannons. Cannot attack again");
+            break;
+        }
+        // TODO: Assume someone puts in invalid coords every time. Check.
+        intended_x = data_ocean_battle.intended_boarding_coords[0];
+        intended_y = data_ocean_battle.intended_boarding_coords[1];
+        for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
+        {
+            if (
+                storage_world_npc.data[i].position_x == intended_x
+                &&
+                storage_world_npc.data[i].position_y == intended_y
+            )
+            {
+                u32 ship_id = storage_world_npc.data[i].entity_id;
+                DATA_SHIP* ship = &storage_ship.data[ship_id];
+                u32 damage = get_random_number(1, 40);
+                if (damage > ship->crew)
+                {
+                    ship->crew = 0;
+                }
+                else
+                {
+                    ship->crew -= damage;
+                }
+                console_log("[I] Damage dealt");
+                break;
+            }
+        }
+        data_ocean_battle.attacked = true;
+        console_log("[I] Boarding complete");
+        ob_last_man_standing();
+        break;
+    case OCEAN_BATTLE_MOVE:
+        if (data_ocean_battle.victory)
+        {
+            console_log("[I] Battle already has a victory. Cannot fire cannons");
+            break;
+        }
+        if (data_ocean_battle.moved)
+        {
+            console_log("[I] Already moved. Cannot move again.");
+            break;
+        }
+        // TODO: Assume someone puts in invalid coords every time. Check.
+        u32 wnpc_id = data_ocean_battle.turn_order_world_npcs[data_ocean_battle.turn_order];
+        storage_world_npc.data[wnpc_id].position_x = data_ocean_battle.intended_move_coords[0];
+        storage_world_npc.data[wnpc_id].position_y = data_ocean_battle.intended_move_coords[1];
+        data_ocean_battle.moved = true;
+        console_log("[I] Move completed");
+        break;
+    case OCEAN_BATTLE_RUN_NPC_TURN:
+        if (data_ocean_battle.victory)
+        {
+            console_log("[I] Battle already has a victory. Cannot fire cannons");
+        }
+        if (data_ocean_battle.moved)
+        {
+            console_log("[I] Already moved. Cannot move again.");
+        }
+        else if (data_ocean_battle.total_valid_move_coords > 0)
+        {
+            u32 wnpc_id = data_ocean_battle.turn_order_world_npcs[data_ocean_battle.turn_order];
+            storage_world_npc.data[wnpc_id].position_x = data_ocean_battle.intended_move_coords[0];
+            storage_world_npc.data[wnpc_id].position_y = data_ocean_battle.intended_move_coords[1];
+            data_ocean_battle.moved = true;
+            console_log("[I] Move completed");
+        }
+        // Even NPCs need this check
+        if (data_ocean_battle.attacked)
+        {
+            console_log("[I] Already moved. Cannot attack again.");
+        }
+        else
+        {
+            if (data_ocean_battle.total_valid_cannon_coords > 0)
+            {
+                // TODO: Assume someone puts in invalid coords every time. Check.
+                u32 intended_x = data_ocean_battle.intended_cannon_coords[0];
+                u32 intended_y = data_ocean_battle.intended_cannon_coords[1];
+                if (intended_x != SENTRY)
+                {
+                    for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
+                    {
+                        if (
+                            storage_world_npc.data[i].position_x == intended_x
+                            &&
+                            storage_world_npc.data[i].position_y == intended_y
+                        )
+                        {
+                            u32 ship_id = storage_world_npc.data[i].entity_id;
+                            DATA_SHIP* ship = &storage_ship.data[ship_id];
+                            u32 damage = get_random_number(1, 40);
+                            if (damage > ship->hull)
+                            {
+                                ship->hull = 0;
+                            }
+                            else
+                            {
+                                ship->hull -= damage;
+                            }
+                            console_log("[I] Damage dealt");
+                            break;
+                        }
+                    }
+                    data_ocean_battle.attacked = true;
+                    console_log("[I] Cannon attack complete");
+                }
+            }
+            else if (data_ocean_battle.total_valid_boarding_coords > 0)
+            {
+                // TODO: Assume someone puts in invalid coords every time. Check.
+                intended_x = data_ocean_battle.intended_boarding_coords[0];
+                intended_y = data_ocean_battle.intended_boarding_coords[1];
+                if (intended_x != SENTRY)
+                {
+                    for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
+                    {
+                        if (
+                            storage_world_npc.data[i].position_x == intended_x
+                            &&
+                            storage_world_npc.data[i].position_y == intended_y
+                        )
+                        {
+                            u32 ship_id = storage_world_npc.data[i].entity_id;
+                            DATA_SHIP* ship = &storage_ship.data[ship_id];
+                            u32 damage = get_random_number(1, 40);
+                            if (damage > ship->crew)
+                            {
+                                ship->crew = 0;
+                            }
+                            else
+                            {
+                                ship->crew -= damage;
+                            }
+                            console_log("[I] Damage dealt");
+                            break;
+                        }
+                    }
+                    data_ocean_battle.attacked = true;
+                    console_log("[I] Cannon attack complete");
+                }
+            }
+        }
+        ob_last_man_standing();
+        if (data_ocean_battle.victory == false)
+        {
+            ob_increment_turn_order();
+        }
+        break;
+    case OCEAN_BATTLE_EXIT:
+        // TODO: Maybe add a check that, if not in victory, peace out?
+        console_log("[I] Ocean battle exit. Exiting scene.");
+        Scene_Ocean_Battle.flag_confirmed = 1;
+        Scene_Ocean_Battle.flag_initialized = 0;
+        current.game_mode = Scene_Ocean_Battle.previous_game_mode;
+        current.scene = SENTRY;
+        current.updated_state = UPDATED_STATE_SCENE;
+        // Sometimes you need this but, in this scene, why?
+        // Excluding for now
+        break;
+    }
+    /*
         case POST_VICTORY_ACTIONS:
             if (!victory) { peace out }
             - add enemy ships to fleet
@@ -3490,764 +3777,7 @@ u32 scene_ocean_battle(u32 action)
             - possible to exit without doing any post victory actions
             - reset everything
     */
-
-    // if (get_current_scene() == SENTRY && action == SCENE_ACTION_INIT)
-    // {
-    //     if (ocean_battle_data[OCEAN_BATTLE_DATA_MANUAL_SETUP] == SENTRY || ocean_battle_data[OCEAN_BATTLE_DATA_MANUAL_SETUP] == false)
-    //     {
-    //         clear_ocean_battle_data(ocean_battle_data);
-    //         clear_ocean_battle_turn_order();
-    //     }
-    //     // Assumption is that we've run clear_ocean_battle_fleets
-    //     // before this point and our fleets are already setup
-    //     clear_current_scene();
-    //     set_current_scene(SCENE_OCEAN_BATTLE);
-    //     set_current_scene_string_id(get_string_id_by_machine_name("scene_ocean_battle"));
-    //     set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_SETUP);
-    //     current.game_mode = GAME_MODE_IN_SCENE;
-    //     scene_ocean_battle(SCENE_ACTION_INIT);
-    //     return SENTRY;
-    // }
-    // switch (get_current_scene_state())
-    // {
-    //     case SCENE_OCEAN_BATTLE_STATE_SETUP:
-    //     {
-    //         switch (action)
-    //         {
-    //             case SCENE_ACTION_INIT:
-    //             {
-    //                 clear_current_scene_choices();
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-    //                     get_string_id_by_machine_name("confirm")
-    //                 );
-    //                 u32 string_id = get_string_id_by_machine_name("setting_up_ocean_battle");
-    //                 set_current_scene_state_string_id(string_id);
-    //                 set_current_scene_dialogue_string_id(string_id);
-    //                 should_redraw_everything();
-
-    //                 if (ocean_battle_data[OCEAN_BATTLE_DATA_MANUAL_SETUP] == SENTRY || ocean_battle_data[OCEAN_BATTLE_DATA_MANUAL_SETUP] == false)
-    //                 {
-    //                     console_log("PLACEMENT PHASE");
-    //                     u32 world_npc_data[WORLD_NPC_DATA_SIZE];
-    //                     CLEAR_DATA(world_npc_data, WORLD_NPC_DATA_SIZE);
-    //                     u32 npc_id;
-    //                     u32 world_npc_id;
-    //                     u32 ocean_battle_turn_order_iterator = 0;
-    //                     for (u32 i = 0; i < MAX_FLEET_SHIPS; ++i)
-    //                     {
-    //                         for (u32 f = 0; f < ocean_battle_total_fleets; ++f)
-    //                         {
-    //                             u32 this_fleet_id = ocean_battle_fleets[f];
-    //                             if (this_fleet_id != SENTRY && mda_fleet_ship[this_fleet_id][i] != SENTRY)
-    //                             {
-    //                                 // ship_id = mda_fleet_ship[this_fleet_id][i]
-    //                                 npc_id = get_npc_id_by_machine_name("ship");
-    //                                 world_npc_data[WORLD_NPC_NPC_ID] = npc_id;
-    //                                 // the ship id here
-    //                                 world_npc_data[WORLD_NPC_ENTITY_ID] = mda_fleet_ship[this_fleet_id][i];
-    //                                 world_npc_data[WORLD_NPC_CAPTAIN_ID] = 0;
-    //                                 world_npc_data[WORLD_NPC_POSITION_X] = 2 + i;
-    //                                 world_npc_data[WORLD_NPC_POSITION_Y] = 6 + f + i;
-    //                                 world_npc_data[WORLD_NPC_DIRECTION] = DIRECTION_DOWN;
-    //                                 world_npc_data[WORLD_NPC_IS_INTERACTABLE] = false;
-    //                                 world_npc_data[WORLD_NPC_IS_CAPTAIN] = false;
-    //                                 world_npc_id = add_world_npc(world_npc_data);
-    //                                 ++ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY];
-    //                                 ocean_battle_turn_order[ocean_battle_turn_order_iterator] = world_npc_id;
-    //                                 ++ocean_battle_turn_order_iterator;
-    //                             }
-    //                         }
-    //                     }
-    //                 }
-    //                 ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_INDEX] = 0;
-    //                 should_redraw_everything();
-    //                 break;
-    //             }
-    //             case SCENE_MAKE_CHOICE:
-    //             {
-    //                 u32 cc = current_scene_get_current_choice();
-    //                 console_log("Making a choice in ocean battle");
-    //                 if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
-    //                 {
-    //                     console_log("Choice made");
-    //                     set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
-    //                     scene_ocean_battle(SCENE_ACTION_INIT);
-    //                     break;
-    //                 }
-    //                 break;
-    //             }
-    //         }
-    //         break;
-    //     }
-    //     case SCENE_OCEAN_BATTLE_STATE_TAKE_TURN:
-    //     {
-    //         switch (action)
-    //         {
-    //             case SCENE_ACTION_INIT:
-    //             {
-    //                 clear_current_scene_choices();
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-    //                     get_string_id_by_machine_name("confirm")
-    //                 );
-
-    //                 // If the current ship has moved & attack, auto increment
-    //                 // or if the current ship has no hull or no crew
-    //                 u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-    //                 u32 attacker_ship_id = get_world_npc_entity_id(world_npc_id);
-    //                 while (
-    //                     (
-    //                         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] == true
-    //                         &&
-    //                         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] == true
-    //                     )
-    //                     ||
-    //                     get_ship_hull(attacker_ship_id) == 0
-    //                     ||
-    //                     get_ship_crew(attacker_ship_id) == 0
-    //                 )
-    //                 {
-    //                     scene_ocean_battle_increment_turn_order();
-    //                     world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-    //                     attacker_ship_id = get_world_npc_entity_id(world_npc_id);
-    //                 }
-
-    //                 // Maybe it's good to find if the current turn is npc or player by the following
-    //                 u32 attacker_fleet_id = get_fleet_id_by_ship_id(attacker_ship_id);
-    //                 u32 attacker_general_id = get_fleet_general_id(attacker_fleet_id);
-    //                 bool npcs_turn = true;
-    //                 if (attacker_general_id == SENTRY)
-    //                 {
-    //                     console_log("During ocean battle, we got a general id with SENTRY value for a fleet");
-    //                 }
-    //                 else
-    //                 {
-    //                     u32 attacker_player_id = captain_to_player[attacker_general_id];
-    //                     if (attacker_player_id != SENTRY)
-    //                     {
-    //                         npcs_turn = false;
-    //                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_PLAYER_TAKE_TURN);
-    //                         scene_ocean_battle(SCENE_ACTION_INIT);
-    //                         should_redraw_everything();
-    //                     }
-    //                 }
-    //                 if (npcs_turn == true)
-    //                 {
-    //                     // TODO: SCENE_OCEAN_BATTLE_STATE_NPC_TAKE_TURN
-    //                     // TODO: Break out NPC actions (move & attack) so we can animate them in renderer
-    //                     // TODO: Board ship attack for npcs as a random choice (between fire cannon and board ship)
-    //                     // TODO: Have NPC ships capable of running away when health is low
-    //                     console_log("NPC TAKES ACTION");
-    //                     world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-    //                     center_camera_on(
-    //                         get_world_npc_position_x(world_npc_id),
-    //                         get_world_npc_position_y(world_npc_id)
-    //                     );
-    //                     if (get_ship_hull(attacker_ship_id) > 0 && get_ship_crew(attacker_ship_id) > 0)
-    //                     {
-    //                         u32 rando = get_random_number(1, 4);
-    //                         if (rando == 1)
-    //                         {
-    //                             move_world_npc_down(world_npc_id);
-    //                         }
-    //                         else if (rando == 2)
-    //                         {
-    //                             move_world_npc_up(world_npc_id);
-    //                         }
-    //                         else if (rando == 3)
-    //                         {
-    //                             move_world_npc_left(world_npc_id);
-    //                         }
-    //                         else if (rando == 4)
-    //                         {
-    //                             move_world_npc_right(world_npc_id);
-    //                         }
-    //                         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] = true;
-    //                     }
-
-    //                     // TODO: Make this an actual range value based on the ship & other heuristics
-    //                     u32 movement_range = 2;
-    //                     u32 cannon_range = 6;
-    //                     bool attacking = false;
-    //                     if (get_ship_hull(attacker_ship_id) > 0 && get_ship_crew(attacker_ship_id) > 0)
-    //                     {
-    //                         for (u32 i = 0; i < OCEAN_BATTLE_DATA_TOTAL_SHIPS_IN_PLAY; ++i)
-    //                         {
-    //                             if (ocean_battle_turn_order[i] != SENTRY && ocean_battle_turn_order[i] != world_npc_id)
-    //                             {
-    //                                 u32 target_npc_id = ocean_battle_turn_order[i];
-    //                                 u32 target_ship_id = get_world_npc_entity_id(target_npc_id);
-    //                                 u32 target_fleet_ship_id = get_fleet_ship_id_by_ship_id(target_ship_id);
-    //                                 u32 target_fleet_id = get_fleet_ship_fleet_id(target_fleet_ship_id);
-    //                                 if (target_fleet_id == attacker_fleet_id)
-    //                                 {
-    //                                     continue;
-    //                                 }
-    //                                 if (get_ship_hull(target_ship_id) <= 0 || get_ship_crew(target_ship_id) <= 0)
-    //                                 {
-    //                                     continue;
-    //                                 }
-    //                                 u32 a_x = get_world_npc_position_x(target_npc_id);
-    //                                 u32 a_y = get_world_npc_position_y(target_npc_id);
-    //                                 u32 b_x = get_world_npc_position_x(world_npc_id);
-    //                                 u32 b_y = get_world_npc_position_y(world_npc_id);
-    //                                 if (is_coordinate_in_range_of_coordinate(a_x, a_y, b_x, b_y, cannon_range))
-    //                                 {
-    //                                     ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = world_npc_id;
-    //                                     ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID] = target_npc_id;
-    //                                     set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_CANNON_ATTACK);
-    //                                     scene_ocean_battle(SCENE_ACTION_INIT);
-    //                                     should_redraw_everything();
-    //                                     attacking = true;
-    //                                 }
-    //                             }
-    //                         }
-    //                     }
-    //                     ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] = true;
-
-    //                     u32 moved_and_attacked = SENTRY;
-    //                     if (
-    //                         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] &&
-    //                         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED]
-    //                     ) {
-    //                         moved_and_attacked = 1;
-    //                     }
-    //                     if (!attacking || moved_and_attacked != SENTRY)
-    //                     {
-    //                         scene_ocean_battle_increment_turn_order();
-    //                         should_redraw_everything();
-    //                     }
-    //                 }
-    //                 break;
-    //             }
-    //             case SCENE_MAKE_CHOICE:
-    //             {
-    //                 u32 cc = current_scene_get_current_choice();
-    //                 if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
-    //                 {
-    //                     set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
-    //                     scene_ocean_battle(SCENE_ACTION_INIT);
-    //                     break;
-    //                 }
-    //                 break;
-    //             }
-    //         }
-    //         break;
-    //     }
-    //     case SCENE_OCEAN_BATTLE_STATE_CANNON_ATTACK:
-    //     {
-    //         switch (action)
-    //         {
-    //             case SCENE_ACTION_INIT:
-    //             {
-    //                 clear_current_scene_choices();
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-    //                     get_string_id_by_machine_name("confirm")
-    //                 );
-    //                 u32 string_id = get_string_id_by_machine_name("ship_is_attacking_with_cannon");
-    //                 set_current_scene_state_string_id(string_id);
-    //                 set_current_scene_dialogue_string_id(string_id);
-    //                 should_redraw_everything();
-    //                 break;
-    //             }
-    //             case SCENE_MAKE_CHOICE:
-    //             {
-    //                 u32 cc = current_scene_get_current_choice();
-    //                 if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
-    //                 {
-    //                     // TODO: Why are we running the damage actions in confirm here?
-    //                     u32 damage = get_random_number(1, 33);
-    //                     u32 ship_id = get_world_npc_entity_id(ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID]);
-    //                     reduce_ship_hull(ship_id, damage);
-    //                     if (get_ship_hull(ship_id) <= 0)
-    //                     {
-    //                         ++ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_DESTROYED];
-    //                         if (ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_DESTROYED] >= 3)
-    //                         {
-    //                             // TODO: This is an arbitrary victory condition
-    //                             set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_VICTORY);
-    //                             scene_ocean_battle(SCENE_ACTION_INIT);
-    //                             should_redraw_everything();
-    //                             break;
-    //                         }
-    //                     }
-    //                     ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = SENTRY;
-    //                     ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID] = SENTRY;
-    //                     set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
-    //                     scene_ocean_battle(SCENE_ACTION_INIT);
-    //                     should_redraw_everything();
-    //                     break;
-    //                 }
-    //                 break;
-    //             }
-    //         }
-    //         break;
-    //     }
-    //     case SCENE_OCEAN_BATTLE_STATE_BOARD_ATTACK:
-    //     {
-    //         switch (action)
-    //         {
-    //             case SCENE_ACTION_INIT:
-    //             {
-    //                 clear_current_scene_choices();
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-    //                     get_string_id_by_machine_name("confirm")
-    //                 );
-    //                 u32 string_id = get_string_id_by_machine_name("ship_is_attacking_with_boarding");
-    //                 set_current_scene_state_string_id(string_id);
-    //                 set_current_scene_dialogue_string_id(string_id);
-    //                 should_redraw_everything();
-    //                 break;
-    //             }
-    //             case SCENE_MAKE_CHOICE:
-    //             {
-    //                 u32 cc = current_scene_get_current_choice();
-    //                 if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
-    //                 {
-    //                     // TODO: Why are we running the damage actions in confirm here?
-    //                     u32 damage = get_random_number(1, 33);
-    //                     u32 ship_id = get_world_npc_entity_id(ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID]);
-    //                     reduce_ship_crew(ship_id, damage);
-    //                     if (get_ship_crew(ship_id) <= 0)
-    //                     {
-    //                         ++ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_DESTROYED];
-    //                         if (ocean_battle_data[OCEAN_BATTLE_DATA_TOTAL_SHIPS_DESTROYED] >= 3)
-    //                         {
-    //                             // TODO: This is an arbitrary victory condition until
-    //                             set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_VICTORY);
-    //                             scene_ocean_battle(SCENE_ACTION_INIT);
-    //                             should_redraw_everything();
-    //                             break;
-    //                         }
-    //                     }
-    //                     ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = SENTRY;
-    //                     ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID] = SENTRY;
-    //                     set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
-    //                     scene_ocean_battle(SCENE_ACTION_INIT);
-    //                     should_redraw_everything();
-    //                     break;
-    //                 }
-    //                 break;
-    //             }
-    //         }
-    //         break;
-    //     }
-    //     case SCENE_OCEAN_BATTLE_STATE_CANNON_ATTACK_CHOOSE_TARGET:
-    //     {
-    //         switch (action)
-    //         {
-    //             case SCENE_ACTION_INIT:
-    //             {
-    //                 clear_current_scene_choices();
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-    //                     get_string_id_by_machine_name("confirm")
-    //                 );
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_BACK),
-    //                     get_string_id_by_machine_name("exit")
-    //                 );
-    //                 console_log("Building valid cannon attack coordinates");
-    //                 ocean_battle_build_valid_cannon_coordinates();
-    //                 u32 string_id = get_string_id_by_machine_name("ocean_battle_cannon_attack_choose_target");
-    //                 set_current_scene_state_string_id(string_id);
-    //                 set_current_scene_dialogue_string_id(string_id);
-    //                 ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_CANNON_ATTACK_TARGET_ID] = SENTRY;
-    //                 should_redraw_everything();
-    //                 break;
-    //             }
-    //             case SCENE_MAKE_CHOICE:
-    //             {
-    //                 u32 cc = current_scene_get_current_choice();
-    //                 if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
-    //                 {
-    //                     u32 x = ocean_battle_intended_cannon_coordinates[0];
-    //                     u32 y = ocean_battle_intended_cannon_coordinates[1];
-    //                     if (ocean_battle_is_valid_cannon_coordinates(x, y) != SENTRY)
-    //                     {
-    //                         ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = get_current_ocean_battle_turn_world_npc_id();
-    //                         ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID] = ocean_battle_find_world_npc_id_by_coordinates(x, y);
-    //                         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] = true;
-    //                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_CANNON_ATTACK);
-    //                         scene_ocean_battle(SCENE_ACTION_INIT);
-    //                         should_redraw_everything();
-    //                     }
-    //                     else
-    //                     {
-    //                         console_log("Invalid cannon attack coordinates");
-    //                     }
-    //                     break;
-    //                 }
-    //                 if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_BACK)
-    //                 {
-    //                     set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
-    //                     scene_ocean_battle(SCENE_ACTION_INIT);
-    //                     should_redraw_everything();
-    //                     break;
-    //                 }
-    //                 args[0].i = current_scene_get_choice(cc);
-    //                 console_log_format("No valid choice for ATTACK CHOOSE TARGET %d", args, 1);
-    //                 break;
-    //             }
-    //         }
-    //         break;
-    //     }
-    //     case SCENE_OCEAN_BATTLE_STATE_BOARD_ATTACK_CHOOSE_TARGET:
-    //     {
-    //         switch (action)
-    //         {
-    //             case SCENE_ACTION_INIT:
-    //             {
-    //                 clear_current_scene_choices();
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-    //                     get_string_id_by_machine_name("confirm")
-    //                 );
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_BACK),
-    //                     get_string_id_by_machine_name("exit")
-    //                 );
-    //                 ocean_battle_build_valid_boarding_coordinates();
-    //                 u32 string_id = get_string_id_by_machine_name("ocean_battle_board_attack_choose_target");
-    //                 set_current_scene_state_string_id(string_id);
-    //                 set_current_scene_dialogue_string_id(string_id);
-    //                 ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_BOARD_ATTACK_TARGET_ID] = SENTRY;
-    //                 should_redraw_everything();
-    //                 break;
-    //             }
-    //             case SCENE_MAKE_CHOICE:
-    //             {
-    //                 u32 cc = current_scene_get_current_choice();
-    //                 if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
-    //                 {
-    //                     u32 x = ocean_battle_intended_boarding_coordinates[0];
-    //                     u32 y = ocean_battle_intended_boarding_coordinates[1];
-    //                     if (ocean_battle_is_valid_boarding_coordinates(x, y) != SENTRY)
-    //                     {
-    //                         ocean_battle_data[OCEAN_BATTLE_DATA_ATTACKER_WORLD_NPC_ID] = get_current_ocean_battle_turn_world_npc_id();
-    //                         ocean_battle_data[OCEAN_BATTLE_DATA_TARGET_WORLD_NPC_ID] = ocean_battle_find_world_npc_id_by_coordinates(x, y);
-    //                         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] = true;
-    //                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_BOARD_ATTACK);
-    //                         scene_ocean_battle(SCENE_ACTION_INIT);
-    //                         should_redraw_everything();
-    //                     }
-    //                     else
-    //                     {
-    //                         console_log("Invalid boarding attack coordinates");
-    //                     }
-    //                     break;
-    //                 }
-    //                 if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_BACK)
-    //                 {
-    //                     set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
-    //                     scene_ocean_battle(SCENE_ACTION_INIT);
-    //                     should_redraw_everything();
-    //                     break;
-    //                 }
-    //                 args[0].i = current_scene_get_choice(cc);
-    //                 console_log_format("No valid choice for ATTACK CHOOSE TARGET %d", args, 1);
-    //                 break;
-    //             }
-    //         }
-    //         break;
-    //     }
-    //     case SCENE_OCEAN_BATTLE_STATE_PLAYER_TAKE_TURN:
-    //     {
-    //         switch (action)
-    //         {
-    //             case SCENE_ACTION_INIT:
-    //             {
-    //                 clear_current_scene_choices();
-    //                 u32 player_id = get_current_ocean_battle_turn_player_id();
-    //                 if (
-    //                     (which_player_are_you != SENTRY && player_id == which_player_are_you)
-    //                     ||
-    //                     which_player_are_you == SENTRY
-    //                 )
-    //                 {
-    //                     current_scene_set_choice_string_id(
-    //                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_MOVE),
-    //                         get_string_id_by_machine_name("move")
-    //                     );
-    //                     current_scene_set_choice_string_id(
-    //                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_FIRE_CANNONS),
-    //                         get_string_id_by_machine_name("fire_cannons")
-    //                     );
-    //                     current_scene_set_choice_string_id(
-    //                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_BOARD_SHIP),
-    //                         get_string_id_by_machine_name("board_ship")
-    //                     );
-    //                     current_scene_set_choice_string_id(
-    //                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_ORDER),
-    //                         get_string_id_by_machine_name("order")
-    //                     );
-    //                     current_scene_set_choice_string_id(
-    //                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-    //                         get_string_id_by_machine_name("ocean_battle_end_turn")
-    //                     );
-    //                 }
-    //                 args[0].i = (player_id + 1);
-    //                 if (args[0].i == 0)
-    //                 {
-    //                     console_log("[E] BRO WTF");
-    //                 }
-    //                 u32 world_npc_id = get_current_ocean_battle_turn_world_npc_id();
-    //                 center_camera_on(
-    //                     get_world_npc_position_x(world_npc_id),
-    //                     get_world_npc_position_y(world_npc_id)
-    //                 );
-    //                 u32 string_id = create_string(
-    //                     "scene_ocean_battle_current_players_turn",
-    //                     string_format(
-    //                         get_string_text(
-    //                             get_string_id_by_machine_name("ocean_battle_players_turn")
-    //                         ),
-    //                         args,
-    //                         1
-    //                     )
-    //                 );
-    //                 args[0].i = player_id;
-    //                 console_log_format("Player id in scene state is %d", args, 1);
-    //                 set_current_scene_state_string_id(string_id);
-    //                 set_current_scene_dialogue_string_id(string_id);
-    //                 should_redraw_everything();
-    //                 break;
-    //             }
-    //             case SCENE_MAKE_CHOICE:
-    //             {
-    //                 u32 cc = current_scene_get_current_choice();
-    //                 u32 choice = current_scene_get_choice(cc);
-    //                 if (choice == SCENE_OCEAN_BATTLE_CHOICE_FIRE_CANNONS)
-    //                 {
-    //                     console_log("Player made choice to fire cannons");
-    //                     if (
-    //                         ocean_battle_total_targets_within_cannon_range() > 0 &&
-    //                         ocean_battle_total_targets_within_cannon_range() != SENTRY &&
-    //                         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] != true
-    //                     ) {
-    //                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_CANNON_ATTACK_CHOOSE_TARGET);
-    //                         clear_string_by_id(get_current_scene_state_string_id());
-    //                         scene_ocean_battle(SCENE_ACTION_INIT);
-    //                         should_redraw_everything();
-    //                         break;
-    //                     }
-    //                 }
-    //                 if (choice == SCENE_OCEAN_BATTLE_CHOICE_BOARD_SHIP)
-    //                 {
-    //                     if (
-    //                         ocean_battle_total_targets_within_boarding_range() > 0 &&
-    //                         ocean_battle_total_targets_within_boarding_range() != SENTRY &&
-    //                         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] != true
-    //                     ) {
-    //                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_BOARD_ATTACK_CHOOSE_TARGET);
-    //                         clear_string_by_id(get_current_scene_state_string_id());
-    //                         scene_ocean_battle(SCENE_ACTION_INIT);
-    //                         should_redraw_everything();
-    //                         break;
-    //                     } else {
-    //                         if (ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_ATTACKED] == true)
-    //                         {
-    //                             console_log("You've already attacked. You cannot board ships.");
-    //                         }
-    //                         else
-    //                         {
-    //                             console_log("Nothing within range");
-    //                         }
-    //                     }
-    //                 }
-    //                 if (choice == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
-    //                 {
-    //                     scene_ocean_battle_increment_turn_order();
-    //                     set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
-    //                     clear_string_by_id(get_current_scene_state_string_id());
-    //                     scene_ocean_battle(SCENE_ACTION_INIT);
-    //                     should_redraw_everything();
-    //                     break;
-    //                 }
-    //                 if (choice == SCENE_OCEAN_BATTLE_CHOICE_MOVE)
-    //                 {
-    //                     if (ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] != true)
-    //                     {
-    //                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_MOVING);
-    //                         clear_string_by_id(get_current_scene_state_string_id());
-    //                         scene_ocean_battle(SCENE_ACTION_INIT);
-    //                         should_redraw_everything();
-    //                     }
-    //                     break;
-    //                 }
-    //                 if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_ORDER)
-    //                 {
-    //                     set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_ORDER);
-    //                     clear_string_by_id(get_current_scene_state_string_id());
-    //                     scene_ocean_battle(SCENE_ACTION_INIT);
-    //                     should_redraw_everything();
-    //                     break;
-    //                 }
-    //                 break;
-    //             }
-    //         }
-    //         break;
-    //     }
-    //     case SCENE_OCEAN_BATTLE_STATE_ORDER:
-    //     {
-    //         switch (action)
-    //         {
-    //             case SCENE_ACTION_INIT:
-    //             {
-    //                 clear_current_scene_choices();
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_ORDER_FOCUS_ON_SHIP),
-    //                     get_string_id_by_machine_name("ocean_battle_order_focus_on_ship")
-    //                 );
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_ORDER_RETREAT),
-    //                     get_string_id_by_machine_name("ocean_battle_order_retreat")
-    //                 );
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_ORDER_DEFEND_SHIP),
-    //                     get_string_id_by_machine_name("ocean_battle_order_defend_ship")
-    //                 );
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_ORDER_FOCUS_ON_CANNONS),
-    //                     get_string_id_by_machine_name("ocean_battle_order_focus_on_cannons")
-    //                 );
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_ORDER_FOCUS_ON_BOARDING),
-    //                     get_string_id_by_machine_name("ocean_battle_order_focus_on_boarding")
-    //                 );
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_ORDER_ATTACK_AT_WILL),
-    //                     get_string_id_by_machine_name("ocean_battle_order_attack_at_will")
-    //                 );
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_ORDER_MANUAL),
-    //                     get_string_id_by_machine_name("ocean_battle_order_manual")
-    //                 );
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_BACK),
-    //                     get_string_id_by_machine_name("exit")
-    //                 );
-    //                 u32 string_id = get_string_id_by_machine_name("ocean_battle_ordering");
-    //                 set_current_scene_state_string_id(string_id);
-    //                 set_current_scene_dialogue_string_id(string_id);
-    //                 should_redraw_everything();
-    //                 break;
-    //             }
-    //             case SCENE_MAKE_CHOICE:
-    //             {
-    //                 u32 cc = current_scene_get_current_choice();
-    //                 if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_BACK)
-    //                 {
-    //                     set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_PLAYER_TAKE_TURN);
-    //                     scene_ocean_battle(SCENE_ACTION_INIT);
-    //                     should_redraw_everything();
-    //                     break;
-    //                 }
-    //                 break;
-    //             }
-    //         }
-    //         break;
-    //     }
-    //     case SCENE_OCEAN_BATTLE_STATE_MOVING:
-    //     {
-    //         switch (action)
-    //         {
-    //             case SCENE_ACTION_INIT:
-    //             {
-    //                 clear_current_scene_choices();
-    //                 u32 player_id = get_current_ocean_battle_turn_player_id();
-    //                 if (
-    //                     (which_player_are_you != SENTRY && player_id == which_player_are_you)
-    //                     ||
-    //                     which_player_are_you == SENTRY
-    //                 )
-    //                 {
-    //                     current_scene_set_choice_string_id(
-    //                         current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-    //                         get_string_id_by_machine_name("confirm")
-    //                     );
-    //                 }
-    //                 u32 string_id = get_string_id_by_machine_name("ocean_battle_moving");
-    //                 ocean_battle_build_valid_move_coordinates();
-    //                 set_current_scene_state_string_id(string_id);
-    //                 set_current_scene_dialogue_string_id(string_id);
-    //                 should_redraw_everything();
-    //                 break;
-    //             }
-    //             case SCENE_MAKE_CHOICE:
-    //             {
-    //                 u32 cc = current_scene_get_current_choice();
-    //                 if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM) {
-    //                     // console_log_format("intended x %d and y %d", ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_X], ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_Y]);
-    //                     if (
-    //                         !are_coordinates_blocked(
-    //                             ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_X],
-    //                             ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_Y]
-    //                         )
-    //                     )
-    //                     {
-    //                         move_world_npc_to(
-    //                             get_current_ocean_battle_turn_world_npc_id(),
-    //                             ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_X],
-    //                             ocean_battle_data[OCEAN_BATTLE_DATA_INTENDED_MOVE_Y]
-    //                         );
-    //                         ocean_battle_data[OCEAN_BATTLE_DATA_CURRENT_TURN_MOVED] = true;
-    //                         set_current_scene_state(SCENE_OCEAN_BATTLE_STATE_TAKE_TURN);
-    //                         scene_ocean_battle(SCENE_ACTION_INIT);
-    //                     }
-    //                     else
-    //                     {
-    //                         console_log("Cannot move there. Blocked.");
-    //                     }
-    //                     should_redraw_everything();
-    //                     break;
-    //                 }
-    //                 break;
-    //             }
-    //         }
-    //         break;
-    //     }
-    //     case SCENE_OCEAN_BATTLE_STATE_VICTORY:
-    //     {
-    //         switch (action)
-    //         {
-    //             case SCENE_ACTION_INIT:
-    //             {
-    //                 clear_current_scene_choices();
-    //                 current_scene_set_choice_string_id(
-    //                     current_scene_add_choice(SCENE_OCEAN_BATTLE_CHOICE_CONFIRM),
-    //                     get_string_id_by_machine_name("confirm")
-    //                 );
-    //                 u32 string_id = get_string_id_by_machine_name("ocean_battle_victory");
-    //                 set_current_scene_state_string_id(string_id);
-    //                 set_current_scene_dialogue_string_id(string_id);
-    //                 should_redraw_everything();
-    //                 break;
-    //             }
-    //             case SCENE_MAKE_CHOICE:
-    //             {
-    //                 u32 cc = current_scene_get_current_choice();
-    //                 if (current_scene_get_choice(cc) == SCENE_OCEAN_BATTLE_CHOICE_CONFIRM)
-    //                 {
-    //                     // TODO: Cleanup here
-    //                     // clear_current_scene();
-    //                     // current.game_mode = GAME_MODE_IN_PORT;
-    //                     // Unless you need to do things like post-victory management
-    //                     // - take ships, take cargo kinda thing
-    //                     // THEN cleanup world npcs && current scene
-    //                     // keep ship damage the way it was so you have to deal with after the battle as a challenge
-    //                     should_redraw_everything();
-    //                     break;
-    //                 }
-    //                 break;
-    //             }
-    //         }
-    //         break;
-    //     }
-    // }
+    console_log("[I] Did anything happen?");
     return SENTRY;
 }
 

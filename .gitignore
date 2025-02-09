@@ -16,3 +16,4 @@ sync_to_server.sh
 download_db_from_server.sh
 
 .env
+.vscode

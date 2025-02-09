@@ -1,9 +1,3 @@
-/**
- * TODO: WHAT IF YOU ARE ALWAYS THE MAIN PLAYER AND EVERYONE ELSE IS AN NPC TO YOU WHEN IN MULTIPLAYER MODE?
- * server would store the differences here
-*/
-
-
 import { serve } from "bun";
 import { v4 as uuidv4, parse as uuidParse } from "uuid";
 import database from "bun:sqlite";
