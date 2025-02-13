@@ -3,27 +3,15 @@
 * Need to cleanup battle code in WASM. Some of it is a mess
 * Need to randomize placement of islands on dingus land
 * Need to sort out placing fleet ships in certain areas of the map
-* X:18 Y:3 for the alpha-d background image you can use over top of background_element when doing valid move/cannon/boarding coord highlights
-- background-image: var(--atlas-image), var(--atlas-image)
-- background-position: calc(whatever 18*3), calc(background image position)
-- will have to update the viewport.outerHTML = updateRender to detect when we're highlighting and do that appropriately
+* Add more error codes to scenes like you have in the bank scene
+* Grab all game dataviews into wasm and store them globally so you don't have to read them over and over
+* Further to above, also auto sort out their name strings (ids and strings)
+* In PLAYER.updateData (JS) we have an area where we get a dataview into all the fleet ships of the fleet of the captain. It would be nice to pre-store those in a global array instead of dynamically like that but we have to account for the fact that get_max_fleet_ships would only for a single fleet so we'd have to store max_fleet_ships * fleets so it might actually be best to dynamically generate those on demand. In comparison, think of goods or armor which are consistent across the game and can be long lived or permanent in memory
+* The atlas size is an issue. You tried going 12800x12800 to store a bunch of characters and whatnot. Unfortunately it will not work because it's too large for the browser to use when you apply the image over itself for layered approach. You should break it up into different atlas for different purposes to keep the individual image sizes small. It was also causing a lot of lag anyways when it was too large.
 
 # Animations
 
-renderOceanBattleCannonAttack, renderOceanBattleBoardAttack, renderOceanBattleMove have to be put into requestAnimationFrame instead of setTimeout like they are right now. This will make the animations smoother. The issue with this is that requestAnimationFrame re-renders the entire grid every frame so we can also do other animations like the background and whatnot. Unfortunately this means storing certain data outside of the rendering function so that the renderer can reference it and re-render accordingly.
-
-The `updatedRender` function should essentially read from a list of animations and render them. Ultimately, it must execute independent render functions, not handle the animations itself. This is because the updatedRender function is like a frame loop, not the actual mechanism to make things move.
-
-You would need an array of animation functions and once the animation is complete, it would be removed from the array. How would we do this in javascript?
-
-var animations = [];
-animations.push(renderOceanBattleCannonAttack);
-animations.push(renderOceanBattleBoardAttack);
-animations.push(renderOceanBattleMove);
-
-how do we remove from the array?
-
-animations.splice(animations.indexOf(renderOceanBattleCannonAttack), 1);
+The current animations implementation does indeed work and it's blinking fast. Unfortunately, it's ugly to read and I think we can do better. I need to reconsider how I approach it. For now, keep running with it until a much clearer and superior pattern emerges.
 
 # Multiplayer server
 
@@ -58,3 +46,7 @@ PLAYER 3
 - etc...
 
 The question now is, how does the server push the state to clients? Well, that's easy. Sockets or SSE solves it. The real question is how do you stop the battle from doing automated things on the client? But wait. Would it even run automatic stuff on the client? We have to figure this out.
+
+Ok figured it out - multiplayer is now a lot easier and the reason is because we re-factored the animations to be mostly JS driven since CSS could not keep up with our calcs and updates on a repeated basis.
+
+This means that you can literally generate the viewport for each individual player, along with their multiplayer menu (a special menu system for multiplayer mode), with SSE and be done.

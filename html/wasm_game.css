@@ -1,0 +1,287 @@
+:root
+{
+    --atlas-width: 16px;
+    --atlas-height: 16px;
+    --atlas-image: url("assets/atlas.png");
+    --bg-size: calc(3008px/2) calc(2304px/2);
+    --tile-scaled: 32px;
+    --bg-red: 20;
+}
+body
+{
+    background-color: rgb(var(--bg-red), 20, 20);
+    color: white;
+    font-family: monospace, fangsong;
+    font-size: 12px;
+}
+*
+{
+    box-sizing: border-box;
+    font-size: 12px;
+    font-family: monospace, fangsong;
+}
+
+.drag-bar {
+    cursor: move;
+    touch-action: none;
+}
+
+#meta-game
+{
+    max-width: 300px;
+    max-height: 300px;
+    overflow: auto;
+}
+#meta-content
+{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-gap: 10px;
+}
+
+button.green
+{
+    background: linear-gradient(0deg, #015c00, #0fac00);
+    border: 1px solid black;
+    color: white;
+    padding-top: 2px;
+    padding-left: 10px;
+    padding-right: 10px;
+    font-size: 10px;
+    border-radius: 2px;
+    padding-bottom: 3px;
+    cursor: pointer;
+}
+button.red
+{
+    background: linear-gradient(0deg, #3d0000, #8b0404);
+    border: 1px solid black;
+    color: white;
+    padding-top: 2px;
+    padding-left: 10px;
+    padding-right: 10px;
+    font-size: 10px;
+    border-radius: 2px;
+    padding-bottom: 3px;
+    cursor: pointer;
+}
+button.blue
+{
+    background: linear-gradient(0deg, #002563, #006fae);
+    color:  white;
+    border: 1px solid black;
+    line-height: 20px;
+    cursor: pointer;
+    font-size: 10px;
+}
+
+.svg
+{
+    background-size: contain;
+}
+.svg-anchor
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 22V8'></path><path d='M5 12H2a10 10 0 0 0 20 0h-3'></path><circle cx='12' cy='5' r='3'></circle></svg>");
+}
+.svg-anchor-white
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 22V8'></path><path d='M5 12H2a10 10 0 0 0 20 0h-3'></path><circle cx='12' cy='5' r='3'></circle></svg>");
+}
+.svg-ship
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1'></path><path d='M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76'></path><path d='M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6'></path><path d='M12 10v4'></path><path d='M12 2v3'></path></svg>");
+}
+.svg-ship-white
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1'></path><path d='M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76'></path><path d='M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6'></path><path d='M12 10v4'></path><path d='M12 2v3'></path></svg>");
+}
+.svg-gamepad
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='6' x2='10' y1='11' y2='11'></line><line x1='8' x2='8' y1='9' y2='13'></line><line x1='15' x2='15.01' y1='12' y2='12'></line><line x1='18' x2='18.01' y1='10' y2='10'></line><path d='M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z'></path></svg>");
+}
+.svg-gamepad-white
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='6' x2='10' y1='11' y2='11'></line><line x1='8' x2='8' y1='9' y2='13'></line><line x1='15' x2='15.01' y1='12' y2='12'></line><line x1='18' x2='18.01' y1='10' y2='10'></line><path d='M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z'></path></svg>");
+}
+.svg-chat
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'></path></svg>");
+}
+.svg-chat-white
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'></path></svg>");
+}
+.svg-compass
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><polygon points='16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76'></polygon></svg>");
+}
+.svg-compass-white
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><polygon points='16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76'></polygon></svg>");
+}
+.svg-handle-bar
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='12' r='1'></circle><circle cx='9' cy='5' r='1'></circle><circle cx='9' cy='19' r='1'></circle><circle cx='15' cy='12' r='1'></circle><circle cx='15' cy='5' r='1'></circle><circle cx='15' cy='19' r='1'></circle></svg>");
+}
+.svg-handle-bar-white
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='12' r='1'></circle><circle cx='9' cy='5' r='1'></circle><circle cx='9' cy='19' r='1'></circle><circle cx='15' cy='12' r='1'></circle><circle cx='15' cy='5' r='1'></circle><circle cx='15' cy='19' r='1'></circle></svg>");
+}
+.svg-question
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 19V18.99M12 16C12 11.5 16 12.5 16 9C16 6.79086 14.2091 5 12 5C10.1361 5 8.57002 6.27477 8.12598 8' /></svg>");
+}
+.svg-question
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 19V18.99M12 16C12 11.5 16 12.5 16 9C16 6.79086 14.2091 5 12 5C10.1361 5 8.57002 6.27477 8.12598 8' /></svg>");
+}
+.svg-checkmark
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 13.3636L8.03559 16.3204C8.42388 16.6986 9.04279 16.6986 9.43108 16.3204L19 7' /></svg>");
+}
+.svg-checkmark-white
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 13.3636L8.03559 16.3204C8.42388 16.6986 9.04279 16.6986 9.43108 16.3204L19 7' /></svg>");
+}
+.svg-3d
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path fill-rule='evenodd' clip-rule='evenodd' d='M11.5144 1.12584C11.8164 0.958052 12.1836 0.958052 12.4856 1.12584L21.4845 6.12522C21.4921 6.12942 21.4996 6.13372 21.5071 6.13813C21.8125 6.31781 22 6.64568 22 7V17C22 17.3632 21.8031 17.6978 21.4856 17.8742L12.4856 22.8742C12.1791 23.0445 11.8059 23.0416 11.5022 22.8673L2.51436 17.874C2.19689 17.6977 2 17.3631 2 16.9999V7C2 6.64568 2.18749 6.3177 2.49287 6.13802L2.5073 6.13784L2.51436 6.12584L11.5144 1.12584ZM12.0001 10.856L5.05923 6.99995L12 3.14396L18.9409 7L12.0001 10.856ZM4 8.69951V16.4115L11 20.3004V12.5884L4 8.69951ZM13 12.5884V20.3005L20 16.4116V8.69951L13 12.5884Z' /></svg>");
+}
+.svg-3d-white
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path fill-rule='evenodd' clip-rule='evenodd' d='M11.5144 1.12584C11.8164 0.958052 12.1836 0.958052 12.4856 1.12584L21.4845 6.12522C21.4921 6.12942 21.4996 6.13372 21.5071 6.13813C21.8125 6.31781 22 6.64568 22 7V17C22 17.3632 21.8031 17.6978 21.4856 17.8742L12.4856 22.8742C12.1791 23.0445 11.8059 23.0416 11.5022 22.8673L2.51436 17.874C2.19689 17.6977 2 17.3631 2 16.9999V7C2 6.64568 2.18749 6.3177 2.49287 6.13802L2.5073 6.13784L2.51436 6.12584L11.5144 1.12584ZM12.0001 10.856L5.05923 6.99995L12 3.14396L18.9409 7L12.0001 10.856ZM4 8.69951V16.4115L11 20.3004V12.5884L4 8.69951ZM13 12.5884V20.3005L20 16.4116V8.69951L13 12.5884Z' /></svg>");
+}
+.svg-cancel
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M6 6L18 18M6 18L18 6' stroke='currentColor' stroke-width='2' stroke-linecap='round'/></svg>");
+}
+.svg-cancel-white
+{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><path d='M6 6L18 18M6 18L18 6' stroke='white' stroke-width='2' stroke-linecap='round'/></svg>");
+}
+.svg-refresh
+{
+    /*<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M20 12c0-4.4-3.6-8-8-8s-8 3.6-8 8 3.6 8 8 8v-2c-3.3 0-6-2.7-6-6s2.7-6 6-6 6 2.7 6 6h-3l4 4 4-4h-3z" fill="#000000"/></svg>*/
+}
+.svg-plus
+{
+    /*<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 4L12 20M4 12L20 12" stroke="#000000" stroke-width="2" stroke-linecap="round"/></svg>*/
+}
+.svg-minus
+{
+    /*<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M4 12L20 12" stroke="#000000" stroke-width="2" stroke-linecap="round"/></svg>*/
+}
+
+
+.outer_border
+{
+    /*background: linear-gradient(306deg, #6186ee, #243fa8);
+    padding: 2px;*/
+    border-radius: 4px;
+    max-width: fit-content;
+}
+.inner_text
+{
+    background:rgba(50, 50, 50, 70%);
+    padding: 6px;
+    max-width: 300px;
+    max-height: 200px;
+    overflow: auto;
+    border: 1px solid rgb(175, 175, 175);
+    margin-bottom: 10px;
+}
+.popup
+{
+    position: absolute;
+    /*top: 0px;
+    left: 0px;*/
+    bottom: 0px;
+    right: 0px;
+    z-index: 999999;
+    border: 1px solid #709aff;
+    /*background: linear-gradient(1deg, rgb(36 65 163 / 96%), #162070);*/
+    /*background: linear-gradient(1deg, rgb(16 17 21 / 96%), #162070);*/
+    background: linear-gradient(1deg, rgba(50, 50, 50, 65%), rgba(50, 50, 50, 65%));
+    padding: 1rem;
+    border-radius: 0.5rem;
+    color: rgb(220 235 235 / 1);
+    max-width: calc(var(--viewport-width) * var(--tile-scaled));
+    margin: 0px auto;
+    overflow: auto;
+}
+.popup.topleft
+{
+    top: 0px;
+    left: 0px;
+    bottom: auto;
+    right: auto;
+}
+.popup button
+{
+    padding: 0.3rem;
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+    border-radius: 2px;
+    cursor: pointer;
+    min-width: 75px;
+    text-align: center;
+    /* background: linear-gradient(to bottom, #f2f2f2 45%, #ebebeb 45%, #cfcfcf); */
+    color: #222;
+    border: 1px solid rgb(175 175 175);
+    color: rgb(199 199 199);
+    /*background: linear-gradient(360deg, rgba(20, 20, 20, 0.8), rgba(50, 50, 50, 0.8));*/
+    background: linear-gradient(360deg, rgba(0, 0, 0, 70%), rgba(20, 20, 20, 70%));
+}
+.popup button:hover
+{
+    background: linear-gradient(360deg, rgba(0, 0, 0, 0.8), rgba(80, 80, 80, 0.8));
+}
+.popup button.active
+{
+    border: 2px solid red;
+}
+.popup .button-with-icon
+{
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    align-items: center;
+    grid-gap: 0.75rem;
+}
+.popup input
+{
+    display: block;
+    border: 2px solid rgb(255 255 255);
+    background: linear-gradient(180deg, #10172e, #405c9b);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    color: rgb(220 235 235 / 1);
+}
+.popup .grid
+{
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    align-items: center;
+    grid-gap: 1px;
+}
+.popup .svg
+{
+    margin: 0px auto;
+    width: 16px;
+    height: 16px;
+}
+.popup .svg.drag-bar
+{
+    width: 30px;
+    height: 100%;
+    margin-right: 10px;
+}
+.popup span.svg
+{
+    display: inline-block;
+}
+.popup #dialog_choices
+{
+    display: grid;
+    grid-auto-flow: row;
+    grid-gap: 10px;
+}
