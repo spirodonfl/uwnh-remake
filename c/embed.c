@@ -194,9 +194,12 @@ int main()
     }
 
     // Copy HTML file with injections
-    FILE* source = fopen("../html/wasm_game.html", "rb");
-    FILE* dest = fopen("../html/index.html", "wb");
-    if (!source || !dest)
+    // FILE* source = fopen("../html/wasm_game.html", "rb");
+    // FILE* dest = fopen("../html/index.html", "wb");
+    // FILE* source = fopen("../html/js/wasm_as_base64.js", "rb");
+    FILE* dest = fopen("../html/js/wasm_as_base64.js", "wb");
+    // if (!source || !dest)
+    if (!dest)
     {
         printf("Error opening HTML files\n");
         free(base64_wasm);
@@ -212,57 +215,60 @@ int main()
     // char* game_strings_placeholder = "<!-- GAME_STRINGS_HERE -->";
     // char* structs_placeholder = "<!-- STRUCTS_HERE -->";
 
-    while (fgets(buffer, sizeof(buffer), source))
-    {
-        char* placeholder_pos;
+    // while (fgets(buffer, sizeof(buffer), source))
+    // {
+    //     char* placeholder_pos;
         
-        if ((placeholder_pos = strstr(buffer, wasm_placeholder)))
-        {
-            // Write everything before the placeholder
-            *placeholder_pos = '\0';
-            fputs(buffer, dest);
-            // Write the base64 WASM data
-            fputs(base64_wasm, dest);
-            // Write everything after the placeholder
-            fputs(placeholder_pos + strlen(wasm_placeholder), dest);
-        }
-        // else if ((placeholder_pos = strstr(buffer, atlas_placeholder)))
-        // {
-        //     // Write everything before the placeholder
-        //     *placeholder_pos = '\0';
-        //     fputs(buffer, dest);
-        //     // Write the base64 Atlas data
-        //     fputs(base64_atlas, dest);
-        //     // Write everything after the placeholder
-        //     fputs(placeholder_pos + strlen(atlas_placeholder), dest);
-        // }
-        // else if ((placeholder_pos = strstr(buffer, game_strings_placeholder)))
-        // {
-        //     // Write everything before the placeholder
-        //     *placeholder_pos = '\0';
-        //     fputs(buffer, dest);
-        //     // Write the JSON data directly
-        //     fputs(game_strings_data, dest);
-        //     // Write everything after the placeholder
-        //     fputs(placeholder_pos + strlen(game_strings_placeholder), dest);
-        // }
-        // else if ((placeholder_pos = strstr(buffer, structs_placeholder)))
-        // {
-        //     // Write everything before the placeholder
-        //     *placeholder_pos = '\0';
-        //     fputs(buffer, dest);
-        //     // Write the JSON data directly
-        //     fputs(structs_data, dest);
-        //     // Write everything after the placeholder
-        //     fputs(placeholder_pos + strlen(structs_placeholder), dest);
-        // }
-        else
-        {
-            fputs(buffer, dest);
-        }
-    }
+    //     if ((placeholder_pos = strstr(buffer, wasm_placeholder)))
+    //     {
+    //         // Write everything before the placeholder
+    //         *placeholder_pos = '\0';
+    //         fputs(buffer, dest);
+    //         // Write the base64 WASM data
+    //         fputs(base64_wasm, dest);
+    //         // Write everything after the placeholder
+    //         fputs(placeholder_pos + strlen(wasm_placeholder), dest);
+    //     }
+    //     // else if ((placeholder_pos = strstr(buffer, atlas_placeholder)))
+    //     // {
+    //     //     // Write everything before the placeholder
+    //     //     *placeholder_pos = '\0';
+    //     //     fputs(buffer, dest);
+    //     //     // Write the base64 Atlas data
+    //     //     fputs(base64_atlas, dest);
+    //     //     // Write everything after the placeholder
+    //     //     fputs(placeholder_pos + strlen(atlas_placeholder), dest);
+    //     // }
+    //     // else if ((placeholder_pos = strstr(buffer, game_strings_placeholder)))
+    //     // {
+    //     //     // Write everything before the placeholder
+    //     //     *placeholder_pos = '\0';
+    //     //     fputs(buffer, dest);
+    //     //     // Write the JSON data directly
+    //     //     fputs(game_strings_data, dest);
+    //     //     // Write everything after the placeholder
+    //     //     fputs(placeholder_pos + strlen(game_strings_placeholder), dest);
+    //     // }
+    //     // else if ((placeholder_pos = strstr(buffer, structs_placeholder)))
+    //     // {
+    //     //     // Write everything before the placeholder
+    //     //     *placeholder_pos = '\0';
+    //     //     fputs(buffer, dest);
+    //     //     // Write the JSON data directly
+    //     //     fputs(structs_data, dest);
+    //     //     // Write everything after the placeholder
+    //     //     fputs(placeholder_pos + strlen(structs_placeholder), dest);
+    //     // }
+    //     else
+    //     {
+    //         fputs(buffer, dest);
+    //     }
+    // }
 
-    fclose(source);
+    // fclose(source);
+    fprintf(dest, "var wasmBase64 = \"");
+    fputs(base64_wasm, dest);
+    fprintf(dest, "\"\n");
     fclose(dest);
     free(base64_wasm);
     free(base64_atlas);

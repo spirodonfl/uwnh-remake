@@ -39,8 +39,16 @@ u32 my_strcmp(const char* str1, const char* str2)
     // Return the difference of the current characters
     return (u32)((unsigned char)*str1 - (unsigned char)*str2);
 }
+u32 my_floor(u32 x, u32 multiple)
+{
+    return x - (x % multiple);
+}
+u32 my_floor_percentage(u32 value, u32 percentage)
+{
+    return (value * percentage) / 100;
+}
 #define SENTRY UINT32_MAX
-__attribute__((visibility("default")))
+// __attribute__((visibility("default")))
 u32 get_sentry()
 {
     return SENTRY;
@@ -231,6 +239,10 @@ u32 max(u32 a, u32 b)
     { \
         return (u32*)&storage_##LOWERSCORE.data[id]; \
     } \
+    UPPERSCORE* get_##FULLLOWERSCORE(u32 id) \
+    { \
+        return &storage_##LOWERSCORE.data[id]; \
+    } \
     void free_storage_##LOWERSCORE##_slot(u32 id) \
     { \
         if (storage_##LOWERSCORE.used[id] == true) \
@@ -324,8 +336,8 @@ u32 get_max_captains() { return MAX_CAPTAINS; }
 #define MAX_GOODS 100
 u32 get_max_goods() { return MAX_GOODS; }
 #define MAX_OCEAN_BATTLE_MOVES 10000
-#define MAX_WORLD_WIDTH 50
-#define MAX_WORLD_HEIGHT 50
+#define MAX_WORLD_WIDTH 100
+#define MAX_WORLD_HEIGHT 100
 #define MAX_LAYER_SIZE (MAX_WORLD_WIDTH * MAX_WORLD_HEIGHT)
 #define MAX_SHIP_CARGO_SPACE 1000
 
@@ -348,14 +360,17 @@ u32 get_player_in_world_y(u32 player_id);
 void fake_ocean_battle();
 u32 scene_blackjack(u32 action);
 u32 scene_general_shop(u32 action);
+u32 scene_goods_shop(u32 action);
 u32 scene_ocean_battle(u32 action);
 u32 scene_shipyard(u32 action);
+u32 scene_dockyard(u32 action);
 u32 scene_npc_rvice(u32 action);
 u32 scene_npc_lafolie(u32 action);
 u32 scene_npc_nakor(u32 action);
 u32 scene_npc_travis(u32 action);
 u32 scene_npc_loller(u32 action);
 u32 scene_bank(u32 action);
+u32 scene_test(u32 action);
 
 void generate_world(u32 world_name_id);
 
@@ -410,6 +425,8 @@ typedef struct __attribute__((packed))
     u32 error_code;
 } DATA_SCENE_SINGLE_DIALOG;
 DATA_SCENE_SINGLE_DIALOG Scene_Single_Dialog;
+u32* get_data_scene_single_dialog_ptr()
+{ return (u32*)&Scene_Single_Dialog; }
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -457,6 +474,33 @@ u32* get_data_scene_bank_ptr()
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
 {
+    u32 id;
+    u32 flag_initialized;
+    u32 previous_game_mode;
+    u32 error_code;
+    u32 dialog_id;
+    u32 inventory_id;
+} DATA_SCENE_GOODS_SHOP;
+DATA_SCENE_GOODS_SHOP Scene_Goods_Shop;
+u32* get_data_scene_goods_shop_ptr()
+{ return (u32*)&Scene_Goods_Shop; }
+
+/** EXPORT TO JS **/
+typedef struct __attribute__((packed))
+{
+    u32 id;
+    u32 flag_initialized;
+    u32 previous_game_mode;
+    u32 error_code;
+    u32 dialog_id;
+} DATA_SCENE_TEST;
+DATA_SCENE_TEST Scene_Test;
+u32* get_data_scene_test_ptr()
+{ return (u32*)&Scene_Test; }
+
+/** EXPORT TO JS **/
+typedef struct __attribute__((packed))
+{
     u32 deposit_interest_rate;
     u32 loan_interest_rate;
     u32 deposit_amount;
@@ -471,7 +515,6 @@ typedef struct __attribute__((packed))
 DATA_BANK bank;
 u32* get_data_bank_ptr()
 { return (u32*)&bank; }
-// TODO: Yearly interest rates (or something like that)
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -552,6 +595,7 @@ void assign_storage_base_ship(u32 id, DATA_BASE_SHIP* source)
     storage_base_ship.data[id].tacking = source->tacking;
     storage_base_ship.data[id].power = source->power;
     storage_base_ship.data[id].speed = source->speed;
+    storage_base_ship.data[id].durability = source->durability;
 }
 ADD_STORAGE_FUNC(base_ship, DATA_BASE_SHIP)
 
@@ -575,12 +619,13 @@ typedef struct __attribute__((packed))
     // Actual number of cannons purchased (could be under the available space)
     u32 cannons;
     // Reference to CANNON* type
-    u32 cannon_type;
+    u32 cannon_type_id;
     // TODO: Remove hull, this is duplicated by durability
     u32 hull;
     u32 cargo_goods[MAX_SHIP_CARGO_SPACE];
     u32 cargo_goods_qty[MAX_SHIP_CARGO_SPACE];
     u32 total_cargo_goods;
+    u32 figurehead_id;
 } DATA_SHIP;
 /** EXPORT TO JS **/
 u32 storage_ship_used_slots[MAX_SHIPS];
@@ -601,10 +646,11 @@ void assign_storage_ship(u32 id, DATA_SHIP* source)
     storage_ship.data[id].speed = source->speed;
     storage_ship.data[id].crew = source->crew;
     storage_ship.data[id].cannons = source->cannons;
-    storage_ship.data[id].cannon_type = source->cannon_type;
+    storage_ship.data[id].cannon_type_id = source->cannon_type_id;
     storage_ship.data[id].durability = source->durability;
     storage_ship.data[id].hull = source->hull;
     storage_ship.data[id].total_cargo_goods = source->total_cargo_goods;
+    storage_ship.data[id].figurehead_id = source->figurehead_id;
     for (u32 i = 0; i < MAX_SHIP_CARGO_SPACE; ++i)
     {
         storage_ship.data[id].cargo_goods[i] = source->cargo_goods[i];
@@ -646,6 +692,24 @@ void assign_storage_ship_material(u32 id, DATA_SHIP_MATERIAL* source)
     storage_ship_material.data[id].mod_durability = source->mod_durability;
 }
 ADD_STORAGE_FUNC(ship_material, DATA_SHIP_MATERIAL)
+void clear_ship_material(u32 id)
+{
+    storage_ship_material.data[id].name_id = SENTRY;
+    storage_ship_material.data[id].base_price = SENTRY;
+    storage_ship_material.data[id].mod_power = SENTRY;
+    storage_ship_material.data[id].mod_capacity = SENTRY;
+    storage_ship_material.data[id].mod_tacking = SENTRY;
+    storage_ship_material.data[id].mod_speed = SENTRY;
+    storage_ship_material.data[id].mod_durability = SENTRY;
+    free_storage_ship_material_slot(id);
+}
+void clear_all_ship_materials()
+{
+    for (u32 i = 0; i < MAX_SHIP_MATERIALS; ++i)
+    {
+        clear_ship_material(i);
+    }
+}
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -660,6 +724,14 @@ u32* get_storage_good_used_slots_ptr()
 { return (u32*)&storage_good_used_slots[0]; }
 STORAGE_STRUCT(good, DATA_GOOD, data_good, MAX_GOODS)
 FIND_STORAGE_BY_NAME_ID_FUNC(good, DATA_GOOD, MAX_GOODS)
+void assign_storage_good(u32 id, DATA_GOOD* source)
+{
+    storage_good.data[id].id = id;
+    source->id = id;
+    storage_good.data[id].name_id = source->name_id;
+    storage_good.data[id].base_price = source->base_price;
+}
+ADD_STORAGE_FUNC(good, DATA_GOOD)
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -1048,6 +1120,7 @@ typedef struct __attribute__((packed))
     u32 overall_investment_level;
     u32 market_investment_level;
     u32 shipyard_investment_level;
+    u32 base_trade_tax;
 } DATA_PORT;
 /** EXPORT TO JS **/
 u32 storage_port_used_slots[MAX_PORTS];
@@ -1072,25 +1145,91 @@ typedef struct __attribute__((packed))
     u32 new_ship;
     u32 to_invest;
     u32 remodel_ship_id;
+    u32 remodel_space_price;
+    u32 remodel_material_price;
+    u32 remodel_cannon_price;
+    u32 remodel_figurehead_price;
 } DATA_SCENE_SHIPYARD;
 DATA_SCENE_SHIPYARD Scene_Shipyard;
 u32* get_data_scene_shipyard_ptr()
 { return (u32*)&Scene_Shipyard; }
 
+/** EXPORT TO JS **/
+typedef struct __attribute__((packed))
+{
+    u32 id;
+    u32 flag_initialized;
+    u32 previous_game_mode;
+    u32 error_code;
+    u32 dialog_id;
+    u32 purchase_food;
+    u32 purchase_water;
+    u32 purchase_cannonballs;
+    u32 price_food;
+    u32 price_water;
+    u32 price_cannonballs;
+    u32 purchase_for_ship_id;
+} DATA_SCENE_DOCKYARD;
+DATA_SCENE_DOCKYARD Scene_Dockyard;
+u32* get_data_scene_dockyard_ptr()
+{ return (u32*)&Scene_Dockyard; }
+void clear_scene_dockyard()
+{
+    Scene_Dockyard.purchase_food = 0;
+    Scene_Dockyard.purchase_water = 0;
+    Scene_Dockyard.purchase_cannonballs = 0;
+    Scene_Dockyard.price_food = 0;
+    Scene_Dockyard.price_water = 0;
+    Scene_Dockyard.price_cannonballs = 0;
+    Scene_Dockyard.purchase_for_ship_id = SENTRY;
+}
+
 // NOTE: SPECIFICALLY for shipyard scene for remodeling
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
 {
+    u32 capacity;
+    u32 tacking;
+    u32 power;
+    u32 speed;
+    u32 durability;
     u32 material_id;
     u32 cargo_space;
     u32 cannon_space;
     u32 crew_space;
     u32 cannon_type_id;
     u32 figurehead_id;
+    u32 space_price;
+    u32 material_price;
+    u32 cannon_price;
+    u32 figurehead_price;
+    u32 total_price;
 } DATA_REMODEL_SHIP;
 DATA_REMODEL_SHIP Remodel_Ship;
 u32* get_data_remodel_ship_ptr()
 { return (u32*)&Remodel_Ship; }
+void clear_remodel_ship()
+{
+    Remodel_Ship.material_id = SENTRY;
+    Remodel_Ship.cargo_space = SENTRY;
+    Remodel_Ship.cannon_space = SENTRY;
+    Remodel_Ship.crew_space = SENTRY;
+    Remodel_Ship.cannon_type_id = SENTRY;
+    Remodel_Ship.figurehead_id = SENTRY;
+    Remodel_Ship.space_price = 0;
+    Remodel_Ship.material_price = 0;
+    Remodel_Ship.cannon_price = 0;
+    Remodel_Ship.figurehead_price = 0;
+    Remodel_Ship.total_price = SENTRY;
+}
+void calculate_remodel_ship()
+{
+    Remodel_Ship.total_price = 0;
+    Remodel_Ship.total_price += Remodel_Ship.space_price;
+    Remodel_Ship.total_price += Remodel_Ship.material_price;
+    Remodel_Ship.total_price += Remodel_Ship.cannon_price;
+    Remodel_Ship.total_price += Remodel_Ship.figurehead_price;
+}
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -1205,6 +1344,18 @@ u32* get_storage_entity_used_slots_ptr()
 { return (u32*)&storage_entity_used_slots[0]; }
 STORAGE_STRUCT(entity, DATA_ENTITY, data_entity, MAX_ENTITIES)
 FIND_STORAGE_BY_NAME_ID_FUNC(entity, DATA_ENTITY, MAX_ENTITIES)
+void assign_storage_entity(u32 id, DATA_ENTITY* source)
+{
+    storage_entity.data[id].id = id;
+    storage_entity.data[id].name_id = source->name_id;
+    storage_entity.data[id].is_interactable = source->is_interactable;
+    storage_entity.data[id].is_solid = source->is_solid;
+    storage_entity.data[id].interaction_on_step_over = source->interaction_on_step_over;
+    storage_entity.data[id].interaction_scene = source->interaction_scene;
+    storage_entity.data[id].position_x = source->position_x;
+    storage_entity.data[id].position_y = source->position_y;
+}
+ADD_STORAGE_FUNC(entity, DATA_ENTITY    )
 void clear_all_entities()
 {
     for (u32 i = 0; i < MAX_ENTITIES; ++i)
@@ -1337,6 +1488,21 @@ void assign_storage_cannon(u32 id, DATA_CANNON* source)
     storage_cannon.data[id].base_price = source->base_price;
 }
 ADD_STORAGE_FUNC(cannon, DATA_CANNON)
+void clear_cannon(u32 id)
+{
+    storage_cannon.data[id].name_id = SENTRY;
+    storage_cannon.data[id].range = SENTRY;
+    storage_cannon.data[id].power = SENTRY;
+    storage_cannon.data[id].base_price = SENTRY;
+    free_storage_cannon_slot(id);
+}
+void clear_all_cannons()
+{
+    for (u32 i = 0; i < MAX_CANNONS; ++i)
+    {
+        clear_cannon(i);
+    }
+}
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -1358,6 +1524,145 @@ void assign_storage_figurehead(u32 id, DATA_FIGUREHEAD* source)
     storage_figurehead.data[id].base_price = source->base_price;
 }
 ADD_STORAGE_FUNC(figurehead, DATA_FIGUREHEAD)
+void clear_figurehead(u32 id)
+{
+    storage_figurehead.data[id].name_id = SENTRY;
+    storage_figurehead.data[id].base_price = SENTRY;
+    free_storage_figurehead_slot(id);
+}
+void clear_all_figureheads()
+{
+    for (u32 i = 0; i < MAX_FIGUREHEADS; ++i)
+    {
+        clear_figurehead(i);
+    }
+}
+
+// ------------------------------------------------------------------------------------------------
+// - TIME
+// ------------------------------------------------------------------------------------------------
+/** EXPORT TO JS **/
+typedef struct __attribute__((packed))
+{
+    // 0-59
+    u32 minute;
+    // 0-23
+    u32 hour;
+    // 1-31
+    u32 day;
+    // 1-12
+    u32 month;
+    // Starting from 1500
+    u32 year;
+    // Total days elapsed
+    u32 total_days;
+    // 1 if night, 0 if day
+    u32 is_night;
+    // Accumulator for ticks
+    u32 ticks_counter;
+} DATA_GAME_TIME;
+DATA_GAME_TIME Game_Time;
+u32* get_data_game_time_ptr()
+{ return (u32*)&Game_Time; }
+#define TICKS_PER_MINUTE 60      // Adjust based on your desired game speed
+#define MINUTES_PER_HOUR 60
+#define HOURS_PER_DAY 24
+#define DAYS_PER_WEEK 7
+#define MONTHS_PER_YEAR 12
+// Sunrise/sunset hours (can be adjusted seasonally)
+#define SUNRISE_HOUR 6
+#define SUNSET_HOUR 18
+// Days per month in the 16th century (accounting for Julian calendar)
+const u32 DAYS_PER_MONTH[12] = {
+    31, // January
+    28, // February (handle leap years separately)
+    31, // March
+    30, // April
+    31, // May
+    30, // June
+    31, // July
+    31, // August
+    30, // September
+    31, // October
+    30, // November
+    31  // December
+};
+void initialize_game_time()
+{
+    Game_Time.minute = 0;
+    Game_Time.hour = 8;     // Start at 8 AM
+    Game_Time.day = 1;
+    Game_Time.month = 1;
+    Game_Time.year = 1500;  // Start in year 1500
+    Game_Time.total_days = 0;
+    Game_Time.is_night = 0;
+    Game_Time.ticks_counter = 0;
+}
+bool is_leap_year(u32 year)
+{
+    // Julian calendar leap year rule
+    return year % 4 == 0;
+}
+void update_game_time()
+{
+    Game_Time.ticks_counter++;
+    
+    if (Game_Time.ticks_counter >= TICKS_PER_MINUTE)
+    {
+        Game_Time.ticks_counter = 0;
+        Game_Time.minute++;
+        
+        if (Game_Time.minute >= MINUTES_PER_HOUR)
+        {
+            Game_Time.minute = 0;
+            Game_Time.hour++;
+            
+            // Update day/night cycle
+            if (Game_Time.hour == SUNRISE_HOUR)
+                Game_Time.is_night = 0;
+            else if (Game_Time.hour == SUNSET_HOUR)
+                Game_Time.is_night = 1;
+            
+            if (Game_Time.hour >= HOURS_PER_DAY)
+            {
+                Game_Time.hour = 0;
+                Game_Time.day++;
+                Game_Time.total_days++;
+                
+                u32 max_days = DAYS_PER_MONTH[Game_Time.month - 1];
+                if (Game_Time.month == 2 && is_leap_year(Game_Time.year))
+                    max_days++;
+                
+                if (Game_Time.day > max_days)
+                {
+                    Game_Time.day = 1;
+                    Game_Time.month++;
+                    
+                    if (Game_Time.month > MONTHS_PER_YEAR)
+                    {
+                        Game_Time.month = 1;
+                        Game_Time.year++;
+                    }
+                }
+            }
+        }
+    }
+}
+// Check if it's night
+bool is_currently_night()
+{
+    return Game_Time.is_night == 1;
+}
+// Get current season (1-4, starting with spring)
+u32 get_current_season()
+{
+    return ((Game_Time.month - 1) / 3) + 1;
+}
+// Get days elapsed since game start
+u32 get_days_elapsed()
+{
+    return Game_Time.total_days;
+}
 
 // ------------------------------------------------------------------------------------------------
 // - ENUMS - SCENES
@@ -1382,20 +1687,40 @@ enum GameStrings
     // Shipyard Actions
     ACTION_SHIPYARD_BUY_USED,
     ACTION_SHIPYARD_REMODEL_SHIP,
+    ACTION_SHIPYARD_REMODEL_SHIP_MATERIAL,
+    ACTION_SHIPYARD_REMODEL_SHIP_FIGUREHEAD,
+    ACTION_SHIPYARD_REMODEL_SHIP_CANNON_TYPE,
+    ACTION_SHIPYARD_REMODEL_SHIP_SPACE,
+
+    // Dockyard Actions
+    ACTION_DOCKYARD_PURCHASE,
+    ACTION_DOCKYARD_SET_SAIL,
 
     // Dialogs
     DIALOG_NPC_RVICE, DIALOG_NPC_LAFOLIE, DIALOG_NPC_NAKOR,
     DIALOG_NPC_TRAVIS, DIALOG_NPC_LOLLER,
+    // Dialogs - Blackjack
     DIALOG_BLACKJACK_WELCOME,
+    // Dialogs - Bank
     DIALOG_BANK_WELCOME,
+    // Dialogs - Shipyard
     DIALOG_SHIPYARD_WELCOME,
     DIALOG_SHIPYARD_PREFAB_PURCHASE_SUCCESS,
+    DIALOG_SHIPYARD_REMODEL_SUCCESS,
+    // Dialogs - Dockyard
+    DIALOG_DOCKYARD_WELCOME,
+    DIALOG_DOCKYARD_SUPPLIES_LOADED,
+    // Dialogs - Goods Shop
+    DIALOG_GOODS_SHOP_WELCOME,
+    // Dialogs - Test
+    DIALOG_TEST_ONE, DIALOG_TEST_TWO, DIALOG_TEST_THREE,
 
     // Scenes
     SCENE_BLACKJACK, SCENE_GENERAL_SHOP, SCENE_DOCKYARD, SCENE_OCEAN_BATTLE,
     SCENE_OCEAN_FAKE_BATTLE, SCENE_SHIPYARD,
     SCENE_BANK, SCENE_NPC_RVICE, SCENE_NPC_LAFOLIE, SCENE_NPC_NAKOR,
-    SCENE_NPC_TRAVIS, SCENE_NPC_LOLLER,
+    SCENE_NPC_TRAVIS, SCENE_NPC_LOLLER, SCENE_GOODS_SHOP,
+    SCENE_TEST,
 
     // Inventories
     INVENTORY_ATHENS_GENERAL_SHOP, INVENTORY_PLAYER_ONE,
@@ -1403,6 +1728,7 @@ enum GameStrings
     INVENTORY_PLAYER_FOUR, INVENTORY_PLAYER_FIVE, INVENTORY_NPC_LOLLER,
     INVENTORY_NPC_RVICE, INVENTORY_NPC_LAFOLIE, INVENTORY_NPC_NAKOR,
     INVENTORY_NPC_TRAVIS, INVENTORY_NPC_BLACKBEARD, INVENTORY_NPC_DAVEY_JONES,
+    INVENTORY_ATHENS_GOODS_SHOP,
 
     // Inventory Types
     INVENTORY_TYPE_GOOD, INVENTORY_TYPE_ARMOR, INVENTORY_TYPE_WEAPON,
@@ -1411,6 +1737,18 @@ enum GameStrings
 
     // Items
     ITEM_TELESCOPE, ITEM_QUADRANT, ITEM_THEODOLITE, ITEM_SEXTANT,
+
+    // Goods
+    GOOD_CLOVE, GOOD_CINNAMON, GOOD_PEPPER, GOOD_NUTMEG, GOOD_PIMENTO,
+    GOOD_GINGER, GOOD_VANILLA, GOOD_TEA, GOOD_COFFEE, GOOD_CACAO, GOOD_SUGAR,
+    GOOD_CHEESE, GOOD_FISH, GOOD_GRAIN, GOOD_OLIVE_OIL, GOOD_RAISINS,
+    GOOD_ROCK_SALT, GOOD_SILK, GOOD_COTTON, GOOD_WOOL, GOOD_FLAX,
+    GOOD_COTTON_CLOTH, GOOD_SILK_CLOTH, GOOD_WOOL_CLOTH, GOOD_VELVET,
+    GOOD_LINEN_CLOTH, GOOD_CORAL, GOOD_AMBER, GOOD_IVORY, GOOD_PEARL,
+    GOOD_TORTOISE_SHELL, GOOD_GOLD, GOOD_SILVER, GOOD_COPPER_ORE,
+    GOOD_TIN_ORE, GOOD_IRON_ORE, GOOD_ART, GOOD_CARPET, GOOD_MUSK,
+    GOOD_PERFUME, GOOD_GLASS_BEADS, GOOD_DYE, GOOD_PORCELAIN, GOOD_GLASSWARE,
+    GOOD_ARMS, GOOD_WOOD, GOOD_CANNONBALLS, GOOD_FOOD, GOOD_WATER,
 
     // Layers
     LAYER_BACKGROUND, LAYER_NPC, LAYER_ENTITY, LAYER_ONE, LAYER_TWO, LAYER_BLOCK,
@@ -1421,12 +1759,13 @@ enum GameStrings
     NPC_PLAYER_FOUR, NPC_PLAYER_FIVE, NPC_SHIPYARD_OWNER,
     NPC_GENERAL_SHOP_OWNER, NPC_BLACKJACK_PLAYER, NPC_OCEAN_BATTLE,
     NPC_EMPTY, NPC_BLACKBEARD, NPC_DAVEY_JONES, NPC_KRAKEN, NPC_SHIP,
+    NPC_DOCKYARD_OWNER, NPC_GOODS_SHOP_OWNER,
 
     // NPC types
     NPC_TYPE_HUMAN, NPC_TYPE_SHIP, NPC_TYPE_MONSTER,
 
     // Worlds
-    WORLD_DINGUS_LAND, WORLD_ATHENS,
+    WORLD_DINGUS_LAND, WORLD_ATHENS, WORLD_GLOBE_1,
 
     // Base Ships
     BASE_SHIP_BALSA, BASE_SHIP_HANSA_COG, BASE_SHIP_LIGHT_GALLEY,
@@ -1453,6 +1792,7 @@ enum GameStrings
     GAME_MODE_IN_PORT,
     GAME_MODE_ON_LAND,
     GAME_MODE_IN_PLAYER_MENU,
+    GAME_MODE_SAILING,
 
     // Errors
     ERROR_GENERAL, ERROR_NOT_CORRECT_SCENE, ERROR_NOT_ENOUGH_GOLD,
@@ -1480,6 +1820,13 @@ enum GameStrings
     ERROR_SHIPYARD_NOT_ENOUGH_GOLD,
     ERROR_SHIPYARD_FLEET_FULL,
     ERROR_SHIPYARD_EMPTY_PREFAB_SLOT,
+    ERROR_SHIPYARD_REMODEL_SPACE_GREATER_THAN_REMODEL_CAPACITY,
+    ERROR_SHIPYARD_REMODEL_SPACE_GREATER_THAN_SHIP_CAPACITY,
+    ERROR_SHIPYARD_NO_SPACE_REMODEL_VALUES,
+
+    // Dockyard Errors
+    ERROR_DOCKYARD_NOT_ENOUGH_GOLD,
+    ERROR_DOCKYARD_SHIP_NOT_ENOUGH_CARGO_SPACE,
 
     // Fleet names
     FLEET_NAME_PLAYERS,
@@ -1511,6 +1858,18 @@ enum GameStrings
     OCEAN_BATTLE_BOARD, OCEAN_BATTLE_FIRE_CANNONS,
     OCEAN_BATTLE_RUN_NPC_TURN,
 
+    // Entities
+    ENTITY_START_SAILING,
+
+    // Other
+    START_SAILING,
+
+    // Loaders
+    LOAD_PORT_ATHENS,
+
+    // Ports
+    PORT_ATHENS,
+
     GAME_STRINGS_COUNT,
 };
 
@@ -1530,6 +1889,10 @@ void set_current_world(u32 id)
 {
     current.world = id;
     current.world_name = storage_world.data[id].name_id;
+}
+DATA_WORLD* get_current_world()
+{
+    return &storage_world.data[current.world];
 }
 
 // Has the game started?
@@ -1565,8 +1928,12 @@ u32 current_scene_take_action(u32 action)
             return scene_blackjack(action);
         case SCENE_GENERAL_SHOP:
             return scene_general_shop(action);
+        case SCENE_GOODS_SHOP:
+            return scene_goods_shop(action);
         case SCENE_SHIPYARD:
             return scene_shipyard(action);
+        case SCENE_DOCKYARD:
+            return scene_dockyard(action);
         case SCENE_BANK:
             return scene_bank(action);
         case SCENE_OCEAN_BATTLE:
@@ -1586,14 +1953,40 @@ u32 check_if_player_stepped_on_entity(u32 player_id)
     for (u32 i = 0; i < MAX_GLOBAL_ENTITIES; ++i)
     {
         if (
-            storage_entity.data[i].position_x == get_player_in_world_x(player_id) &&
-            storage_entity.data[i].position_y == get_player_in_world_y(player_id) &&
-            storage_entity.data[i].is_interactable == true &&
+            storage_entity.data[i].position_x == get_player_in_world_x(player_id)
+            &&
+            storage_entity.data[i].position_y == get_player_in_world_y(player_id)
+            &&
+            storage_entity.data[i].is_interactable == true
+            &&
             storage_entity.data[i].interaction_on_step_over == true
         )
         {
-            // TODO: interaction_scene
-            generate_world(WORLD_DINGUS_LAND);
+            if (storage_entity.data[i].interaction_scene == START_SAILING)
+            {
+                generate_world(WORLD_GLOBE_1);
+            }
+            return true;
+        }
+    }
+    return SENTRY;
+}
+u32 check_if_player_triggered_entity(u32 x, u32 y)
+{
+    for (u32 i = 0; i < MAX_GLOBAL_ENTITIES; ++i)
+    {
+        if (
+            storage_entity.data[i].position_x == x
+            &&
+            storage_entity.data[i].position_y == y
+            &&
+            storage_entity.data[i].is_interactable == true
+        )
+        {
+            if (storage_entity.data[i].interaction_scene == LOAD_PORT_ATHENS)
+            {
+                generate_world(WORLD_ATHENS);
+            }
             return true;
         }
     }
@@ -1672,7 +2065,116 @@ u32 get_random_number(u32 min, u32 max)
 // }
 
 // -----------------------------------------------------------------------------
-// INPUT
+// - OTHER
+// -----------------------------------------------------------------------------
+u32 get_ship_available_cargo_space(u32 ship_id)
+{
+    DATA_SHIP* ship = get_data_ship(ship_id);
+    return (ship->cargo_space - ship->total_cargo_goods);
+}
+u32 add_good_to_ship(u32 good_id, u32 qty, u32 ship_id)
+{
+    DATA_SHIP* ship = get_data_ship(ship_id);
+    DATA_GOOD* good = get_data_good(good_id);
+    u32 intended_goods = ship->total_cargo_goods + qty;
+    if (intended_goods > ship->cargo_space)
+    {
+        console_log("[E] Cannot add goods to ship. Not enough cargo space");
+        return SENTRY;
+    }
+    bool already_in = false;
+    for (u32 i = 0; i < MAX_SHIP_CARGO_SPACE; ++i)
+    {
+        if (ship->cargo_goods[i] == good_id)
+        {
+            if (ship->cargo_goods_qty[i] == SENTRY)
+            {
+                ship->cargo_goods_qty[i] = 0;
+            }
+            ship->cargo_goods_qty[i] += qty;
+            ship->total_cargo_goods += qty;
+            return ship->cargo_goods_qty[i];
+        }
+    }
+    if (!already_in)
+    {
+        for (u32 i = 0; i < MAX_SHIP_CARGO_SPACE; ++i)
+        {
+            if (ship->cargo_goods[i] == SENTRY)
+            {
+                if (ship->cargo_goods_qty[i] == SENTRY)
+                {
+                    ship->cargo_goods_qty[i] = 0;
+                }
+                ship->cargo_goods[i] = good_id;
+                ship->cargo_goods_qty[i] += qty;
+                ship->total_cargo_goods += qty;
+                return ship->cargo_goods_qty[i];
+            }
+        }
+    }
+    return SENTRY;
+}
+u32 get_good_qty_from_ship(u32 good_id, u32 ship_id)
+{
+    DATA_SHIP* ship = get_data_ship(ship_id);
+    DATA_GOOD* good = get_data_good(good_id);
+    for (u32 i = 0; i < MAX_SHIP_CARGO_SPACE; ++i)
+    {
+        if (ship->cargo_goods[i] == good_id)
+        {
+            return ship->cargo_goods_qty[i];
+        }
+    }
+    return 0;
+}
+u32 get_good_qty_from_fleet_ships(u32 good_id, u32 fleet_id)
+{
+    u32 total = SENTRY;
+    DATA_FLEET* fleet = get_data_fleet(fleet_id);
+    for (u32 f = 0; f < MAX_FLEET_SHIPS; ++f)
+    {
+        if (fleet->ship_ids[f] == SENTRY) { continue; }
+        u32 fleet_ship_id = fleet->ship_ids[f];
+        DATA_FLEET_SHIP* fleet_ship = get_data_fleet_ship(fleet_ship_id);
+        if (total == SENTRY) { total = 0; }
+        total += get_good_qty_from_ship(good_id, fleet_ship->ship_id);
+    }
+    return total;
+}
+u32 get_ship_total_food(u32 ship_id)
+{
+    u32 good_id = find_storage_good_by_name_id(GOOD_FOOD);
+    return get_good_qty_from_ship(good_id, ship_id);
+}
+u32 get_ship_total_water(u32 ship_id)
+{
+    u32 good_id = find_storage_good_by_name_id(GOOD_WATER);
+    return get_good_qty_from_ship(good_id, ship_id);
+}
+u32 get_ship_total_cannonballs(u32 ship_id)
+{
+    u32 good_id = find_storage_good_by_name_id(GOOD_CANNONBALLS);
+    return get_good_qty_from_ship(good_id, ship_id);
+}
+u32 add_food_to_ship(u32 qty, u32 ship_id)
+{
+    u32 good_id = find_storage_good_by_name_id(GOOD_FOOD);
+    return add_good_to_ship(good_id, qty, ship_id);
+}
+u32 add_water_to_ship(u32 qty, u32 ship_id)
+{
+    u32 good_id = find_storage_good_by_name_id(GOOD_WATER);
+    return add_good_to_ship(good_id, qty, ship_id);
+}
+u32 add_cannonballs_to_ship(u32 qty, u32 ship_id)
+{
+    u32 good_id = find_storage_good_by_name_id(GOOD_CANNONBALLS);
+    return add_good_to_ship(good_id, qty, ship_id);
+}
+
+// -----------------------------------------------------------------------------
+// - INPUT
 // -----------------------------------------------------------------------------
 void user_input_right()
 {
@@ -1710,54 +2212,114 @@ void user_input_right_bumper()
 }
 void handle_interaction_scene(u32 interaction_scene, u32 world_npc_id)
 {
-    if (interaction_scene == SCENE_BLACKJACK)
+    switch (interaction_scene)
     {
+    case SCENE_BLACKJACK:
         scene_blackjack(ACTION);
-    }
-    else if (interaction_scene == SCENE_GENERAL_SHOP)
-    {
+        break;
+    case SCENE_GENERAL_SHOP:
         Scene_General_Shop.inventory_id = storage_world_npc.data[world_npc_id].inventory_id;
         scene_general_shop(ACTION);
-    }
-    else if (interaction_scene == SCENE_SHIPYARD)
-    {
+        break;
+    case SCENE_GOODS_SHOP:
+        Scene_Goods_Shop.inventory_id = storage_world_npc.data[world_npc_id].inventory_id;
+        scene_goods_shop(ACTION);
+        break;
+    case SCENE_SHIPYARD:
         // Note: We do not store inventory. We use ships_prefab instead
         scene_shipyard(ACTION);
-    }
-    else if (interaction_scene == SCENE_OCEAN_FAKE_BATTLE)
-    {
+        break;
+    case SCENE_DOCKYARD:
+        scene_dockyard(ACTION);
+        break;
+    case SCENE_OCEAN_FAKE_BATTLE:
         fake_ocean_battle();
         scene_ocean_battle(ACTION);
-    }
-    else if (interaction_scene == SCENE_NPC_RVICE)
-    {
+        break;
+    case SCENE_NPC_RVICE:
         scene_npc_rvice(ACTION);
-    }
-    else if (interaction_scene == SCENE_NPC_LAFOLIE)
-    {
+        break;
+    case SCENE_NPC_LAFOLIE:
         scene_npc_lafolie(ACTION);
-    }
-    else if (interaction_scene == SCENE_NPC_NAKOR)
-    {
+        break;
+    case SCENE_NPC_NAKOR:
         scene_npc_nakor(ACTION);
-    }
-    else if (interaction_scene == SCENE_NPC_TRAVIS)
-    {
+        break;
+    case SCENE_NPC_TRAVIS:
         scene_npc_travis(ACTION);
-    }
-    else if (interaction_scene == SCENE_NPC_LOLLER)
-    {
+        break;
+    case SCENE_NPC_LOLLER:
         scene_npc_loller(ACTION);
-    }
-    else if (interaction_scene == SCENE_BANK)
-    {
+        break;
+    case SCENE_BANK:
         scene_bank(ACTION);
+        break;
     }
 }
 void handle_input(u32 input)
 {
-    // NOTE: Apparenty you have to declare variables up here, NOT INSIDE THE CASE FUNCTIONS THEMSELVES
-    if (current.game_mode == GAME_MODE_IN_PORT)
+    if (current.game_mode == GAME_MODE_SAILING)
+    {
+        // TODO: Input up/down/left/right is set direction, not move
+        // move is handled by tick and other factors in the sailing
+        u32 world_npc_id = get_player_in_world(0);
+        u32 current_world_x = storage_world_npc.data[world_npc_id].position_x;
+        u32 current_world_y = storage_world_npc.data[world_npc_id].position_y;
+        u32 current_world_direction = storage_world_npc.data[world_npc_id].direction;
+        u32 intended_x;
+        u32 intended_y;
+        DATA_WORLD* current_world;
+        switch (input)
+        {
+            case USER_INPUT_UP:
+                storage_world_npc.data[world_npc_id].direction = DIRECTION_UP;
+                current.updated_state = UPDATED_STATE_NPCS;
+                u32 intended_y = 0;
+                if (current_world_y > 0)
+                {
+                    intended_y = current_world_y - 1;
+                }
+                check_if_player_triggered_entity(current_world_x, intended_y);
+                break;
+            case USER_INPUT_DOWN:
+                storage_world_npc.data[world_npc_id].direction = DIRECTION_DOWN;
+                current.updated_state = UPDATED_STATE_NPCS;
+                current_world = get_current_world();
+                intended_y = 0;
+                if (current_world_y < (current_world->height - 1))
+                {
+                    intended_y = current_world_y + 1;
+                }
+                check_if_player_triggered_entity(current_world_x, intended_y);
+                break;
+            case USER_INPUT_LEFT:
+                storage_world_npc.data[world_npc_id].direction = DIRECTION_LEFT;
+                current.updated_state = UPDATED_STATE_NPCS;
+                intended_x = 0;
+                if (current_world_x > 0)
+                {
+                    intended_x = current_world_x - 1;
+                }
+                check_if_player_triggered_entity(intended_x, current_world_y);
+                break;
+            case USER_INPUT_RIGHT:
+                storage_world_npc.data[world_npc_id].direction = DIRECTION_RIGHT;
+                current.updated_state = UPDATED_STATE_NPCS;
+                current_world = get_current_world();
+                intended_x = 0;
+                if (current_world_x < (current_world->width - 1))
+                {
+                    intended_x = current_world_x + 1;
+                }
+                check_if_player_triggered_entity(intended_x, current_world_x);
+                break;
+            // TODO: Other sail buttons here
+            default:
+                console_log("[I] No button push to handle here.");
+                break;
+        }
+    }
+    else if (current.game_mode == GAME_MODE_IN_PORT)
     {
         u32 world_npc_id = get_player_in_world(0);
         u32 current_world_x = storage_world_npc.data[world_npc_id].position_x;
@@ -1974,10 +2536,6 @@ u32 are_coordinates_blocked(u32 x, u32 y)
     return 0;
 }
 
-DATA_WORLD* get_current_world()
-{
-    return &storage_world.data[current.world];
-}
 void generate_world(u32 world_name_id)
 {
     clear_all_layers();
@@ -1992,6 +2550,7 @@ void generate_world(u32 world_name_id)
         }
         Scene_Shipyard.ships_prefab[i] = SENTRY;
     }
+    clear_scene_dockyard();
     // NOTE: An example of using pointers that have no perf cost
     DATA_WORLD* current_world = get_current_world();
     // TODO: Function for this?
@@ -2001,15 +2560,91 @@ void generate_world(u32 world_name_id)
     }
     current_world->total_layers = 0;
 
-    if (world_name_id == WORLD_DINGUS_LAND)
+    u32 world_width;
+    u32 world_height;
+    u32 wnpcid;
+    u32 lid;
+    u32 npc_id;
+
+    switch (world_name_id)
     {
+    case WORLD_GLOBE_1:
+        previous_game_mode = current.game_mode;
+        current.game_mode = GAME_MODE_SAILING;
+        set_current_world(find_storage_world_by_name_id(WORLD_GLOBE_1));
+        world_width = current_world->width;
+        world_height = current_world->height;
+
+        lid = pull_storage_layer_next_open_slot();
+        storage_layer.data[lid].name_id = LAYER_BACKGROUND;
+        storage_layer.data[lid].width = world_width;
+        storage_layer.data[lid].height = world_height;
+        add_layer_to_world(lid, current.world);
+        storage_layer.data[lid].same_value = 1;
+        lid = pull_storage_layer_next_open_slot();
+        storage_layer.data[lid].name_id = LAYER_NPC;
+        storage_layer.data[lid].width = world_width;
+        storage_layer.data[lid].height = world_height;
+        add_layer_to_world(lid, current.world);
+        lid = pull_storage_layer_next_open_slot();
+        storage_layer.data[lid].name_id = LAYER_ONE;
+        storage_layer.data[lid].width = world_width;
+        storage_layer.data[lid].height = world_height;
+        add_layer_to_world(lid, current.world);
+        // athens I guess
+        layer_set_value(lid, 3, 3, 1);
+        layer_set_value(lid, 4, 3, 1);
+        lid = pull_storage_layer_next_open_slot();
+        storage_layer.data[lid].name_id = LAYER_TWO;
+        storage_layer.data[lid].width = world_width;
+        storage_layer.data[lid].height = world_height;
+        add_layer_to_world(lid, current.world);
+        // town (athens)
+        layer_set_value(lid, 4, 3, 1);
+        lid = pull_storage_layer_next_open_slot();
+        storage_layer.data[lid].name_id = LAYER_BLOCK;
+        storage_layer.data[lid].width = world_width;
+        storage_layer.data[lid].height = world_height;
+        storage_layer.data[lid].is_block = true;
+        add_layer_to_world(lid, current.world);
+        // blocker for land around athens
+        layer_set_value(lid, 3, 3, 1);
+        layer_set_value(lid, 4, 3, 1);
+
+        npc_id = get_player_npc_id(0);
+        wnpcid = pull_storage_world_npc_next_open_slot();
+        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
+        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
+        storage_world_npc.data[wnpcid].npc_id = npc_id;
+        storage_world_npc.data[wnpcid].captain_id = players[0];
+        storage_world_npc.data[wnpcid].position_x = 0;
+        storage_world_npc.data[wnpcid].position_y = 0;
+        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
+        storage_world_npc.data[wnpcid].is_captain = true;
+        storage_world_npc.data[wnpcid].is_player = true;
+        // So we know who the first player is in the world directly
+        storage_captain.data[0].world_npc_id = wnpcid;
+        ++storage_world.data[current.world].total_npcs;
+        update_npc_layer(wnpcid);
+
+        u32 entity_id = pull_storage_entity_next_open_slot();
+        DATA_ENTITY* entity = get_data_entity(entity_id);
+        entity->name_id = PORT_ATHENS;
+        entity->is_interactable = true;
+        entity->interaction_scene = LOAD_PORT_ATHENS;
+        entity->position_x = 4;
+        entity->position_y = 3;
+
+        current.updated_state = UPDATED_STATE_WORLD;
+        break;
+    case WORLD_DINGUS_LAND:
         previous_game_mode = current.game_mode;
         current.game_mode = GAME_MODE_IN_PORT;
         set_current_world(find_storage_world_by_name_id(WORLD_DINGUS_LAND));
-        u32 world_width = current_world->width;
-        u32 world_height = current_world->height;
+        world_width = current_world->width;
+        world_height = current_world->height;
 
-        u32 lid = pull_storage_layer_next_open_slot();
+        lid = pull_storage_layer_next_open_slot();
         storage_layer.data[lid].name_id = LAYER_BACKGROUND;
         storage_layer.data[lid].width = world_width;
         storage_layer.data[lid].height = world_height;
@@ -2037,11 +2672,16 @@ void generate_world(u32 world_name_id)
         storage_layer.data[lid].is_block = true;
         add_layer_to_world(lid, current.world);
         current.updated_state = UPDATED_STATE_WORLD;
-    }
-    else if (world_name_id == WORLD_ATHENS)
-    {
+        break;
+    case WORLD_ATHENS:
         previous_game_mode = current.game_mode;
         current.game_mode = GAME_MODE_IN_PORT;
+
+        // Set dockyard purchase prices for this port
+        Scene_Dockyard.price_food = 10;
+        // water is always free
+        Scene_Dockyard.price_water = 0;
+        Scene_Dockyard.price_cannonballs = 10;
 
         set_current_world(find_storage_world_by_name_id(WORLD_ATHENS));
 
@@ -2064,15 +2704,18 @@ void generate_world(u32 world_name_id)
         storage_layer.data[lid].width = world_width;
         storage_layer.data[lid].height = world_height;
         add_layer_to_world(lid, current.world);
-        layer_set_value(lid, 0, 0, 36);
-        layer_set_value(lid, 7, 0, 38);
+        // layer_set_value(lid, 0, 0, 36);
+        layer_set_value(lid, 0, 0, 33);
+        // layer_set_value(lid, 7, 0, 38);
+        layer_set_value(lid, 7, 0, 35);
         layer_set_value(lid, 0, 1, 33);
         layer_set_value(lid, 0, 2, 33);
         layer_set_value(lid, 0, 3, 33);
         layer_set_value(lid, 0, 4, 33);
         for (u32 column = 1; column < 7; ++column)
         {
-            layer_set_value(lid, column, 0, 37);
+            // layer_set_value(lid, column, 0, 37);
+            layer_set_value(lid, column, 0, 34);
         }
         for (u32 column = 1; column < 7; ++column)
         {
@@ -2134,6 +2777,17 @@ void generate_world(u32 world_name_id)
         add_layer_to_world(lid, current.world);
         // Door
         layer_set_value(lid, 7, 8, 4);
+        // Shipyard sign
+        layer_set_value(lid, 6, 8, 10);
+        // rock
+        layer_set_value(lid, 4, 3, 20);
+        // house
+        layer_set_value(lid, 5, 2, 51);
+        layer_set_value(lid, 6, 2, 52);
+        layer_set_value(lid, 7, 2, 53);
+        layer_set_value(lid, 5, 3, 50);
+        layer_set_value(lid, 6, 3, 50);
+        layer_set_value(lid, 7, 3, 50);
         lid = pull_storage_layer_next_open_slot();
         storage_layer.data[lid].name_id = LAYER_BLOCK;
         storage_layer.data[lid].width = world_width;
@@ -2145,8 +2799,9 @@ void generate_world(u32 world_name_id)
         layer_set_value(lid, 7, 7, 1);
         layer_set_value(lid, 6, 8, 1);
         layer_set_value(lid, 7, 8, 1);
+        // rock
+        // layer_set_value(lid, 4, 3, 1);
 
-        u32 npc_id;
         u32 world_npc_id;
 
         npc_id = find_storage_npc_by_name_id(NPC_BANK_TELLER);
@@ -2159,14 +2814,12 @@ void generate_world(u32 world_name_id)
         storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
         storage_world_npc.data[wnpcid].interaction_scene = SCENE_BANK;
         storage_world_npc.data[wnpcid].is_interactable = true;
-        storage_world_npc.data[wnpcid].is_captain = true;
         ++storage_world.data[current.world].total_npcs;
         
         // inventory
-        u32 i_id = get_storage_inventory_next_open_slot();
+        u32 i_id = pull_storage_inventory_next_open_slot();
         storage_inventory.data[i_id].name_id = INVENTORY_ATHENS_GENERAL_SHOP;
         storage_inventory.data[i_id].total_items = 0;
-
         // inventory item
         u32 ii_id = pull_storage_inventory_item_next_open_slot();
         storage_inventory_item.data[ii_id].name_id = ITEM_TELESCOPE;
@@ -2233,7 +2886,6 @@ void generate_world(u32 world_name_id)
         storage_world_npc.data[wnpcid].position_x = 0;
         storage_world_npc.data[wnpcid].position_y = 0;
         storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].interaction_scene = SCENE_BLACKJACK;
         storage_world_npc.data[wnpcid].is_captain = true;
         storage_world_npc.data[wnpcid].is_player = true;
         // So we know who the first player is in the world directly
@@ -2369,11 +3021,66 @@ void generate_world(u32 world_name_id)
         storage_ship.data[ship_id].cannon_space = 10;
         storage_ship.data[ship_id].cargo_space = 70;
         Scene_Shipyard.ships_prefab[1] = ship_id;
+        // Set remodel prices specific to Athens
+        // TODO: Eventually update this to also account for ship size
+        Scene_Shipyard.remodel_space_price = 100;
+        Scene_Shipyard.remodel_material_price = 103;
+        Scene_Shipyard.remodel_cannon_price = 129;
+        Scene_Shipyard.remodel_figurehead_price = 30;
+
+        npc_id = find_storage_npc_by_name_id(NPC_DOCKYARD_OWNER);
+        wnpcid = pull_storage_world_npc_next_open_slot();
+        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
+        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
+        storage_world_npc.data[wnpcid].npc_id = npc_id;
+        storage_world_npc.data[wnpcid].position_x = 6;
+        storage_world_npc.data[wnpcid].position_y = 11;
+        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
+        storage_world_npc.data[wnpcid].interaction_scene = SCENE_DOCKYARD;
+        storage_world_npc.data[wnpcid].is_interactable = true;
+        ++storage_world.data[current.world].total_npcs;
+        update_npc_layer(wnpcid);
+        // Note: Keeping this here temporarily for future reference
+        // u32 entity_id = pull_storage_entity_next_open_slot();
+        // DATA_ENTITY* entity = get_data_entity(entity_id);
+        // entity->name_id = ENTITY_START_SAILING;
+        // entity->is_interactable = true;
+        // entity->interaction_on_step_over = true;
+        // entity->interaction_scene = START_SAILING;
+        // entity->position_x = 6;
+        // entity->position_y = 11;
+
+        // inventory
+        i_id = pull_storage_inventory_next_open_slot();
+        storage_inventory.data[i_id].name_id = INVENTORY_ATHENS_GOODS_SHOP;
+        storage_inventory.data[i_id].total_items = 0;
+        // inventory items
+        ii_id = pull_storage_inventory_item_next_open_slot();
+        DATA_INVENTORY_ITEM *ii = get_data_inventory_item(ii_id);
+        ii->name_id = GOOD_AMBER;
+        ii->number_held = 22;
+        ii->type = INVENTORY_TYPE_GOOD;
+        ii->type_reference = find_storage_good_by_name_id(GOOD_AMBER);
+        ii->adjusted_price = 400;
+        add_item_to_inventory(ii_id, i_id);
+        npc_id = find_storage_npc_by_name_id(NPC_GOODS_SHOP_OWNER);
+        wnpcid = pull_storage_world_npc_next_open_slot();
+        DATA_WORLD_NPC* wnpc = get_data_world_npc(wnpcid);
+        wnpc->name_id = storage_npc.data[npc_id].name_id;
+        wnpc->type_id = storage_npc.data[npc_id].type;
+        wnpc->npc_id = npc_id;
+        wnpc->position_x = 3;
+        wnpc->position_y = 2;
+        wnpc->direction = DIRECTION_DOWN;
+        wnpc->interaction_scene = SCENE_GOODS_SHOP;
+        wnpc->is_interactable = true;
+        wnpc->inventory_id = i_id;
+        ++storage_world.data[current.world].total_npcs;
+        update_npc_layer(wnpcid);
 
         current.updated_state = UPDATED_STATE_WORLD;
-    }
-    else
-    {
+        break;
+    default:
         args[0].i = world_name_id;
         console_log_format("Could not find world %d", args, 1);
     }
@@ -2573,13 +3280,19 @@ void increment_tick_counter(u32* tick)
         *tick += 1;
     }
 }
+u32 artificial_sailing_tick = 0;
 void tick()
 {
     increment_tick_counter(&tick_counter);
+
+    // Update game time
+    update_game_time();
+
     if (!has_game_started)
     {
         has_game_started = true;
         accepting_input = true;
+        initialize_game_time();
         // generate_world(WORLD_DINGUS_LAND);
         generate_world(WORLD_ATHENS);
     }
@@ -2591,14 +3304,36 @@ void tick()
     {
         // TODO: Anything here?
     }
-    // TODO: fsm_tick();
+    else if (current.game_mode == GAME_MODE_SAILING)
+    {
+        ++artificial_sailing_tick;
+        if (artificial_sailing_tick % 50 != 0) { return; }
+        u32 world_npc_id = get_player_in_world(0);
+        u32 current_world_direction = storage_world_npc.data[world_npc_id].direction;
+        if (current_world_direction == DIRECTION_UP)
+        {
+            move_player_up(0);
+        }
+        else if (current_world_direction == DIRECTION_DOWN)
+        {
+            move_player_down(0);
+        }
+        else if (current_world_direction == DIRECTION_LEFT)
+        {
+            move_player_left(0);
+        }
+        else if (current_world_direction == DIRECTION_RIGHT)
+        {
+            move_player_right(0);
+        }
+    }
 }
 
 u32 initialize_npc(u32 name_id, u32 type_id)
 {
     DATA_NPC npc;
     CLEAR_STRUCT(&npc, SENTRY);
-    npc.name_id = NPC_PLAYER_ONE;
+    npc.name_id = name_id;
     npc.type = NPC_TYPE_HUMAN;
     return add_storage_npc(&npc, false);
 }
@@ -2609,6 +3344,36 @@ u32 initialize_general_item(u32 name_id, u32 base_price)
     item.name_id = name_id;
     item.base_price = base_price;
     return add_storage_general_item(&item, true);
+}
+u32 initialize_good(u32 name_id, u32 base_price)
+{
+    DATA_GOOD good;
+    CLEAR_STRUCT(&good, SENTRY);
+    good.name_id = name_id;
+    good.base_price = base_price;
+    return add_storage_good(&good, true);
+}
+u32 initialize_world(u32 name_id, u32 width, u32 height)
+{
+    if (width > MAX_WORLD_WIDTH)
+    {
+        console_log("[E] Cannot create world greater than max width");
+        return SENTRY;
+    }
+    if (height > MAX_WORLD_HEIGHT)
+    {
+        console_log("[E] Cannot create world greater than max height");
+        return SENTRY;
+    }
+    DATA_WORLD world;
+    CLEAR_STRUCT(&world, SENTRY);
+    world.name_id = name_id;
+    world.width = width;
+    world.height = height;
+    world.total_npcs = 0;
+    world.total_captains = 0;
+    world.total_layers = 0;
+    return add_storage_world(&world, true);
 }
 u32 initialize_inventory(u32 name_id)
 {
@@ -2700,23 +3465,34 @@ u32 initialize_captain(u32 name_id, u32 type_id, u32 inventory_name_id)
 
     // TODO: This area is using defaults. Later on, split this out!
     u32 base_ship_id = find_storage_base_ship_by_name_id(BASE_SHIP_BALSA);
-    u32 ship_material_id = find_storage_ship_material_by_name_id(SHIP_MATERIAL_OAK);
+    u32 ship_material_id = find_storage_ship_material_by_name_id(SHIP_MATERIAL_TEAK);
     u32 ship_id = initialize_ship(BASE_SHIP_BALSA);
     DATA_SHIP* new_ship = &storage_ship.data[ship_id];
     new_ship->base_ship_id = base_ship_id;
     new_ship->price = 400;
     new_ship->material_id = ship_material_id;
-    new_ship->capacity = 400;
+    u32 max_capacity = storage_base_ship.data[base_ship_id].max_capacity;
+    new_ship->capacity = max_capacity;
     new_ship->tacking = 30;
     new_ship->power = 103;
     new_ship->speed = 333;
     new_ship->crew = 50;
     new_ship->hull = 100;
+    new_ship->durability = storage_base_ship.data[base_ship_id].durability;
+    new_ship->cargo_space = my_floor_percentage(max_capacity, 40);
+    new_ship->crew_space = my_floor_percentage(max_capacity, 40);
+    new_ship->cannon_space = my_floor_percentage(max_capacity, 20);
     new_ship->total_cargo_goods = 0;
 
     u32 fleet_ship_id = initialize_fleet_ship(BASE_SHIP_BALSA, ship_id);
     storage_fleet_ship.data[fleet_ship_id].is_flagship = true;
     add_fleet_ship_to_fleet(fleet_ship_id, fleet_id);
+    u32 good_food_id = find_storage_good_by_name_id(GOOD_FOOD);
+    u32 good_water_id = find_storage_good_by_name_id(GOOD_WATER);
+    u32 good_cannonballs_id = find_storage_good_by_name_id(GOOD_CANNONBALLS);
+    add_good_to_ship(good_food_id, 10, ship_id);
+    add_good_to_ship(good_water_id, 10, ship_id);
+    add_good_to_ship(good_cannonballs_id, 10, ship_id);
 
     if (name_id == NPC_BLACKBEARD)
     {
@@ -2767,23 +3543,63 @@ void initialize_game()
     initialize_general_item(ITEM_THEODOLITE, 202);
     initialize_general_item(ITEM_SEXTANT, 203);
 
-    DATA_WORLD athens;
-    CLEAR_STRUCT(&athens, SENTRY);
-    athens.name_id = WORLD_ATHENS;
-    athens.width = 50;
-    athens.height = 50;
-    athens.total_npcs = 0;
-    athens.total_captains = 0;
-    athens.total_layers = 0;
-    add_storage_world(&athens, true);
-    athens.name_id = WORLD_DINGUS_LAND;
-    athens.width = 100;
-    athens.height = 100;
-    athens.total_npcs = 0;
-    athens.total_captains = 0;
-    athens.total_layers = 0;
-    add_storage_world(&athens, true);
+    initialize_good(GOOD_CLOVE, 10);
+    initialize_good(GOOD_CINNAMON, 10);
+    initialize_good(GOOD_PEPPER, 10);
+    initialize_good(GOOD_NUTMEG, 10);
+    initialize_good(GOOD_PIMENTO, 10);
+    initialize_good(GOOD_GINGER, 10);
+    initialize_good(GOOD_VANILLA, 10);
+    initialize_good(GOOD_TEA, 10);
+    initialize_good(GOOD_COFFEE, 10);
+    initialize_good(GOOD_CACAO, 10);
+    initialize_good(GOOD_SUGAR, 10);
+    initialize_good(GOOD_CHEESE, 10);
+    initialize_good(GOOD_FISH, 10);
+    initialize_good(GOOD_GRAIN, 10);
+    initialize_good(GOOD_OLIVE_OIL, 10);
+    initialize_good(GOOD_RAISINS, 10);
+    initialize_good(GOOD_ROCK_SALT, 10);
+    initialize_good(GOOD_SILK, 10);
+    initialize_good(GOOD_COTTON, 10);
+    initialize_good(GOOD_WOOL, 10);
+    initialize_good(GOOD_FLAX, 10);
+    initialize_good(GOOD_COTTON_CLOTH, 10);
+    initialize_good(GOOD_SILK_CLOTH, 10);
+    initialize_good(GOOD_WOOL_CLOTH, 10);
+    initialize_good(GOOD_VELVET, 10);
+    initialize_good(GOOD_LINEN_CLOTH, 10);
+    initialize_good(GOOD_CORAL, 10);
+    initialize_good(GOOD_AMBER, 10);
+    initialize_good(GOOD_IVORY, 10);
+    initialize_good(GOOD_PEARL, 10);
+    initialize_good(GOOD_TORTOISE_SHELL, 10);
+    initialize_good(GOOD_GOLD, 100);
+    initialize_good(GOOD_SILVER, 100);
+    initialize_good(GOOD_COPPER_ORE, 100);
+    initialize_good(GOOD_TIN_ORE, 220);
+    initialize_good(GOOD_IRON_ORE, 230);
+    initialize_good(GOOD_ART, 240);
+    initialize_good(GOOD_CARPET, 250);
+    initialize_good(GOOD_MUSK, 260);
+    initialize_good(GOOD_PERFUME, 270);
+    initialize_good(GOOD_GLASS_BEADS, 280);
+    initialize_good(GOOD_DYE, 290);
+    initialize_good(GOOD_PORCELAIN, 300);
+    initialize_good(GOOD_GLASSWARE, 500);
+    initialize_good(GOOD_ARMS, 800);
+    // Can be used for sailing purposes too
+    initialize_good(GOOD_WOOD, 100);
+    // For sailing purposes
+    initialize_good(GOOD_CANNONBALLS, 20);
+    initialize_good(GOOD_FOOD, 20);
+    initialize_good(GOOD_WATER, 0);
 
+    initialize_world(WORLD_ATHENS, MAX_WORLD_WIDTH, MAX_WORLD_HEIGHT);
+    initialize_world(WORLD_DINGUS_LAND, MAX_WORLD_WIDTH, MAX_WORLD_HEIGHT);
+    initialize_world(WORLD_GLOBE_1, MAX_WORLD_WIDTH, MAX_WORLD_HEIGHT);
+
+    clear_all_ship_materials();
     DATA_SHIP_MATERIAL new_ship_material;
     CLEAR_STRUCT(&new_ship_material, SENTRY);
     new_ship_material.name_id = SHIP_MATERIAL_TEAK;
@@ -2850,6 +3666,7 @@ void initialize_game()
     u32 sm_steel_id = add_storage_ship_material(&new_ship_material, true);
     // TODO: SHIP_MATERIAL_GOLD?
 
+    clear_all_cannons();
     DATA_CANNON new_cannon;
     CLEAR_STRUCT(&new_cannon, SENTRY);
     new_cannon.name_id = CANNON;
@@ -2912,6 +3729,7 @@ void initialize_game()
     new_cannon.base_price = 400;
     add_storage_cannon(&new_cannon, true);
 
+    clear_all_figureheads();
     DATA_FIGUREHEAD new_figurehead;
     // name_id, base_price
     CLEAR_STRUCT(&new_figurehead, SENTRY);
@@ -3292,6 +4110,8 @@ void initialize_game()
     initialize_npc(NPC_BLACKJACK_PLAYER, NPC_TYPE_HUMAN);
     initialize_npc(NPC_OCEAN_BATTLE, NPC_TYPE_HUMAN);
     initialize_npc(NPC_SHIPYARD_OWNER, NPC_TYPE_HUMAN);
+    initialize_npc(NPC_DOCKYARD_OWNER, NPC_TYPE_HUMAN);
+    initialize_npc(NPC_GOODS_SHOP_OWNER, NPC_TYPE_HUMAN);
     // Monsters
     initialize_npc(NPC_KRAKEN, NPC_TYPE_MONSTER);
     // Ships
@@ -4561,6 +5381,9 @@ u32 scene_ocean_battle(u32 action)
     return SENTRY;
 }
 
+// -----------------------------------------------------------------------------
+// - SINGLE DIALOG SCENE
+// -----------------------------------------------------------------------------
 u32 run_scene_single_dialog(u32 action, u32 scene_id, u32 scene_dialog_id)
 {
     if (Scene_Single_Dialog.flag_initialized == 0)
@@ -4650,6 +5473,10 @@ u32 scene_npc_loller(u32 action)
     );
 }
 
+
+// -----------------------------------------------------------------------------
+// - BANK SCENE
+// -----------------------------------------------------------------------------
 u32 scene_bank(u32 action)
 {
     if (Scene_Bank.flag_initialized == 0)
@@ -4776,6 +5603,9 @@ u32 scene_bank(u32 action)
     return SENTRY;
 }
 
+// -----------------------------------------------------------------------------
+// - SHIPYARD SCENE
+// -----------------------------------------------------------------------------
 u32 scene_shipyard(u32 action)
 {
     if (Scene_Shipyard.flag_initialized == 0)
@@ -4797,7 +5627,30 @@ u32 scene_shipyard(u32 action)
         console_log("[E] Already in scene and it's not this one");
         return SENTRY;
     }
+    DATA_SHIP* ship;
+    DATA_SHIP_MATERIAL* material;
     Scene_Shipyard.error_code = SENTRY;
+    u32 total_space;
+    if (
+        (
+            ACTION_SHIPYARD_REMODEL_SHIP
+            ||
+            ACTION_SHIPYARD_REMODEL_SHIP_MATERIAL
+            ||
+            ACTION_SHIPYARD_REMODEL_SHIP_FIGUREHEAD
+            ||
+            ACTION_SHIPYARD_REMODEL_SHIP_CANNON_TYPE
+            ||
+            ACTION_SHIPYARD_REMODEL_SHIP_SPACE
+        )
+        &&
+        Scene_Shipyard.remodel_ship_id == SENTRY
+    )
+    {
+        console_log("[E] No ship selected to remodel");
+        Scene_Shipyard.error_code = ERROR_SHIPYARD_NO_SHIP_SELECTED;
+        return SENTRY;
+    }
     switch (action)
     {
     case ACTION_SHIPYARD_BUY_USED:
@@ -4813,7 +5666,7 @@ u32 scene_shipyard(u32 action)
             Scene_Shipyard.error_code = ERROR_SHIPYARD_EMPTY_PREFAB_SLOT;
             break;
         }
-        DATA_SHIP* ship = &storage_ship.data[Scene_Shipyard.buying_prefab_ship_id];
+        ship = &storage_ship.data[Scene_Shipyard.buying_prefab_ship_id];
         if (ship->price > get_player_gold(0))
         {
             console_log("[E] Not enough gold to buy ship");
@@ -4849,40 +5702,224 @@ u32 scene_shipyard(u32 action)
             console_log("[I] Bought ship");
         }
         break;
+    case ACTION_SHIPYARD_REMODEL_SHIP_MATERIAL:
+        ship = get_data_ship(Scene_Shipyard.remodel_ship_id);
+        Remodel_Ship.material_price = 0;
+        if (Remodel_Ship.material_id != ship->material_id)
+        {
+            material = get_data_ship_material(Remodel_Ship.material_id);
+            Remodel_Ship.material_price = Scene_Shipyard.remodel_material_price;
+            Remodel_Ship.capacity = material->mod_capacity;
+            Remodel_Ship.tacking = material->mod_tacking;
+            Remodel_Ship.power = material->mod_power;
+            Remodel_Ship.speed = material->mod_speed;
+            Remodel_Ship.durability = material->mod_durability;
+        }
+        else
+        {
+            Remodel_Ship.capacity = 0;
+            Remodel_Ship.tacking = 0;
+            Remodel_Ship.power = 0;
+            Remodel_Ship.speed = 0;
+            Remodel_Ship.durability = 0;
+        }
+        Scene_Shipyard.error_code = SENTRY;
+        calculate_remodel_ship();
+        break;
+    case ACTION_SHIPYARD_REMODEL_SHIP_FIGUREHEAD:
+        ship = get_data_ship(Scene_Shipyard.remodel_ship_id);
+        Remodel_Ship.figurehead_price = 0;
+        if (Remodel_Ship.figurehead_id != ship->figurehead_id)
+        {
+            Remodel_Ship.figurehead_price = Scene_Shipyard.remodel_figurehead_price;
+            // TODO: Plus the actual cost of the figurehead too
+        }
+        Scene_Shipyard.error_code = SENTRY;
+        calculate_remodel_ship();
+        break;
+    case ACTION_SHIPYARD_REMODEL_SHIP_CANNON_TYPE:
+        ship = get_data_ship(Scene_Shipyard.remodel_ship_id);
+        Remodel_Ship.cannon_price = 0;
+        if (Remodel_Ship.cannon_type_id != ship->cannon_type_id)
+        {
+            Remodel_Ship.cannon_type_id = Scene_Shipyard.remodel_cannon_price;
+            // TODO: Plus the actual cost of the cannons too * cannon_space
+        }
+        Scene_Shipyard.error_code = SENTRY;
+        calculate_remodel_ship();
+        break;
+    case ACTION_SHIPYARD_REMODEL_SHIP_SPACE:
+        if (
+            Remodel_Ship.crew_space == 0
+            &&
+            Remodel_Ship.cargo_space == 0
+            &&
+            Remodel_Ship.cannon_space == 0
+        )
+        {
+            console_log("[E] No space adjustment to remodel with");
+            Scene_Shipyard.error_code = ERROR_SHIPYARD_NO_SPACE_REMODEL_VALUES;
+            break;
+        }
+        ship = get_data_ship(Scene_Shipyard.remodel_ship_id);
+        total_space = 0;
+        total_space += Remodel_Ship.crew_space;
+        total_space += Remodel_Ship.cargo_space;
+        total_space += Remodel_Ship.cannon_space;
+        if (
+            Remodel_Ship.capacity > 0
+            &&
+            Remodel_Ship.capacity != SENTRY
+            &&
+            total_space > Remodel_Ship.capacity
+        )
+        {
+            console_log("[E] Remodel space greater than remodel capacity");
+            Scene_Shipyard.error_code = ERROR_SHIPYARD_REMODEL_SPACE_GREATER_THAN_REMODEL_CAPACITY;
+            break;
+        }
+        else if (total_space > ship->capacity)
+        {
+            console_log("[E] Remodel space greater than ship capacity");
+            Scene_Shipyard.error_code = ERROR_SHIPYARD_REMODEL_SPACE_GREATER_THAN_SHIP_CAPACITY;
+            break;
+        }
+        else
+        {
+            console_log("[I] Remodel space should work out");
+            // TODO: if Remodel_Ship.crew_space < ship.crew_space
+            //       "Will have to dismiss of crew"
+            // TODO: if Remodel_Ship.cargo_space < ship.cargo_space
+            //       "Will have to sell cargo at a loss"
+            //       OR
+            //       Calculate cost of cargo at current port prices and knock
+            //       off the difference from remodel space cost
+
+            Scene_Shipyard.error_code = SENTRY;
+        }
+        break;
     case ACTION_SHIPYARD_REMODEL_SHIP:
-        if (1 == 2) { break; }
-        u32 remodel_cost = 100;
-        if (remodel_cost > get_player_gold(0))
+        if (Remodel_Ship.total_price > get_player_gold(0))
         {
             console_log("[E] Not enough gold to remodel ship");
             Scene_Shipyard.error_code = ERROR_SHIPYARD_NOT_ENOUGH_GOLD;
             break;
         }
-        // typedef struct __attribute__((packed))
-        // {
-        //     u32 material_id;
-        //     u32 cargo_space;
-        //     u32 cannon_space;
-        //     u32 crew_space;
-        //     u32 cannon_type_id;
-        //     u32 figurehead_id;
-        // } DATA_REMODEL_SHIP;
-        // ->remodel_ship_id should reference ship in players fleet
-        // ->if you readjust cargo and ship has cargo and holds more cargo than new cargo space, you have to warn user they will lose cargo
-        // -> ??? how do handle pricing? You would have to calculate a remodel price and then discount cargo + cannons + crew + figurehead if any are lost from their original state
+        total_space = 0;
+        if (Remodel_Ship.crew_space > 0 && Remodel_Ship.crew_space != SENTRY)
+        {
+            total_space += Remodel_Ship.crew_space;
+        }
+        if (Remodel_Ship.cannon_space > 0 && Remodel_Ship.cannon_space != SENTRY)
+        {
+            total_space += Remodel_Ship.cannon_space;
+        }
+        if (Remodel_Ship.cargo_space > 0 && Remodel_Ship.cargo_space != SENTRY)
+        {
+            total_space += Remodel_Ship.cargo_space;
+        }
+        bool remodel_has_capacity = (
+            Remodel_Ship.capacity > 0 && Remodel_Ship.capacity != SENTRY
+        );
+        if (
+            (
+                remodel_has_capacity
+                &&
+                total_space > Remodel_Ship.capacity
+            )
+            ||
+            (
+                !remodel_has_capacity
+                &&
+                total_space > ship->capacity
+            )
+        )
+        {
+            console_log("[E] Not enough capacity for remodel");
+            Scene_Shipyard.error_code = ERROR_SHIPYARD_REMODEL_SPACE_GREATER_THAN_SHIP_CAPACITY;
+            break;
+        }
+        ship = get_data_ship(Scene_Shipyard.remodel_ship_id);
+        if (
+            Remodel_Ship.material_id != SENTRY
+            &&
+            ship->material_id != Remodel_Ship.material_id
+        )
+        {
+            material = get_data_ship_material(ship->material_id);
+            ship->power -= material->mod_power;
+            ship->capacity -= material->mod_capacity;
+            ship->tacking -= material->mod_tacking;
+            ship->speed -= material->mod_speed;
+            ship->durability -= material->mod_durability;
+
+            ship->material_id = Remodel_Ship.material_id;
+            material = get_data_ship_material(Remodel_Ship.material_id);
+            ship->power += material->mod_power;
+            ship->capacity += material->mod_capacity;
+            ship->tacking += material->mod_tacking;
+            ship->speed += material->mod_speed;
+            ship->durability += material->mod_durability;
+        }
+        if (
+            Remodel_Ship.crew_space != SENTRY
+            &&
+            ship->crew_space != Remodel_Ship.crew_space
+        )
+        {
+            ship->crew_space = Remodel_Ship.crew_space;
+        }
+        if (
+            Remodel_Ship.cannon_space != SENTRY
+            &&
+            ship->cannon_space != Remodel_Ship.cannon_space
+        )
+        {
+            ship->cannon_space = Remodel_Ship.cannon_space;
+        }
+        if (
+            Remodel_Ship.cargo_space != SENTRY
+            &&
+            ship->cargo_space != Remodel_Ship.cargo_space
+        )
+        {
+            ship->cargo_space = Remodel_Ship.cargo_space;
+        }
+        if (
+            Remodel_Ship.cannon_type_id != SENTRY
+            &&
+            ship->cannon_type_id != Remodel_Ship.cannon_type_id
+        )
+        {
+            ship->cannon_type_id = Remodel_Ship.cannon_type_id;
+        }
+        if (
+            Remodel_Ship.figurehead_id != SENTRY
+            &&
+            ship->figurehead_id != Remodel_Ship.figurehead_id
+        )
+        {
+            ship->figurehead_id = Remodel_Ship.figurehead_id;
+        }
+        Scene_Shipyard.error_code = SENTRY;
+        subtract_player_gold(0, Remodel_Ship.total_price);
+        clear_remodel_ship();
+        Scene_Shipyard.dialog_id = DIALOG_SHIPYARD_REMODEL_SUCCESS;
         break;
     case ACTION_EXIT:
         console_log("[I] Exiting shipyard scene");
         Scene_Shipyard.flag_initialized = 0;
         Scene_Shipyard.buying_prefab_ship_id = SENTRY;
+        Scene_Shipyard.remodel_space_price = SENTRY;
+        Scene_Shipyard.remodel_material_price = SENTRY;
+        Scene_Shipyard.remodel_cannon_price = SENTRY;
+        Scene_Shipyard.remodel_figurehead_price = SENTRY;
+        clear_remodel_ship();
         current.game_mode = Scene_Shipyard.previous_game_mode;
         current.scene = SENTRY;
         current.updated_state = UPDATED_STATE_SCENE;
         break;
     }
-    // USE Scene_Shipyard.new_ship to point to a DATA_NEW_SHIP if that's made
-    // Buy Used
-    // - Simply a list of pre-fabbed ships
     // New Ship
     // - Type of ship
     // -- Filtered by location & port & investment
@@ -4894,45 +5931,92 @@ u32 scene_shipyard(u32 action)
     // --- Crew
     // -- Choose cannon type
     // --- List of cannon types for type of ship X space for cannons
-    // Sell Ship
-    // Invest
-    // Remodel
-    // - Capacity
-    // -- Cargo
-    // -- Cannons
-    // -- Crew
-    // - Figurehead
-    // -- List of figureheads available
-    // - Hull
-    // -- Available hulls for type of ship
-    // - Sails?
-    // - Cannons
-    // -- List of cannon types for type of ship X space for cannons
+    // SELL SHIP
+    // INVEST
+    // REPAID
 
-    /*
-    if (!initialized) { initialize }
+    return SENTRY;
+}
+
+
+// -----------------------------------------------------------------------------
+// - DOCKYARD SCENE
+// -----------------------------------------------------------------------------
+u32 scene_dockyard(u32 action)
+{
+    if (Scene_Dockyard.flag_initialized == 0)
+    {
+        console_log("[I] Setting up dockyard scene");
+        current.scene = SCENE_DOCKYARD;
+        Scene_Dockyard.id = SCENE_DOCKYARD;
+        Scene_Dockyard.dialog_id = DIALOG_DOCKYARD_WELCOME;
+        Scene_Dockyard.flag_initialized = 1;
+        Scene_Dockyard.previous_game_mode = current.game_mode;
+        current.game_mode = GAME_MODE_IN_SCENE;
+    }
+    if (
+        current.scene != SENTRY
+        &&
+        current.scene != Scene_Dockyard.id
+    )
+    {
+        console_log("[E] Already in scene and it's not this one");
+        return SENTRY;
+    }
     switch (action)
-        case ACTION_BUY_USED:
-            Take used ship as-is and add to players fleet
-        case ACTION_BUY_NEW_SHIP:
-            if (building_new_ship_already) { fail }
-            ensure enough gold and all that
-            generate ship from data and add to fleet
-        case ACTION_SELL_SHIP:
-            clear cargo on ship
-            clear ship
-            if has captain then set captain to unassigned
-            cannot sell flagship
-            remove ship from fleet
-        case INVEST:
-            same as goods/trade
-            - sphere of influence?
-            - increase shipyard level and potentially unlock stuff
-        case REMODEL:
-            - which ship
-            - what is remodeled (capacity, cargo, etc...)
-    */
-
+    {
+    case ACTION_DOCKYARD_PURCHASE:
+        if (get_player_gold(0) == 0)
+        {
+            console_log("[E] Player has zero gold");
+            Scene_Dockyard.error_code = ERROR_DOCKYARD_NOT_ENOUGH_GOLD;
+            break;
+        }
+        u32 goods_total = 0;
+        goods_total += Scene_Dockyard.purchase_water;
+        goods_total += Scene_Dockyard.purchase_food;
+        goods_total += Scene_Dockyard.purchase_cannonballs;
+        if (goods_total > get_ship_available_cargo_space(Scene_Dockyard.purchase_for_ship_id))
+        {
+            console_log("[E] Ship does not have enough cargo space for goods");
+            Scene_Dockyard.error_code = ERROR_DOCKYARD_SHIP_NOT_ENOUGH_CARGO_SPACE;
+            break;
+        }
+        u32 price_total = 0;
+        price_total += Scene_Dockyard.purchase_water * Scene_Dockyard.price_water;
+        price_total += Scene_Dockyard.purchase_food * Scene_Dockyard.price_food;
+        price_total += Scene_Dockyard.purchase_cannonballs * Scene_Dockyard.price_cannonballs;
+        if (price_total > get_player_gold(0))
+        {
+            console_log("[E] Not enough gold for this purchase");
+            Scene_Dockyard.error_code = ERROR_DOCKYARD_NOT_ENOUGH_GOLD;
+            break;
+        }
+        subtract_player_gold(0, price_total);
+        add_food_to_ship(Scene_Dockyard.purchase_food, Scene_Dockyard.purchase_for_ship_id);
+        add_water_to_ship(Scene_Dockyard.purchase_water, Scene_Dockyard.purchase_for_ship_id);
+        add_cannonballs_to_ship(Scene_Dockyard.purchase_cannonballs, Scene_Dockyard.purchase_for_ship_id);
+        Scene_Dockyard.dialog_id = DIALOG_DOCKYARD_SUPPLIES_LOADED;
+        break;
+    case ACTION_DOCKYARD_SET_SAIL:
+        // TODO: Check for food/water/crew and make sure you can sail
+        console_log("[I] Exiting dockyard scene");
+        Scene_Dockyard.flag_initialized = 0;
+        clear_scene_dockyard();
+        current.game_mode = Scene_Dockyard.previous_game_mode;
+        current.scene = SENTRY;
+        current.updated_state = UPDATED_STATE_SCENE;
+        generate_world(WORLD_GLOBE_1);
+        break;
+    case ACTION_EXIT:
+        console_log("[I] Exiting dockyard scene");
+        Scene_Dockyard.flag_initialized = 0;
+        clear_scene_dockyard();
+        current.game_mode = Scene_Dockyard.previous_game_mode;
+        current.scene = SENTRY;
+        current.updated_state = UPDATED_STATE_SCENE;
+        break;
+    }
     return SENTRY;
 }
 
@@ -4969,16 +6053,45 @@ u32 scene_blacksmith(u32 action)
     return SENTRY;
 }
 
+
+// -----------------------------------------------------------------------------
+// - GOODS SHOP SCENE
+// -----------------------------------------------------------------------------
 u32 scene_goods_shop(u32 action)
 {
-    // TODO: Trade shop -> heuristics on economic factors that influence price
-    // Note: trade shop just needs to know list of goods, their local value, at the end, you pick X goods, Y number of them, input on which ships get which goods and how many after you validate you have room for it to beging with
-    // Note: trade shop selling is essentially all goods in all ships, N goods, X number of each good, sell, done
-
+    if (Scene_Goods_Shop.flag_initialized == 0)
+    {
+        console_log("[I] Setting up goods shop scene");
+        current.scene = SCENE_GOODS_SHOP;
+        Scene_Goods_Shop.id = SCENE_GOODS_SHOP;
+        Scene_Goods_Shop.dialog_id = DIALOG_GOODS_SHOP_WELCOME;
+        Scene_Goods_Shop.flag_initialized = 1;
+        Scene_Goods_Shop.previous_game_mode = current.game_mode;
+        current.game_mode = GAME_MODE_IN_SCENE;
+    }
+    if (
+        current.scene != SENTRY
+        &&
+        current.scene != Scene_Goods_Shop.id
+    )
+    {
+        console_log("[E] Already in scene and it's not this one");
+        return SENTRY;
+    }
+    switch (action)
+    {
+    case ACTION_EXIT:
+        console_log("[I] Exiting goods shop scene");
+        Scene_Goods_Shop.flag_initialized = 0;
+        Scene_Goods_Shop.inventory_id = SENTRY;
+        current.game_mode = Scene_Goods_Shop.previous_game_mode;
+        Scene_Goods_Shop.previous_game_mode = SENTRY;
+        current.scene = SENTRY;
+        current.updated_state = UPDATED_STATE_SCENE;
+        break;
+    }
+    return SENTRY;
     /*
-    if (!initialized) { initialize }
-    - when initializing, check current investment level or other flags to unlock special trade goods
-    - ensure you apply local trade taxes to goods before storing prices
     switch (action)
         case ACTION_BUY_GOODS:
             if (!not enough player gold) { error }
@@ -5003,6 +6116,10 @@ u32 scene_goods_shop(u32 action)
     return SENTRY;
 }
 
+
+// -----------------------------------------------------------------------------
+// - GUILD SCENE
+// -----------------------------------------------------------------------------
 u32 scene_guild(u32 action)
 {
     // TODO: Guilds? Tasks with reputation and guild memberships?
@@ -5018,6 +6135,10 @@ u32 scene_guild(u32 action)
     return SENTRY;
 }
 
+
+// -----------------------------------------------------------------------------
+// - CAFE SCENE
+// -----------------------------------------------------------------------------
 u32 scene_cafe(u32 action)
 {
     // TODO: Cafe -> buy drinks, flirt with waitress, captains, gossip, blackjack
@@ -5043,34 +6164,63 @@ u32 scene_cafe(u32 action)
 
     return SENTRY;
 }
-// TODO: Pay crew and captain(s) per month!! or year!!
-// -- captain can stay in port so you can chat with them at any point in any port. random appearances of limited set of captains in port in case the world is too small to have them all
-// - rando people can gossip, along with waitress, rando information presented, probably just an array of different information to pick from
-
-// FUTURE, NOT NOW
-// TODO: Library? What even is this? Read books and gain info or something?
-// TODO: Duels -> recycle card based system from original game???
-// TODO: Autopilot captains -> they can auto sail your fleet to a port (pathfinding)
-// TODO: Jail -> world/map, houses React pirates. Maybe React pirates are their own faction
-// TODO: Houses to buy (pre-furnished to start, later on, furniture microtransactions w/ crypto mining for each furniture purchased so Spiro makes boatloads of cash)
-// TODO: Bulletin boards with messages to other players (post office??)
-// TODO: "Send" your ships to other players which become AI controlled and help other players
-// TODO: "Item in a bottle" -> send out an item and random player receives it later
 
 
-
-// TODO: Software renderer. Blit pixels out. Load on initalize game. Ask for pixels for a *thing*, get pixels out, render to *other thing*
-// NOTE: How to bit pack and unpack
-u32 pack(u32 a, u32 b) {
-    // Ensure values are within range
-    if (a > 100 || b > 100) return 0; // or handle error
-    
-    // Pack 'a' into the lower 7 bits, 'b' into the next 7 bits
-    return (b << 7) | a;
-}
-u32 unpack_lower(u32 packed) {
-    return packed & 0x7F;  // 0x7F is 1111111 in binary, masking out the lower 7 bits
-}
-u32 unpack_upper(u32 packed) {
-    return (packed >> 7) & 0x7F;  // Shift right by 7, then mask to get the upper 7 bits
+// -----------------------------------------------------------------------------
+// - TEST SCENE
+// -----------------------------------------------------------------------------
+u32 scene_test(u32 action)
+{
+    if (Scene_Test.flag_initialized == 0)
+    {
+        console_log("[I] Setting up test scene");
+        current.scene = SCENE_TEST;
+        Scene_Test.id = SCENE_TEST;
+        Scene_Test.dialog_id = DIALOG_TEST_ONE;
+        Scene_Test.flag_initialized = 1;
+        Scene_Test.previous_game_mode = current.game_mode;
+        current.game_mode = GAME_MODE_IN_SCENE;
+    }
+    if (
+        current.scene != SENTRY
+        &&
+        current.scene != Scene_Test.id
+    )
+    {
+        console_log("[E] Already in scene and it's not this one");
+        return SENTRY;
+    }
+    switch (action)
+    {
+    case ACTION_CONFIRM:
+        console_log("[I] Confirming test scene");
+        if (Scene_Test.dialog_id == DIALOG_TEST_ONE)
+        {
+            Scene_Test.dialog_id = DIALOG_TEST_TWO;
+            move_player_right(0);
+            move_world_npc_right(2);
+        }
+        else if (Scene_Test.dialog_id == DIALOG_TEST_TWO)
+        {
+            Scene_Test.dialog_id = DIALOG_TEST_THREE;
+            move_player_down(0);
+        }
+        else if (Scene_Test.dialog_id == DIALOG_TEST_THREE)
+        {
+            // DONE!
+            console_log("[E] Test scene complete");
+            Scene_Test.dialog_id = SENTRY;
+            scene_test(ACTION_EXIT);
+        }
+        break;
+    case ACTION_EXIT:
+        console_log("[I] Exiting test scene");
+        Scene_Test.flag_initialized = 0;
+        current.game_mode = Scene_Test.previous_game_mode;
+        Scene_Test.previous_game_mode = SENTRY;
+        current.scene = SENTRY;
+        current.updated_state = UPDATED_STATE_SCENE;
+        break;
+    }
+    return SENTRY;
 }
