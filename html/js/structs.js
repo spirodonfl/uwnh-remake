@@ -330,6 +330,135 @@ class GAME_DATA_SCENE_BANK {
 
 }
 
+class GAME_DATA_SCENE_GOODS_SHOP {
+    constructor(wasm_exports, input_array) {
+        this._memory = wasm_exports.memory;
+        if (!input_array || input_array.length === 0) {
+            this._ptr = wasm.exports.get_data_scene_goods_shop_ptr();
+        } else if (input_array.length === 1) {
+            this._ptr = wasm.exports.get_data_scene_goods_shop_ptr(input_array[0]);
+        } else if (input_array.length === 2) {
+            this._ptr = wasm.exports.get_data_scene_goods_shop_ptr(input_array[0], input_array[1]);
+        } else if (input_array.length === 3) {
+            this._ptr = wasm.exports.get_data_scene_goods_shop_ptr(input_array[0], input_array[1], input_array[2]);
+        } else if (input_array.length === 4) {
+            this._ptr = wasm.exports.get_data_scene_goods_shop_ptr(input_array[0], input_array[1], input_array[2], input_array[3]);
+        }
+        this._view = new DataView(this._memory.buffer);
+    }
+
+    get id() {
+        return this._view.getUint32(this._ptr + 0 * 4, true);
+    }
+    set id(value) {
+        this._view.setUint32(this._ptr + 0 * 4, value, true);
+    }
+
+    get flag_initialized() {
+        return this._view.getUint32(this._ptr + 1 * 4, true);
+    }
+    set flag_initialized(value) {
+        this._view.setUint32(this._ptr + 1 * 4, value, true);
+    }
+
+    get previous_game_mode() {
+        return this._view.getUint32(this._ptr + 2 * 4, true);
+    }
+    set previous_game_mode(value) {
+        this._view.setUint32(this._ptr + 2 * 4, value, true);
+    }
+
+    get error_code() {
+        return this._view.getUint32(this._ptr + 3 * 4, true);
+    }
+    set error_code(value) {
+        this._view.setUint32(this._ptr + 3 * 4, value, true);
+    }
+
+    get dialog_id() {
+        return this._view.getUint32(this._ptr + 4 * 4, true);
+    }
+    set dialog_id(value) {
+        this._view.setUint32(this._ptr + 4 * 4, value, true);
+    }
+
+    get inventory_id() {
+        return this._view.getUint32(this._ptr + 5 * 4, true);
+    }
+    set inventory_id(value) {
+        this._view.setUint32(this._ptr + 5 * 4, value, true);
+    }
+
+    getName() {
+        if (!this.name_id) { return 'Unknown'; }
+        if (!GAME_STRINGS || !GAME_STRINGS[this.name_id]) { return 'NoGameString'; }
+        if (!STRINGS || !STRINGS[GAME_STRINGS[this.name_id]]) { return GAME_STRINGS[this.name_id]; }
+        else { return STRINGS[GAME_STRINGS[this.name_id]]; }
+    }
+
+}
+
+class GAME_DATA_SCENE_TEST {
+    constructor(wasm_exports, input_array) {
+        this._memory = wasm_exports.memory;
+        if (!input_array || input_array.length === 0) {
+            this._ptr = wasm.exports.get_data_scene_test_ptr();
+        } else if (input_array.length === 1) {
+            this._ptr = wasm.exports.get_data_scene_test_ptr(input_array[0]);
+        } else if (input_array.length === 2) {
+            this._ptr = wasm.exports.get_data_scene_test_ptr(input_array[0], input_array[1]);
+        } else if (input_array.length === 3) {
+            this._ptr = wasm.exports.get_data_scene_test_ptr(input_array[0], input_array[1], input_array[2]);
+        } else if (input_array.length === 4) {
+            this._ptr = wasm.exports.get_data_scene_test_ptr(input_array[0], input_array[1], input_array[2], input_array[3]);
+        }
+        this._view = new DataView(this._memory.buffer);
+    }
+
+    get id() {
+        return this._view.getUint32(this._ptr + 0 * 4, true);
+    }
+    set id(value) {
+        this._view.setUint32(this._ptr + 0 * 4, value, true);
+    }
+
+    get flag_initialized() {
+        return this._view.getUint32(this._ptr + 1 * 4, true);
+    }
+    set flag_initialized(value) {
+        this._view.setUint32(this._ptr + 1 * 4, value, true);
+    }
+
+    get previous_game_mode() {
+        return this._view.getUint32(this._ptr + 2 * 4, true);
+    }
+    set previous_game_mode(value) {
+        this._view.setUint32(this._ptr + 2 * 4, value, true);
+    }
+
+    get error_code() {
+        return this._view.getUint32(this._ptr + 3 * 4, true);
+    }
+    set error_code(value) {
+        this._view.setUint32(this._ptr + 3 * 4, value, true);
+    }
+
+    get dialog_id() {
+        return this._view.getUint32(this._ptr + 4 * 4, true);
+    }
+    set dialog_id(value) {
+        this._view.setUint32(this._ptr + 4 * 4, value, true);
+    }
+
+    getName() {
+        if (!this.name_id) { return 'Unknown'; }
+        if (!GAME_STRINGS || !GAME_STRINGS[this.name_id]) { return 'NoGameString'; }
+        if (!STRINGS || !STRINGS[GAME_STRINGS[this.name_id]]) { return GAME_STRINGS[this.name_id]; }
+        else { return STRINGS[GAME_STRINGS[this.name_id]]; }
+    }
+
+}
+
 class GAME_DATA_BANK {
     constructor(wasm_exports, input_array) {
         this._memory = wasm_exports.memory;
@@ -779,10 +908,10 @@ class GAME_DATA_SHIP {
         this._view.setUint32(this._ptr + 14 * 4, value, true);
     }
 
-    get cannon_type() {
+    get cannon_type_id() {
         return this._view.getUint32(this._ptr + 15 * 4, true);
     }
-    set cannon_type(value) {
+    set cannon_type_id(value) {
         this._view.setUint32(this._ptr + 15 * 4, value, true);
     }
 
@@ -806,6 +935,13 @@ class GAME_DATA_SHIP {
     }
     set total_cargo_goods(value) {
         this._view.setUint32(this._ptr + 2017 * 4, value, true);
+    }
+
+    get figurehead_id() {
+        return this._view.getUint32(this._ptr + 2018 * 4, true);
+    }
+    set figurehead_id(value) {
+        this._view.setUint32(this._ptr + 2018 * 4, value, true);
     }
 
     getName() {
@@ -1661,7 +1797,7 @@ class GAME_DATA_LAYER {
     }
 
     get data() {
-        return new Uint32Array(this._memory.buffer, this._ptr + 7 * 4, 2500);
+        return new Uint32Array(this._memory.buffer, this._ptr + 7 * 4, 10000);
     }
 
     getName() {
@@ -1913,6 +2049,13 @@ class GAME_DATA_PORT {
         this._view.setUint32(this._ptr + 6 * 4, value, true);
     }
 
+    get base_trade_tax() {
+        return this._view.getUint32(this._ptr + 7 * 4, true);
+    }
+    set base_trade_tax(value) {
+        this._view.setUint32(this._ptr + 7 * 4, value, true);
+    }
+
     getName() {
         if (!this.name_id) { return 'Unknown'; }
         if (!GAME_STRINGS || !GAME_STRINGS[this.name_id]) { return 'NoGameString'; }
@@ -2022,6 +2165,144 @@ class GAME_DATA_SCENE_SHIPYARD {
         this._view.setUint32(this._ptr + 18 * 4, value, true);
     }
 
+    get remodel_space_price() {
+        return this._view.getUint32(this._ptr + 19 * 4, true);
+    }
+    set remodel_space_price(value) {
+        this._view.setUint32(this._ptr + 19 * 4, value, true);
+    }
+
+    get remodel_material_price() {
+        return this._view.getUint32(this._ptr + 20 * 4, true);
+    }
+    set remodel_material_price(value) {
+        this._view.setUint32(this._ptr + 20 * 4, value, true);
+    }
+
+    get remodel_cannon_price() {
+        return this._view.getUint32(this._ptr + 21 * 4, true);
+    }
+    set remodel_cannon_price(value) {
+        this._view.setUint32(this._ptr + 21 * 4, value, true);
+    }
+
+    get remodel_figurehead_price() {
+        return this._view.getUint32(this._ptr + 22 * 4, true);
+    }
+    set remodel_figurehead_price(value) {
+        this._view.setUint32(this._ptr + 22 * 4, value, true);
+    }
+
+    getName() {
+        if (!this.name_id) { return 'Unknown'; }
+        if (!GAME_STRINGS || !GAME_STRINGS[this.name_id]) { return 'NoGameString'; }
+        if (!STRINGS || !STRINGS[GAME_STRINGS[this.name_id]]) { return GAME_STRINGS[this.name_id]; }
+        else { return STRINGS[GAME_STRINGS[this.name_id]]; }
+    }
+
+}
+
+class GAME_DATA_SCENE_DOCKYARD {
+    constructor(wasm_exports, input_array) {
+        this._memory = wasm_exports.memory;
+        if (!input_array || input_array.length === 0) {
+            this._ptr = wasm.exports.get_data_scene_dockyard_ptr();
+        } else if (input_array.length === 1) {
+            this._ptr = wasm.exports.get_data_scene_dockyard_ptr(input_array[0]);
+        } else if (input_array.length === 2) {
+            this._ptr = wasm.exports.get_data_scene_dockyard_ptr(input_array[0], input_array[1]);
+        } else if (input_array.length === 3) {
+            this._ptr = wasm.exports.get_data_scene_dockyard_ptr(input_array[0], input_array[1], input_array[2]);
+        } else if (input_array.length === 4) {
+            this._ptr = wasm.exports.get_data_scene_dockyard_ptr(input_array[0], input_array[1], input_array[2], input_array[3]);
+        }
+        this._view = new DataView(this._memory.buffer);
+    }
+
+    get id() {
+        return this._view.getUint32(this._ptr + 0 * 4, true);
+    }
+    set id(value) {
+        this._view.setUint32(this._ptr + 0 * 4, value, true);
+    }
+
+    get flag_initialized() {
+        return this._view.getUint32(this._ptr + 1 * 4, true);
+    }
+    set flag_initialized(value) {
+        this._view.setUint32(this._ptr + 1 * 4, value, true);
+    }
+
+    get previous_game_mode() {
+        return this._view.getUint32(this._ptr + 2 * 4, true);
+    }
+    set previous_game_mode(value) {
+        this._view.setUint32(this._ptr + 2 * 4, value, true);
+    }
+
+    get error_code() {
+        return this._view.getUint32(this._ptr + 3 * 4, true);
+    }
+    set error_code(value) {
+        this._view.setUint32(this._ptr + 3 * 4, value, true);
+    }
+
+    get dialog_id() {
+        return this._view.getUint32(this._ptr + 4 * 4, true);
+    }
+    set dialog_id(value) {
+        this._view.setUint32(this._ptr + 4 * 4, value, true);
+    }
+
+    get purchase_food() {
+        return this._view.getUint32(this._ptr + 5 * 4, true);
+    }
+    set purchase_food(value) {
+        this._view.setUint32(this._ptr + 5 * 4, value, true);
+    }
+
+    get purchase_water() {
+        return this._view.getUint32(this._ptr + 6 * 4, true);
+    }
+    set purchase_water(value) {
+        this._view.setUint32(this._ptr + 6 * 4, value, true);
+    }
+
+    get purchase_cannonballs() {
+        return this._view.getUint32(this._ptr + 7 * 4, true);
+    }
+    set purchase_cannonballs(value) {
+        this._view.setUint32(this._ptr + 7 * 4, value, true);
+    }
+
+    get price_food() {
+        return this._view.getUint32(this._ptr + 8 * 4, true);
+    }
+    set price_food(value) {
+        this._view.setUint32(this._ptr + 8 * 4, value, true);
+    }
+
+    get price_water() {
+        return this._view.getUint32(this._ptr + 9 * 4, true);
+    }
+    set price_water(value) {
+        this._view.setUint32(this._ptr + 9 * 4, value, true);
+    }
+
+    get price_cannonballs() {
+        return this._view.getUint32(this._ptr + 10 * 4, true);
+    }
+    set price_cannonballs(value) {
+        this._view.setUint32(this._ptr + 10 * 4, value, true);
+    }
+
+    get purchase_for_ship_id() {
+        return this._view.getUint32(this._ptr + 11 * 4, true);
+    }
+    set purchase_for_ship_id(value) {
+        this._view.setUint32(this._ptr + 11 * 4, value, true);
+    }
+
     getName() {
         if (!this.name_id) { return 'Unknown'; }
         if (!GAME_STRINGS || !GAME_STRINGS[this.name_id]) { return 'NoGameString'; }
@@ -2048,46 +2329,116 @@ class GAME_DATA_REMODEL_SHIP {
         this._view = new DataView(this._memory.buffer);
     }
 
-    get material_id() {
+    get capacity() {
         return this._view.getUint32(this._ptr + 0 * 4, true);
     }
-    set material_id(value) {
+    set capacity(value) {
         this._view.setUint32(this._ptr + 0 * 4, value, true);
     }
 
-    get cargo_space() {
+    get tacking() {
         return this._view.getUint32(this._ptr + 1 * 4, true);
     }
-    set cargo_space(value) {
+    set tacking(value) {
         this._view.setUint32(this._ptr + 1 * 4, value, true);
     }
 
-    get cannon_space() {
+    get power() {
         return this._view.getUint32(this._ptr + 2 * 4, true);
     }
-    set cannon_space(value) {
+    set power(value) {
         this._view.setUint32(this._ptr + 2 * 4, value, true);
     }
 
-    get crew_space() {
+    get speed() {
         return this._view.getUint32(this._ptr + 3 * 4, true);
     }
-    set crew_space(value) {
+    set speed(value) {
         this._view.setUint32(this._ptr + 3 * 4, value, true);
     }
 
-    get cannon_type_id() {
+    get durability() {
         return this._view.getUint32(this._ptr + 4 * 4, true);
     }
-    set cannon_type_id(value) {
+    set durability(value) {
         this._view.setUint32(this._ptr + 4 * 4, value, true);
     }
 
-    get figurehead_id() {
+    get material_id() {
         return this._view.getUint32(this._ptr + 5 * 4, true);
     }
-    set figurehead_id(value) {
+    set material_id(value) {
         this._view.setUint32(this._ptr + 5 * 4, value, true);
+    }
+
+    get cargo_space() {
+        return this._view.getUint32(this._ptr + 6 * 4, true);
+    }
+    set cargo_space(value) {
+        this._view.setUint32(this._ptr + 6 * 4, value, true);
+    }
+
+    get cannon_space() {
+        return this._view.getUint32(this._ptr + 7 * 4, true);
+    }
+    set cannon_space(value) {
+        this._view.setUint32(this._ptr + 7 * 4, value, true);
+    }
+
+    get crew_space() {
+        return this._view.getUint32(this._ptr + 8 * 4, true);
+    }
+    set crew_space(value) {
+        this._view.setUint32(this._ptr + 8 * 4, value, true);
+    }
+
+    get cannon_type_id() {
+        return this._view.getUint32(this._ptr + 9 * 4, true);
+    }
+    set cannon_type_id(value) {
+        this._view.setUint32(this._ptr + 9 * 4, value, true);
+    }
+
+    get figurehead_id() {
+        return this._view.getUint32(this._ptr + 10 * 4, true);
+    }
+    set figurehead_id(value) {
+        this._view.setUint32(this._ptr + 10 * 4, value, true);
+    }
+
+    get space_price() {
+        return this._view.getUint32(this._ptr + 11 * 4, true);
+    }
+    set space_price(value) {
+        this._view.setUint32(this._ptr + 11 * 4, value, true);
+    }
+
+    get material_price() {
+        return this._view.getUint32(this._ptr + 12 * 4, true);
+    }
+    set material_price(value) {
+        this._view.setUint32(this._ptr + 12 * 4, value, true);
+    }
+
+    get cannon_price() {
+        return this._view.getUint32(this._ptr + 13 * 4, true);
+    }
+    set cannon_price(value) {
+        this._view.setUint32(this._ptr + 13 * 4, value, true);
+    }
+
+    get figurehead_price() {
+        return this._view.getUint32(this._ptr + 14 * 4, true);
+    }
+    set figurehead_price(value) {
+        this._view.setUint32(this._ptr + 14 * 4, value, true);
+    }
+
+    get total_price() {
+        return this._view.getUint32(this._ptr + 15 * 4, true);
+    }
+    set total_price(value) {
+        this._view.setUint32(this._ptr + 15 * 4, value, true);
     }
 
     getName() {
@@ -2889,6 +3240,88 @@ function game_get_storage_figurehead_used_slots(wasm_exports, input_array) {
         ptr = wasm.exports.get_storage_figurehead_used_slots_ptr(input_array[0], input_array[1], input_array[2], input_array[3]);
     }
     return new Uint32Array(wasm_exports.memory.buffer, ptr, 100);
+}
+
+class GAME_DATA_GAME_TIME {
+    constructor(wasm_exports, input_array) {
+        this._memory = wasm_exports.memory;
+        if (!input_array || input_array.length === 0) {
+            this._ptr = wasm.exports.get_data_game_time_ptr();
+        } else if (input_array.length === 1) {
+            this._ptr = wasm.exports.get_data_game_time_ptr(input_array[0]);
+        } else if (input_array.length === 2) {
+            this._ptr = wasm.exports.get_data_game_time_ptr(input_array[0], input_array[1]);
+        } else if (input_array.length === 3) {
+            this._ptr = wasm.exports.get_data_game_time_ptr(input_array[0], input_array[1], input_array[2]);
+        } else if (input_array.length === 4) {
+            this._ptr = wasm.exports.get_data_game_time_ptr(input_array[0], input_array[1], input_array[2], input_array[3]);
+        }
+        this._view = new DataView(this._memory.buffer);
+    }
+
+    get minute() {
+        return this._view.getUint32(this._ptr + 0 * 4, true);
+    }
+    set minute(value) {
+        this._view.setUint32(this._ptr + 0 * 4, value, true);
+    }
+
+    get hour() {
+        return this._view.getUint32(this._ptr + 1 * 4, true);
+    }
+    set hour(value) {
+        this._view.setUint32(this._ptr + 1 * 4, value, true);
+    }
+
+    get day() {
+        return this._view.getUint32(this._ptr + 2 * 4, true);
+    }
+    set day(value) {
+        this._view.setUint32(this._ptr + 2 * 4, value, true);
+    }
+
+    get month() {
+        return this._view.getUint32(this._ptr + 3 * 4, true);
+    }
+    set month(value) {
+        this._view.setUint32(this._ptr + 3 * 4, value, true);
+    }
+
+    get year() {
+        return this._view.getUint32(this._ptr + 4 * 4, true);
+    }
+    set year(value) {
+        this._view.setUint32(this._ptr + 4 * 4, value, true);
+    }
+
+    get total_days() {
+        return this._view.getUint32(this._ptr + 5 * 4, true);
+    }
+    set total_days(value) {
+        this._view.setUint32(this._ptr + 5 * 4, value, true);
+    }
+
+    get is_night() {
+        return this._view.getUint32(this._ptr + 6 * 4, true);
+    }
+    set is_night(value) {
+        this._view.setUint32(this._ptr + 6 * 4, value, true);
+    }
+
+    get ticks_counter() {
+        return this._view.getUint32(this._ptr + 7 * 4, true);
+    }
+    set ticks_counter(value) {
+        this._view.setUint32(this._ptr + 7 * 4, value, true);
+    }
+
+    getName() {
+        if (!this.name_id) { return 'Unknown'; }
+        if (!GAME_STRINGS || !GAME_STRINGS[this.name_id]) { return 'NoGameString'; }
+        if (!STRINGS || !STRINGS[GAME_STRINGS[this.name_id]]) { return GAME_STRINGS[this.name_id]; }
+        else { return STRINGS[GAME_STRINGS[this.name_id]]; }
+    }
+
 }
 
 class GAME_CURRENT {

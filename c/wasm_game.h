@@ -340,6 +340,7 @@ u32 get_max_goods() { return MAX_GOODS; }
 #define MAX_WORLD_HEIGHT 100
 #define MAX_LAYER_SIZE (MAX_WORLD_WIDTH * MAX_WORLD_HEIGHT)
 #define MAX_SHIP_CARGO_SPACE 1000
+#define MAX_SHIP_PREFABS 10
 
 // -----------------------------------------------------------------------------
 // FORWARD DECLARATIONS
@@ -520,8 +521,7 @@ u32* get_data_bank_ptr()
 typedef struct __attribute__((packed))
 {
     u32 id;
-    // TODO: Why not type_id ??
-    u32 type;
+    u32 type_id;
     u32 name_id;
 } DATA_NPC;
 /** EXPORT TO JS **/
@@ -535,7 +535,7 @@ void assign_storage_npc(u32 id, DATA_NPC* source)
     storage_npc.data[id].id = id;
     source->id = id;
     storage_npc.data[id].name_id = source->name_id;
-    storage_npc.data[id].type = source->type;
+    storage_npc.data[id].type_id = source->type;
 }
 ADD_STORAGE_FUNC(npc, DATA_NPC)
 
@@ -620,8 +620,6 @@ typedef struct __attribute__((packed))
     u32 cannons;
     // Reference to CANNON* type
     u32 cannon_type_id;
-    // TODO: Remove hull, this is duplicated by durability
-    u32 hull;
     u32 cargo_goods[MAX_SHIP_CARGO_SPACE];
     u32 cargo_goods_qty[MAX_SHIP_CARGO_SPACE];
     u32 total_cargo_goods;
@@ -648,7 +646,6 @@ void assign_storage_ship(u32 id, DATA_SHIP* source)
     storage_ship.data[id].cannons = source->cannons;
     storage_ship.data[id].cannon_type_id = source->cannon_type_id;
     storage_ship.data[id].durability = source->durability;
-    storage_ship.data[id].hull = source->hull;
     storage_ship.data[id].total_cargo_goods = source->total_cargo_goods;
     storage_ship.data[id].figurehead_id = source->figurehead_id;
     for (u32 i = 0; i < MAX_SHIP_CARGO_SPACE; ++i)
@@ -953,7 +950,6 @@ u32* say_what_now()
 typedef struct __attribute__((packed))
 {
     // NOTE: You had this as a bool but it caused alignment issues in JS
-    // TODO: Don't use bool yet
     u32 is_block;
     u32 id;
     u32 name_id;
@@ -1034,7 +1030,6 @@ typedef struct __attribute__((packed))
 {
     u32 id;
     u32 name_id;
-    // TODO: Actually use this when adding items to inventory
     u32 number_held;
     u32 adjusted_price;
     u32 type;
@@ -1139,7 +1134,7 @@ typedef struct __attribute__((packed))
     u32 dialog_id;
     // Note: references ships which are created during in port & cleared after
     // for this specific scene only
-    u32 ships_prefab[10];
+    u32 ships_prefab[MAX_SHIP_PREFABS];
     u32 buying_prefab_ship_id;
     // Note: references DATA_NEW_SHIP storage
     u32 new_ship;
@@ -2199,9 +2194,6 @@ void user_input_a()
 void user_input_start()
 {
     console_log("START BUTTON PRESSED");
-
-    // TODO: Pause the game / tick
-    // TODO: Only allow certain actions in certain contexts for start
     current.game_mode = GAME_MODE_IN_PLAYER_MENU;
     current.updated_state = UPDATED_STATE_SCENE;
 }
@@ -2260,8 +2252,6 @@ void handle_input(u32 input)
 {
     if (current.game_mode == GAME_MODE_SAILING)
     {
-        // TODO: Input up/down/left/right is set direction, not move
-        // move is handled by tick and other factors in the sailing
         u32 world_npc_id = get_player_in_world(0);
         u32 current_world_x = storage_world_npc.data[world_npc_id].position_x;
         u32 current_world_y = storage_world_npc.data[world_npc_id].position_y;
@@ -2313,7 +2303,6 @@ void handle_input(u32 input)
                 }
                 check_if_player_triggered_entity(intended_x, current_world_x);
                 break;
-            // TODO: Other sail buttons here
             default:
                 console_log("[I] No button push to handle here.");
                 break;
@@ -2541,8 +2530,7 @@ void generate_world(u32 world_name_id)
     clear_all_layers();
     clear_all_world_npcs();
     clear_all_entities();
-    // TODO: Remove magic numbers for prefab ships
-    for (u32 i = 0; i < 10; ++i)
+    for (u32 i = 0; i < MAX_SHIP_PREFABS; ++i)
     {
         if (Scene_Shipyard.ships_prefab[i] != SENTRY)
         {
@@ -2823,14 +2811,14 @@ void generate_world(u32 world_name_id)
         // inventory item
         u32 ii_id = pull_storage_inventory_item_next_open_slot();
         storage_inventory_item.data[ii_id].name_id = ITEM_TELESCOPE;
-        storage_inventory_item.data[ii_id].number_held = 22;
+        storage_inventory_item.data[ii_id].number_held = 1;
         storage_inventory_item.data[ii_id].type = INVENTORY_TYPE_GENERAL_ITEM;
         storage_inventory_item.data[ii_id].type_reference = find_storage_general_item_by_name_id(ITEM_TELESCOPE);
         storage_inventory_item.data[ii_id].adjusted_price = 400;
         add_item_to_inventory(ii_id, i_id);
         ii_id = pull_storage_inventory_item_next_open_slot();
         storage_inventory_item.data[ii_id].name_id = ITEM_QUADRANT;
-        storage_inventory_item.data[ii_id].number_held = 2;
+        storage_inventory_item.data[ii_id].number_held = 1;
         storage_inventory_item.data[ii_id].type = INVENTORY_TYPE_GENERAL_ITEM;
         storage_inventory_item.data[ii_id].type_reference = find_storage_general_item_by_name_id(ITEM_QUADRANT);
         storage_inventory_item.data[ii_id].adjusted_price = 430;
@@ -2844,7 +2832,7 @@ void generate_world(u32 world_name_id)
         add_item_to_inventory(ii_id, i_id);
         ii_id = pull_storage_inventory_item_next_open_slot();
         storage_inventory_item.data[ii_id].name_id = ITEM_SEXTANT;
-        storage_inventory_item.data[ii_id].number_held = 2;
+        storage_inventory_item.data[ii_id].number_held = 1;
         storage_inventory_item.data[ii_id].type = INVENTORY_TYPE_GENERAL_ITEM;
         storage_inventory_item.data[ii_id].type_reference = find_storage_general_item_by_name_id(ITEM_SEXTANT);
         storage_inventory_item.data[ii_id].adjusted_price = 666;
@@ -2998,8 +2986,7 @@ void generate_world(u32 world_name_id)
         storage_world_npc.data[wnpcid].is_interactable = true;
         ++storage_world.data[current.world].total_npcs;
         update_npc_layer(wnpcid);
-        // TODO: Don't use magic number 10 for prefab array
-        for (u32 i = 0; i < 10; ++i)
+        for (u32 i = 0; i < MAX_SHIP_PREFABS; ++i)
         {
             Scene_Shipyard.ships_prefab[i] = SENTRY;
         }
@@ -3058,7 +3045,7 @@ void generate_world(u32 world_name_id)
         ii_id = pull_storage_inventory_item_next_open_slot();
         DATA_INVENTORY_ITEM *ii = get_data_inventory_item(ii_id);
         ii->name_id = GOOD_AMBER;
-        ii->number_held = 22;
+        ii->number_held = 1;
         ii->type = INVENTORY_TYPE_GOOD;
         ii->type_reference = find_storage_good_by_name_id(GOOD_AMBER);
         ii->adjusted_price = 400;
@@ -3298,11 +3285,11 @@ void tick()
     }
     else if (current.game_mode == GAME_MODE_IN_PORT)
     {
-        // TODO: Anything here?
+        // ...
     }
     else if (current.game_mode == GAME_MODE_IN_SCENE)
     {
-        // TODO: Anything here?
+        // ...
     }
     else if (current.game_mode == GAME_MODE_SAILING)
     {
@@ -3334,7 +3321,7 @@ u32 initialize_npc(u32 name_id, u32 type_id)
     DATA_NPC npc;
     CLEAR_STRUCT(&npc, SENTRY);
     npc.name_id = name_id;
-    npc.type = NPC_TYPE_HUMAN;
+    npc.type_id = NPC_TYPE_HUMAN;
     return add_storage_npc(&npc, false);
 }
 u32 initialize_general_item(u32 name_id, u32 base_price)
@@ -3477,7 +3464,6 @@ u32 initialize_captain(u32 name_id, u32 type_id, u32 inventory_name_id)
     new_ship->power = 103;
     new_ship->speed = 333;
     new_ship->crew = 50;
-    new_ship->hull = 100;
     new_ship->durability = storage_base_ship.data[base_ship_id].durability;
     new_ship->cargo_space = my_floor_percentage(max_capacity, 40);
     new_ship->crew_space = my_floor_percentage(max_capacity, 40);
@@ -3506,7 +3492,6 @@ u32 initialize_captain(u32 name_id, u32 type_id, u32 inventory_name_id)
         new_ship->power = 103;
         new_ship->speed = 333;
         new_ship->crew = 50;
-        new_ship->hull = 100;
         new_ship->total_cargo_goods = 0;
         fleet_ship_id = initialize_fleet_ship(BASE_SHIP_BALSA, ship_id);
         add_fleet_ship_to_fleet(fleet_ship_id, fleet_id);
@@ -3664,7 +3649,6 @@ void initialize_game()
     new_ship_material.mod_durability = 100;
     new_ship_material.mod_capacity = 100;
     u32 sm_steel_id = add_storage_ship_material(&new_ship_material, true);
-    // TODO: SHIP_MATERIAL_GOLD?
 
     clear_all_cannons();
     DATA_CANNON new_cannon;
@@ -4143,14 +4127,16 @@ typedef struct __attribute__((packed))
     u32 bet_amount;
     u32 bet_minimum;
     u32 bet_maximum;
-    bool initialized;
-    bool player_standing;
-    bool dealer_standing;
-    bool player_hitting;
-    bool dealer_hitting;
-    bool player_won;
-    bool dealer_won;
-    bool game_over;
+    // NOTE: These are flags and should be bool but it causes data alignment
+    // issues in javascript when exporting so they are u32 for now
+    u32 initialized;
+    u32 player_standing;
+    u32 dealer_standing;
+    u32 player_hitting;
+    u32 dealer_hitting;
+    u32 player_won;
+    u32 dealer_won;
+    u32 game_over;
 } BLACKJACK;
 BLACKJACK blackjack;
 u32* get_blackjack_ptr()
@@ -4756,7 +4742,7 @@ void ob_get_moves_in_range()
         }
         u32 ship_id = data_ocean_battle.turn_order_ships[i];
         DATA_SHIP* ship = &storage_ship.data[ship_id];
-        if (ship->hull <= 0 || ship->crew <= 0)
+        if (ship->durability <= 0 || ship->crew <= 0)
         {
             continue;
         }
@@ -4880,7 +4866,7 @@ void ob_increment_turn_order()
             continue;
         }
         DATA_SHIP* ship = &storage_ship.data[ship_id];
-        if (ship->crew == 0 || ship->hull == 0)
+        if (ship->crew == 0 || ship->durability == 0)
         {
             continue;
         }
@@ -4898,7 +4884,7 @@ void ob_increment_turn_order()
     if (wnpc->is_player == SENTRY || wnpc->is_player == false)
     {
         ob_get_in_range();
-        // TODO: Move
+        // TODO: Better move AI
         if (data_ocean_battle.total_valid_move_coords > 0)
         {
             u32 max_moves = data_ocean_battle.total_valid_move_coords - 1;
@@ -4917,7 +4903,7 @@ void ob_increment_turn_order()
                 console_log_format("somehow got a bad rand move", args, 1);
             }
         }
-        // TODO: A cool way to determine best attack. For now, use cannons
+        // TODO: Better attack AI. For now, use cannons
         if (data_ocean_battle.total_valid_cannon_coords > 0)
         {
             for (u32 i = 0; i < MAX_OCEAN_BATTLE_VALID_COORDS; i += 2)
@@ -4973,7 +4959,7 @@ void ob_last_man_standing()
         u32 ship_id = data_ocean_battle.turn_order_ships[i];
         if (fleet_ship_id == SENTRY) { continue; }
         DATA_SHIP* ship = &storage_ship.data[ship_id];
-        if (ship->crew > 0 && ship->hull > 0)
+        if (ship->crew > 0 && ship->durability > 0)
         {
             u32 fleet_id = storage_fleet_ship.data[fleet_ship_id].fleet_id;
             if (storage_fleet.data[fleet_id].general_id == 0)
@@ -5181,13 +5167,13 @@ u32 scene_ocean_battle(u32 action)
                 u32 ship_id = storage_world_npc.data[i].entity_id;
                 DATA_SHIP* ship = &storage_ship.data[ship_id];
                 u32 damage = get_random_number(1, 20);
-                if (damage > ship->hull)
+                if (damage > ship->durability)
                 {
-                    ship->hull = 0;
+                    ship->durability = 0;
                 }
                 else
                 {
-                    ship->hull -= damage;
+                    ship->durability -= damage;
                 }
                 console_log("[I] Damage dealt");
                 break;
@@ -5298,13 +5284,13 @@ u32 scene_ocean_battle(u32 action)
                             u32 ship_id = storage_world_npc.data[i].entity_id;
                             DATA_SHIP* ship = &storage_ship.data[ship_id];
                             u32 damage = get_random_number(1, 20);
-                            if (damage > ship->hull)
+                            if (damage > ship->durability)
                             {
-                                ship->hull = 0;
+                                ship->durability = 0;
                             }
                             else
                             {
-                                ship->hull -= damage;
+                                ship->durability -= damage;
                             }
                             console_log("[I] Damage dealt");
                             break;
@@ -6031,7 +6017,6 @@ u32 scene_innkeeper(u32 action)
     // I'll show you to your room
     // Black screen & music
     // Wake up in building at said time
-    // TODO: Need global time tracker her
 
     return SENTRY;
 }
