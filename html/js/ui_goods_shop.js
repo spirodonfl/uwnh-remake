@@ -37,12 +37,15 @@ class UI_GOODS_SHOP extends HTMLElement
     updateGoodQuantity(id)
     {
         var quantity = document.getElementById(`goods_shop_${id}`).value;
-        for (var i = 0; i < this.data.inventory_items.length; ++i)
+        var total = quantity * this.data.inventory_items[id].adjusted_price;
+        document.getElementById(id).innerText = total;
+        if (total > wasm.exports.get_player_gold(0))
         {
-            if (this.data.inventory_items[i].id != id) { continue; }
-            var total = quantity * this.data.inventory_items[i].adjusted_price;
-            document.getElementById(id).innerText = total;
-            break;
+            this.querySelector("#your_gold").style.color = "red";
+        }
+        else
+        {
+            this.querySelector("#your_gold").style.color = "white";
         }
     }
     buyGood(id)
@@ -58,16 +61,166 @@ class UI_GOODS_SHOP extends HTMLElement
         // * Finalize purchase
         // * wasm will do final checks and move inventory and all that
         // * success message and go back to goods screen to purchase more goods
+        var name_id = this.data.inventory_items[id].name_id;
+        var good_id = this.data.inventory_items[id].type_reference;
+        wasm.exports.scene_goods_shop_set_intended_good_id(good_id);
+
         var quantity = document.getElementById(`goods_shop_${id}`).value;
-        var total = quantity * this.data.inventory_items[id].adjusted_price;
+        wasm.exports.scene_goods_shop_set_intended_good_qty(quantity);
+
+        var total = wasm.exports.scene_goods_shop_get_total_good_cost();
         if (total > wasm.exports.get_player_gold(0))
         {
-            alert("You don't have enough gold.");
+            this.querySelector("#your_gold").style.color = "red";
         }
-        // else
-        // {
-        //     wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("ACTION_BUY_GOODS"), id, quantity);
-        // }
+        else
+        {
+            this.querySelector("#your_gold").style.color = "white";
+            this.rendered = false;
+            this.whichShip();
+        }
+    }
+    addCargoToShip(element)
+    {
+        if (element.previous_value === undefined)
+        {
+            element.previous_value = 0;
+        }
+        var response = null;
+        for (var fs = 0; fs < PLAYER.fleet_ships.length; ++fs)
+        {
+            if (PLAYER.fleet_ships[fs].id === element.fleet_ship_id)
+            {
+                if (element.value_int > element.previous_value)
+                {
+                    response = wasm.exports.
+                        scene_goods_shop_increase_fleet_ship_good_qty(
+                            element.fleet_ship_id
+                        );
+                }
+                else
+                {
+                    response = wasm.exports.
+                        scene_goods_shop_decrease_fleet_ship_good_qty(
+                            element.fleet_ship_id
+                        );
+                }
+            }
+        }
+        console.log(response);
+    }
+    whichShip()
+    {
+        if (this.rendered) { return; }
+        this.rendered = true;
+        var qs = `document.querySelector('ui-goods-shop')`;
+        var columns = [
+            "Ship Name",
+            "Total Capacity",
+            "Available Capacity",
+            "LOAD"
+        ];
+        var columns_html = ``;
+        for (var c = 0; c < columns.length; ++c)
+        {
+            columns_html += `<div style="background-color: rgba(0, 0, 0, 0.3); padding: 2px 4px; border-bottom: 1px solid white;">${columns[c]}</div>`;
+        }
+        var ships_list = ``;
+        for (var fs = 0; fs < PLAYER.fleet_ships.length; ++fs)
+        {
+            var fleet_ship = PLAYER.fleet_ships[fs];
+            var ship = fleet_ship.ship;
+            var total_space = ship.capacity;
+            var available_space = wasm.exports.get_ship_available_cargo_space(ship.id);
+            var cargo_goods_html = ``;
+            for (var c = 0; c < ship.cargo_goods.length; ++c)
+            {
+                if (!is_sentry(ship.cargo_goods[c]))
+                {
+                    var qty = ship.cargo_goods_qty[c];
+                    var good = new GAME_DATA_GOOD(wasm.exports, [ship.cargo_goods[c]]);
+                    cargo_goods_html += `<div>${good.getName()}: ${qty}</div>`;
+                }
+            }
+            // Cargo goods would be PLAYER.fleet_ships[0].ship.cargo_goods
+            // also PLAYER.fleet_ships[0].ship.cargo_goods_qty
+            // TODO: Update the data from this.data.scene
+            ships_list += `
+                <div>${ship.getName()}</div>
+                <div>${total_space}</div>
+                <div>${available_space}</div>
+                <div>
+                    <input
+                        type="number"
+                        id="fleet_ship_id_${fleet_ship.id}"
+                        value="0"
+                        class="ship_cargo_loader"
+                        onchange="
+                            this.fleet_ship_id = ${fleet_ship.id};
+                            this.previous_value = this.value_int;
+                            this.value_int = parseInt(this.value);
+                            ${qs}.addCargoToShip(this);
+                        "
+                    />
+                </div>
+                <div class="cargo_test" style="grid-column: 1 / -1; border: 1px solid white; background-color: rgba(0, 0, 0, 0.8); padding: 4px; text-align: center;">
+                    <div>Current Cargo</div>
+                    <hr />
+                    <div style="display: grid; grid-auto-flow: column;">
+                        ${cargo_goods_html}
+                    </div>
+                </div>
+            `;
+        }
+        var item_name = '';
+        for (var i = 0; i < this.data.inventory_items.length; ++i)
+        {
+            var this_inventory_item = this.data.inventory_items[i];
+            if (this_inventory_item.type_reference == this.data.scene.intended_good_id)
+            {
+                item_name = this_inventory_item.getName();
+            }
+        }
+        var qty = this.data.scene.intended_good_qty;
+        // TODO: Somehow reduce qty when loaded on ship(s)
+        this.innerHTML = `
+        <div id="goods_shop" class="popup topleft">
+            <div class="outer_border">
+                <div class="inner_text">
+                    Which ships do you want to load your goods into?
+                </div>
+                <div id="your_gold" style="color: gold;">
+                    Your Gold: ${wasm.exports.get_player_gold(0)}
+                </div>
+                <div id="chosen_inventory_item" style="color: gold;">
+                    <div>Item: ${item_name}</div>
+                    <div id="remaining">Quantity: ${qty}</div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(${columns.length}, max-content); margin-bottom: 10px; justify-content: center;">
+                    ${columns_html}
+                    ${ships_list}
+                </div>
+                <div id="dialog_choices">
+                    <button onclick="${qs}.buy();">Purchase Goods</button>
+                    <button 
+                        class="negative"
+                        onclick="${qs}.cancel();"
+                    >Cancel</button>
+                </div>
+            </div>
+        </div>
+        `;
+    }
+    buy()
+    {
+        var response = null;
+        response = wasm.exports.current_scene_take_action(
+            GAME_STRINGS.indexOf("ACTION_GOODS_SHOP_BUY")
+        );
+        console.log(response);
+        // if this.data.scene.error_code == SENTRY
+        // AND GAME_STRINGS->this.data.scene.dialog_id = DIALOG_GOODS_SHOP_PURCHASED_GOODS
+        // good to go!
     }
     render()
     {
@@ -85,19 +238,19 @@ class UI_GOODS_SHOP extends HTMLElement
                 <input
                     style="width: 60px;"
                     type="number"
-                    id="goods_shop_${item.id}"
+                    id="goods_shop_${i}"
                     value="0"
                     min="0"
                     max="${item.quantity}"
-                    onchange="${qs}.updateGoodQuantity(${item.id});"
+                    onchange="${qs}.updateGoodQuantity(${i});"
                 />
             </div>
             <div>
-                <span id="${item.id}">${item.quantity * item.adjusted_price}</span>
+                <span id="${i}">${item.quantity * item.adjusted_price}</span>
             </div>
             <div>
                 <button
-                    onclick="${qs}.buyGood(${item.id});"
+                    onclick="${qs}.buyGood(${i});"
                 >Buy</button>
             </div>`;
         }
@@ -114,6 +267,9 @@ class UI_GOODS_SHOP extends HTMLElement
             <div class="outer_border">
                 <div class="inner_text">
                     Look at our trade goods. A 20% trade tax applies.
+                </div>
+                <div id="your_gold">
+                    Your Gold: ${wasm.exports.get_player_gold(0)}
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(${columns.length}, max-content); grid-gap: 10px; margin-bottom: 10px;">
                     ${columns_html}

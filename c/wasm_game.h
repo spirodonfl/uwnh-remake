@@ -243,6 +243,11 @@ u32 max(u32 a, u32 b)
     { \
         return &storage_##LOWERSCORE.data[id]; \
     } \
+    UPPERSCORE* pull_##FULLLOWERSCORE() \
+    { \
+        u32 new_id = pull_storage_##LOWERSCORE##_next_open_slot(); \
+        return &storage_##LOWERSCORE.data[new_id]; \
+    } \
     void free_storage_##LOWERSCORE##_slot(u32 id) \
     { \
         if (storage_##LOWERSCORE.used[id] == true) \
@@ -341,6 +346,8 @@ u32 get_max_goods() { return MAX_GOODS; }
 #define MAX_LAYER_SIZE (MAX_WORLD_WIDTH * MAX_WORLD_HEIGHT)
 #define MAX_SHIP_CARGO_SPACE 1000
 #define MAX_SHIP_PREFABS 10
+#define MAX_PORT_GOODS 20
+#define MAX_LOADING_GOODS (MAX_FLEET_SHIPS * MAX_PORT_GOODS)
 
 // -----------------------------------------------------------------------------
 // FORWARD DECLARATIONS
@@ -481,10 +488,28 @@ typedef struct __attribute__((packed))
     u32 error_code;
     u32 dialog_id;
     u32 inventory_id;
+    u32 loading_fleet_ships[MAX_LOADING_GOODS];
+    u32 loading_qty[MAX_LOADING_GOODS];
+    u32 intended_good_id;
+    u32 intended_good_qty;
 } DATA_SCENE_GOODS_SHOP;
 DATA_SCENE_GOODS_SHOP Scene_Goods_Shop;
 u32* get_data_scene_goods_shop_ptr()
 { return (u32*)&Scene_Goods_Shop; }
+void clear_scene_goods_shop()
+{
+    Scene_Goods_Shop.flag_initialized = 0;
+    Scene_Goods_Shop.error_code = SENTRY;
+    Scene_Goods_Shop.dialog_id = SENTRY;
+    Scene_Goods_Shop.inventory_id = SENTRY;
+    Scene_Goods_Shop.intended_good_id = SENTRY;
+    Scene_Goods_Shop.intended_good_qty = SENTRY;
+    for (u32 i = 0; i < MAX_LOADING_GOODS; ++i)
+    {
+        Scene_Goods_Shop.loading_fleet_ships[i] = SENTRY;
+        Scene_Goods_Shop.loading_qty[i] = 0;
+    }
+}
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -535,7 +560,7 @@ void assign_storage_npc(u32 id, DATA_NPC* source)
     storage_npc.data[id].id = id;
     source->id = id;
     storage_npc.data[id].name_id = source->name_id;
-    storage_npc.data[id].type_id = source->type;
+    storage_npc.data[id].type_id = source->type_id;
 }
 ADD_STORAGE_FUNC(npc, DATA_NPC)
 
@@ -599,6 +624,13 @@ void assign_storage_base_ship(u32 id, DATA_BASE_SHIP* source)
 }
 ADD_STORAGE_FUNC(base_ship, DATA_BASE_SHIP)
 
+typedef struct __attribute__((packed))
+{
+    u32 good_id;
+    u32 name_id;
+    u32 some_other_id;
+} DATA_TEST;
+
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
 {
@@ -624,6 +656,7 @@ typedef struct __attribute__((packed))
     u32 cargo_goods_qty[MAX_SHIP_CARGO_SPACE];
     u32 total_cargo_goods;
     u32 figurehead_id;
+    DATA_TEST test[10];
 } DATA_SHIP;
 /** EXPORT TO JS **/
 u32 storage_ship_used_slots[MAX_SHIPS];
@@ -1052,6 +1085,32 @@ void clear_inventory_items_by_inventory_id(u32 inventory_id)
         }
     }
 }
+u32 inventory_items_by_inventory_id[MAX_INVENTORY_ITEMS];
+void get_inventory_items_by_inventory_id(u32 inventory_id)
+{
+    u32 lookup_i = 0;
+    for (u32 i = 0; i < MAX_INVENTORY_ITEMS; ++i)
+    {
+        if (storage_inventory_item.data[i].inventory_id == inventory_id)
+        {
+            inventory_items_by_inventory_id[lookup_i] = storage_inventory_item.data[i].id;
+            ++lookup_i;
+        }
+    }
+}
+bool is_in_inventory(u32 inventory_id, u32 item_id)
+{
+    get_inventory_items_by_inventory_id(inventory_id);
+    for (u32 i = 0; i < MAX_INVENTORY_ITEMS; ++i)
+    {
+        if (inventory_items_by_inventory_id[i] == SENTRY) { continue; }
+        if (inventory_items_by_inventory_id[i] == item_id)
+        {
+            return true;
+        }
+    }
+    return false;
+}
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
 {
@@ -1370,8 +1429,8 @@ typedef struct __attribute__((packed))
     u32 accountant_id;
     u32 navigator_id;
     u32 general_id;
-    u32 ship_ids[MAX_FLEET_SHIPS];
     u32 captain_ids[MAX_FLEET_CAPTAINS];
+    u32 ship_ids[MAX_FLEET_SHIPS];
 } DATA_FLEET;
 /** EXPORT TO JS **/
 u32 storage_fleet_used_slots[MAX_FLEETS];
@@ -1442,6 +1501,11 @@ bool add_fleet_ship_to_fleet(u32 fleet_ship_id, u32 fleet_id)
         break;
     }
     return added;
+}
+DATA_SHIP* get_ship_from_fleet_ship(u32 fleet_ship_id)
+{
+    u32 ship_id = storage_fleet_ship.data[fleet_ship_id].ship_id;
+    return get_data_ship(ship_id);
 }
 
 /** EXPORT TO JS **/
@@ -1691,6 +1755,9 @@ enum GameStrings
     ACTION_DOCKYARD_PURCHASE,
     ACTION_DOCKYARD_SET_SAIL,
 
+    // Goods Shop Actions
+    ACTION_GOODS_SHOP_BUY, ACTION_GOODS_SHOP_SELL,
+
     // Dialogs
     DIALOG_NPC_RVICE, DIALOG_NPC_LAFOLIE, DIALOG_NPC_NAKOR,
     DIALOG_NPC_TRAVIS, DIALOG_NPC_LOLLER,
@@ -1707,6 +1774,7 @@ enum GameStrings
     DIALOG_DOCKYARD_SUPPLIES_LOADED,
     // Dialogs - Goods Shop
     DIALOG_GOODS_SHOP_WELCOME,
+    DIALOG_GOODS_SHOP_PURCHASED_GOODS,
     // Dialogs - Test
     DIALOG_TEST_ONE, DIALOG_TEST_TWO, DIALOG_TEST_THREE,
 
@@ -1822,6 +1890,15 @@ enum GameStrings
     // Dockyard Errors
     ERROR_DOCKYARD_NOT_ENOUGH_GOLD,
     ERROR_DOCKYARD_SHIP_NOT_ENOUGH_CARGO_SPACE,
+
+    // Goods Shop Errors
+    ERROR_GOODS_SHOP_NOT_ENOUGH_GOLD,
+    ERROR_GOODS_SHOP_NOT_ENOUGH_FLEET_CAPACITY,
+    ERROR_GOODS_SHOP_NOT_ENOUGH_SHIP_CAPACITY,
+    ERROR_GOODS_SHOP_INTENDED_QTY_AT_ZERO,
+    ERROR_GOODS_SHOP_LOADING_QTY_GREATER_THAN_INTENDED,
+    ERROR_GOODS_SHOP_GOOD_NOT_IN_INVENTORY,
+    ERROR_GOODS_SHOP_NO_GOOD_SET,
 
     // Fleet names
     FLEET_NAME_PLAYERS,
@@ -2088,6 +2165,8 @@ u32 add_good_to_ship(u32 good_id, u32 qty, u32 ship_id)
             }
             ship->cargo_goods_qty[i] += qty;
             ship->total_cargo_goods += qty;
+            already_in = true;
+            // console_log("[I] Found good in ship already. Updating qty");
             return ship->cargo_goods_qty[i];
         }
     }
@@ -2104,6 +2183,7 @@ u32 add_good_to_ship(u32 good_id, u32 qty, u32 ship_id)
                 ship->cargo_goods[i] = good_id;
                 ship->cargo_goods_qty[i] += qty;
                 ship->total_cargo_goods += qty;
+                // console_log("[I] Good not in ship. Adding");
                 return ship->cargo_goods_qty[i];
             }
         }
@@ -2134,6 +2214,37 @@ u32 get_good_qty_from_fleet_ships(u32 good_id, u32 fleet_id)
         DATA_FLEET_SHIP* fleet_ship = get_data_fleet_ship(fleet_ship_id);
         if (total == SENTRY) { total = 0; }
         total += get_good_qty_from_ship(good_id, fleet_ship->ship_id);
+    }
+    return total;
+}
+u32 get_total_cargo_capacity_from_fleet(u32 fleet_id)
+{
+    u32 total = SENTRY;
+    DATA_FLEET* fleet = get_data_fleet(fleet_id);
+    for (u32 f = 0; f < MAX_FLEET_SHIPS; ++f)
+    {
+        if (fleet->ship_ids[f] == SENTRY) { continue; }
+        u32 fleet_ship_id = fleet->ship_ids[f];
+        DATA_FLEET_SHIP* fleet_ship = get_data_fleet_ship(fleet_ship_id);
+        if (total == SENTRY) { total = 0; }
+        DATA_SHIP* ship = get_data_ship(fleet_ship->ship_id);
+        total += ship->capacity;
+    }
+    return total;
+}
+u32 get_available_cargo_capacity_from_fleet(u32 fleet_id)
+{
+    u32 total = SENTRY;
+    DATA_FLEET* fleet = get_data_fleet(fleet_id);
+    for (u32 f = 0; f < MAX_FLEET_SHIPS; ++f)
+    {
+        if (fleet->ship_ids[f] == SENTRY) { continue; }
+        u32 fleet_ship_id = fleet->ship_ids[f];
+        DATA_FLEET_SHIP* fleet_ship = get_data_fleet_ship(fleet_ship_id);
+        if (total == SENTRY) { total = 0; }
+        DATA_SHIP* ship = get_data_ship(fleet_ship->ship_id);
+        total += ship->capacity;
+        total -= ship->total_cargo_goods;
     }
     return total;
 }
@@ -2168,6 +2279,19 @@ u32 add_cannonballs_to_ship(u32 qty, u32 ship_id)
     return add_good_to_ship(good_id, qty, ship_id);
 }
 
+u32 player_menu_previous_mode;
+void enter_player_menu()
+{
+    player_menu_previous_mode = current.game_mode;
+    current.game_mode = GAME_MODE_IN_PLAYER_MENU;
+    current.updated_state = UPDATED_STATE_SCENE;
+}
+void exit_player_menu()
+{
+    current.game_mode = player_menu_previous_mode;
+    current.updated_state = UPDATED_STATE_SCENE;
+}
+
 // -----------------------------------------------------------------------------
 // - INPUT
 // -----------------------------------------------------------------------------
@@ -2194,8 +2318,7 @@ void user_input_a()
 void user_input_start()
 {
     console_log("START BUTTON PRESSED");
-    current.game_mode = GAME_MODE_IN_PLAYER_MENU;
-    current.updated_state = UPDATED_STATE_SCENE;
+    enter_player_menu();
 }
 void user_input_right_bumper()
 {
@@ -2547,12 +2670,19 @@ void generate_world(u32 world_name_id)
         current_world->layers[i] = SENTRY;
     }
     current_world->total_layers = 0;
+    current_world->total_npcs = 0;
+    for (u32 i = 0; i < MAX_CAPTAINS; ++i)
+    {
+        storage_captain.data[i].world_npc_id = SENTRY;
+    }
 
     u32 world_width;
     u32 world_height;
-    u32 wnpcid;
-    u32 lid;
     u32 npc_id;
+    DATA_LAYER* layer;
+    DATA_WORLD_NPC* world_npc;
+    DATA_INVENTORY* inventory;
+    DATA_INVENTORY_ITEM* inventory_item;
 
     switch (world_name_id)
     {
@@ -2563,60 +2693,59 @@ void generate_world(u32 world_name_id)
         world_width = current_world->width;
         world_height = current_world->height;
 
-        lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_BACKGROUND;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        add_layer_to_world(lid, current.world);
-        storage_layer.data[lid].same_value = 1;
-        lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_NPC;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        add_layer_to_world(lid, current.world);
-        lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_ONE;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        add_layer_to_world(lid, current.world);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_BACKGROUND;
+        layer->width = world_width;
+        layer->height = world_height;
+        layer->same_value = 1;
+        add_layer_to_world(layer->id, current.world);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_NPC;
+        layer->width = world_width;
+        layer->height = world_height;
+        add_layer_to_world(layer->id, current.world);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_ONE;
+        layer->width = world_width;
+        layer->height = world_height;
+        add_layer_to_world(layer->id, current.world);
         // athens I guess
-        layer_set_value(lid, 3, 3, 1);
-        layer_set_value(lid, 4, 3, 1);
-        lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_TWO;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        add_layer_to_world(lid, current.world);
+        layer_set_value(layer->id, 3, 3, 1);
+        layer_set_value(layer->id, 4, 3, 1);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_TWO;
+        layer->width = world_width;
+        layer->height = world_height;
+        add_layer_to_world(layer->id, current.world);
         // town (athens)
-        layer_set_value(lid, 4, 3, 1);
-        lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_BLOCK;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        storage_layer.data[lid].is_block = true;
-        add_layer_to_world(lid, current.world);
+        layer_set_value(layer->id, 4, 3, 1);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_BLOCK;
+        layer->width = world_width;
+        layer->height = world_height;
+        layer->is_block = true;
+        add_layer_to_world(layer->id, current.world);
         // blocker for land around athens
-        layer_set_value(lid, 3, 3, 1);
-        layer_set_value(lid, 4, 3, 1);
+        layer_set_value(layer->id, 3, 3, 1);
+        layer_set_value(layer->id, 4, 3, 1);
 
         npc_id = get_player_npc_id(0);
-        wnpcid = pull_storage_world_npc_next_open_slot();
-        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
-        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
-        storage_world_npc.data[wnpcid].npc_id = npc_id;
-        storage_world_npc.data[wnpcid].captain_id = players[0];
-        storage_world_npc.data[wnpcid].position_x = 0;
-        storage_world_npc.data[wnpcid].position_y = 0;
-        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].is_captain = true;
-        storage_world_npc.data[wnpcid].is_player = true;
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
+        world_npc->captain_id = players[0];
+        world_npc->position_x = 0;
+        world_npc->position_y = 0;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->is_captain = true;
+        world_npc->is_player = true;
         // So we know who the first player is in the world directly
-        storage_captain.data[0].world_npc_id = wnpcid;
+        storage_captain.data[0].world_npc_id = world_npc->id;
         ++storage_world.data[current.world].total_npcs;
-        update_npc_layer(wnpcid);
+        update_npc_layer(world_npc->id);
 
-        u32 entity_id = pull_storage_entity_next_open_slot();
-        DATA_ENTITY* entity = get_data_entity(entity_id);
+        DATA_ENTITY* entity = pull_data_entity();
         entity->name_id = PORT_ATHENS;
         entity->is_interactable = true;
         entity->interaction_scene = LOAD_PORT_ATHENS;
@@ -2631,34 +2760,33 @@ void generate_world(u32 world_name_id)
         set_current_world(find_storage_world_by_name_id(WORLD_DINGUS_LAND));
         world_width = current_world->width;
         world_height = current_world->height;
-
-        lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_BACKGROUND;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        add_layer_to_world(lid, current.world);
-        storage_layer.data[lid].same_value = 1;
-        lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_NPC;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        add_layer_to_world(lid, current.world);
-        lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_ONE;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        add_layer_to_world(lid, current.world);
-        lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_TWO;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        add_layer_to_world(lid, current.world);
-        lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_BLOCK;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        storage_layer.data[lid].is_block = true;
-        add_layer_to_world(lid, current.world);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_BACKGROUND;
+        layer->width = world_width;
+        layer->height = world_height;
+        layer->same_value = 1;
+        add_layer_to_world(layer->id, current.world);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_NPC;
+        layer->width = world_width;
+        layer->height = world_height;
+        add_layer_to_world(layer->id, current.world);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_ONE;
+        layer->width = world_width;
+        layer->height = world_height;
+        add_layer_to_world(layer->id, current.world);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_TWO;
+        layer->width = world_width;
+        layer->height = world_height;
+        add_layer_to_world(layer->id, current.world);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_BLOCK;
+        layer->width = world_width;
+        layer->height = world_height;
+        layer->is_block = true;
+        add_layer_to_world(layer->id, current.world);
         current.updated_state = UPDATED_STATE_WORLD;
         break;
     case WORLD_ATHENS:
@@ -2676,316 +2804,314 @@ void generate_world(u32 world_name_id)
         u32 world_width = current_world->width;
         u32 world_height = current_world->height;
 
-        u32 lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_BACKGROUND;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        add_layer_to_world(lid, current.world);
-        storage_layer.data[lid].same_value = 1;
-        lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_NPC;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        add_layer_to_world(lid, current.world);
-        lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_ONE;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        add_layer_to_world(lid, current.world);
-        // layer_set_value(lid, 0, 0, 36);
-        layer_set_value(lid, 0, 0, 33);
-        // layer_set_value(lid, 7, 0, 38);
-        layer_set_value(lid, 7, 0, 35);
-        layer_set_value(lid, 0, 1, 33);
-        layer_set_value(lid, 0, 2, 33);
-        layer_set_value(lid, 0, 3, 33);
-        layer_set_value(lid, 0, 4, 33);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_BACKGROUND;
+        layer->width = world_width;
+        layer->height = world_height;
+        layer->same_value = 1;
+        add_layer_to_world(layer->id, current.world);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_NPC;
+        layer->width = world_width;
+        layer->height = world_height;
+        add_layer_to_world(layer->id, current.world);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_ONE;
+        layer->width = world_width;
+        layer->height = world_height;
+        add_layer_to_world(layer->id, current.world);
+        // layer_set_value(layer->id, 0, 0, 36);
+        layer_set_value(layer->id, 0, 0, 33);
+        // layer_set_value(layer->id, 7, 0, 38);
+        layer_set_value(layer->id, 7, 0, 35);
+        layer_set_value(layer->id, 0, 1, 33);
+        layer_set_value(layer->id, 0, 2, 33);
+        layer_set_value(layer->id, 0, 3, 33);
+        layer_set_value(layer->id, 0, 4, 33);
         for (u32 column = 1; column < 7; ++column)
         {
-            // layer_set_value(lid, column, 0, 37);
-            layer_set_value(lid, column, 0, 34);
+            // layer_set_value(layer->id, column, 0, 37);
+            layer_set_value(layer->id, column, 0, 34);
         }
         for (u32 column = 1; column < 7; ++column)
         {
-            layer_set_value(lid, column, 1, 34);
-            layer_set_value(lid, column, 2, 34);
-            layer_set_value(lid, column, 3, 34);
-            layer_set_value(lid, column, 4, 34);
+            layer_set_value(layer->id, column, 1, 34);
+            layer_set_value(layer->id, column, 2, 34);
+            layer_set_value(layer->id, column, 3, 34);
+            layer_set_value(layer->id, column, 4, 34);
         }
-        layer_set_value(lid, 7, 1, 35);
-        layer_set_value(lid, 7, 2, 35);
-        layer_set_value(lid, 7, 3, 35);
-        layer_set_value(lid, 7, 4, 35);
-        layer_set_value(lid, 0, 5, 39);
+        layer_set_value(layer->id, 7, 1, 35);
+        layer_set_value(layer->id, 7, 2, 35);
+        layer_set_value(layer->id, 7, 3, 35);
+        layer_set_value(layer->id, 7, 4, 35);
+        layer_set_value(layer->id, 0, 5, 39);
         for (u32 column = 1; column < 7; ++column)
         {
-            layer_set_value(lid, column, 5, 40);
+            layer_set_value(layer->id, column, 5, 40);
         }
-        layer_set_value(lid, 7, 5, 41);
-        layer_set_value(lid, 4, 6, 53);
+        layer_set_value(layer->id, 7, 5, 41);
+        layer_set_value(layer->id, 4, 6, 53);
         for (u32 column = 5; column < 10; ++column)
         {
-            layer_set_value(lid, column, 6, 54);
+            layer_set_value(layer->id, column, 6, 54);
         }
-        layer_set_value(lid, 10, 6, 50);
+        layer_set_value(layer->id, 10, 6, 50);
         for (u32 row = 7; row < 12; ++row)
         {
-            layer_set_value(lid, 4, row, 56);
+            layer_set_value(layer->id, 4, row, 56);
         }
-        layer_set_value(lid, 4, 11, 52);
+        layer_set_value(layer->id, 4, 11, 52);
         for (u32 column = 5; column < 10; ++column)
         {
-            layer_set_value(lid, column, 11, 55);
+            layer_set_value(layer->id, column, 11, 55);
         }
-        layer_set_value(lid, 10, 11, 51);
+        layer_set_value(layer->id, 10, 11, 51);
         for (u32 row = 7; row < 11; ++row)
         {
-            layer_set_value(lid, 10, row, 57);
+            layer_set_value(layer->id, 10, row, 57);
         }
         for (u32 row = 7; row < 11; ++row)
         {
-            layer_set_value(lid, 5, row, 59);
+            layer_set_value(layer->id, 5, row, 59);
         }
         for (u32 column = 6; column < 10; ++column)
         {
             for (u32 row = 7; row < 11; ++row)
             {
-                layer_set_value(lid, column, row, 58);
+                layer_set_value(layer->id, column, row, 58);
             }
         }
         // Building
-        layer_set_value(lid, 6, 7, 0);
-        layer_set_value(lid, 7, 7, 1);
-        layer_set_value(lid, 6, 8, 2);
-        layer_set_value(lid, 7, 8, 3);
-        lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_TWO;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        add_layer_to_world(lid, current.world);
+        layer_set_value(layer->id, 6, 7, 0);
+        layer_set_value(layer->id, 7, 7, 1);
+        layer_set_value(layer->id, 6, 8, 2);
+        layer_set_value(layer->id, 7, 8, 3);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_TWO;
+        layer->width = world_width;
+        layer->height = world_height;
+        add_layer_to_world(layer->id, current.world);
         // Door
-        layer_set_value(lid, 7, 8, 4);
+        layer_set_value(layer->id, 7, 8, 4);
         // Shipyard sign
-        layer_set_value(lid, 6, 8, 10);
+        layer_set_value(layer->id, 6, 8, 10);
         // rock
-        layer_set_value(lid, 4, 3, 20);
+        layer_set_value(layer->id, 4, 3, 20);
         // house
-        layer_set_value(lid, 5, 2, 51);
-        layer_set_value(lid, 6, 2, 52);
-        layer_set_value(lid, 7, 2, 53);
-        layer_set_value(lid, 5, 3, 50);
-        layer_set_value(lid, 6, 3, 50);
-        layer_set_value(lid, 7, 3, 50);
-        lid = pull_storage_layer_next_open_slot();
-        storage_layer.data[lid].name_id = LAYER_BLOCK;
-        storage_layer.data[lid].width = world_width;
-        storage_layer.data[lid].height = world_height;
-        storage_layer.data[lid].is_block = true;
-        add_layer_to_world(lid, current.world);
+        layer_set_value(layer->id, 5, 2, 51);
+        layer_set_value(layer->id, 6, 2, 52);
+        layer_set_value(layer->id, 7, 2, 53);
+        layer_set_value(layer->id, 5, 3, 50);
+        layer_set_value(layer->id, 6, 3, 50);
+        layer_set_value(layer->id, 7, 3, 50);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_BLOCK;
+        layer->width = world_width;
+        layer->height = world_height;
+        layer->is_block = true;
+        add_layer_to_world(layer->id, current.world);
         // Building
-        layer_set_value(lid, 6, 7, 1);
-        layer_set_value(lid, 7, 7, 1);
-        layer_set_value(lid, 6, 8, 1);
-        layer_set_value(lid, 7, 8, 1);
+        layer_set_value(layer->id, 6, 7, 1);
+        layer_set_value(layer->id, 7, 7, 1);
+        layer_set_value(layer->id, 6, 8, 1);
+        layer_set_value(layer->id, 7, 8, 1);
         // rock
-        // layer_set_value(lid, 4, 3, 1);
-
-        u32 world_npc_id;
+        // layer_set_value(layer->id, 4, 3, 1);
 
         npc_id = find_storage_npc_by_name_id(NPC_BANK_TELLER);
-        u32 wnpcid = pull_storage_world_npc_next_open_slot();
-        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
-        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
-        storage_world_npc.data[wnpcid].npc_id = npc_id;
-        storage_world_npc.data[wnpcid].position_x = 4;
-        storage_world_npc.data[wnpcid].position_y = 0;
-        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].interaction_scene = SCENE_BANK;
-        storage_world_npc.data[wnpcid].is_interactable = true;
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
+        world_npc->position_x = 4;
+        world_npc->position_y = 0;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->interaction_scene = SCENE_BANK;
+        world_npc->is_interactable = true;
         ++storage_world.data[current.world].total_npcs;
         
         // inventory
-        u32 i_id = pull_storage_inventory_next_open_slot();
-        storage_inventory.data[i_id].name_id = INVENTORY_ATHENS_GENERAL_SHOP;
-        storage_inventory.data[i_id].total_items = 0;
+        inventory = pull_data_inventory();
+        inventory->name_id = INVENTORY_ATHENS_GENERAL_SHOP;
+        inventory->total_items = 0;
         // inventory item
-        u32 ii_id = pull_storage_inventory_item_next_open_slot();
-        storage_inventory_item.data[ii_id].name_id = ITEM_TELESCOPE;
-        storage_inventory_item.data[ii_id].number_held = 1;
-        storage_inventory_item.data[ii_id].type = INVENTORY_TYPE_GENERAL_ITEM;
-        storage_inventory_item.data[ii_id].type_reference = find_storage_general_item_by_name_id(ITEM_TELESCOPE);
-        storage_inventory_item.data[ii_id].adjusted_price = 400;
-        add_item_to_inventory(ii_id, i_id);
-        ii_id = pull_storage_inventory_item_next_open_slot();
-        storage_inventory_item.data[ii_id].name_id = ITEM_QUADRANT;
-        storage_inventory_item.data[ii_id].number_held = 1;
-        storage_inventory_item.data[ii_id].type = INVENTORY_TYPE_GENERAL_ITEM;
-        storage_inventory_item.data[ii_id].type_reference = find_storage_general_item_by_name_id(ITEM_QUADRANT);
-        storage_inventory_item.data[ii_id].adjusted_price = 430;
-        add_item_to_inventory(ii_id, i_id);
-        ii_id = pull_storage_inventory_item_next_open_slot();
-        storage_inventory_item.data[ii_id].name_id = ITEM_THEODOLITE;
-        storage_inventory_item.data[ii_id].number_held = 1;
-        storage_inventory_item.data[ii_id].type = INVENTORY_TYPE_GENERAL_ITEM;
-        storage_inventory_item.data[ii_id].type_reference = find_storage_general_item_by_name_id(ITEM_THEODOLITE);
-        storage_inventory_item.data[ii_id].adjusted_price = 222;
-        add_item_to_inventory(ii_id, i_id);
-        ii_id = pull_storage_inventory_item_next_open_slot();
-        storage_inventory_item.data[ii_id].name_id = ITEM_SEXTANT;
-        storage_inventory_item.data[ii_id].number_held = 1;
-        storage_inventory_item.data[ii_id].type = INVENTORY_TYPE_GENERAL_ITEM;
-        storage_inventory_item.data[ii_id].type_reference = find_storage_general_item_by_name_id(ITEM_SEXTANT);
-        storage_inventory_item.data[ii_id].adjusted_price = 666;
-        add_item_to_inventory(ii_id, i_id);
+        inventory_item = pull_data_inventory_item();
+        inventory_item->name_id = ITEM_TELESCOPE;
+        inventory_item->number_held = 1;
+        inventory_item->type = INVENTORY_TYPE_GENERAL_ITEM;
+        inventory_item->type_reference = find_storage_general_item_by_name_id(ITEM_TELESCOPE);
+        inventory_item->adjusted_price = 400;
+        add_item_to_inventory(inventory_item->id, inventory->id);
+        inventory_item = pull_data_inventory_item();
+        inventory_item->name_id = ITEM_QUADRANT;
+        inventory_item->number_held = 1;
+        inventory_item->type = INVENTORY_TYPE_GENERAL_ITEM;
+        inventory_item->type_reference = find_storage_general_item_by_name_id(ITEM_QUADRANT);
+        inventory_item->adjusted_price = 430;
+        add_item_to_inventory(inventory_item->id, inventory->id);
+        inventory_item = pull_data_inventory_item();
+        inventory_item->name_id = ITEM_THEODOLITE;
+        inventory_item->number_held = 1;
+        inventory_item->type = INVENTORY_TYPE_GENERAL_ITEM;
+        inventory_item->type_reference = find_storage_general_item_by_name_id(ITEM_THEODOLITE);
+        inventory_item->adjusted_price = 222;
+        add_item_to_inventory(inventory_item->id, inventory->id);
+        inventory_item = pull_data_inventory_item();
+        inventory_item->name_id = ITEM_SEXTANT;
+        inventory_item->number_held = 1;
+        inventory_item->type = INVENTORY_TYPE_GENERAL_ITEM;
+        inventory_item->type_reference = find_storage_general_item_by_name_id(ITEM_SEXTANT);
+        inventory_item->adjusted_price = 666;
+        add_item_to_inventory(inventory_item->id, inventory->id);
 
         npc_id = find_storage_npc_by_name_id(NPC_GENERAL_SHOP_OWNER);
-        wnpcid = pull_storage_world_npc_next_open_slot();
-        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
-        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
-        storage_world_npc.data[wnpcid].npc_id = npc_id;
-        storage_world_npc.data[wnpcid].position_x = 3;
-        storage_world_npc.data[wnpcid].position_y = 1;
-        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].interaction_scene = SCENE_GENERAL_SHOP;
-        storage_world_npc.data[wnpcid].is_interactable = true;
-        storage_world_npc.data[wnpcid].inventory_id = i_id;
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
+        world_npc->position_x = 3;
+        world_npc->position_y = 1;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->interaction_scene = SCENE_GENERAL_SHOP;
+        world_npc->is_interactable = true;
+        world_npc->inventory_id = inventory->id;
         ++storage_world.data[current.world].total_npcs;
-        update_npc_layer(wnpcid);
+        update_npc_layer(world_npc->id);
 
         npc_id = find_storage_npc_by_name_id(NPC_BLACKJACK_PLAYER);
-        wnpcid = pull_storage_world_npc_next_open_slot();
-        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
-        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
-        storage_world_npc.data[wnpcid].npc_id = npc_id;
-        storage_world_npc.data[wnpcid].position_x = 5;
-        storage_world_npc.data[wnpcid].position_y = 0;
-        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].interaction_scene = SCENE_BLACKJACK;
-        storage_world_npc.data[wnpcid].is_interactable = true;
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
+        world_npc->position_x = 5;
+        world_npc->position_y = 0;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->interaction_scene = SCENE_BLACKJACK;
+        world_npc->is_interactable = true;
         ++storage_world.data[current.world].total_npcs;
-        update_npc_layer(wnpcid);
+        update_npc_layer(world_npc->id);
 
         npc_id = get_player_npc_id(0);
-        wnpcid = pull_storage_world_npc_next_open_slot();
-        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
-        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
-        storage_world_npc.data[wnpcid].npc_id = npc_id;
-        storage_world_npc.data[wnpcid].captain_id = players[0];
-        storage_world_npc.data[wnpcid].position_x = 0;
-        storage_world_npc.data[wnpcid].position_y = 0;
-        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].is_captain = true;
-        storage_world_npc.data[wnpcid].is_player = true;
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
+        world_npc->captain_id = players[0];
+        world_npc->position_x = 0;
+        world_npc->position_y = 0;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->is_captain = true;
+        world_npc->is_player = true;
         // So we know who the first player is in the world directly
-        storage_captain.data[0].world_npc_id = wnpcid;
+        storage_captain.data[0].world_npc_id = world_npc->id;
         ++storage_world.data[current.world].total_npcs;
-        update_npc_layer(wnpcid);
+        update_npc_layer(world_npc->id);
 
         npc_id = find_storage_npc_by_name_id(NPC_OCEAN_BATTLE);
-        wnpcid = pull_storage_world_npc_next_open_slot();
-        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
-        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
-        storage_world_npc.data[wnpcid].npc_id = npc_id;
-        storage_world_npc.data[wnpcid].position_x = 0;
-        storage_world_npc.data[wnpcid].position_y = 1;
-        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].interaction_scene = SCENE_OCEAN_FAKE_BATTLE;
-        storage_world_npc.data[wnpcid].is_interactable = true;
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
+        world_npc->position_x = 0;
+        world_npc->position_y = 1;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->interaction_scene = SCENE_OCEAN_FAKE_BATTLE;
+        world_npc->is_interactable = true;
         ++storage_world.data[current.world].total_npcs;
-        update_npc_layer(wnpcid);
+        update_npc_layer(world_npc->id);
 
         npc_id = find_storage_npc_by_name_id(NPC_RVICE);
-        wnpcid = pull_storage_world_npc_next_open_slot();
-        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
-        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
-        storage_world_npc.data[wnpcid].npc_id = npc_id;
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
         // TODO: Do not use magic numbers
-        storage_world_npc.data[wnpcid].captain_id = 1;
-        storage_world_npc.data[wnpcid].position_x = 0;
-        storage_world_npc.data[wnpcid].position_y = 2;
-        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].interaction_scene = SCENE_NPC_RVICE;
-        storage_world_npc.data[wnpcid].is_interactable = true;
-        storage_world_npc.data[wnpcid].is_captain = true;
+        world_npc->captain_id = 1;
+        world_npc->position_x = 0;
+        world_npc->position_y = 2;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->interaction_scene = SCENE_NPC_RVICE;
+        world_npc->is_interactable = true;
+        world_npc->is_captain = true;
         ++storage_world.data[current.world].total_npcs;
-        update_npc_layer(wnpcid);
+        update_npc_layer(world_npc->id);
 
         npc_id = find_storage_npc_by_name_id(NPC_LAFOLIE);
-        wnpcid = pull_storage_world_npc_next_open_slot();
-        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
-        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
-        storage_world_npc.data[wnpcid].npc_id = npc_id;
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
         // TODO: Do not use magic numbers
-        storage_world_npc.data[wnpcid].captain_id = 2;
-        storage_world_npc.data[wnpcid].position_x = 0;
-        storage_world_npc.data[wnpcid].position_y = 3;
-        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].interaction_scene = SCENE_NPC_LAFOLIE;
-        storage_world_npc.data[wnpcid].is_interactable = true;
-        storage_world_npc.data[wnpcid].is_captain = true;
+        world_npc->captain_id = 2;
+        world_npc->position_x = 0;
+        world_npc->position_y = 3;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->interaction_scene = SCENE_NPC_LAFOLIE;
+        world_npc->is_interactable = true;
+        world_npc->is_captain = true;
         ++storage_world.data[current.world].total_npcs;
-        update_npc_layer(wnpcid);
+        update_npc_layer(world_npc->id);
 
         npc_id = find_storage_npc_by_name_id(NPC_NAKOR);
-        wnpcid = pull_storage_world_npc_next_open_slot();
-        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
-        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
-        storage_world_npc.data[wnpcid].npc_id = npc_id;
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
         // TODO: Do not use magic numbers
-        storage_world_npc.data[wnpcid].captain_id = 3;
-        storage_world_npc.data[wnpcid].position_x = 0;
-        storage_world_npc.data[wnpcid].position_y = 4;
-        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].interaction_scene = SCENE_NPC_NAKOR;
-        storage_world_npc.data[wnpcid].is_interactable = true;
-        storage_world_npc.data[wnpcid].is_captain = true;
+        world_npc->captain_id = 3;
+        world_npc->position_x = 0;
+        world_npc->position_y = 4;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->interaction_scene = SCENE_NPC_NAKOR;
+        world_npc->is_interactable = true;
+        world_npc->is_captain = true;
         ++storage_world.data[current.world].total_npcs;
-        update_npc_layer(wnpcid);
+        update_npc_layer(world_npc->id);
 
         npc_id = find_storage_npc_by_name_id(NPC_TRAVIS);
-        wnpcid = pull_storage_world_npc_next_open_slot();
-        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
-        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
-        storage_world_npc.data[wnpcid].npc_id = npc_id;
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
         // TODO: Do not use magic numbers
-        storage_world_npc.data[wnpcid].captain_id = 4;
-        storage_world_npc.data[wnpcid].position_x = 0;
-        storage_world_npc.data[wnpcid].position_y = 5;
-        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].interaction_scene = SCENE_NPC_TRAVIS;
-        storage_world_npc.data[wnpcid].is_interactable = true;
-        storage_world_npc.data[wnpcid].is_captain = true;
+        world_npc->captain_id = 4;
+        world_npc->position_x = 0;
+        world_npc->position_y = 5;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->interaction_scene = SCENE_NPC_TRAVIS;
+        world_npc->is_interactable = true;
+        world_npc->is_captain = true;
         ++storage_world.data[current.world].total_npcs;
-        update_npc_layer(wnpcid);
+        update_npc_layer(world_npc->id);
 
         npc_id = find_storage_npc_by_name_id(NPC_LOLLER);
-        wnpcid = pull_storage_world_npc_next_open_slot();
-        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
-        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
-        storage_world_npc.data[wnpcid].npc_id = npc_id;
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
         // TODO: Do not use magic numbers
-        storage_world_npc.data[wnpcid].captain_id = 5;
-        storage_world_npc.data[wnpcid].position_x = 0;
-        storage_world_npc.data[wnpcid].position_y = 6;
-        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].interaction_scene = SCENE_NPC_LOLLER;
-        storage_world_npc.data[wnpcid].is_interactable = true;
-        storage_world_npc.data[wnpcid].is_captain = true;
+        world_npc->captain_id = 5;
+        world_npc->position_x = 0;
+        world_npc->position_y = 6;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->interaction_scene = SCENE_NPC_LOLLER;
+        world_npc->is_interactable = true;
+        world_npc->is_captain = true;
         ++storage_world.data[current.world].total_npcs;
-        update_npc_layer(wnpcid);
+        update_npc_layer(world_npc->id);
 
         npc_id = find_storage_npc_by_name_id(NPC_SHIPYARD_OWNER);
-        wnpcid = pull_storage_world_npc_next_open_slot();
-        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
-        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
-        storage_world_npc.data[wnpcid].npc_id = npc_id;
-        storage_world_npc.data[wnpcid].position_x = 8;
-        storage_world_npc.data[wnpcid].position_y = 8;
-        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].interaction_scene = SCENE_SHIPYARD;
-        storage_world_npc.data[wnpcid].is_interactable = true;
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
+        world_npc->position_x = 8;
+        world_npc->position_y = 8;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->interaction_scene = SCENE_SHIPYARD;
+        world_npc->is_interactable = true;
         ++storage_world.data[current.world].total_npcs;
-        update_npc_layer(wnpcid);
+        update_npc_layer(world_npc->id);
         for (u32 i = 0; i < MAX_SHIP_PREFABS; ++i)
         {
             Scene_Shipyard.ships_prefab[i] = SENTRY;
@@ -3016,17 +3142,17 @@ void generate_world(u32 world_name_id)
         Scene_Shipyard.remodel_figurehead_price = 30;
 
         npc_id = find_storage_npc_by_name_id(NPC_DOCKYARD_OWNER);
-        wnpcid = pull_storage_world_npc_next_open_slot();
-        storage_world_npc.data[wnpcid].name_id = storage_npc.data[npc_id].name_id;
-        storage_world_npc.data[wnpcid].type_id = storage_npc.data[npc_id].type;
-        storage_world_npc.data[wnpcid].npc_id = npc_id;
-        storage_world_npc.data[wnpcid].position_x = 6;
-        storage_world_npc.data[wnpcid].position_y = 11;
-        storage_world_npc.data[wnpcid].direction = DIRECTION_DOWN;
-        storage_world_npc.data[wnpcid].interaction_scene = SCENE_DOCKYARD;
-        storage_world_npc.data[wnpcid].is_interactable = true;
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
+        world_npc->position_x = 6;
+        world_npc->position_y = 11;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->interaction_scene = SCENE_DOCKYARD;
+        world_npc->is_interactable = true;
         ++storage_world.data[current.world].total_npcs;
-        update_npc_layer(wnpcid);
+        update_npc_layer(world_npc->id);
         // Note: Keeping this here temporarily for future reference
         // u32 entity_id = pull_storage_entity_next_open_slot();
         // DATA_ENTITY* entity = get_data_entity(entity_id);
@@ -3038,32 +3164,37 @@ void generate_world(u32 world_name_id)
         // entity->position_y = 11;
 
         // inventory
-        i_id = pull_storage_inventory_next_open_slot();
-        storage_inventory.data[i_id].name_id = INVENTORY_ATHENS_GOODS_SHOP;
-        storage_inventory.data[i_id].total_items = 0;
+        inventory = pull_data_inventory();
+        inventory->name_id = INVENTORY_ATHENS_GOODS_SHOP;
+        inventory->total_items = 0;
         // inventory items
-        ii_id = pull_storage_inventory_item_next_open_slot();
-        DATA_INVENTORY_ITEM *ii = get_data_inventory_item(ii_id);
-        ii->name_id = GOOD_AMBER;
-        ii->number_held = 1;
-        ii->type = INVENTORY_TYPE_GOOD;
-        ii->type_reference = find_storage_good_by_name_id(GOOD_AMBER);
-        ii->adjusted_price = 400;
-        add_item_to_inventory(ii_id, i_id);
+        inventory_item = pull_data_inventory_item();
+        inventory_item->name_id = GOOD_AMBER;
+        inventory_item->number_held = 1;
+        inventory_item->type = INVENTORY_TYPE_GOOD;
+        inventory_item->type_reference = find_storage_good_by_name_id(GOOD_AMBER);
+        inventory_item->adjusted_price = 30;
+        add_item_to_inventory(inventory_item->id, inventory->id);
+        inventory_item = pull_data_inventory_item();
+        inventory_item->name_id = GOOD_ART;
+        inventory_item->number_held = 1;
+        inventory_item->type = INVENTORY_TYPE_GOOD;
+        inventory_item->type_reference = find_storage_good_by_name_id(GOOD_ART);
+        inventory_item->adjusted_price = 400;
+        add_item_to_inventory(inventory_item->id, inventory->id);
         npc_id = find_storage_npc_by_name_id(NPC_GOODS_SHOP_OWNER);
-        wnpcid = pull_storage_world_npc_next_open_slot();
-        DATA_WORLD_NPC* wnpc = get_data_world_npc(wnpcid);
-        wnpc->name_id = storage_npc.data[npc_id].name_id;
-        wnpc->type_id = storage_npc.data[npc_id].type;
-        wnpc->npc_id = npc_id;
-        wnpc->position_x = 3;
-        wnpc->position_y = 2;
-        wnpc->direction = DIRECTION_DOWN;
-        wnpc->interaction_scene = SCENE_GOODS_SHOP;
-        wnpc->is_interactable = true;
-        wnpc->inventory_id = i_id;
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
+        world_npc->position_x = 3;
+        world_npc->position_y = 2;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->interaction_scene = SCENE_GOODS_SHOP;
+        world_npc->is_interactable = true;
+        world_npc->inventory_id = inventory->id;
         ++storage_world.data[current.world].total_npcs;
-        update_npc_layer(wnpcid);
+        update_npc_layer(world_npc->id);
 
         current.updated_state = UPDATED_STATE_WORLD;
         break;
@@ -3440,7 +3571,7 @@ u32 initialize_captain(u32 name_id, u32 type_id, u32 inventory_name_id)
     CLEAR_STRUCT(&captain, SENTRY);
     captain.name_id = name_id;
     captain.npc_id = npc_id;
-    captain.gold = 100;
+    captain.gold = 100000;
     captain.inventory_id = initialize_inventory(inventory_name_id);
     u32 stats_id = initialize_stats();
     captain.stats_id = stats_id;
@@ -6042,6 +6173,193 @@ u32 scene_blacksmith(u32 action)
 // -----------------------------------------------------------------------------
 // - GOODS SHOP SCENE
 // -----------------------------------------------------------------------------
+u32 scene_goods_shop_get_total_good_cost()
+{
+    u32 total_cost = 0;
+    u32 good_id = Scene_Goods_Shop.intended_good_id;
+    u32 good_qty = Scene_Goods_Shop.intended_good_qty;
+    get_inventory_items_by_inventory_id(Scene_Goods_Shop.inventory_id);
+    for (u32 i = 0; i < MAX_INVENTORY_ITEMS; ++i)
+    {
+        if (inventory_items_by_inventory_id[i] == SENTRY) { continue; }
+        u32 offset = inventory_items_by_inventory_id[i];
+        if (storage_inventory_item.data[offset].type_reference == good_id)
+        {
+            u32 adjusted_price = storage_inventory_item.data[offset].adjusted_price;
+            total_cost = adjusted_price * good_qty;
+            return total_cost;
+        }
+    }
+    return SENTRY;
+}
+u32 scene_goods_shop_get_total_good_loaded_cargo_space()
+{
+    u32 total_loaded_cargo_space = 0;
+    for (u32 i = 0; i < MAX_LOADING_GOODS; ++i)
+    {
+        if (Scene_Goods_Shop.loading_qty[i] == SENTRY) { continue; }
+        total_loaded_cargo_space += Scene_Goods_Shop.loading_qty[i];
+    }
+    return total_loaded_cargo_space;
+}
+u32 scene_goods_shop_set_fleet_ship_good_qty(u32 fleet_ship_id, u32 good_qty)
+{
+    u32 available_spot = SENTRY;
+    bool already_set = false;
+    for (u32 i = 0; i < MAX_LOADING_GOODS; ++i)
+    {
+        u32 l_fleet_ship_id = Scene_Goods_Shop.loading_fleet_ships[i];
+        if (l_fleet_ship_id == SENTRY && available_spot == SENTRY)
+        {
+            available_spot = i;
+        }
+        if (l_fleet_ship_id == fleet_ship_id)
+        {
+            DATA_SHIP* ship = get_ship_from_fleet_ship(fleet_ship_id);
+            u32 available_space = ship->capacity - ship->total_cargo_goods;
+            if (good_qty > available_space)
+            {
+                console_log("[E] Ship does not have the capacity");
+                return ERROR_GOODS_SHOP_NOT_ENOUGH_SHIP_CAPACITY;
+            }
+            already_set = true;
+            Scene_Goods_Shop.loading_qty[i] = good_qty;
+            break;
+        }
+    }
+    if (!already_set)
+    {
+        Scene_Goods_Shop.loading_fleet_ships[available_spot] = fleet_ship_id;
+        Scene_Goods_Shop.loading_qty[available_spot] = good_qty;
+    }
+    return SENTRY;
+}
+u32 scene_goods_shop_increase_fleet_ship_good_qty(u32 fleet_ship_id)
+{
+    u32 current_total_qty = scene_goods_shop_get_total_good_loaded_cargo_space();
+    u32 intended_total = current_total_qty;
+    intended_total += 1;
+    if (intended_total > Scene_Goods_Shop.intended_good_qty)
+    {
+        console_log("[E] Goods shop greater than intended");
+        return ERROR_GOODS_SHOP_LOADING_QTY_GREATER_THAN_INTENDED;
+    }
+    for (u32 i = 0; i < MAX_LOADING_GOODS; ++i)
+    {
+        u32 l_fleet_ship_id = Scene_Goods_Shop.loading_fleet_ships[i];
+        u32 l_qty = Scene_Goods_Shop.loading_qty[i];
+        if (l_fleet_ship_id == fleet_ship_id)
+        {
+            u32 new_qty = l_qty + 1;
+            return scene_goods_shop_set_fleet_ship_good_qty(fleet_ship_id, new_qty);
+        }
+    }
+    // Assumption is we didn't find a ship so we set it to 1 and let the func
+    // take care of filling available spots
+    return scene_goods_shop_set_fleet_ship_good_qty(fleet_ship_id, 1);
+}
+u32 scene_goods_shop_decrease_fleet_ship_good_qty(u32 fleet_ship_id)
+{
+    u32 current_total_qty = scene_goods_shop_get_total_good_loaded_cargo_space();
+    u32 intended_total = current_total_qty;
+    if (intended_total > 0)
+    {
+        intended_total -= 1;
+    }
+    if (intended_total > Scene_Goods_Shop.intended_good_qty)
+    {
+        console_log("[E] Goods shop greater than intended");
+        return ERROR_GOODS_SHOP_LOADING_QTY_GREATER_THAN_INTENDED;
+    }
+    for (u32 i = 0; i < MAX_LOADING_GOODS; ++i)
+    {
+        u32 l_fleet_ship_id = Scene_Goods_Shop.loading_fleet_ships[i];
+        u32 l_qty = Scene_Goods_Shop.loading_qty[i];
+        if (l_fleet_ship_id == fleet_ship_id)
+        {
+            if (l_qty == 0)
+            {
+                console_log("[I] Intended purchase qt already at 0");
+                return ERROR_GOODS_SHOP_INTENDED_QTY_AT_ZERO;
+            }
+            u32 new_qty = l_qty - 1;
+            return scene_goods_shop_set_fleet_ship_good_qty(fleet_ship_id, new_qty);
+        }
+    }
+    // Assumption is we didn't find a ship so we set it to 1 and let the func
+    // take care of filling available spots
+    return scene_goods_shop_set_fleet_ship_good_qty(fleet_ship_id, 0);
+}
+void scene_goods_shop_clear_intended_good_id()
+{
+    Scene_Goods_Shop.intended_good_id = SENTRY;
+}
+bool scene_goods_shop_is_in_inventory(u32 good_id)
+{
+    get_inventory_items_by_inventory_id(Scene_Goods_Shop.inventory_id);
+    bool in_inventory = false;
+    for (u32 i = 0; i < MAX_INVENTORY_ITEMS; ++i)
+    {
+        if (inventory_items_by_inventory_id[i] == SENTRY) { continue; }
+        if (storage_inventory_item.data[i].type_reference == good_id)
+        {
+            in_inventory = true;
+            break;
+        }
+    }
+    return in_inventory;
+}
+u32 scene_goods_shop_set_intended_good_id(u32 id)
+{
+    // Ensure good is in the current scene inventory items
+    if (!scene_goods_shop_is_in_inventory(id))
+    {
+        console_log("[E] Trying to add a good that's not in goods shop inventory");
+        return ERROR_GOODS_SHOP_GOOD_NOT_IN_INVENTORY;
+    }
+    // TODO: Do we really need this?
+    scene_goods_shop_clear_intended_good_id();
+    Scene_Goods_Shop.intended_good_id = id;
+    return SENTRY;
+}
+void scene_goods_shop_clear_intended_good_qty()
+{
+    Scene_Goods_Shop.intended_good_qty = 0;
+}
+u32 scene_goods_shop_set_intended_good_qty(u32 qty)
+{
+    if (Scene_Goods_Shop.intended_good_id == SENTRY)
+    {
+        console_log("[E] No good id in scene goods shop to put qty to");
+        return ERROR_GOODS_SHOP_NO_GOOD_SET;
+    }
+    Scene_Goods_Shop.intended_good_qty = qty;
+    return SENTRY;
+}
+void scene_goods_shop_clear_fleet_ship_good_qty(u32 fleet_ship_id)
+{
+    u32 good_id = Scene_Goods_Shop.intended_good_id;
+    for (u32 i = 0; i < MAX_LOADING_GOODS; ++i)
+    {
+        u32 l_fleet_ship_id = Scene_Goods_Shop.loading_fleet_ships[i];
+        if (l_fleet_ship_id == fleet_ship_id)
+        {
+            Scene_Goods_Shop.loading_qty[i] = 0;
+            return;
+        }
+    }
+    return;
+}
+void scene_goods_shop_clear_intended()
+{
+    Scene_Goods_Shop.intended_good_id = SENTRY;
+    Scene_Goods_Shop.intended_good_qty = SENTRY;
+    for (u32 i = 0; i < MAX_LOADING_GOODS; ++i)
+    {
+        Scene_Goods_Shop.loading_fleet_ships[i] = SENTRY;
+        Scene_Goods_Shop.loading_qty[i] = 0;
+    }
+}
 u32 scene_goods_shop(u32 action)
 {
     if (Scene_Goods_Shop.flag_initialized == 0)
@@ -6065,12 +6383,76 @@ u32 scene_goods_shop(u32 action)
     }
     switch (action)
     {
+    case ACTION_GOODS_SHOP_BUY:
+        console_log("[I] Gathering total gold cost");
+        u32 total_cost = scene_goods_shop_get_total_good_cost();
+        if (total_cost > get_player_gold(0))
+        {
+            console_log("[E] Player does not have enough gold for this");
+            Scene_Goods_Shop.error_code = ERROR_GOODS_SHOP_NOT_ENOUGH_GOLD;
+            break;
+        }
+        u32 fleet_id = storage_captain.data[0].general_of_fleet_id;
+        u32 capacity = get_available_cargo_capacity_from_fleet(fleet_id);
+        u32 total_cargo = scene_goods_shop_get_total_good_loaded_cargo_space();
+        if (total_cargo > capacity)
+        {
+            console_log("[E] Not enough cargo capacity in fleet for goods");
+            Scene_Goods_Shop.error_code = ERROR_GOODS_SHOP_NOT_ENOUGH_FLEET_CAPACITY;
+            break;
+        }
+        bool have_space = true;
+        for (u32 i = 0; i < MAX_LOADING_GOODS; ++i)
+        {
+            u32 fleet_ship_id = Scene_Goods_Shop.loading_fleet_ships[i];
+            DATA_FLEET_SHIP* fleet_ship = get_data_fleet_ship(fleet_ship_id);
+            DATA_SHIP* ship = get_data_ship(fleet_ship->ship_id);
+            u32 available_space = 0;
+            available_space += ship->capacity;
+            available_space -= ship->total_cargo_goods;
+            u32 qty = Scene_Goods_Shop.loading_qty[i];
+            if (qty > available_space)
+            {
+                have_space = false;
+                break;
+            }
+        }
+        if (!have_space)
+        {
+            console_log("[E] Not enough space in a specific ship for cargo");
+            Scene_Goods_Shop.error_code = ERROR_GOODS_SHOP_NOT_ENOUGH_SHIP_CAPACITY;
+            break;
+        }
+        u32 total_added = 0;
+        for (u32 i = 0; i < MAX_LOADING_GOODS; ++i)
+        {
+            u32 fleet_ship_id = Scene_Goods_Shop.loading_fleet_ships[i];
+            if (fleet_ship_id == SENTRY)
+            {
+                continue;
+            }
+            DATA_FLEET_SHIP* fleet_ship = get_data_fleet_ship(fleet_ship_id);
+            DATA_SHIP* ship = get_data_ship(fleet_ship->ship_id);
+            u32 qty = Scene_Goods_Shop.loading_qty[i];
+            if (qty > 0 && qty != SENTRY)
+            {
+                total_added += qty;
+                add_good_to_ship(Scene_Goods_Shop.intended_good_id, qty, ship->id);
+            }
+        }
+        console_log("[I] Successfully loaded goods onto fleet ships");
+        subtract_player_gold(0, total_cost);
+        scene_goods_shop_clear_intended();
+        Scene_Goods_Shop.dialog_id = DIALOG_GOODS_SHOP_PURCHASED_GOODS;
+        Scene_Goods_Shop.error_code = SENTRY;
+        break;
     case ACTION_EXIT:
         console_log("[I] Exiting goods shop scene");
         Scene_Goods_Shop.flag_initialized = 0;
         Scene_Goods_Shop.inventory_id = SENTRY;
         current.game_mode = Scene_Goods_Shop.previous_game_mode;
         Scene_Goods_Shop.previous_game_mode = SENTRY;
+        clear_scene_goods_shop();
         current.scene = SENTRY;
         current.updated_state = UPDATED_STATE_SCENE;
         break;
@@ -6078,14 +6460,6 @@ u32 scene_goods_shop(u32 action)
     return SENTRY;
     /*
     switch (action)
-        case ACTION_BUY_GOODS:
-            if (!not enough player gold) { error }
-            if (!not enough cargo space) { error }
-            - which goods
-            - how many of each
-            - which ships to distribute goods to
-            - subtract gold from player
-            - add goods to ship cargo
         case ACTION_SELL_GOODS:
             if (!cargo in fleet) { error }
             - which goods, from which ship, how many

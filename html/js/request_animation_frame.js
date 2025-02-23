@@ -59,10 +59,7 @@ var RAF = {
         if (!wasm) { console.error("NO WASM"); return; }
         if (gh.current.game_mode === GAME_STRINGS.indexOf("GAME_MODE_IN_PLAYER_MENU"))
         {
-            // Note: This essentially disables rendering because of "shouldUpdate" function
-            // gh.current.updated_state = GAME_STRINGS.indexOf("UPDATED_STATE_NOTHING");
-            UI_PLAYER_MENU.initialize();
-            UI_PLAYER_MENU.render();
+            document.querySelector("ui-player-menu").initialize();
         }
         else if (gh.current.game_mode === GAME_STRINGS.indexOf("GAME_MODE_IN_SCENE"))
         {

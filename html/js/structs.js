@@ -389,6 +389,28 @@ class GAME_DATA_SCENE_GOODS_SHOP {
         this._view.setUint32(this._ptr + 5 * 4, value, true);
     }
 
+    get loading_fleet_ships() {
+        return new Uint32Array(this._memory.buffer, this._ptr + 6 * 4, 2000);
+    }
+
+    get loading_qty() {
+        return new Uint32Array(this._memory.buffer, this._ptr + 2006 * 4, 2000);
+    }
+
+    get intended_good_id() {
+        return this._view.getUint32(this._ptr + 4006 * 4, true);
+    }
+    set intended_good_id(value) {
+        this._view.setUint32(this._ptr + 4006 * 4, value, true);
+    }
+
+    get intended_good_qty() {
+        return this._view.getUint32(this._ptr + 4007 * 4, true);
+    }
+    set intended_good_qty(value) {
+        this._view.setUint32(this._ptr + 4007 * 4, value, true);
+    }
+
     getName() {
         if (!this.name_id) { return 'Unknown'; }
         if (!GAME_STRINGS || !GAME_STRINGS[this.name_id]) { return 'NoGameString'; }
@@ -579,10 +601,10 @@ class GAME_DATA_NPC {
         this._view.setUint32(this._ptr + 0 * 4, value, true);
     }
 
-    get type() {
+    get type_id() {
         return this._view.getUint32(this._ptr + 1 * 4, true);
     }
-    set type(value) {
+    set type_id(value) {
         this._view.setUint32(this._ptr + 1 * 4, value, true);
     }
 
@@ -915,33 +937,26 @@ class GAME_DATA_SHIP {
         this._view.setUint32(this._ptr + 15 * 4, value, true);
     }
 
-    get hull() {
-        return this._view.getUint32(this._ptr + 16 * 4, true);
-    }
-    set hull(value) {
-        this._view.setUint32(this._ptr + 16 * 4, value, true);
-    }
-
     get cargo_goods() {
-        return new Uint32Array(this._memory.buffer, this._ptr + 17 * 4, 1000);
+        return new Uint32Array(this._memory.buffer, this._ptr + 16 * 4, 1000);
     }
 
     get cargo_goods_qty() {
-        return new Uint32Array(this._memory.buffer, this._ptr + 1017 * 4, 1000);
+        return new Uint32Array(this._memory.buffer, this._ptr + 1016 * 4, 1000);
     }
 
     get total_cargo_goods() {
-        return this._view.getUint32(this._ptr + 2017 * 4, true);
+        return this._view.getUint32(this._ptr + 2016 * 4, true);
     }
     set total_cargo_goods(value) {
-        this._view.setUint32(this._ptr + 2017 * 4, value, true);
+        this._view.setUint32(this._ptr + 2016 * 4, value, true);
     }
 
     get figurehead_id() {
-        return this._view.getUint32(this._ptr + 2018 * 4, true);
+        return this._view.getUint32(this._ptr + 2017 * 4, true);
     }
     set figurehead_id(value) {
-        this._view.setUint32(this._ptr + 2018 * 4, value, true);
+        this._view.setUint32(this._ptr + 2017 * 4, value, true);
     }
 
     getName() {
@@ -2915,11 +2930,11 @@ class GAME_DATA_FLEET {
         this._view.setUint32(this._ptr + 7 * 4, value, true);
     }
 
-    get ship_ids() {
+    get captain_ids() {
         return new Uint32Array(this._memory.buffer, this._ptr + 8 * 4, 100);
     }
 
-    get captain_ids() {
+    get ship_ids() {
         return new Uint32Array(this._memory.buffer, this._ptr + 108 * 4, 100);
     }
 
@@ -3468,6 +3483,69 @@ class GAME_BLACKJACK {
     }
     set bet_maximum(value) {
         this._view.setUint32(this._ptr + 75 * 4, value, true);
+    }
+
+    get now() {
+        return this._view.getUint32(this._ptr + 76 * 4, true);
+    }
+    set now(value) {
+        this._view.setUint32(this._ptr + 76 * 4, value, true);
+    }
+
+    get initialized() {
+        return this._view.getUint32(this._ptr + 77 * 4, true);
+    }
+    set initialized(value) {
+        this._view.setUint32(this._ptr + 77 * 4, value, true);
+    }
+
+    get player_standing() {
+        return this._view.getUint32(this._ptr + 78 * 4, true);
+    }
+    set player_standing(value) {
+        this._view.setUint32(this._ptr + 78 * 4, value, true);
+    }
+
+    get dealer_standing() {
+        return this._view.getUint32(this._ptr + 79 * 4, true);
+    }
+    set dealer_standing(value) {
+        this._view.setUint32(this._ptr + 79 * 4, value, true);
+    }
+
+    get player_hitting() {
+        return this._view.getUint32(this._ptr + 80 * 4, true);
+    }
+    set player_hitting(value) {
+        this._view.setUint32(this._ptr + 80 * 4, value, true);
+    }
+
+    get dealer_hitting() {
+        return this._view.getUint32(this._ptr + 81 * 4, true);
+    }
+    set dealer_hitting(value) {
+        this._view.setUint32(this._ptr + 81 * 4, value, true);
+    }
+
+    get player_won() {
+        return this._view.getUint32(this._ptr + 82 * 4, true);
+    }
+    set player_won(value) {
+        this._view.setUint32(this._ptr + 82 * 4, value, true);
+    }
+
+    get dealer_won() {
+        return this._view.getUint32(this._ptr + 83 * 4, true);
+    }
+    set dealer_won(value) {
+        this._view.setUint32(this._ptr + 83 * 4, value, true);
+    }
+
+    get game_over() {
+        return this._view.getUint32(this._ptr + 84 * 4, true);
+    }
+    set game_over(value) {
+        this._view.setUint32(this._ptr + 84 * 4, value, true);
     }
 
     getName() {

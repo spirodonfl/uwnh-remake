@@ -191,9 +191,9 @@ button.blue
     border: 1px solid #709aff;
     /*background: linear-gradient(1deg, rgb(36 65 163 / 96%), #162070);*/
     /*background: linear-gradient(1deg, rgb(16 17 21 / 96%), #162070);*/
-    background: linear-gradient(1deg, rgba(50, 50, 50, 65%), rgba(50, 50, 50, 65%));
-    padding: 1rem;
-    border-radius: 0.5rem;
+    background: rgba(50, 50, 50, 90%);
+    padding: 0.2rem;
+    /*border-radius: 0.5rem;*/
     color: rgb(220 235 235 / 1);
     width: calc(var(--viewport-width) * var(--tile-scaled));
     height: calc(var(--viewport-height) * var(--tile-scaled));
@@ -214,9 +214,9 @@ ui-scene-single-dialog .popup
 }
 .popup button
 {
-    padding: 0.3rem;
-    padding-left: 0.6rem;
-    padding-right: 0.6rem;
+    padding: 0.1rem;
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
     border-radius: 2px;
     cursor: pointer;
     min-width: 75px;
@@ -246,10 +246,10 @@ ui-scene-single-dialog .popup
 .popup input
 {
     display: block;
-    border: 2px solid rgb(255 255 255);
+    border: 1px solid rgb(255 255 255);
     background: linear-gradient(180deg, #10172e, #405c9b);
-    padding: 0.5rem;
-    border-radius: 0.5rem;
+    padding: 0.1rem 0.2rem;
+    border-radius: 0.2rem;
     color: rgb(220 235 235 / 1);
 }
 .popup .grid
