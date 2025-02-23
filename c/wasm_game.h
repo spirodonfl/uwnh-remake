@@ -624,13 +624,6 @@ void assign_storage_base_ship(u32 id, DATA_BASE_SHIP* source)
 }
 ADD_STORAGE_FUNC(base_ship, DATA_BASE_SHIP)
 
-typedef struct __attribute__((packed))
-{
-    u32 good_id;
-    u32 name_id;
-    u32 some_other_id;
-} DATA_TEST;
-
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
 {
@@ -656,7 +649,6 @@ typedef struct __attribute__((packed))
     u32 cargo_goods_qty[MAX_SHIP_CARGO_SPACE];
     u32 total_cargo_goods;
     u32 figurehead_id;
-    DATA_TEST test[10];
 } DATA_SHIP;
 /** EXPORT TO JS **/
 u32 storage_ship_used_slots[MAX_SHIPS];
