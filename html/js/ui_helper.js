@@ -40,21 +40,6 @@ var uih = {
                 layer_two_id = t;
             }
         }
-        var total_world_npcs = wasm.exports.get_storage_world_npc_total_used_slots();
-        var npcs_slots = game_get_storage_npc_used_slots(wasm.exports);
-        // TODO: This is super wasteful. Only get world npcs if world npcs have actually changed
-        var world_npcs = [];
-        for (var n = 0; n < total_world_npcs; ++n)
-        {
-            world_npcs.push(new GAME_DATA_WORLD_NPC(wasm.exports, [n]));
-            var last_index = world_npcs.length - 1;
-            world_npcs[last_index].name = UNDERSTRINGS[
-                GAME_STRINGS[world_npcs[last_index].name_id]
-            ];
-            world_npcs[last_index].type = GAME_STRINGS[
-                world_npcs[last_index].type_id
-            ];
-        }
 
         var cached_lam = LAYER_ATLAS_MAP[
             UNDERSTRINGS[
@@ -86,8 +71,8 @@ var uih = {
         <div
             id="viewport"
             style="${viewport_style}"
-            onmousedown="viewportMouseDown(event);"
-            onmousemove="viewportMouseMove(event);"
+            onpointerdown="viewportMouseDown(event);"
+            onpointermove="viewportMouseMove(event);"
         >
         `;
         for (var vy = 0; vy < VIEWPORT.height; ++vy)
@@ -240,6 +225,14 @@ var uih = {
                     {
                         html += anim.render_html(world_x, world_y);
                     }
+                    if (anim.name === "ocean_battle_cannon")
+                    {
+                        anim.render();
+                    }
+                    if (anim.name === "ocean_battle_sword")
+                    {
+                        anim.render();
+                    }
                 }
 
                 // NPCS
@@ -285,15 +278,98 @@ var uih = {
                         }
                         atlas_x *= TILE_SIZE_SCALED;
                         atlas_y *= TILE_SIZE_SCALED;
-                        style = `
-                            background-image: var(--atlas-image);
-                            background-position: -${atlas_x} -${atlas_y};
-                            position: absolute;
-                            background-size: 
-                                ${ATLAS_IMAGE_SIZE.x / 2}px
-                                ${ATLAS_IMAGE_SIZE.y / 2}px;
-                            width: ${TILE_SIZE_SCALED}px;
-                            height: ${TILE_SIZE_SCALED}px;`;
+                        if (
+                            (
+                                wnpc_name === "player_one"
+                                ||
+                                wnpc_name === "bank_teller"
+                                ||
+                                wnpc_name === "general_shop_owner"
+                                ||
+                                wnpc_name === "goods_shop_owner"
+                            )
+                            && gh.current.game_mode !== GAME_STRINGS.indexOf("GAME_MODE_SAILING")
+                        )
+                        {
+                            var image = '--main-character-image';
+                            if (wnpc_name === "bank_teller")
+                            {
+                                image = '--banker-npc-image';
+                            }
+                            else if (wnpc_name === "general_shop_owner")
+                            {
+                                image = '--general-shop-owner-npc-image';
+                            }
+                            else if (wnpc_name === "goods_shop_owner")
+                            {
+                                image = '--goods-shop-owner-npc-image';
+                            }
+                            if (world_npcs[n].direction === GAME_STRINGS.indexOf("DIRECTION_UP"))
+                            {
+                                atlas_y = world_npcs[n].animation.direction_up_y;
+                            }
+                            else if (world_npcs[n].direction === GAME_STRINGS.indexOf("DIRECTION_LEFT"))
+                            {
+                                atlas_y = world_npcs[n].animation.direction_left_y;
+                            }
+                            else if (world_npcs[n].direction === GAME_STRINGS.indexOf("DIRECTION_DOWN"))
+                            {
+                                atlas_y = world_npcs[n].animation.direction_down_y;
+                            }
+                            else if (world_npcs[n].direction === GAME_STRINGS.indexOf("DIRECTION_RIGHT"))
+                            {
+                                atlas_y = world_npcs[n].animation.direction_right_y;
+                            }
+                            atlas_x = world_npcs[n].animation.current_x;
+                            atlas_x *= TILE_SIZE_SCALED;
+                            atlas_y *= TILE_SIZE_SCALED;
+                            var bg_size_x = 832 / 2;
+                            var bg_size_y = 1344 / 2;
+                            style = `
+                                background-image: var(${image});
+                                background-position: -${atlas_x} -${atlas_y};
+                                position: absolute;
+                                background-size: 
+                                    ${bg_size_x}px
+                                    ${bg_size_y}px;
+                                width: ${TILE_SIZE_SCALED}px;
+                                height: ${TILE_SIZE_SCALED}px;`;
+                            ++world_npcs[n].animation.current_frame;
+                            world_npcs[n].animation.update();
+                        }
+                        else
+                        {
+                            style = `
+                                background-image: var(--atlas-image);
+                                background-position: -${atlas_x} -${atlas_y};
+                                position: absolute;
+                                background-size: 
+                                    ${ATLAS_IMAGE_SIZE.x / 2}px
+                                    ${ATLAS_IMAGE_SIZE.y / 2}px;
+                                width: ${TILE_SIZE_SCALED}px;
+                                height: ${TILE_SIZE_SCALED}px;`;
+                            if (
+                                gh.current.game_mode === GAME_STRINGS.indexOf("GAME_MODE_SAILING")
+                            )
+                            {
+                                if (world_npcs[n].direction === GAME_STRINGS.indexOf("DIRECTION_UP"))
+                                {
+                                    style += ` rotate: 0deg;`;
+                                }
+                                else if (world_npcs[n].direction === GAME_STRINGS.indexOf("DIRECTION_LEFT"))
+                                {
+                                    style += ` rotate: 270deg;`;
+                                }
+                                else if (world_npcs[n].direction === GAME_STRINGS.indexOf("DIRECTION_DOWN"))
+                                {
+                                    style += ` rotate: 180deg;`;
+                                }
+                                else if (world_npcs[n].direction === GAME_STRINGS.indexOf("DIRECTION_RIGHT"))
+                                {
+                                    style += ` rotate: 90deg;`;
+                                }
+                            }
+                        }
                         if (world_npcs[n].id === uih.highlightNPCID)
                         {
                             style += ` background-color: rgba(0, 0, 255, 0.2);`;
@@ -310,25 +386,86 @@ var uih = {
                             style += ` will-change: transform;`;
                             style += ` backface-visibility: hidden;`;
                         }
-                        if (
-                            this.animations.indexOf(animateOceanBattleMove) >= 0
-                            &&
-                            UI_OCEAN_BATTLE.current_world_npc.id === n
-                        )
-                        {
-                            style += ` left: ${animateOceanBattleMove.current.x}px;`;
-                            style += ` top: ${animateOceanBattleMove.current.y}px;`;
-                            style += ` z-index: 101;`;
-                        }
                         html += `<div
                             class="layer-npc_layer"
                             data-npc-id="${n}"
                             style="${style}"
-                            ></div>`;
+                            >${world_npcs[n].poops ?? ''}</div>`;
                     }
                 }
 
-                // entities?
+                // ENTITIES
+                for (var n = 0; n < world_entities.length; ++n)
+                {
+                    if (
+                        world_entities[n].position_x === world_x
+                        &&
+                        world_entities[n].position_y === world_y
+                    )
+                    {
+                        var entity_name = world_entities[n].getName();
+                        if (entity_name === "ENTITY_CANNONBALL")
+                        {
+                            style = atlasToStyle("icon_cannonballs", null, null, true);
+                            html += `<div
+                                class="layer-entity_layer"
+                                data-entity-id="${n}"
+                                data-entity-name="${entity_name}"
+                                style="${style}"
+                                ></div>`;
+                        }
+                        else if (entity_name === "ENTITY_CANNON_TARGET")
+                        {
+                            style = atlasToStyle("reticle_red", null, null, true);
+                            html += `<div
+                                class="layer-entity_layer"
+                                data-entity-id="${n}"
+                                data-entity-name="${entity_name}"
+                                style="${style}"
+                                ></div>`;
+                        }
+                        else if (entity_name === "ENTITY_BOARDING_TARGET")
+                        {
+                            style = atlasToStyle("reticle_red", null, null, true);
+                            html += `<div
+                                class="layer-entity_layer"
+                                data-entity-id="${n}"
+                                data-entity-name="${entity_name}"
+                                style="${style}"
+                                ></div>`;
+                        }
+                        else if (entity_name === "ENTITY_MOVEMENT")
+                        {
+                            style = atlasToStyle("reticle_green", null, null, true);
+                            html += `<div
+                                class="layer-entity_layer"
+                                data-entity-id="${n}"
+                                data-entity-name="${entity_name}"
+                                style="${style}"
+                                ></div>`;
+                        }
+                        else if (entity_name === "ENTITY_SWORD")
+                        {
+                            style = atlasToStyle("icon_sword", null, null, true);
+                            html += `<div
+                                class="layer-entity_layer"
+                                data-entity-id="${n}"
+                                data-entity-name="${entity_name}"
+                                style="${style}"
+                                ></div>`;
+                        }
+                        else if (entity_name === "ENTITY_CONFIRMATION")
+                        {
+                            style = atlasToStyle("icon_thumbs_up", null, null, true);
+                            html += `<div
+                                class="layer-entity_layer"
+                                data-entity-id="${n}"
+                                data-entity-name="${entity_name}"
+                                style="${style}"
+                                ></div>`;
+                        }
+                    }
+                }
                 // blocks?
 
                 html += `</div>`;
@@ -347,6 +484,12 @@ var uih = {
         de.style.setProperty("--tile-scaled", TILE_SIZE_SCALED + "px");
         de.style.setProperty("--viewport-width", VIEWPORT.width);
         de.style.setProperty("--viewport-height", VIEWPORT.height);
+        de.style.setProperty("--zoom", zoom);
+    },
+    setZoom: function(new_value)
+    {
+        zoom = new_value;
+        var de = document.documentElement;
         de.style.setProperty("--zoom", zoom);
     },
     initialize: function ()

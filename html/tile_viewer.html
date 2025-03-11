@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Grid with Coordinates</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: #808080; /* Gray background */
+            overflow: auto; /* Allow scrolling for large images */
+        }
+        #container {
+            position: relative;
+            display: inline-block;
+            line-height: 0; /* Prevent extra spacing */
+            width: 100vw;
+            height: 100vh;
+        }
+        #imageCanvas, #gridCanvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #gridCanvas {
+            pointer-events: none; /* Allow clicks to pass through */
+        }
+        #controls {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        label, input {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <input type="file" id="imageInput" accept="image/*">
+        <label for="gridSize">Grid Size (px):</label>
+        <input type="number" id="gridSize" value="64" min="1" step="1">
+        <button onclick="updateGrid()">Update Grid</button>
+    </div>
+    <div id="container">
+        <canvas id="imageCanvas"></canvas>
+        <canvas id="gridCanvas"></canvas>
+    </div>
+
+    <script>
+        var imageCanvas = document.getElementById('imageCanvas');
+        var gridCanvas = document.getElementById('gridCanvas');
+        var imageCtx = imageCanvas.getContext('2d');
+        var gridCtx = gridCanvas.getContext('2d');
+        var imageInput = document.getElementById('imageInput');
+        var gridSizeInput = document.getElementById('gridSize');
+        var img = new Image();
+        var gridSize = 64; // Default grid size
+
+        // Load image when file is selected
+        imageInput.addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    img.onload = function() {
+                        // Set canvas attributes to match image's pixel dimensions
+                        imageCanvas.width = img.width;
+                        imageCanvas.height = img.height;
+                        gridCanvas.width = img.width;
+                        gridCanvas.height = img.height;
+
+                        // Explicitly set CSS size to match pixel size
+                        imageCanvas.style.width = img.width + 'px';
+                        imageCanvas.style.height = img.height + 'px';
+                        gridCanvas.style.width = img.width + 'px';
+                        gridCanvas.style.height = img.height + 'px';
+
+                        // Draw image and initial grid
+                        imageCtx.drawImage(img, 0, 0, img.width, img.height);
+                        drawGrid();
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Draw grid and coordinates
+        function drawGrid() {
+            gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+            gridCtx.strokeStyle = 'rgba(0, 0, 0, 1)';
+            gridCtx.fillStyle = 'white';
+            gridCtx.font = '10px Arial';
+            gridCtx.textAlign = 'center';
+            gridCtx.textBaseline = 'middle';
+
+            // Add shadow properties
+            gridCtx.shadowColor = 'rgba(0, 0, 0, 1)';
+            gridCtx.shadowBlur = 2; // Blur radius in pixels
+            gridCtx.shadowOffsetX = 1; // Horizontal offset in pixels
+            gridCtx.shadowOffsetY = 1; // Vertical offset in pixels
+
+            var width = img.width;
+            var height = img.height;
+            var size = parseInt(gridSizeInput.value) || gridSize;
+
+            // Draw vertical lines (no shadow on lines)
+            for (var x = 0; x <= width; x += size) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(x, 0);
+                gridCtx.lineTo(x, height);
+                gridCtx.stroke();
+            }
+
+            // Draw horizontal lines (no shadow on lines)
+            for (var y = 0; y <= height; y += size) {
+                gridCtx.beginPath();
+                gridCtx.moveTo(0, y);
+                gridCtx.lineTo(width, y);
+                gridCtx.stroke();
+            }
+
+            // Add coordinates with shadow
+            for (var x = 0; x <= width; x += size) {
+                for (var y = 0; y <= height; y += size) {
+                    var xIndex = x / size;
+                    var yIndex = y / size;
+                    gridCtx.fillText(xIndex + ',' + yIndex, x + size / 2, y + size);
+                }
+            }
+
+            // Reset shadow after text to avoid affecting other drawings
+            gridCtx.shadowColor = 'transparent';
+            gridCtx.shadowBlur = 0;
+            gridCtx.shadowOffsetX = 0;
+            gridCtx.shadowOffsetY = 0;
+        }
+
+        // Update grid when button is clicked
+        function updateGrid() {
+            if (img.src) {
+                drawGrid();
+            } else {
+                alert('Please load an image first!');
+            }
+        }
+
+        // Initial grid size value
+        gridSizeInput.value = gridSize;
+    </script>
+</body>
+</html>

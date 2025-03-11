@@ -2818,20 +2818,6 @@ class GAME_DATA_ENTITY {
         this._view.setUint32(this._ptr + 5 * 4, value, true);
     }
 
-    get position_x() {
-        return this._view.getUint32(this._ptr + 6 * 4, true);
-    }
-    set position_x(value) {
-        this._view.setUint32(this._ptr + 6 * 4, value, true);
-    }
-
-    get position_y() {
-        return this._view.getUint32(this._ptr + 7 * 4, true);
-    }
-    set position_y(value) {
-        this._view.setUint32(this._ptr + 7 * 4, value, true);
-    }
-
     getName() {
         if (!this.name_id) { return 'Unknown'; }
         if (!GAME_STRINGS || !GAME_STRINGS[this.name_id]) { return 'NoGameString'; }
@@ -2853,6 +2839,97 @@ function game_get_storage_entity_used_slots(wasm_exports, input_array) {
         ptr = wasm.exports.get_storage_entity_used_slots_ptr(input_array[0], input_array[1], input_array[2]);
     } else if (input_array.length === 4) {
         ptr = wasm.exports.get_storage_entity_used_slots_ptr(input_array[0], input_array[1], input_array[2], input_array[3]);
+    }
+    return new Uint32Array(wasm_exports.memory.buffer, ptr, 100);
+}
+
+class GAME_DATA_WORLD_ENTITY {
+    constructor(wasm_exports, input_array) {
+        this._memory = wasm_exports.memory;
+        if (!input_array || input_array.length === 0) {
+            this._ptr = wasm.exports.get_data_world_entity_ptr();
+        } else if (input_array.length === 1) {
+            this._ptr = wasm.exports.get_data_world_entity_ptr(input_array[0]);
+        } else if (input_array.length === 2) {
+            this._ptr = wasm.exports.get_data_world_entity_ptr(input_array[0], input_array[1]);
+        } else if (input_array.length === 3) {
+            this._ptr = wasm.exports.get_data_world_entity_ptr(input_array[0], input_array[1], input_array[2]);
+        } else if (input_array.length === 4) {
+            this._ptr = wasm.exports.get_data_world_entity_ptr(input_array[0], input_array[1], input_array[2], input_array[3]);
+        }
+        this._view = new DataView(this._memory.buffer);
+    }
+
+    get id() {
+        return this._view.getUint32(this._ptr + 0 * 4, true);
+    }
+    set id(value) {
+        this._view.setUint32(this._ptr + 0 * 4, value, true);
+    }
+
+    get name_id() {
+        return this._view.getUint32(this._ptr + 1 * 4, true);
+    }
+    set name_id(value) {
+        this._view.setUint32(this._ptr + 1 * 4, value, true);
+    }
+
+    get entity_id() {
+        return this._view.getUint32(this._ptr + 2 * 4, true);
+    }
+    set entity_id(value) {
+        this._view.setUint32(this._ptr + 2 * 4, value, true);
+    }
+
+    get position_x() {
+        return this._view.getUint32(this._ptr + 3 * 4, true);
+    }
+    set position_x(value) {
+        this._view.setUint32(this._ptr + 3 * 4, value, true);
+    }
+
+    get position_y() {
+        return this._view.getUint32(this._ptr + 4 * 4, true);
+    }
+    set position_y(value) {
+        this._view.setUint32(this._ptr + 4 * 4, value, true);
+    }
+
+    get direction() {
+        return this._view.getUint32(this._ptr + 5 * 4, true);
+    }
+    set direction(value) {
+        this._view.setUint32(this._ptr + 5 * 4, value, true);
+    }
+
+    get type_id() {
+        return this._view.getUint32(this._ptr + 6 * 4, true);
+    }
+    set type_id(value) {
+        this._view.setUint32(this._ptr + 6 * 4, value, true);
+    }
+
+    getName() {
+        if (!this.name_id) { return 'Unknown'; }
+        if (!GAME_STRINGS || !GAME_STRINGS[this.name_id]) { return 'NoGameString'; }
+        if (!STRINGS || !STRINGS[GAME_STRINGS[this.name_id]]) { return GAME_STRINGS[this.name_id]; }
+        else { return STRINGS[GAME_STRINGS[this.name_id]]; }
+    }
+
+}
+
+function game_get_storage_world_entity_used_slots(wasm_exports, input_array) {
+    var ptr = null;
+    if (!input_array || input_array.length === 0) {
+        ptr = wasm.exports.get_storage_world_entity_used_slots_ptr();
+    } else if (input_array.length === 1) {
+        ptr = wasm.exports.get_storage_world_entity_used_slots_ptr(input_array[0]);
+    } else if (input_array.length === 2) {
+        ptr = wasm.exports.get_storage_world_entity_used_slots_ptr(input_array[0], input_array[1]);
+    } else if (input_array.length === 3) {
+        ptr = wasm.exports.get_storage_world_entity_used_slots_ptr(input_array[0], input_array[1], input_array[2]);
+    } else if (input_array.length === 4) {
+        ptr = wasm.exports.get_storage_world_entity_used_slots_ptr(input_array[0], input_array[1], input_array[2], input_array[3]);
     }
     return new Uint32Array(wasm_exports.memory.buffer, ptr, 100);
 }

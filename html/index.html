@@ -2,24 +2,52 @@
     <head>
         <title>The Game</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="stylesheet" type="text/css" href="wasm_game.css">
+        <link rel="stylesheet" href="wasm_game.css"></link>
+        <script src="js/constants.js"></script>
+        <script>
+            // -----------------------------------------------------------------
+            // - ARRAY TO BIN TEST
+            // -----------------------------------------------------------------
+            var testArrayToBinDumper = function()
+            {
+                var data = [1, 2, 3, 4, 5, 69, 69420, 420, 666];
+                var test_blob = new Blob(
+                    [new Uint32Array(data)],
+                    {type: 'application/octet-stream'}
+                );
+                var editorDownload = function (data, file_name)
+                {
+                    const link = document.createElement('a');
+                    const url = window.URL.createObjectURL(data);
+
+                    link.href = url;
+                    link.download = file_name;
+                    document.body.appendChild(link);
+                    link.click();
+
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                };
+                editorDownload(test_blob, "test_data.bin");
+            };
+        </script>
+        <script src="js/helper_functions.js"></script>
+        <script src="js/js_struct.js"></script>
+        <script src="js/ui.js"></script>
+        <script src="js/ui_player_menu.js"></script>
         <script src="js/game_strings.js"></script>
         <script src="js/strings.js"></script>
         <script src="js/structs.js"></script>
-        <script src="js/consts.js"></script>
         <script src="js/drag_element.js"></script>
-        <script src="js/array_to_bin.js"></script>
-        <script src="js/helper_funcs.js"></script>
-        <!-- <script src="js/wasm_as_base64.js"></script> -->
+        <script src="js/wasm_as_base64.js"></script>
         <script src="js/wasm_as_array.js"></script>
         <script src="js/wasm.js"></script>
+        <script src="js/input_server.js"></script>
         <script src="js/camera.js"></script>
         <script src="js/layer_atlas_map.js"></script>
         <script src="js/global_game_data.js"></script>
-
-        <script src="js/ui_player_menu.js"></script>
         <script src="js/ui_ocean_battle.js"></script>
-        <script src="js/ui_scene_single_dialog.js"></script>
+        <script src="js/ui_single_dialog.js"></script>
         <script src="js/ui_shipyard.js"></script>
         <script src="js/ui_dockyard.js"></script>
         <script src="js/ui_blackjack.js"></script>
@@ -27,7 +55,9 @@
         <script src="js/ui_bank.js"></script>
         <script src="js/ui_general_shop.js"></script>
         <script src="js/ui_goods_shop.js"></script>
+        <script src="js/ui_sailing_menu.js"></script>
         <script src="js/game_helper.js"></script>
+        <script src="js/animate.js"></script>
         <script src="js/animate_ocean.js"></script>
         <script src="js/animate_ocean_battle.js"></script>
         <script src="js/animate_battle_ship.js"></script>
@@ -35,20 +65,6 @@
         <script src="js/request_animation_frame.js"></script>
         <script src="js/load.js"></script>
         <script src="js/viewport.js"></script>
-        <script type="text/javascript">
-            // NOTE: Confirmed that if you open this file as file:// path, you CAN connect to a local websocket without security!
-
-            var debug_blocks = false;
-            function toggleBlocks()
-            {
-                debug_blocks = !debug_blocks;
-            }
-            var debug_entities = false;
-            function toggleEntities()
-            {
-                debug_entities = !debug_entities;
-            }
-        </script>
     </head>
     <body style="padding: 0px; margin: 0px;">
         <ui-menu-bar></ui-menu-bar>
@@ -58,67 +74,14 @@
             <ui-shipyard></ui-shipyard>
             <ui-dockyard></ui-dockyard>
             <ui-player-menu></ui-player-menu>
+            <ui-sailing-menu></ui-sailing-menu>
+            <ui-general-shop></ui-general-shop>
+            <ui-ocean-battle></ui-ocean-battle>
             <div id="viewport"></div>
         </div>
 
-        <dialog id="help_dialog" class="popup">
-            <header>Help</header>
-            <p>TODO: Mouse (not currently working)</p>
-            <p>Keyboard</p>
-            <table>
-                <tr>
-                    <td>Key</td>
-                    <td>Action</td>
-                </tr>
-                <tr>
-                    <td>W</td>
-                    <td>Up</td>
-                </tr>
-                <tr>
-                    <td>S</td>
-                    <td>Down</td>
-                </tr>
-                <tr>
-                    <td>A</td>
-                    <td>Left</td>
-                </tr>
-                <tr>
-                    <td>D</td>
-                    <td>Right</td>
-                </tr>
-                <tr>
-                    <td>Z</td>
-                    <td>A/Confirm</td>
-                </tr>
-                <tr>
-                    <td>X</td>
-                    <td>B/Back</td>
-                </tr>
-                <tr>
-                    <td>I</td>
-                    <td>Move Camera Up</td>
-                </tr>
-                <tr>
-                    <td>K</td>
-                    <td>Move Camera Down</td>
-                </tr>
-                <tr>
-                    <td>J</td>
-                    <td>Move Camera Left</td>
-                </tr>
-                <tr>
-                    <td>L</td>
-                    <td>Move Camera Right</td>
-                </tr>
-            </table>
-            <p>If you toggle 3D mode on, just hold down the Left CTRL key and drag the mouse around the screen. The entire world will rotate in 3D.</p>
-            <form method="dialog">
-                <button>ok</button>
-            </form>
-        </dialog>
         <div id="inventory_menu"></div>
         <div id="bank"></div>
         <div id="blackjack"></div>
-        <div id="ocean_battle"></div>
     </body>
 </html>

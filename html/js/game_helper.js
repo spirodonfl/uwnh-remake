@@ -72,26 +72,85 @@ var gh = {
         PLAYER.updateData();
     },
 
-    shouldRedrawEverything: function ()
+    updateWorldNPCs: function ()
     {
-        gh.current.updated_state = GAME_STRINGS.indexOf("UPDATED_STATE_EVERYTHING");
+        total_world_npcs = wasm.exports.get_storage_world_npc_total_used_slots();
+        npcs_slots = game_get_storage_npc_used_slots(wasm.exports);
+        // TODO: This is super wasteful. Only get world npcs if world npcs have actually changed
+        world_npcs = [];
+        for (var n = 0; n < total_world_npcs; ++n)
+        {
+            world_npcs.push(new GAME_DATA_WORLD_NPC(wasm.exports, [n]));
+            var last_index = world_npcs.length - 1;
+            world_npcs[last_index].name = UNDERSTRINGS[
+                GAME_STRINGS[world_npcs[last_index].name_id]
+            ];
+            world_npcs[last_index].type = GAME_STRINGS[
+                world_npcs[last_index].type_id
+            ];
+            world_npcs[last_index].animation = {
+                direction_up_y: 8,
+                direction_left_y: 9,
+                direction_down_y: 10,
+                direction_right_y: 11,
+                max_x: 10,
+                current_x: 0,
+                current_frame: 0,
+                update: function ()
+                {
+                    if (this.current_frame >= 10)
+                    {
+                        this.current_frame = 0;
+                        ++this.current_x;
+                        if (this.current_x > this.max_x)
+                        {
+                            this.current_x = 0;
+                        }
+                    }
+                }
+            };
+        }
     },
 
-    shouldUpdate: function (what)
+    updateWorldEntities: function ()
+    {
+        total_world_entities = wasm.exports.get_max_world_entities();
+        world_entities = [];
+        for (var n = 0; n < total_world_entities; ++n)
+        {
+            if (!wasm.exports.is_storage_world_entity_slot_used(n)) { continue; }
+            world_entities.push(new GAME_DATA_WORLD_ENTITY(wasm.exports, [n]));
+            var last_index = world_entities.length - 1;
+            world_entities[last_index].name = UNDERSTRINGS[
+                GAME_CURRENT[world_entities[last_index].name_id]
+            ];
+        }
+    },
+
+    shouldUpdate: function ()
     {
         var everything = GAME_STRINGS.indexOf("UPDATED_STATE_EVERYTHING");
         var scene = GAME_STRINGS.indexOf("UPDATED_STATE_SCENE");
         var world = GAME_STRINGS.indexOf("UPDATED_STATE_WORLD");
         if (gh.current.updated_state === everything)
         {
+            // gh.updateWorldNPCs();
             return true;
         }
-        if (what === "scene" && gh.current.updated_state === scene)
+        if (gh.current.updated_state === scene)
         {
+            console.log("SCENE shouldUpdate");
+            gh.updateWorldNPCs();
+            gh.updateWorldEntities();
+            gh.current.updated_state = wasm.exports.get_sentry();
             return true;
         }
-        if (what === "world" && gh.current.updated_state === world)
+        if (gh.current.updated_state === world)
         {
+            console.log("WORLD shouldUpdate");
+            gh.updateWorldNPCs();
+            gh.updateWorldEntities();
+            gh.current.updated_state = wasm.exports.get_sentry();
             return true;
         }
         return false;

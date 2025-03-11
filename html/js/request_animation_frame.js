@@ -30,6 +30,7 @@ var RAF = {
                 RAF.update(delta_time, current_time);
                 RAF.render();
                 wasm.exports.tick();
+                INPUT_SERVER.updateGamePad();
 
                 ++RAF.frame_count;
             }
@@ -57,14 +58,14 @@ var RAF = {
     render: function ()
     {
         if (!wasm) { console.error("NO WASM"); return; }
+        gh.shouldUpdate();
         if (gh.current.game_mode === GAME_STRINGS.indexOf("GAME_MODE_IN_PLAYER_MENU"))
         {
-            document.querySelector("ui-player-menu").initialize();
+            UI_PLAYER_MENU.initialize();
         }
         else if (gh.current.game_mode === GAME_STRINGS.indexOf("GAME_MODE_IN_SCENE"))
         {
             scene_name = GAME_STRINGS[gh.current.scene];
-            // if (!gh.shouldUpdate("scene")) { return; }
             if (
                 scene_name === "SCENE_NPC_RVICE"
                 ||
@@ -77,14 +78,11 @@ var RAF = {
                 scene_name === "SCENE_NPC_LOLLER"
             )
             {
-                document.querySelector("ui-scene-single-dialog").initialize();
+                UI_SCENE_SINGLE_DIALOG.initialize();
             }
             else if (scene_name === "SCENE_GENERAL_SHOP")
             {
-                // Note: This essentially disables rendering because of "shouldUpdate" function
-                // gh.current.updated_state = GAME_STRINGS.indexOf("UPDATED_STATE_NOTHING");
-                UI_GENERAL_SHOP.initialize();
-                UI_GENERAL_SHOP.render();
+                document.querySelector("ui-general-shop").initialize();
             }
             else if (scene_name === "SCENE_GOODS_SHOP")
             {
@@ -97,7 +95,8 @@ var RAF = {
             }
             else if (scene_name === "SCENE_OCEAN_BATTLE")
             {
-                UI_OCEAN_BATTLE.initialize();
+                // document.querySelector("ui-ocean-battle").initialize();
+                ui_ocean_battle_initialize();
             }
             else if (scene_name === "SCENE_SHIPYARD")
             {
@@ -105,7 +104,7 @@ var RAF = {
             }
             else if (scene_name === "SCENE_DOCKYARD")
             {
-                document.querySelector("ui-dockyard").initialize();
+                ui_dockyard_initialize();
             }
         }
         else

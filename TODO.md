@@ -1,13 +1,23 @@
 # General
 
-## !!!NEXT!!!
+## BATTLE UI
 
-* Goods shop (so you can sort out putting goods in ships and buying / selling)
-* You probably have to do something about the battle UI. Instead of a menu, make it inside the viewport. Allow clicking of ships to gather info. Hover over ships to get Crew/Hull. Color ships properly for different fleets. Popup simple things like "thumbs up" or "thumbs down" for confirmations of attacks and whatnot. On your turn, have a simple set of icons in the viewport on the left or somewhere to click indicating attack and other actions.
-* Directional updates of ships & npcs
+* You can do move, cannon and boarding all at the same time (in the interface) which is very confusing visually. If you're in one mode, ensure you get out of it before you can enable another mode.
+* Actions can be done twice (for npcs and for player) so it's getting very confusing
+* You can use the move/board/cannon for npc turns which *might* be confusing. For now, disable it.
+* Minimap (the snes version has this, slight overlay over top with dots)
+* Sword over top of boardable targets, box/border over top of cannonable targets, then a "reticle" comes up and you select one of the targets (cannon or board) and select it. Reticle starts at your current location
+* You should disable buttons once you've done the action (move, cannon, board)
+* Hover over ships to get their details
+* Top bar with list of ships in order which you can also hover over, with a hotkey to show it or hide, either via the popup (which should have a hotkey) or a hotkey just for that
+* Popup (you have this already with the F key) for battle commands which may or may not do subsequent popups but they cannot be full screen or you lose your place in the ocean battle
+* Deal with victory condition
 
 # SOON
 
+* When going between worlds, sometimes you get an error with placement of NPCs in the JS side of things because the "shouldUpdate" call doesn't happen on time (too early)
+* Find all cases of document.querySelector("ui-ocean-battle") (and similar) and make them shorter in name
+* Goods shop selling
 * Need to cleanup battle code in WASM. Some of it is a mess
 * Need to sort out placing fleet ships in certain areas of the map
 * Add more error codes to scenes like you have in the bank scene
@@ -110,3 +120,15 @@ u32 unpack_lower(u32 packed) {
 u32 unpack_upper(u32 packed) {
     return (packed >> 7) & 0x7F;  // Shift right by 7, then mask to get the upper 7 bits
 }
+
+# A note on push vs pull in event management on the browser with JS and event listeners
+
+Pull: By avoiding event listeners entirely, you eliminate the risk of memory leaks from forgotten removeEventListener calls. This guarantees resources are freed when they should be, meeting your strict GC requirement. The constant polling cost is predictable and minimal, especially in a game loop already running at 60 FPS. It integrates seamlessly with frame-based logic, avoiding the unpredictable spikes of event-driven callbacks.
+
+Push: Requires flawless listener management. Even a single oversight (e.g., replacing DOM content without cleanup) can trap resources in memory, which you want to avoid at all costs. While it has lower idle CPU usage, frequent events can overwhelm the main thread, potentially causing jank. Managing this (e.g., via debouncing) adds complexity without fully solving the GC issue.
+
+## Tradeoff
+
+The pull method’s main drawback is the frame-delayed responsiveness (e.g., 16ms at 60 FPS). For most 2D games, this is imperceptible, but if your game demands instant reactions, it might feel slightly less snappy. You can mitigate this by running your game loop at a higher frame rate (e.g., 120 FPS reduces the delay to 8ms).
+
+On a regular site (no request animation frame), just use set interval.

@@ -1,578 +1,847 @@
-var UI_OCEAN_BATTLE =
+/**
+ * Actions you can take
+ * wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_RUN_NPC_TURN"));
+ * Should be scene_ocean_battle_run_npc_turn
+ * wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_END_TURN"));
+ * Should be scene_ocean_battle_end_turn
+ * wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_FIRE_CANNONS"));
+ * Should be scene_ocean_battle_fire_cannons
+ * wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_BOARD"));
+ * Should be scene_ocean_battle_board
+ * wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_MOVE"));
+ * Should be scene_ocean_battle_move
+ * wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_DUEL_CAPTAIN"));
+ * Should be scene_ocean_battle_duel_captain
+ * wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_ORDER_FLEET"));
+ * Should be scene_ocean_battle_order_fleet
+ * wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_ESCAPE"));
+ * Should be scene_ocean_battle_escape
+ */
+
+class WC_OCEAN_BATTLE extends DEFAULT_WC {};
+customElements.define("ui-ocean-battle", WC_OCEAN_BATTLE);
+
+function ocean_battle_board_ship()
 {
-    data: {
-        scene: null,
-        battle: null,
-        original_coords:
+    var wnpcid = OCEAN_BATTLE.turn_order_world_npcs[
+        OCEAN_BATTLE.turn_order
+    ];
+    var world_npc = world_npcs[wnpcid];
+    if (OCEAN_BATTLE.total_valid_boarding_coords === 0) { return; }
+    if (animateOceanBattleBoarding.entity_id !== null) { return; }
+    var name_id = GAME_STRINGS.indexOf("ENTITY_CONFIRMATION");
+    wasm.exports.entity_despawn(name_id);
+    var start_x = world_npc.position_x;
+    var start_y = world_npc.position_y;
+    var intended_boarding_x = OCEAN_BATTLE.intended_boarding_coords[0];
+    var intended_boarding_y = OCEAN_BATTLE.intended_boarding_coords[1];
+    animateOceanBattleBoarding.reset();
+    animateOceanBattleBoarding.start.x = start_x;
+    animateOceanBattleBoarding.start.y = start_y;
+    animateOceanBattleBoarding.current.x = animateOceanBattleBoarding.start.x;
+    animateOceanBattleBoarding.current.y = animateOceanBattleBoarding.start.y;
+    animateOceanBattleBoarding.end.x = intended_boarding_x;
+    animateOceanBattleBoarding.end.y = intended_boarding_y;
+    animateOceanBattleBoarding.callbacks.push(function () {
+        INPUT_SERVER.removeListener("ui-ocean-battle-confirm-boarding");
+        INPUT_SERVER.clearHistory();
+        var element = CURRENT_SCENE.COMPONENT.querySelector(`[data-id="board"]`);
+        element.children[0].classList.remove("hidden");
+        element.children[1].classList.add("hidden");
+        element.classList.remove("active");
+    });
+    if (uih.animations.indexOf(animateOceanBattleBoarding) < 0)
+    {
+        uih.animations.push(animateOceanBattleBoarding);
+    }
+}
+function ocean_battle_fire_cannons()
+{
+    var wnpcid = OCEAN_BATTLE.turn_order_world_npcs[
+        OCEAN_BATTLE.turn_order
+    ];
+    var world_npc = world_npcs[wnpcid];
+    if (OCEAN_BATTLE.total_valid_cannon_coords === 0) { return; }
+    if (animateOceanBattleCannon.entity_id !== null) { return; }
+    var name_id = GAME_STRINGS.indexOf("ENTITY_CONFIRMATION");
+    wasm.exports.entity_despawn(name_id);
+    var start_x = world_npc.position_x;
+    var start_y = world_npc.position_y;
+    var intended_cannon_x = OCEAN_BATTLE.intended_cannon_coords[0];
+    var intended_cannon_y = OCEAN_BATTLE.intended_cannon_coords[1];
+    animateOceanBattleCannon.reset();
+    animateOceanBattleCannon.start.x = start_x;
+    animateOceanBattleCannon.start.y = start_y;
+    animateOceanBattleCannon.current.x = animateOceanBattleCannon.start.x;
+    animateOceanBattleCannon.current.y = animateOceanBattleCannon.start.y;
+    animateOceanBattleCannon.end.x = intended_cannon_x;
+    animateOceanBattleCannon.end.y = intended_cannon_y;
+    animateOceanBattleCannon.callbacks.push(function () {
+        INPUT_SERVER.removeListener("ui-ocean-battle-confirm-cannons");
+        INPUT_SERVER.clearHistory();
+        var element = CURRENT_SCENE.COMPONENT.querySelector(`[data-id="cannons"]`);
+        element.children[0].classList.remove("hidden");
+        element.children[1].classList.add("hidden");
+        element.classList.remove("active");
+    });
+    if (uih.animations.indexOf(animateOceanBattleCannon) < 0)
+    {
+        uih.animations.push(animateOceanBattleCannon);
+    }
+}
+function ocean_battle_spawn_confirmation(x, y)
+{
+    var name_id = GAME_STRINGS.indexOf("ENTITY_CONFIRMATION");
+    wasm.exports.entity_spawn(name_id, x, y);
+}
+function ocean_battle_spawn_cannonball(x, y)
+{
+    var name_id = GAME_STRINGS.indexOf("ENTITY_CANNONBALL");
+    wasm.exports.entity_spawn(name_id, x, y);
+}
+function ocean_battle_spawn_sword(x, y)
+{
+    var name_id = GAME_STRINGS.indexOf("ENTITY_SWORD");
+    wasm.exports.entity_spawn(name_id, x, y);
+}
+function ocean_battle_move_cannonball(direction)
+{
+    var name_id = GAME_STRINGS.indexOf("ENTITY_CANNONBALL");
+    var entity_id = wasm.exports.find_storage_world_entity_by_name_id(name_id);
+    if (direction === "up")
+    {
+        wasm.exports.move_world_entity_up(entity_id);
+    }
+    else if (direction === "down")
+    {
+        wasm.exports.move_world_entity_down(entity_id);
+    }
+    else if (direction === "left")
+    {
+        wasm.exports.move_world_entity_left(entity_id);
+    }
+    else if (direction === "right")
+    {
+        wasm.exports.move_world_entity_right(entity_id);
+    }
+}
+function ocean_battle_despawn_cannonball()
+{
+    var name_id = GAME_STRINGS.indexOf("ENTITY_CANNONBALL");
+    wasm.exports.entity_despawn(name_id);
+    wasm.exports.scene_ocean_battle_fire_cannons();
+}
+function ocean_battle_despawn_confirmation()
+{
+    var name_id = GAME_STRINGS.indexOf("ENTITY_CONFIRMATION");
+    wasm.exports.entity_despawn(name_id);
+}
+function ocean_battle_despawn_sword()
+{
+    var name_id = GAME_STRINGS.indexOf("ENTITY_SWORD");
+    wasm.exports.entity_despawn(name_id);
+    wasm.exports.scene_ocean_battle_board();
+}
+function ui_ocean_battle_show_valid_cannons()
+{
+    // TODO: I do not like calling this here
+    wasm.exports.ob_get_in_range();
+    if (OCEAN_BATTLE.total_valid_cannon_coords === 0) { return; }
+    var name_id = GAME_STRINGS.indexOf("ENTITY_CANNON_TARGET");
+    for (var i = 0; i < OCEAN_BATTLE.valid_cannon_coords.length; i += 2)
+    {
+        var x = OCEAN_BATTLE.valid_cannon_coords[i];
+        var y = OCEAN_BATTLE.valid_cannon_coords[i + 1];
+        wasm.exports.entity_spawn(name_id, x, y);
+    }
+    INPUT_SERVER.removeListener("ui-ocean-battle-intended-cannon");
+    INPUT_SERVER.clearHistory();
+    INPUT_SERVER.addListener(
+        "ui-ocean-battle-intended-cannon", function ()
         {
-            x: null, y: null
+            var input_event = INPUT_SERVER.getLatestEntry();
+            if (!input_event) { return; }
+            if (input_event.type === "pointerup")
+            {
+                console.trace(input_event.mouse.viewport);
+                if (!input_event.mouse.viewport) { return; }
+                var valid_coords = false;
+                for (var i = 0; i < OCEAN_BATTLE.valid_cannon_coords.length; i += 2)
+                {
+                    var x = OCEAN_BATTLE.valid_cannon_coords[i];
+                    var y = OCEAN_BATTLE.valid_cannon_coords[i + 1];
+                    if (x === input_event.mouse.viewport.world_x && y === input_event.mouse.viewport.world_y)
+                    {
+                        valid_coords = true;
+                        break;
+                    }
+                }
+                if (valid_coords)
+                {
+                    OCEAN_BATTLE.intended_cannon_coords[0] = input_event.mouse.viewport.world_x;
+                    OCEAN_BATTLE.intended_cannon_coords[1] = input_event.mouse.viewport.world_y;
+                    var x = input_event.mouse.viewport.world_x;
+                    var y = input_event.mouse.viewport.world_y;
+                    ocean_battle_spawn_confirmation(x, y);
+                    ui_ocean_battle_confirm_cannons();
+                }
+            }
+            // TODO: In keyboard mode, move a target around. In mouse, update target based on move
+        }
+    );
+}
+function ui_ocean_battle_confirm_cannons()
+{
+    var name_id = GAME_STRINGS.indexOf("ENTITY_CANNON_TARGET");
+    wasm.exports.entity_despawn(name_id);
+    INPUT_SERVER.removeListener("ui-ocean-battle-intended-cannon");
+    INPUT_SERVER.removeListener("ui-ocean-battle-confirm-cannons");
+    INPUT_SERVER.clearHistory();
+    INPUT_SERVER.addListener(
+        "ui-ocean-battle-confirm-cannons", function ()
+        {
+            var input_event = INPUT_SERVER.getLatestEntry();
+            if (!input_event) { return; }
+            if (input_event.type === "pointerup")
+            {
+                console.trace(input_event.mouse.viewport);
+                var valid_coords = false;
+                for (var i = 0; i < OCEAN_BATTLE.valid_cannon_coords.length; i += 2)
+                {
+                    var x = OCEAN_BATTLE.valid_cannon_coords[i];
+                    var y = OCEAN_BATTLE.valid_cannon_coords[i + 1];
+                    if (x === OCEAN_BATTLE.intended_cannon_coords[0] && y === OCEAN_BATTLE.intended_cannon_coords[1])
+                    {
+                        console.log("TODO: Confirmed intended cannon coordinates.");
+                        ocean_battle_fire_cannons();
+                        break;
+                    }
+                }
+            }
+            // TODO: In keyboard mode, move a target around. In mouse, update target based on move
+        }
+    );
+}
+function ui_ocean_battle_hide_valid_cannons()
+{
+    if (OCEAN_BATTLE.total_valid_cannon_coords === 0) { return; }
+    var name_id = GAME_STRINGS.indexOf("ENTITY_CANNON_TARGET");
+    wasm.exports.entity_despawn(name_id);
+    INPUT_SERVER.removeListener("ui-ocean-battle-intended-cannon");
+    OCEAN_BATTLE.intended_cannon_coords[0] = wasm.exports.get_sentry();
+    OCEAN_BATTLE.intended_cannon_coords[1] = wasm.exports.get_sentry();
+    name_id = GAME_STRINGS.indexOf("ENTITY_CONFIRMATION");
+    wasm.exports.entity_despawn(name_id);
+}
+function ui_ocean_battle_hide_valid_moves()
+{
+    var name_id = GAME_STRINGS.indexOf("ENTITY_MOVEMENT");
+    wasm.exports.entity_despawn(name_id);
+    INPUT_SERVER.removeListener("ui-ocean-battle-intended-move");
+    OCEAN_BATTLE.intended_move_coords[0] = wasm.exports.get_sentry();
+    OCEAN_BATTLE.intended_move_coords[1] = wasm.exports.get_sentry();
+}
+function ui_ocean_battle_show_valid_moves()
+{
+    // TODO: I do not like calling this here
+    wasm.exports.ob_get_in_range();
+    if (OCEAN_BATTLE.total_valid_move_coords === 0) { return; }
+    var name_id = GAME_STRINGS.indexOf("ENTITY_MOVEMENT");
+    for (var i = 0; i < OCEAN_BATTLE.valid_move_coords.length; i += 2)
+    {
+        var x = OCEAN_BATTLE.valid_move_coords[i];
+        var y = OCEAN_BATTLE.valid_move_coords[i + 1];
+        wasm.exports.entity_spawn(name_id, x, y);
+    }
+    INPUT_SERVER.removeListener("ui-ocean-battle-intended-move");
+    INPUT_SERVER.clearHistory();
+    INPUT_SERVER.addListener(
+        "ui-ocean-battle-intended-move", function ()
+        {
+            var input_event = INPUT_SERVER.getLatestEntry();
+            if (!input_event) { return; }
+            if (input_event.type === "pointerup")
+            {
+                console.trace(input_event.mouse.viewport);
+                if (!input_event.mouse.viewport) { return; }
+                var valid_coords = false;
+                for (var i = 0; i < OCEAN_BATTLE.valid_move_coords.length; i += 2)
+                {
+                    var x = OCEAN_BATTLE.valid_move_coords[i];
+                    var y = OCEAN_BATTLE.valid_move_coords[i + 1];
+                    if (x === input_event.mouse.viewport.world_x && y === input_event.mouse.viewport.world_y)
+                    {
+                        valid_coords = true;
+                        break;
+                    }
+                }
+                if (valid_coords)
+                {
+                    OCEAN_BATTLE.intended_move_coords[0] = input_event.mouse.viewport.world_x;
+                    OCEAN_BATTLE.intended_move_coords[1] = input_event.mouse.viewport.world_y;
+                    var x = input_event.mouse.viewport.world_x;
+                    var y = input_event.mouse.viewport.world_y;
+                    ocean_battle_spawn_confirmation(x, y);
+                    ui_ocean_battle_confirm_move();
+                }
+            }
+            // TODO: In keyboard mode, move a target around. In mouse, update target based on move
+        }
+    );
+}
+function ui_ocean_battle_confirm_move()
+{
+    var name_id = GAME_STRINGS.indexOf("ENTITY_MOVEMENT");
+    wasm.exports.entity_despawn(name_id);
+    INPUT_SERVER.removeListener("ui-ocean-battle-intended-move");
+    INPUT_SERVER.removeListener("ui-ocean-battle-confirm-move");
+    INPUT_SERVER.clearHistory();
+    INPUT_SERVER.addListener(
+        "ui-ocean-battle-confirm-move", function ()
+        {
+            var input_event = INPUT_SERVER.getLatestEntry();
+            if (!input_event) { return; }
+            if (input_event.type === "pointerup")
+            {
+                console.trace(input_event.mouse.viewport);
+                var valid_coords = false;
+                for (var i = 0; i < OCEAN_BATTLE.valid_move_coords.length; i += 2)
+                {
+                    var x = OCEAN_BATTLE.valid_move_coords[i];
+                    var y = OCEAN_BATTLE.valid_move_coords[i + 1];
+                    if (x === OCEAN_BATTLE.intended_move_coords[0] && y === OCEAN_BATTLE.intended_move_coords[1])
+                    {
+                        console.log("TODO: Confirmed intended move coordinates.");
+                        ocean_battle_move();
+                        break;
+                    }
+                }
+            }
+            // TODO: In keyboard mode, move a target around. In mouse, update target based on move
+        }
+    );
+}
+function ocean_battle_move()
+{
+    var name_id = GAME_STRINGS.indexOf("ENTITY_CONFIRMATION");
+    wasm.exports.entity_despawn(name_id);
+    var wnpcid = OCEAN_BATTLE.turn_order_world_npcs[
+        OCEAN_BATTLE.turn_order
+    ];
+    var world_npc = world_npcs[wnpcid];
+    if (OCEAN_BATTLE.total_valid_move_coords === 0) { return; }
+    // TODO: Probably update animateOceanBattleCannon to do this too
+    if (animateOceanBattleMove.animating === true) { return; }
+    var name_id = GAME_STRINGS.indexOf("ENTITY_MOVEMENT");
+    wasm.exports.entity_despawn(name_id);
+    var start_x = world_npc.position_x;
+    var start_y = world_npc.position_y;
+    var intended_move_x = OCEAN_BATTLE.intended_move_coords[0];
+    var intended_move_y = OCEAN_BATTLE.intended_move_coords[1];
+    animateOceanBattleMove.reset();
+    animateOceanBattleMove.start.x = start_x;
+    animateOceanBattleMove.start.y = start_y;
+    animateOceanBattleMove.current.x = animateOceanBattleMove.start.x;
+    animateOceanBattleMove.current.y = animateOceanBattleMove.start.y;
+    animateOceanBattleMove.end.x = intended_move_x;
+    animateOceanBattleMove.end.y = intended_move_y;
+    animateOceanBattleMove.callbacks.push(function () {
+        INPUT_SERVER.removeListener("ui-ocean-battle-confirm-move");
+        INPUT_SERVER.clearHistory();
+        var element = CURRENT_SCENE.COMPONENT.querySelector(`[data-id="move"]`);
+        element.children[0].classList.remove("hidden");
+        element.children[1].classList.add("hidden");
+        element.classList.remove("active");
+    });
+    if (uih.animations.indexOf(animateOceanBattleMove) < 0)
+    {
+        uih.animations.push(animateOceanBattleMove);
+    }
+}
+function ui_ocean_battle_show_valid_boardings()
+{
+    // TODO: I do not like calling this here
+    wasm.exports.ob_get_in_range();
+    if (OCEAN_BATTLE.total_valid_boarding_coords === 0) { return; }
+    var name_id = GAME_STRINGS.indexOf("ENTITY_BOARDING_TARGET");
+    for (var i = 0; i < OCEAN_BATTLE.valid_boarding_coords.length; i += 2)
+    {
+        var x = OCEAN_BATTLE.valid_boarding_coords[i];
+        var y = OCEAN_BATTLE.valid_boarding_coords[i + 1];
+        wasm.exports.entity_spawn(name_id, x, y);
+    }
+    INPUT_SERVER.removeListener("ui-ocean-battle-intended-boarding");
+    INPUT_SERVER.clearHistory();
+    INPUT_SERVER.addListener(
+        "ui-ocean-battle-intended-boarding", function ()
+        {
+            var input_event = INPUT_SERVER.getLatestEntry();
+            if (!input_event) { return; }
+            if (input_event.type === "pointerup")
+            {
+                console.trace(input_event.mouse.viewport);
+                if (!input_event.mouse.viewport) { return; }
+                var valid_coords = false;
+                for (var i = 0; i < OCEAN_BATTLE.valid_boarding_coords.length; i += 2)
+                {
+                    var x = OCEAN_BATTLE.valid_boarding_coords[i];
+                    var y = OCEAN_BATTLE.valid_boarding_coords[i + 1];
+                    if (x === input_event.mouse.viewport.world_x && y === input_event.mouse.viewport.world_y)
+                    {
+                        valid_coords = true;
+                        break;
+                    }
+                }
+                if (valid_coords)
+                {
+                    OCEAN_BATTLE.intended_boarding_coords[0] = input_event.mouse.viewport.world_x;
+                    OCEAN_BATTLE.intended_boarding_coords[1] = input_event.mouse.viewport.world_y;
+                    var x = input_event.mouse.viewport.world_x;
+                    var y = input_event.mouse.viewport.world_y;
+                    ocean_battle_spawn_confirmation(x, y);
+                    ui_ocean_battle_confirm_boarding();
+                }
+            }
+            // TODO: In keyboard mode, move a target around. In mouse, update target based on move
+        }
+    );
+}
+function ui_ocean_battle_hide_valid_boardings()
+{
+    var name_id = GAME_STRINGS.indexOf("ENTITY_BOARDING_TARGET");
+    wasm.exports.entity_despawn(name_id);
+    INPUT_SERVER.removeListener("ui-ocean-battle-intended-boarding");
+    OCEAN_BATTLE.intended_boarding_coords[0] = wasm.exports.get_sentry();
+    OCEAN_BATTLE.intended_boarding_coords[1] = wasm.exports.get_sentry();
+    name_id = GAME_STRINGS.indexOf("ENTITY_CONFIRMATION");
+    wasm.exports.entity_despawn(name_id);
+}
+function ui_ocean_battle_confirm_boarding()
+{
+    var name_id = GAME_STRINGS.indexOf("ENTITY_BOARDING_TARGET");
+    wasm.exports.entity_despawn(name_id);
+    INPUT_SERVER.removeListener("ui-ocean-battle-intended-boarding");
+    INPUT_SERVER.removeListener("ui-ocean-battle-confirm-boarding");
+    INPUT_SERVER.clearHistory();
+    INPUT_SERVER.addListener(
+        "ui-ocean-battle-confirm-boarding", function ()
+        {
+            var input_event = INPUT_SERVER.getLatestEntry();
+            if (!input_event) { return; }
+            if (input_event.type === "pointerup")
+            {
+                console.trace(input_event.mouse.viewport);
+                var valid_coords = false;
+                for (var i = 0; i < OCEAN_BATTLE.valid_boarding_coords.length; i += 2)
+                {
+                    var x = OCEAN_BATTLE.valid_boarding_coords[i];
+                    var y = OCEAN_BATTLE.valid_boarding_coords[i + 1];
+                    if (x === OCEAN_BATTLE.intended_boarding_coords[0] && y === OCEAN_BATTLE.intended_boarding_coords[1])
+                    {
+                        console.log("TODO: Confirmed intended boarding coordinates.");
+                        ocean_battle_board_ship();
+                        break;
+                    }
+                }
+            }
+            // TODO: In keyboard mode, move a target around. In mouse, update target based on move
+        }
+    );
+}
+
+function ocean_battle_is_players_turn()
+{
+    var to = OCEAN_BATTLE.turn_order;
+    var fleet_ship_id = OCEAN_BATTLE.turn_order_fleet_ships[to];
+    var fleet_ship = new GAME_DATA_FLEET_SHIP(wasm.exports, [fleet_ship_id]);
+    var fleet = new GAME_DATA_FLEET(wasm.exports, [fleet_ship.fleet_id]);
+    // Note: General ID 0 should always be the player
+    if (fleet.general_id === 0)
+    {
+        return true;
+    }
+    return false;
+}
+
+function ui_ocean_battle_initialize()
+{
+    if (CURRENT_SCENE !== null && CURRENT_SCENE.INITIALIZED === 1) { return; }
+    if (CURRENT_SCENE !== null && CURRENT_SCENE.RENDERED === 1) { return; }
+    CURRENT_SCENE = new GAME_DATA_SCENE_OCEAN_BATTLE(wasm.exports);
+    CURRENT_SCENE.INITIALIZED = false;
+    CURRENT_SCENE.RENDERED = false;
+    CURRENT_SCENE.LAST_INPUT_MODE = false;
+    CURRENT_SCENE.DEFAULT_ELEMENT = false;
+    CURRENT_SCENE.COMPONENT = document.querySelector("ui-ocean-battle");
+    INPUT_SERVER.clearHistory();
+    INPUT_SERVER.removeListener("ui-ocean-battle");
+    INPUT_SERVER.addListener(
+        "ui-ocean-battle", ui_scene_default_input_listener
+    );
+    INPUT_SERVER.removeListener("ui-ocean-battle-hover");
+    INPUT_SERVER.addListener(
+        "ui-ocean-battle-hover",
+        function ()
+        {
+            var input_event = INPUT_SERVER.getLatestEntry();
+            if (!input_event) { return; }
+            if (input_event.type === "pointermove")
+            {
+                if (input_event.mouse.viewport === null) { return; }
+                var x = input_event.mouse.viewport.world_x;
+                var y = input_event.mouse.viewport.world_y;
+                for (var i = 0; i < world_npcs.length; ++i)
+                {
+                    world_npcs[i].poops = "";
+                    if (world_npcs[i].position_x === x && world_npcs[i].position_y === y)
+                    {
+                        var element = document.querySelector(`[data-npc-id="${world_npcs[i].id}"`);
+                        if (element)
+                        {
+                            for (var fs = 0; fs < wasm.exports.get_max_fleet_ships(); ++fs)
+                            {
+                                var fleet_ship = new GAME_DATA_FLEET_SHIP(wasm.exports, [fs]);
+                                if (fleet_ship.id === world_npcs[i].entity_id)
+                                {
+                                    for (var s = 0; s < wasm.exports.get_max_ships(); ++s)
+                                    {
+                                        var ship = new GAME_DATA_SHIP(wasm.exports, [s]);
+                                        if (ship.id === fleet_ship.ship_id)
+                                        {
+                                            console.log(world_npcs[i].entity_id, fleet_ship.id, fleet_ship.ship_id, ship.id);
+                                            world_npcs[i].poops = `
+                                                <div class="ocean_battle_ship_info" style="text-align: center; background-color: rgba(0, 0, 0, 0.5);">${ship.durability}</div>
+                                                <div class="ocean_battle_ship_info" style="text-align: center; background-color: rgba(255, 0, 0, 0.6); color: white;">${ship.crew}</div>
+                                            `;
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    );
+    // Note: Need to have this so we have access to ocean battle data
+    OCEAN_BATTLE = new GAME_DATA_OCEAN_BATTLE(wasm.exports);
+    ui_ocean_battle_screen_home();
+}
+function ui_ocean_battle_exit()
+{
+    INPUT_SERVER.removeListener("ui-ocean-battle");
+    INPUT_SERVER.removeListener("ui-ocean-battle-hover");
+    CURRENT_SCENE.COMPONENT.clearHTML();
+    CURRENT_SCENE = null;
+    OCEAN_BATTLE = null;
+    wasm.exports.scene_ocean_battle_exit();
+}
+function ui_ocean_battle_button_wrapper_hover(element)
+{
+    var css = `
+        font-size: 14px;
+        color: white;
+        width: ${TILE_SIZE_SCALED}px;
+        height: ${TILE_SIZE_SCALED}px;
+        zoom: var(--zoom);
+        background-color: rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+    `;
+    if (element)
+    {
+        element.style.cssText = css;
+    }
+    return css;
+}
+function ui_ocean_battle_button_wrapper_no_hover(element)
+{
+    var css = `
+        font-size: 14px;
+        color: white;
+        width: ${TILE_SIZE_SCALED}px;
+        height: ${TILE_SIZE_SCALED}px;
+        zoom: var(--zoom);
+        background-color: rgba(0, 0, 0, 0.15);
+        cursor: pointer;
+    `;
+    if (element)
+    {
+        element.style.cssText = css;
+    }
+    return css;
+}
+function ui_ocean_battle_button_wrapper_two_columns_hover(element)
+{
+    var css = `
+        font-size: 12px;
+        color: white;
+        width: ${TILE_SIZE_SCALED * 2}px;
+        height: ${TILE_SIZE_SCALED}px;
+        zoom: var(--zoom);
+        background-color: rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        grid-column: 1 / 3;
+        align-content: center;
+        text-align: center;
+        text-shadow: 0px 0px 3px black;
+    `;
+    if (element)
+    {
+        element.style.cssText = css;
+    }
+    return css;
+}
+function ui_ocean_battle_button_wrapper_two_columns_no_hover(element)
+{
+    var css = `
+        font-size: 12px;
+        color: white;
+        width: ${TILE_SIZE_SCALED * 2}px;
+        height: ${TILE_SIZE_SCALED}px;
+        zoom: var(--zoom);
+        background-color: rgba(0, 0, 0, 0.15);
+        cursor: pointer;
+        grid-column: 1 / 3;
+        align-content: center;
+        text-align: center;
+        text-shadow: 0px 0px 3px black;
+    `;
+    if (element)
+    {
+        element.style.cssText = css;
+    }
+    return css;
+}
+function ui_ocean_battle_screen_home()
+{
+    if (CURRENT_SCENE.RENDERED === 1) { return; }
+    CURRENT_SCENE.ACTIONS = {
+        get_ship_details: function () {},
+        view_map: function () {},
+        board: function () {
+            var element = CURRENT_SCENE.COMPONENT.querySelector(`[data-id="board"]`);
+            if (element.classList.contains("active"))
+            {
+                ui_ocean_battle_hide_valid_boardings();
+                element.children[0].classList.remove("hidden");
+                element.children[1].classList.add("hidden");
+                element.classList.remove("active");
+            }
+            else
+            {
+                ui_ocean_battle_show_valid_boardings();
+                element.children[0].classList.add("hidden");
+                element.children[1].classList.remove("hidden");
+                element.classList.add("active");
+            }
         },
-    },
-    animating_cannons: false,
-    animating_boarding: false,
-    current_world_npc: false,
-    current_world_npc_id: false,
-    initialized: false,
-    initialize: function ()
-    {
-        if (!this.initialized)
-        {
-            this.initialized = true;
-            this.data.scene = new GAME_DATA_SCENE_OCEAN_BATTLE(wasm.exports);
-            this.data.battle = new GAME_DATA_OCEAN_BATTLE(wasm.exports);
-            this.render();
-        }
-    },
-    hide: function ()
-    {
-        document.getElementById("ocean_battle").outerHTML = `<div id="ocean_battle"></div>`;
-        this.initialized = false;
-    },
-    render: function ()
-    {
-        wasm.exports.ob_get_in_range();
-        var captains_html = ``;
-        for (var i = 0; i < this.data.battle.turn_order_fleets.length; ++i)
-        {
-            // Assumption is a linear layout with no gaps
-            if (is_sentry(this.data.battle.turn_order_fleets[i]))
+        cannons: function () {
+            var element = CURRENT_SCENE.COMPONENT.querySelector(`[data-id="cannons"]`);
+            if (element.classList.contains("active"))
             {
-                break;
-            }
-            var fleet_id = this.data.battle.turn_order_fleets[i];
-            var fleet = new GAME_DATA_FLEET(wasm.exports, [fleet_id]);
-            var general_id = fleet.general_id;
-            var captain = new GAME_DATA_CAPTAIN(wasm.exports, [general_id]);
-            captains_html += `
-            <div>Captain: ${captain.getName()}</div>
-            `;
-        }
-        var ships_html = ``;
-        var players_turn = false;
-        for (var i = 0; i < this.data.battle.turn_order_ships.length; ++i)
-        {
-            // Assumption is a linear layout with no gaps
-            if (is_sentry(this.data.battle.turn_order_ships[i]))
-            {
-                break;
-            }
-            var fleet_ship_id = this.data.battle.turn_order_fleet_ships[i];
-            var ship_id = this.data.battle.turn_order_ships[i];
-            var wnpc_id = this.data.battle.turn_order_world_npcs[i];
-            var ship = new GAME_DATA_SHIP(wasm.exports, [ship_id]);
-            var wnpc = new GAME_DATA_WORLD_NPC(wasm.exports, [wnpc_id]);
-            var fleet_ship = new GAME_DATA_FLEET_SHIP(wasm.exports, [fleet_ship_id]);
-            var fleet = new GAME_DATA_FLEET(wasm.exports, [fleet_ship.fleet_id]);
-            var onmouseover = `
-                this.style.cursor = 'pointer';
-                UI_OCEAN_BATTLE.highlightWorldNPC(${wnpc_id});
-            `;
-            var onmouseout = `UI_OCEAN_BATTLE.clearWorldNPCHighlights();`;
-            var style = ``;
-            if (i === this.data.battle.turn_order && fleet.general_id === 0)
-            {
-                players_turn = true;
-            }
-            if (i === this.data.battle.turn_order)
-            {
-                style = `color: rgb(255 217 0); border-left: 2px solid gold; padding-left: 6px;`;
-            }
-            ships_html += `
-                <div onmouseover="${onmouseover}" onmouseout="${onmouseout}" style="${style}">
-                    Ship [${ship_id}]
-                </div>
-                <div style="${style}">Crew: ${ship.crew}/100 - <progress max="100" value="${ship.crew}" /></div>
-                <div style="${style}">Hull: ${ship.hull}/100 - <progress max="100" value="${ship.hull}" /></div>
-            `;
-        }
-        var buttons = ``;
-        if (this.data.battle.victory)
-        {
-            if (this.data.battle.player_victory)
-            {
-                buttons += `<button onclick="UI_OCEAN_BATTLE.hide();">Claim Victory</button>`;
+                ui_ocean_battle_hide_valid_cannons();
+                element.children[0].classList.remove("hidden");
+                element.children[1].classList.add("hidden");
+                element.classList.remove("active");
             }
             else
             {
-                buttons += `<button>You Lost</button>`;
+                ui_ocean_battle_show_valid_cannons();
+                element.children[0].classList.add("hidden");
+                element.children[1].classList.remove("hidden");
+                element.classList.add("active");
             }
-        }
-        else if (players_turn)
-        {
-            buttons += `<button disable>Escape</button>`;
-            if (this.data.battle.moved !== 1)
+        },
+        move: function () {
+            var element = CURRENT_SCENE.COMPONENT.querySelector(`[data-id="move"]`);
+            if (element.classList.contains("active"))
             {
-                buttons += `<button onclick="UI_OCEAN_BATTLE.highlightValidMoves();">Move</button>`;
-                buttons += `<button
-                    id="ui_ocean_battle_confirm_move"
-                    onclick="UI_OCEAN_BATTLE.confirmMove();"
-                    style="display: none;">Confirm Move</button>`;
-                buttons += `<button
-                    id="ui_ocean_battle_cancel_move"
-                    onclick="UI_OCEAN_BATTLE.cancelMove();"
-                    style="display: none;">Cancel Move</button>`;
-            }
-            if (this.data.battle.attacked !== 1)
-            {
-                buttons += `<button
-                    onclick="UI_OCEAN_BATTLE.highlightValidCannons();"
-                >Fire Cannons</button>`;
-                buttons += `<button
-                    id="ui_ocean_battle_confirm_cannons"
-                    onclick="UI_OCEAN_BATTLE.confirmCannons();"
-                    style="display: none;">Confirm Cannons</button>`;
-                buttons += `<button
-                    id="ui_ocean_battle_cancel_cannons"
-                    onclick="UI_OCEAN_BATTLE.cancelCannons();"
-                    style="display: none;">Cancel Cannons</button>`;
-                buttons += `<button
-                    onclick="UI_OCEAN_BATTLE.highlightValidBoarding();"
-                >Board</button>`;
-                buttons += `<button
-                    id="ui_ocean_battle_confirm_boarding"
-                    onclick="UI_OCEAN_BATTLE.confirmBoarding();"
-                    style="display: none;">Confirm Boarding</button>`;
-                buttons += `<button
-                    id="ui_ocean_battle_cancel_boarding"
-                    onclick="UI_OCEAN_BATTLE.cancelBoarding();"
-                    style="display: none;">Cancel Boarding</button>`;
-            }
-            buttons += `<button disabled>Duel Captain</button>`;
-            buttons += `<button>Order Fleet</button>`;
-            buttons += `<button onclick="UI_OCEAN_BATTLE.endTurn();">End Turn</button>`;
-        }
-        else
-        {
-            buttons += `<button onclick="UI_OCEAN_BATTLE.takeNPCTurn();">Run NPCs Turn</button>`;
-        }
-        var html = `
-        <div id="ocean_battle" class="popup">
-            <div class="outer_border" style="display: grid; grid-auto-flow: column;">
-                <div id="ocean-battle-drag-handle" class="drag-bar svg svg-handle-bar-white"></div>
-                <div>
-                    <div class="inner_text" style="margin-bottom: 6px;">
-                        Gonna fight!
-                    </div>
-                    <div id="battle_info" style="display: grid; grid-gap: 4px; margin-bottom: 6px;">
-                        <div>Total Fleets In Battle: ${this.data.battle.total_fleets}</div>
-                        <div>Total Ships In Battle: ${this.data.battle.total_ships}</div>
-                        ${captains_html}
-                        ${ships_html}
-                    </div>
-                    <div id="dialog_choices" style="display: grid; grid-auto-flow: row;">
-                        ${buttons}
-                    </div>
-                </div>
-            </div>
-        </div>`;
-        document.getElementById("ocean_battle").outerHTML = html;
-        dragElement(
-            document.getElementById("ocean_battle"),
-            document.getElementById("ocean-battle-drag-handle"),
-            { useBottomRight: true }
-        );
-    },
-    takeNPCTurn: function (move_anim_done, attack_anim_done)
-    {
-        this.current_world_npc_id = UI_OCEAN_BATTLE.data.battle.turn_order_world_npcs[
-            UI_OCEAN_BATTLE.data.battle.turn_order
-        ];
-        this.current_world_npc = new GAME_DATA_WORLD_NPC(wasm.exports, [
-            this.current_world_npc_id
-        ]);
-        if (UI_OCEAN_BATTLE.data.battle.total_valid_cannon_coords === 0)
-        {
-            attack_anim_done = true;
-        }
-        if (
-            move_anim_done === undefined
-            &&
-            UI_OCEAN_BATTLE.data.battle.total_valid_move_coords > 0
-        )
-        {
-            if (UI_OCEAN_BATTLE.data.original_coords.x === null)
-            {
-                UI_OCEAN_BATTLE.data.original_coords.x = UI_OCEAN_BATTLE.current_world_npc.position_x;
-                UI_OCEAN_BATTLE.data.original_coords.y = UI_OCEAN_BATTLE.current_world_npc.position_y;
-            }
-            var intended_move_x = UI_OCEAN_BATTLE.data.battle.intended_move_coords[0];
-            var intended_move_y = UI_OCEAN_BATTLE.data.battle.intended_move_coords[1];
-            // console.log("Moving ship from/to", {
-            //     start_x: UI_OCEAN_BATTLE.data.original_coords.x,
-            //     start_y: UI_OCEAN_BATTLE.data.original_coords.y,
-            //     end_x: intended_move_x,
-            //     end_y: intended_move_y,
-            //     available_coords: UI_OCEAN_BATTLE.data.battle.valid_move_coords,
-            // });
-            animateOceanBattleMove.reset();
-            animateOceanBattleMove.start.x = UI_OCEAN_BATTLE.data.original_coords.x;
-            animateOceanBattleMove.start.x *= TILE_SIZE_SCALED;
-            animateOceanBattleMove.start.y = UI_OCEAN_BATTLE.data.original_coords.y;
-            animateOceanBattleMove.start.y *= TILE_SIZE_SCALED;
-            animateOceanBattleMove.current.x = animateOceanBattleMove.start.x;
-            animateOceanBattleMove.current.y = animateOceanBattleMove.start.y;
-            animateOceanBattleMove.end.x = intended_move_x;
-            animateOceanBattleMove.end.x *= TILE_SIZE_SCALED;
-            animateOceanBattleMove.end.y = intended_move_y;
-            animateOceanBattleMove.end.y *= TILE_SIZE_SCALED;
-            animateOceanBattleMove.callbacks.push(UI_OCEAN_BATTLE.takeNPCTurn.bind(null, true));
-            animateOceanBattleMove.callbacks.push(function () {
-                UI_OCEAN_BATTLE.current_world_npc.position_x = intended_move_x;
-                UI_OCEAN_BATTLE.current_world_npc.position_y = intended_move_y;
-            }.bind(null));
-            if (uih.animations.indexOf(animateOceanBattleMove) < 0)
-            {
-                uih.animations.push(animateOceanBattleMove);
-            }
-        }
-        else if (
-            attack_anim_done === undefined
-            &&
-            UI_OCEAN_BATTLE.data.battle.total_valid_cannon_coords > 0
-        )
-        {
-            var start_x, start_y;
-            if (!is_sentry(UI_OCEAN_BATTLE.data.battle.intended_move_coords[0]))
-            {
-                start_x = UI_OCEAN_BATTLE.data.battle.intended_move_coords[0];
-                start_y = UI_OCEAN_BATTLE.data.battle.intended_move_coords[1];
+                ui_ocean_battle_hide_valid_moves();
+                element.children[0].classList.remove("hidden");
+                element.children[1].classList.add("hidden");
+                element.classList.remove("active");
             }
             else
             {
-                start_x = UI_OCEAN_BATTLE.current_world_npc.position_x;
-                start_y = UI_OCEAN_BATTLE.current_world_npc.position_y;
+                ui_ocean_battle_show_valid_moves();
+                element.children[0].classList.add("hidden");
+                element.children[1].classList.remove("hidden");
+                element.classList.add("active");
             }
-            var intended_cannon_x = UI_OCEAN_BATTLE.data.battle.intended_cannon_coords[0];
-            var intended_cannon_y = UI_OCEAN_BATTLE.data.battle.intended_cannon_coords[1];
-            animateOceanBattleCannon.reset();
-            animateOceanBattleCannon.start.x = start_x;
-            animateOceanBattleCannon.start.x *= TILE_SIZE_SCALED;
-            animateOceanBattleCannon.start.y = start_y;
-            animateOceanBattleCannon.start.y *= TILE_SIZE_SCALED;
-            animateOceanBattleCannon.current.x = animateOceanBattleCannon.start.x;
-            animateOceanBattleCannon.current.y = animateOceanBattleCannon.start.y;
-            animateOceanBattleCannon.end.x = intended_cannon_x * TILE_SIZE_SCALED;
-            animateOceanBattleCannon.end.y = intended_cannon_y * TILE_SIZE_SCALED;
-            if (UI_OCEAN_BATTLE.data.battle.total_valid_move_coords === 0)
+        },
+        view_fleet: function () {},
+        end_turn: function () {
+            var element = CURRENT_SCENE.COMPONENT.querySelector(`[data-id="end_turn"]`);
+            if (ocean_battle_is_players_turn())
             {
-                move_anim_done = true;
-            }
-            animateOceanBattleCannon.callbacks.push(UI_OCEAN_BATTLE.takeNPCTurn.bind(null, move_anim_done, true));
-            if (uih.animations.indexOf(animateOceanBattleCannon) < 0)
-            {
-                uih.animations.push(animateOceanBattleCannon);
-            }
-        }
-        else if (
-            attack_anim_done === undefined
-            &&
-            UI_OCEAN_BATTLE.data.battle.total_valid_boarding_coords > 0
-        )
-        {
-            var start_x, start_y;
-            if (!is_sentry(UI_OCEAN_BATTLE.data.battle.intended_move_coords[0]))
-            {
-                start_x = UI_OCEAN_BATTLE.data.battle.intended_move_coords[0];
-                start_y = UI_OCEAN_BATTLE.data.battle.intended_move_coords[1];
-            }
-            else
-            {
-                start_x = UI_OCEAN_BATTLE.current_world_npc.position_x;
-                start_y = UI_OCEAN_BATTLE.current_world_npc.position_y;
-            }
-            var intended_boarding_x = UI_OCEAN_BATTLE.data.battle.intended_boarding_coords[0];
-            var intended_boarding_y = UI_OCEAN_BATTLE.data.battle.intended_boarding_coords[1];
-            animateOceanBattleBoarding.reset();
-            animateOceanBattleBoarding.start.x = start_x * TILE_SIZE_SCALED;
-            animateOceanBattleBoarding.start.y = start_y * TILE_SIZE_SCALED;
-            animateOceanBattleBoarding.current.x = animateOceanBattleBoarding.start.x;
-            animateOceanBattleBoarding.current.y = animateOceanBattleBoarding.start.y;
-            animateOceanBattleBoarding.end.x = intended_boarding_x * TILE_SIZE_SCALED;
-            animateOceanBattleBoarding.end.y = intended_boarding_y * TILE_SIZE_SCALED;
-            if (UI_OCEAN_BATTLE.data.battle.total_valid_move_coords === 0)
-            {
-                move_anim_done = true;
-            }
-            animateOceanBattleBoarding.callbacks.push(UI_OCEAN_BATTLE.takeNPCTurn.bind(null, move_anim_done, true));
-            if (uih.animations.indexOf(animateOceanBattleBoarding) < 0)
-            {
-                uih.animations.push(animateOceanBattleBoarding);
-            }
-        }
-        else if (move_anim_done === true && attack_anim_done === true)
-        {
-            wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_RUN_NPC_TURN"));
-            UI_OCEAN_BATTLE.data.original_coords.x = null;
-            UI_OCEAN_BATTLE.data.original_coords.y = null;
-            UI_OCEAN_BATTLE.render();
-        }
-    },
-    endTurn: function ()
-    {
-        wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_END_TURN"));
-        this.data.original_coords.x = null;
-        this.data.original_coords.y = null;
-        UI_OCEAN_BATTLE.render();
-    },
-    highlightWorldNPC: function (wnpc_id)
-    {
-        uih.highlightNPCID = wnpc_id;
-    },
-    clearWorldNPCHighlights: function ()
-    {
-        uih.highlightNPCID = false;
-    },
-    highlightValidMoves: function()
-    {
-        if (uih.animations.indexOf(animateOceanBattleMoveCoords) < 0)
-        {
-            uih.animations.push(animateOceanBattleMoveCoords);
-        }
-    },
-    moveWorldNPCTo: function (x, y)
-    {
-        var wnpcid = this.data.battle.turn_order_world_npcs[this.data.battle.turn_order];
-        if (this.data.original_coords.x === null)
-        {
-            var wnpc = new GAME_DATA_WORLD_NPC(wasm.exports, [wnpcid]);
-            this.data.original_coords.x = wnpc.position_x;
-            this.data.original_coords.y = wnpc.position_y;
-        }
-        wasm.exports.move_world_npc_to(wnpcid, x, y);
-        this.data.battle.intended_move_coords[0] = x;
-        this.data.battle.intended_move_coords[1] = y;
-        document.getElementById("ui_ocean_battle_confirm_move").style.display = "block";
-        document.getElementById("ui_ocean_battle_cancel_move").style.display = "block";
-        if (uih.animations.indexOf(animateOceanBattleMoveIntendedCoords) < 0)
-        {
-            uih.animations.push(animateOceanBattleMoveIntendedCoords);
-        }
-    },
-    endMove: function ()
-    {
-        for (var i = (uih.animations.length - 1); i >= 0; --i)
-        {
-            if (
-                uih.animations[i].type
-                &&
-                uih.animations[i].type === "ocean_battle"
-            )
-            {
-                uih.animations.splice(i, 1);
-            }
-        }
-        wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_MOVE"));
-        UI_OCEAN_BATTLE.render();
-    },
-    confirmMove: function ()
-    {
-        this.current_world_npc_id = UI_OCEAN_BATTLE.data.battle.turn_order_world_npcs[
-            UI_OCEAN_BATTLE.data.battle.turn_order
-        ];
-        this.current_world_npc = new GAME_DATA_WORLD_NPC(wasm.exports, [
-            this.current_world_npc_id
-        ]);
-        wasm.exports.move_world_npc_to(
-            this.current_world_npc_id,
-            this.data.original_coords.x,
-            this.data.original_coords.y
-        );
-        var intended_move_x = this.data.battle.intended_move_coords[0];
-        var intended_move_y = this.data.battle.intended_move_coords[1];
-        animateOceanBattleMove.reset();
-        animateOceanBattleMove.start.x = this.data.original_coords.x;
-        animateOceanBattleMove.start.x *= TILE_SIZE_SCALED;
-        animateOceanBattleMove.start.y = this.data.original_coords.y;
-        animateOceanBattleMove.start.y *= TILE_SIZE_SCALED;
-        animateOceanBattleMove.current.x = animateOceanBattleMove.start.x;
-        animateOceanBattleMove.current.y = animateOceanBattleMove.start.y;
-        animateOceanBattleMove.end.x = intended_move_x * TILE_SIZE_SCALED;
-        animateOceanBattleMove.end.y = intended_move_y * TILE_SIZE_SCALED;
-        if (uih.animations.indexOf(animateOceanBattleMove) < 0)
-        {
-            uih.animations.push(animateOceanBattleMove);
-        }
-        animateOceanBattleMove.callbacks.push(UI_OCEAN_BATTLE.endMove.bind(null));
-    },
-    cancelMove: function ()
-    {
-        this.data.battle.intended_move_coords[0] = wasm.exports.get_sentry();
-        this.data.battle.intended_move_coords[1] = wasm.exports.get_sentry();
-        var wnpcid = this.data.battle.turn_order_world_npcs[this.data.battle.turn_order];
-        wasm.exports.move_world_npc_to(
-            wnpcid,
-            this.data.original_coords.x,
-            this.data.original_coords.y
-        );
-        document.getElementById("ui_ocean_battle_confirm_move").style.display = "none";
-        document.getElementById("ui_ocean_battle_cancel_move").style.display = "none";
-        for (var i = (uih.animations.length - 1); i >= 0; --i)
-        {
-            if (
-                uih.animations[i].type
-                &&
-                uih.animations[i].type === "ocean_battle"
-            )
-            {
-                uih.animations.splice(i, 1);
-            }
-        }
-    },
-    highlightValidCannons: function()
-    {
-        if (uih.animations.indexOf(animateOceanBattleCannonCoords) < 0)
-        {
-            uih.animations.push(animateOceanBattleCannonCoords);
-        }
-        document.getElementById("ui_ocean_battle_cancel_cannons").style.display = "block";
-    },
-    setCannonsTo: function(x, y)
-    {
-        this.data.battle.intended_cannon_coords[0] = x;
-        this.data.battle.intended_cannon_coords[1] = y;
-        document.getElementById("ui_ocean_battle_confirm_cannons").style.display = "block";
-        document.getElementById("ui_ocean_battle_cancel_cannons").style.display = "block";
-        if (uih.animations.indexOf(animateOceanBattleCannonIntendedCoords) < 0)
-        {
-            uih.animations.push(animateOceanBattleCannonIntendedCoords);
-        }
-    },
-    confirmCannons: function (animation_done)
-    {
-        this.current_world_npc_id = UI_OCEAN_BATTLE.data.battle.turn_order_world_npcs[
-            UI_OCEAN_BATTLE.data.battle.turn_order
-        ];
-        this.current_world_npc = new GAME_DATA_WORLD_NPC(wasm.exports, [
-            this.current_world_npc_id
-        ]);
-        if (animation_done === undefined)
-        {
-            var intended_cannon_x = UI_OCEAN_BATTLE.data.battle.intended_cannon_coords[0];
-            var intended_cannon_y = UI_OCEAN_BATTLE.data.battle.intended_cannon_coords[1];
-            animateOceanBattleCannon.reset();
-            animateOceanBattleCannon.start.x = this.current_world_npc.position_x;
-            animateOceanBattleCannon.start.x *= TILE_SIZE_SCALED;
-            animateOceanBattleCannon.start.y = this.current_world_npc.position_y;
-            animateOceanBattleCannon.start.y *= TILE_SIZE_SCALED;
-            animateOceanBattleCannon.current.x = animateOceanBattleCannon.start.x;
-            animateOceanBattleCannon.current.y = animateOceanBattleCannon.start.y;
-            animateOceanBattleCannon.end.x = intended_cannon_x * TILE_SIZE_SCALED;
-            animateOceanBattleCannon.end.y = intended_cannon_y * TILE_SIZE_SCALED;
-            animateOceanBattleCannon.callbacks.push(UI_OCEAN_BATTLE.confirmCannons.bind(null, true));
-            uih.animations.push(animateOceanBattleCannon);
-        }
-        else if (animation_done === true)
-        {
-            // Note: If you're going to splice, do it in reverse so the indexes don't eff you up
-            for (var i = (uih.animations.length - 1); i >= 0; --i)
-            {
-                if (
-                    uih.animations[i].type
-                    &&
-                    uih.animations[i].type === "ocean_battle"
-                )
+                if (element.classList.contains("confirm"))
                 {
-                    uih.animations.splice(i, 1);
+                    element.classList.remove("confirm");
+                    element.innerHTML = "End Turn";
+                    wasm.exports.scene_ocean_battle_end_turn();
+                    CURRENT_SCENE.ACTIONS.end_turn();
+                }
+                else
+                {
+                    element.classList.add("confirm");
+                    element.innerHTML = "Are you sure?";
                 }
             }
-            wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_FIRE_CANNONS"));
-            UI_OCEAN_BATTLE.render();
-        }
-    },
-    cancelCannons: function ()
-    {
-        this.data.battle.intended_cannon_coords[0] = wasm.exports.get_sentry();
-        this.data.battle.intended_cannon_coords[1] = wasm.exports.get_sentry();
-        document.getElementById("ui_ocean_battle_confirm_cannons").style.display = "none";
-        document.getElementById("ui_ocean_battle_cancel_cannons").style.display = "none";
-        for (var i = (uih.animations.length - 1); i >= 0; --i)
-        {
-            if (
-                uih.animations[i].type
-                &&
-                uih.animations[i].type === "ocean_battle"
-            )
+            else
             {
-                uih.animations.splice(i, 1);
-            }
-        }
-    },
-    highlightValidBoarding: function()
-    {
-        if (uih.animations.indexOf(animateOceanBattleBoardingCoords) < 0)
-        {
-            uih.animations.push(animateOceanBattleBoardingCoords);
-        }
-    },
-    setBoardingTo: function(x, y)
-    {
-        this.data.battle.intended_boarding_coords[0] = x;
-        this.data.battle.intended_boarding_coords[1] = y;
-        document.getElementById("ui_ocean_battle_confirm_boarding").style.display = "block";
-        document.getElementById("ui_ocean_battle_cancel_boarding").style.display = "block";
-        if (uih.animations.indexOf(animateOceanBattleBoardingIntendedCoords) < 0)
-        {
-            uih.animations.push(animateOceanBattleBoardingIntendedCoords);
-        }
-    },
-    confirmBoarding: function (animation_done)
-    {
-        this.current_world_npc_id = UI_OCEAN_BATTLE.data.battle.turn_order_world_npcs[
-            UI_OCEAN_BATTLE.data.battle.turn_order
-        ];
-        this.current_world_npc = new GAME_DATA_WORLD_NPC(wasm.exports, [
-            this.current_world_npc_id
-        ]);
-        if (animation_done === undefined)
-        {
-            var intended_boarding_x = UI_OCEAN_BATTLE.data.battle.intended_boarding_coords[0];
-            var intended_boarding_y = UI_OCEAN_BATTLE.data.battle.intended_boarding_coords[1];
-            animateOceanBattleBoarding.reset();
-            animateOceanBattleBoarding.start.x = this.current_world_npc.position_x;
-            animateOceanBattleBoarding.start.x *= TILE_SIZE_SCALED;
-            animateOceanBattleBoarding.start.y = this.current_world_npc.position_y;
-            animateOceanBattleBoarding.start.y *= TILE_SIZE_SCALED;
-            animateOceanBattleBoarding.current.x = animateOceanBattleBoarding.start.x;
-            animateOceanBattleBoarding.current.y = animateOceanBattleBoarding.start.y;
-            animateOceanBattleBoarding.end.x = intended_boarding_x * TILE_SIZE_SCALED;
-            animateOceanBattleBoarding.end.y = intended_boarding_y * TILE_SIZE_SCALED;
-            animateOceanBattleBoarding.callbacks.push(UI_OCEAN_BATTLE.confirmBoarding.bind(null, true));
-            uih.animations.push(animateOceanBattleBoarding);
-        }
-        else if (animation_done === true)
-        {
-            // Note: If you're going to splice, do it in reverse so the indexes don't eff you up
-            for (var i = (uih.animations.length - 1); i >= 0; --i)
-            {
-                if (
-                    uih.animations[i].type
-                    &&
-                    uih.animations[i].type === "ocean_battle"
-                )
+                element.classList.remove("confirm");
+                element.innerHTML = "Running NPC Turn";
+                console.log("NPC TURN");
+                // wasm.exports.scene_ocean_battle_end_turn();
+                // first move
+                // cannon || board
+                var wnpcid = OCEAN_BATTLE.turn_order_world_npcs[
+                    OCEAN_BATTLE.turn_order
+                ];
+                var world_npc = world_npcs[wnpcid];
+                console.log(world_npc.id);
+                if (OCEAN_BATTLE.total_valid_move_coords > 0)
                 {
-                    uih.animations.splice(i, 1);
+                    var start_x = world_npc.position_x;
+                    var start_y = world_npc.position_y;
+                    var intended_move_x = OCEAN_BATTLE.intended_move_coords[0];
+                    var intended_move_y = OCEAN_BATTLE.intended_move_coords[1];
+                    animateOceanBattleMove.reset();
+                    animateOceanBattleMove.start.x = start_x;
+                    animateOceanBattleMove.start.y = start_y;
+                    animateOceanBattleMove.current.x = animateOceanBattleMove.start.x;
+                    animateOceanBattleMove.current.y = animateOceanBattleMove.start.y;
+                    animateOceanBattleMove.end.x = intended_move_x;
+                    animateOceanBattleMove.end.y = intended_move_y;
+                    console.log("About to move NPC animation");
+                    animateOceanBattleMove.callbacks.push(function () {
+                        console.log("?");
+                        if (OCEAN_BATTLE.total_valid_cannon_coords > 0)
+                        {
+                            // TODO: Do cannon
+                            // in callback, run end npc turn
+                            var wnpcid = OCEAN_BATTLE.turn_order_world_npcs[
+                                OCEAN_BATTLE.turn_order
+                            ];
+                            var world_npc = world_npcs[wnpcid];
+                            // if (OCEAN_BATTLE.total_valid_cannon_coords === 0) { return; }
+                            if (animateOceanBattleCannon.entity_id !== null) { return; }
+                            var start_x = world_npc.position_x;
+                            var start_y = world_npc.position_y;
+                            var intended_cannon_x = OCEAN_BATTLE.intended_cannon_coords[0];
+                            var intended_cannon_y = OCEAN_BATTLE.intended_cannon_coords[1];
+                            animateOceanBattleCannon.reset();
+                            animateOceanBattleCannon.start.x = start_x;
+                            animateOceanBattleCannon.start.y = start_y;
+                            animateOceanBattleCannon.current.x = animateOceanBattleCannon.start.x;
+                            animateOceanBattleCannon.current.y = animateOceanBattleCannon.start.y;
+                            animateOceanBattleCannon.end.x = intended_cannon_x;
+                            animateOceanBattleCannon.end.y = intended_cannon_y;
+                            animateOceanBattleCannon.callbacks.push(function () {
+                                console.log("NPC ATtack ended?");
+                                wasm.exports.scene_ocean_battle_run_npc_turn();
+                                element.innerHTML = "End Turn";
+                            });
+                            if (uih.animations.indexOf(animateOceanBattleCannon) < 0)
+                            {
+                                uih.animations.push(animateOceanBattleCannon);
+                            }
+                        }
+                        else if (OCEAN_BATTLE.total_valid_boarding_coords > 0)
+                        {
+                            // TODO: Do board
+                            // in callback, run end npc turn
+                        }
+                        else
+                        {
+                            console.log("TODO: I guess deal with move ending?");
+                            wasm.exports.scene_ocean_battle_run_npc_turn();
+                            element.innerHTML = "End Turn";
+                        }
+                    });
+                    if (uih.animations.indexOf(animateOceanBattleMove) < 0)
+                    {
+                        uih.animations.push(animateOceanBattleMove);
+                    }
+                }
+                else
+                {
+                    console.log("No moves for NPC?");
                 }
             }
-            wasm.exports.current_scene_take_action(GAME_STRINGS.indexOf("OCEAN_BATTLE_BOARD"));
-            UI_OCEAN_BATTLE.render();
-        }
-    },
-    cancelBoarding: function ()
-    {
-        this.data.battle.intended_boarding_coords[0] = wasm.exports.get_sentry();
-        this.data.battle.intended_boarding_coords[1] = wasm.exports.get_sentry();
-        document.getElementById("ui_ocean_battle_confirm_boarding").style.display = "none";
-        document.getElementById("ui_ocean_battle_cancel_boarding").style.display = "none";
-        for (var i = (uih.animations.length - 1); i >= 0; --i)
-        {
-            if (
-                uih.animations[i].type
-                &&
-                uih.animations[i].type === "ocean_battle"
-            )
-            {
-                uih.animations.splice(i, 1);
+        },
+    };
+    CURRENT_SCENE.STYLES = {
+        button_wrapper: {
+            default: ui_ocean_battle_button_wrapper_no_hover,
+            hover: ui_ocean_battle_button_wrapper_hover,
+        },
+        button_wrapper_two_columns: {
+            default: ui_ocean_battle_button_wrapper_two_columns_no_hover,
+            hover: ui_ocean_battle_button_wrapper_two_columns_hover,
+        },
+        button: {
+            default: function () {
+                return `
+                    width: ${TILE_SIZE_SCALED}px;
+                    height: ${TILE_SIZE_SCALED}px;
+                    background-image: var(--atlas-image);
+                    background-size: var(--bg-size);
+                `;
             }
         }
-    },
+    };
+    var position_x = VIEWPORT.width - 2;
+    var position_y = VIEWPORT.height - 4;
+    var button_wrapper_style = CURRENT_SCENE.STYLES.button_wrapper.default();
+    var button_wrapper_two_columns_style = CURRENT_SCENE.STYLES.button_wrapper_two_columns.default();
+    var menu_style = `
+        border: 1px solid black;
+        position: absolute;
+        top: ${position_y * TILE_SIZE_SCALED * zoom};
+        left: ${position_x * TILE_SIZE_SCALED * zoom};
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        z-index: 99;
+    `;
+    var button_style = CURRENT_SCENE.STYLES.button.default();
+    var html = `
+    <div style="${menu_style}">
+        <div style-id="button_wrapper" data-id="get_ship_details" style="${button_wrapper_style}">
+            <div style="${button_style} ${atlasToBGPosition("icon_telescope")}"></div>
+        </div>
+        <div style-id="button_wrapper" data-id="view_map" style="${button_wrapper_style}">
+            <div style="${button_style} ${atlasToBGPosition("icon_map")}"></div>
+        </div>
+        <div nav-down="move" style-id="button_wrapper" data-id="board" ${DEFAULT_INPUT_ACTIONS} style="${button_wrapper_style}">
+            <div style="${button_style} ${atlasToBGPosition("icon_gold_sword")}"></div>
+            <div class="hidden" style="${button_style} ${atlasToBGPosition("icon_thumbs_down")}"></div>
+        </div>
+        <div nav-down="view_fleet" style-id="button_wrapper" data-id="cannons" ${DEFAULT_INPUT_ACTIONS} style="${button_wrapper_style}">
+            <div style="${button_style} ${atlasToBGPosition("icon_cannon")}"></div>
+            <div class="hidden" style="${button_style} ${atlasToBGPosition("icon_thumbs_down")}"></div>
+        </div>
+        <div nav-up="board" style-id="button_wrapper" data-id="move" ${DEFAULT_INPUT_ACTIONS} style="${button_wrapper_style}">
+            <div style="${button_style} ${atlasToBGPosition("icon_steering_wheel")}"></div>
+            <div class="hidden" style="${button_style} ${atlasToBGPosition("icon_thumbs_down")}"></div>
+        </div>
+        <div style-id="button_wrapper" data-id="view_fleet" style="${button_wrapper_style}">
+            <div style="${button_style} ${atlasToBGPosition("icon_fleet")}"></div>
+        </div>
+        <!--<div style-id="button_wrapper" data-id="cancel" style="${button_wrapper_style}">
+            <div style="${button_style} ${atlasToBGPosition("icon_red_cancel")}"></div>
+            <div class="hidden" style="${button_style} ${atlasToBGPosition("icon_thumbs_down")}"></div>
+        </div>
+        <div style="${button_wrapper_style}">
+            <div style="${button_style} ${atlasToBGPosition("empty")}"></div>
+        </div>-->
+        <div style-id="button_wrapper_two_columns" data-id="end_turn" ${DEFAULT_INPUT_ACTIONS} style="${button_wrapper_two_columns_style}">
+            End Turn
+        </div>
+    </div>`;
+    // CURRENT_SCENE.DEFAULT_ELEMENT = "cancel";
+    CURRENT_SCENE.COMPONENT.updateHTML(html);
+    CURRENT_SCENE.RENDERED = 1;
 }

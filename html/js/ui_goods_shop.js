@@ -108,6 +108,8 @@ class UI_GOODS_SHOP extends HTMLElement
             }
         }
         console.log(response);
+        this.rendered = false;
+        this.render();
     }
     whichShip()
     {

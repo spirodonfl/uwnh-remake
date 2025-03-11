@@ -64,6 +64,24 @@ void console_log(const char* message)
     }
 }
 
+// NOTE: This is to appease WASM even though we don't actually use these
+typedef unsigned long size_t;
+void* memset(void* ptr, int value, size_t num) {
+    unsigned char* p = (unsigned char*)ptr;
+    for (size_t i = 0; i < num; i++) {
+        p[i] = (unsigned char)value;
+    }
+    return ptr;
+}
+void* memcpy(void* dest, const void* src, size_t n) {
+    unsigned char* d = (unsigned char*)dest;
+    const unsigned char* s = (const unsigned char*)src;
+    for (size_t i = 0; i < n; i++) {
+        d[i] = s[i];
+    }
+    return dest;
+}
+
 typedef union {
     int i;
     const char* s;
@@ -256,6 +274,10 @@ u32 max(u32 a, u32 b)
         } \
         update_storage_##LOWERSCORE##_used_slots(); \
         find_next_storage_##LOWERSCORE##_open_slot(); \
+    } \
+    bool is_storage_##LOWERSCORE##_slot_used(u32 id) \
+    { \
+        return storage_##LOWERSCORE.used[id] == true; \
     }
 
 #define ADD_STORAGE_FUNC(LOWERSCORE, UPPERSCORE) \
@@ -308,6 +330,7 @@ u32 get_max_inventories() { return MAX_INVENTORIES; }
 #define MAX_STATS 100
 #define MAX_SKILLS 100
 #define MAX_ENTITIES 100
+u32 get_max_entities() { return MAX_ENTITIES; }
 #define MAX_FLEETS 100
 u32 get_max_fleets() { return MAX_FLEETS; }
 #define MAX_FLEET_SHIPS 100
@@ -323,7 +346,8 @@ u32 get_max_worlds() { return MAX_WORLDS; }
 u32 get_max_layers() { return MAX_LAYERS; }
 #define MAX_WORLD_NPCS 1000
 u32 get_max_world_npcs() { return MAX_WORLD_NPCS; }
-#define MAX_WORLD_ENTITIES 10
+#define MAX_WORLD_ENTITIES 100
+u32 get_max_world_entities() { return MAX_WORLD_ENTITIES; }
 #define MAX_SHIPS 100
 u32 get_max_ships() { return MAX_SHIPS; }
 #define MAX_SHIP_MATERIALS 100
@@ -369,9 +393,9 @@ void fake_ocean_battle();
 u32 scene_blackjack(u32 action);
 u32 scene_general_shop(u32 action);
 u32 scene_goods_shop(u32 action);
-u32 scene_ocean_battle(u32 action);
+void scene_ocean_battle_initialize();
 u32 scene_shipyard(u32 action);
-u32 scene_dockyard(u32 action);
+u32 scene_dockyard_initialize();
 u32 scene_npc_rvice(u32 action);
 u32 scene_npc_lafolie(u32 action);
 u32 scene_npc_nakor(u32 action);
@@ -1381,8 +1405,6 @@ typedef struct __attribute__((packed))
     u32 is_solid;
     u32 interaction_on_step_over;
     u32 interaction_scene;
-    u32 position_x;
-    u32 position_y;
 } DATA_ENTITY;
 /** EXPORT TO JS **/
 u32 storage_entity_used_slots[MAX_ENTITIES];
@@ -1398,10 +1420,8 @@ void assign_storage_entity(u32 id, DATA_ENTITY* source)
     storage_entity.data[id].is_solid = source->is_solid;
     storage_entity.data[id].interaction_on_step_over = source->interaction_on_step_over;
     storage_entity.data[id].interaction_scene = source->interaction_scene;
-    storage_entity.data[id].position_x = source->position_x;
-    storage_entity.data[id].position_y = source->position_y;
 }
-ADD_STORAGE_FUNC(entity, DATA_ENTITY    )
+ADD_STORAGE_FUNC(entity, DATA_ENTITY)
 void clear_all_entities()
 {
     for (u32 i = 0; i < MAX_ENTITIES; ++i)
@@ -1409,6 +1429,44 @@ void clear_all_entities()
         free_storage_entity_slot(i);
     }
 }
+
+/** EXPORT TO JS **/
+typedef struct __attribute__((packed))
+{
+    u32 id;
+    u32 name_id;
+    u32 entity_id;
+    u32 position_x;
+    u32 position_y;
+    u32 direction;
+    u32 type_id;
+} DATA_WORLD_ENTITY;
+/** EXPORT TO JS **/
+u32 storage_world_entity_used_slots[MAX_WORLD_ENTITIES];
+u32* get_storage_world_entity_used_slots_ptr()
+{ return (u32*)&storage_world_entity_used_slots[0]; }
+STORAGE_STRUCT(world_entity, DATA_WORLD_ENTITY, data_world_entity, MAX_WORLD_ENTITIES)
+FIND_STORAGE_BY_NAME_ID_FUNC(world_entity, DATA_WORLD_ENTITY, MAX_WORLD_ENTITIES)
+void clear_all_world_entities()
+{
+    for (u32 i = 0; i < MAX_WORLD_ENTITIES; ++i)
+    {
+        CLEAR_STRUCT(&storage_world_entity.data[i], SENTRY);
+        free_storage_world_entity_slot(i);
+    }
+}
+void assign_storage_world_entity(u32 id, DATA_WORLD_ENTITY* source)
+{
+    storage_world_entity.data[id].id = id;
+    source->id = id;
+    storage_world_entity.data[id].name_id = source->name_id;
+    storage_world_entity.data[id].entity_id = source->entity_id;
+    storage_world_entity.data[id].position_x = source->position_x;
+    storage_world_entity.data[id].position_y = source->position_y;
+    storage_world_entity.data[id].direction = source->direction;
+    storage_world_entity.data[id].type_id = source->type_id;
+}
+ADD_STORAGE_FUNC(world_entity, DATA_WORLD_ENTITY)
 
 /** EXPORT TO JS **/
 typedef struct __attribute__((packed))
@@ -1820,7 +1878,7 @@ enum GameStrings
     NPC_TYPE_HUMAN, NPC_TYPE_SHIP, NPC_TYPE_MONSTER,
 
     // Worlds
-    WORLD_DINGUS_LAND, WORLD_ATHENS, WORLD_GLOBE_1,
+    WORLD_DINGUS_LAND, WORLD_ATHENS, WORLD_GLOBE_1, WORLD_MURICA,
 
     // Base Ships
     BASE_SHIP_BALSA, BASE_SHIP_HANSA_COG, BASE_SHIP_LIGHT_GALLEY,
@@ -1852,6 +1910,9 @@ enum GameStrings
     // Errors
     ERROR_GENERAL, ERROR_NOT_CORRECT_SCENE, ERROR_NOT_ENOUGH_GOLD,
 
+    // General Scene Errors
+    ERROR_SCENE_ALREADY_INITIALIZED,
+
     // Blackjack Errors
     ERROR_BLACKJACK_GAME_OVER, ERROR_BLACKJACK_BET_NOT_RIGHT,
     ERROR_BLACKJACK_DEALER_ALREADY_ACTIONED,
@@ -1880,8 +1941,10 @@ enum GameStrings
     ERROR_SHIPYARD_NO_SPACE_REMODEL_VALUES,
 
     // Dockyard Errors
+    ERROR_DOCKYARD_CANNOT_SET_SAIL,
     ERROR_DOCKYARD_NOT_ENOUGH_GOLD,
     ERROR_DOCKYARD_SHIP_NOT_ENOUGH_CARGO_SPACE,
+    ERROR_DOCKYARD_SHIP_NOT_IN_PLAYER_FLEET,
 
     // Goods Shop Errors
     ERROR_GOODS_SHOP_NOT_ENOUGH_GOLD,
@@ -1924,15 +1987,26 @@ enum GameStrings
 
     // Entities
     ENTITY_START_SAILING,
+    ENTITY_CANNONBALL,
+    ENTITY_SWORD,
+    ENTITY_MOVEMENT,
+    ENTITY_CANNON_TARGET,
+    ENTITY_BOARDING_TARGET,
+    ENTITY_VIEW_MORE_TARGET,
+    ENTITY_CONFIRMATION,
+    ENTITY_PORTAL,
+    ENTITY_PORTAL_ATHENS,
+    ENTITY_PORTAL_MURICA,
+    ENTITY_PORTAL_GLOBE_1,
 
     // Other
     START_SAILING,
 
     // Loaders
-    LOAD_PORT_ATHENS,
+    LOAD_PORT_ATHENS, LOAD_PORT_MURICA,
 
     // Ports
-    PORT_ATHENS,
+    PORT_ATHENS, PORT_MURICA,
 
     GAME_STRINGS_COUNT,
 };
@@ -1997,11 +2071,9 @@ u32 current_scene_take_action(u32 action)
         case SCENE_SHIPYARD:
             return scene_shipyard(action);
         case SCENE_DOCKYARD:
-            return scene_dockyard(action);
+            return scene_dockyard_initialize();
         case SCENE_BANK:
             return scene_bank(action);
-        case SCENE_OCEAN_BATTLE:
-            return scene_ocean_battle(action);
         default:
             console_log("[I] Possibly missing scene map!");
             break;
@@ -2014,19 +2086,20 @@ u32 current_scene_take_action(u32 action)
 // -----------------------------------------------------------------------------
 u32 check_if_player_stepped_on_entity(u32 player_id)
 {
-    for (u32 i = 0; i < MAX_GLOBAL_ENTITIES; ++i)
+    for (u32 i = 0; i < MAX_WORLD_ENTITIES; ++i)
     {
+        u32 entity_id = storage_world_entity.data[i].entity_id;
         if (
-            storage_entity.data[i].position_x == get_player_in_world_x(player_id)
+            storage_world_entity.data[i].position_x == get_player_in_world_x(player_id)
             &&
-            storage_entity.data[i].position_y == get_player_in_world_y(player_id)
+            storage_world_entity.data[i].position_y == get_player_in_world_y(player_id)
             &&
-            storage_entity.data[i].is_interactable == true
+            storage_entity.data[entity_id].is_interactable == true
             &&
-            storage_entity.data[i].interaction_on_step_over == true
+            storage_entity.data[entity_id].interaction_on_step_over == true
         )
         {
-            if (storage_entity.data[i].interaction_scene == START_SAILING)
+            if (storage_entity.data[entity_id].interaction_scene == START_SAILING)
             {
                 generate_world(WORLD_GLOBE_1);
             }
@@ -2037,19 +2110,24 @@ u32 check_if_player_stepped_on_entity(u32 player_id)
 }
 u32 check_if_player_triggered_entity(u32 x, u32 y)
 {
-    for (u32 i = 0; i < MAX_GLOBAL_ENTITIES; ++i)
+    for (u32 i = 0; i < MAX_WORLD_ENTITIES; ++i)
     {
+        u32 entity_id = storage_world_entity.data[i].entity_id;
         if (
-            storage_entity.data[i].position_x == x
+            storage_world_entity.data[i].position_x == x
             &&
-            storage_entity.data[i].position_y == y
+            storage_world_entity.data[i].position_y == y
             &&
-            storage_entity.data[i].is_interactable == true
+            storage_entity.data[entity_id].is_interactable == true
         )
         {
-            if (storage_entity.data[i].interaction_scene == LOAD_PORT_ATHENS)
+            if (storage_entity.data[entity_id].interaction_scene == LOAD_PORT_ATHENS)
             {
                 generate_world(WORLD_ATHENS);
+            }
+            if (storage_entity.data[entity_id].interaction_scene == LOAD_PORT_MURICA)
+            {
+                generate_world(WORLD_MURICA);
             }
             return true;
         }
@@ -2093,48 +2171,56 @@ u32 get_random_number(u32 min, u32 max)
     // Take upper bits for better distribution
     return min + (xorshift_state >> 16) % range;
 }
-// Note: This one sucks, do not use
-// u32 get_random_number(u32 min, u32 max)
-// {
-//     // Linear Congruental Generator
-//     const u32 a = 1103515245;
-//     const u32 c = tick_counter;
-//     // rng_state = init_random(tick_counter);
-//     rng_state = (a * rng_state + c) & 0x7fffffff;
-//     u32 range = max - min + 1;
-//     return min + ((rng_state >> 16) & range);
-// }
-// Note: This one works but is pretty pattern heavy
-// u32 get_random_number(u32 min, u32 max)
-// {
-//     u32 rng_state = init_random(tick_counter);
-//     u32 adjusted_max = max;
-//     if (min == max)
-//     {
-//         adjusted_max = 100;
-//     }
-//     u32 range = adjusted_max - min + 1;
-//     u32 result = min + (rng_state % range);
-    
-//     if (tick_counter == UINT32_MAX)
-//     {
-//         tick_counter = 1;
-//     }
-//     else
-//     {
-//         tick_counter++;
-//     }
-    
-//     return result;
-// }
+
 
 // -----------------------------------------------------------------------------
-// - OTHER
+// - SHIP FUNCTIONS
 // -----------------------------------------------------------------------------
+void apply_base_ship_to_ship(u32 ship_id, u32 base_ship_id)
+{
+    DATA_SHIP* ship = &storage_ship.data[ship_id];
+    DATA_BASE_SHIP* base_ship = &storage_base_ship.data[base_ship_id];
+    ship->name_id = base_ship->name_id;
+    ship->base_ship_id = base_ship_id;
+    ship->tacking = base_ship->tacking;
+    ship->power = base_ship->power;
+    ship->speed = base_ship->speed;
+    ship->durability = base_ship->durability;
+    ship->price = base_ship->base_price;
+    ship->capacity = base_ship->max_capacity;
+}
+void apply_material_to_ship(u32 ship_id, u32 material_id)
+{
+    DATA_SHIP* ship = &storage_ship.data[ship_id];
+    DATA_BASE_SHIP* base_ship = &storage_base_ship.data[ship->base_ship_id];
+    DATA_SHIP_MATERIAL* material = &storage_ship_material.data[material_id];
+    if (material_id > base_ship->top_material_id)
+    {
+        console_log("[E] Material is not compatible with ship");
+        return;
+    }
+    ship->material_id = material_id;
+    ship->capacity += material->mod_capacity;
+    ship->tacking += material->mod_tacking;
+    ship->power += material->mod_power;
+    ship->speed += material->mod_speed;
+    ship->durability += material->mod_durability;
+}
 u32 get_ship_available_cargo_space(u32 ship_id)
 {
     DATA_SHIP* ship = get_data_ship(ship_id);
     return (ship->cargo_space - ship->total_cargo_goods);
+}
+u32 get_ship_max_cargo_space(u32 ship_id)
+{
+    DATA_SHIP* ship = get_data_ship(ship_id);
+    return ship->cargo_space;
+}
+u32 get_ship_used_cargo_space(u32 ship_id)
+{
+    u32 max = get_ship_max_cargo_space(ship_id);
+    u32 available = get_ship_available_cargo_space(ship_id);
+    return max - available;
 }
 u32 add_good_to_ship(u32 good_id, u32 qty, u32 ship_id)
 {
@@ -2271,6 +2357,9 @@ u32 add_cannonballs_to_ship(u32 qty, u32 ship_id)
     return add_good_to_ship(good_id, qty, ship_id);
 }
 
+// -----------------------------------------------------------------------------
+// - PLAYER FUNCTIONS
+// -----------------------------------------------------------------------------
 u32 player_menu_previous_mode;
 void enter_player_menu()
 {
@@ -2282,6 +2371,54 @@ void exit_player_menu()
 {
     current.game_mode = player_menu_previous_mode;
     current.updated_state = UPDATED_STATE_SCENE;
+}
+
+// -----------------------------------------------------------------------------
+// - FLEET FUNCTIONS
+// -----------------------------------------------------------------------------
+u32 get_fleet_total_food(u32 fleet_id)
+{
+    u32 good_id = find_storage_good_by_name_id(GOOD_FOOD);
+    return get_good_qty_from_fleet_ships(good_id, fleet_id);
+}
+u32 get_fleet_total_water(u32 fleet_id)
+{
+    u32 good_id = find_storage_good_by_name_id(GOOD_WATER);
+    return get_good_qty_from_fleet_ships(good_id, fleet_id);
+}
+u32 get_fleet_total_cannonballs(u32 fleet_id)
+{
+    u32 good_id = find_storage_good_by_name_id(GOOD_CANNONBALLS);
+    return get_good_qty_from_fleet_ships(good_id, fleet_id);
+}
+bool can_fleet_set_sail(u32 fleet_id)
+{
+    u32 food = get_fleet_total_food(fleet_id);
+    u32 water = get_fleet_total_water(fleet_id);
+    // TODO: Also update this to something along the lines of
+    // all crew in all fleet ships * 2 - food and water = days at sea
+    // and if days at sea is 0 or maybe even 1 then return false
+    // Note: an enhanced version of this would be to account for the idea that
+    // food and water can come in crates or barrels so they can handle more
+    // crew members per day than just 1
+    return food > 0 && water > 0;
+}
+u32 get_fleet_sail_requirements(u32 fleet_id)
+{
+    // TODO: Not enough food
+    // TODO: Not enough water
+    return SENTRY;
+}
+bool is_ship_id_in_fleet(u32 ship_id, u32 fleet_id)
+{
+    DATA_FLEET* fleet = get_data_fleet(fleet_id);
+    for (u32 f = 0; f < MAX_FLEET_SHIPS; ++f)
+    {
+        if (fleet->ship_ids[f] == SENTRY) { continue; }
+        u32 fleet_ship_id = fleet->ship_ids[f];
+        if (fleet_ship_id == ship_id) { return true; }
+    }
+    return false;
 }
 
 // -----------------------------------------------------------------------------
@@ -2337,11 +2474,11 @@ void handle_interaction_scene(u32 interaction_scene, u32 world_npc_id)
         scene_shipyard(ACTION);
         break;
     case SCENE_DOCKYARD:
-        scene_dockyard(ACTION);
+        scene_dockyard_initialize();
         break;
     case SCENE_OCEAN_FAKE_BATTLE:
         fake_ocean_battle();
-        scene_ocean_battle(ACTION);
+        scene_ocean_battle_initialize();
         break;
     case SCENE_NPC_RVICE:
         scene_npc_rvice(ACTION);
@@ -2572,40 +2709,6 @@ void handle_input(u32 input)
 }
 
 // -----------------------------------------------------------------------------
-// - SHIPS
-// -----------------------------------------------------------------------------
-void apply_base_ship_to_ship(u32 ship_id, u32 base_ship_id)
-{
-    DATA_SHIP* ship = &storage_ship.data[ship_id];
-    DATA_BASE_SHIP* base_ship = &storage_base_ship.data[base_ship_id];
-    ship->name_id = base_ship->name_id;
-    ship->base_ship_id = base_ship_id;
-    ship->tacking = base_ship->tacking;
-    ship->power = base_ship->power;
-    ship->speed = base_ship->speed;
-    ship->durability = base_ship->durability;
-    ship->price = base_ship->base_price;
-    ship->capacity = base_ship->max_capacity;
-}
-void apply_material_to_ship(u32 ship_id, u32 material_id)
-{
-    DATA_SHIP* ship = &storage_ship.data[ship_id];
-    DATA_BASE_SHIP* base_ship = &storage_base_ship.data[ship->base_ship_id];
-    DATA_SHIP_MATERIAL* material = &storage_ship_material.data[material_id];
-    if (material_id > base_ship->top_material_id)
-    {
-        console_log("[E] Material is not compatible with ship");
-        return;
-    }
-    ship->material_id = material_id;
-    ship->capacity += material->mod_capacity;
-    ship->tacking += material->mod_tacking;
-    ship->power += material->mod_power;
-    ship->speed += material->mod_speed;
-    ship->durability += material->mod_durability;
-}
-
-// -----------------------------------------------------------------------------
 // - WORLDS & LAYERS
 // -----------------------------------------------------------------------------
 u32 are_coordinates_blocked(u32 x, u32 y)
@@ -2633,7 +2736,7 @@ u32 are_coordinates_blocked(u32 x, u32 y)
         u32 layer_value = layer_get_value(block_layer_id, x, y);
         if (layer_value > 0 && layer_value != SENTRY)
         {
-            console_log("Block layer block");
+            // console_log("Block layer block");
             return 1;
         }
     }
@@ -2644,7 +2747,7 @@ void generate_world(u32 world_name_id)
 {
     clear_all_layers();
     clear_all_world_npcs();
-    clear_all_entities();
+    clear_all_world_entities();
     for (u32 i = 0; i < MAX_SHIP_PREFABS; ++i)
     {
         if (Scene_Shipyard.ships_prefab[i] != SENTRY)
@@ -2667,6 +2770,9 @@ void generate_world(u32 world_name_id)
     {
         storage_captain.data[i].world_npc_id = SENTRY;
     }
+    // TODO: If you are in Athens (or other ports) and there's a general shop
+    // then we need to clear the inventory items (free them) when we change worlds
+    // otherwise they stick around and the inventory items storage maxes out
 
     u32 world_width;
     u32 world_height;
@@ -2678,6 +2784,81 @@ void generate_world(u32 world_name_id)
 
     switch (world_name_id)
     {
+    case WORLD_MURICA:
+        previous_game_mode = current.game_mode;
+        current.game_mode = GAME_MODE_SAILING;
+        set_current_world(find_storage_world_by_name_id(WORLD_MURICA));
+        world_width = current_world->width;
+        world_height = current_world->height;
+        layer = pull_data_layer();
+        layer->name_id = LAYER_BACKGROUND;
+        layer->width = world_width;
+        layer->height = world_height;
+        layer->same_value = 1;
+        add_layer_to_world(layer->id, current.world);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_NPC;
+        layer->width = world_width;
+        layer->height = world_height;
+        add_layer_to_world(layer->id, current.world);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_ONE;
+        layer->width = world_width;
+        layer->height = world_height;
+        add_layer_to_world(layer->id, current.world);
+        layer_set_value(layer->id, 0, 0, 33);
+        layer_set_value(layer->id, 7, 0, 35);
+        layer_set_value(layer->id, 0, 1, 33);
+        layer_set_value(layer->id, 0, 2, 33);
+        layer_set_value(layer->id, 0, 3, 33);
+        layer_set_value(layer->id, 0, 4, 33);
+        for (u32 column = 1; column < 7; ++column)
+        {
+            layer_set_value(layer->id, column, 0, 34);
+        }
+        for (u32 column = 1; column < 7; ++column)
+        {
+            layer_set_value(layer->id, column, 1, 34);
+            layer_set_value(layer->id, column, 2, 34);
+            layer_set_value(layer->id, column, 3, 34);
+            layer_set_value(layer->id, column, 4, 34);
+        }
+        layer_set_value(layer->id, 7, 1, 35);
+        layer_set_value(layer->id, 7, 2, 35);
+        layer_set_value(layer->id, 7, 3, 35);
+        layer_set_value(layer->id, 7, 4, 35);
+        layer_set_value(layer->id, 0, 5, 39);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_TWO;
+        layer->width = world_width;
+        layer->height = world_height;
+        add_layer_to_world(layer->id, current.world);
+        layer = pull_data_layer();
+        layer->name_id = LAYER_BLOCK;
+        layer->width = world_width;
+        layer->height = world_height;
+        layer->is_block = true;
+        add_layer_to_world(layer->id, current.world);
+
+        npc_id = get_player_npc_id(0);
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
+        world_npc->captain_id = players[0];
+        world_npc->position_x = 0;
+        world_npc->position_y = 0;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->is_captain = true;
+        world_npc->is_player = true;
+        // So we know who the first player is in the world directly
+        storage_captain.data[0].world_npc_id = world_npc->id;
+        ++storage_world.data[current.world].total_npcs;
+        update_npc_layer(world_npc->id);
+
+        current.game_mode = GAME_MODE_IN_PORT;
+        current.updated_state = UPDATED_STATE_WORLD;
+        break;
     case WORLD_GLOBE_1:
         previous_game_mode = current.game_mode;
         current.game_mode = GAME_MODE_SAILING;
@@ -2702,8 +2883,41 @@ void generate_world(u32 world_name_id)
         layer->height = world_height;
         add_layer_to_world(layer->id, current.world);
         // athens I guess
-        layer_set_value(layer->id, 3, 3, 1);
-        layer_set_value(layer->id, 4, 3, 1);
+        for (u32 x = 3; x < 9; ++x)
+        {
+            layer_set_value(layer->id, x, 2, 1);
+        }
+        for (u32 x = 3; x < 9; ++x)
+        {
+            layer_set_value(layer->id, x, 3, 1);
+        }
+        for (u32 x = 3; x < 7; ++x)
+        {
+            layer_set_value(layer->id, x, 4, 2);
+        }
+        // top right corner
+        layer_set_value(layer->id, 7, 4, 3);
+        // left edge
+        layer_set_value(layer->id, 2, 2, 4);
+        layer_set_value(layer->id, 2, 3, 4);
+        // top edge
+        for (u32 x = 3; x < 9; ++x)
+        {
+            layer_set_value(layer->id, x, 1, 5);
+        }
+        for (u32 y = 4; y < 11; ++y)
+        {
+            layer_set_value(layer->id, 8, y, 1);
+        }
+        for (u32 y = 4; y < 11; ++y)
+        {
+            layer_set_value(layer->id, 9, y, 1);
+        }
+        // right edge
+        for (u32 y = 4; y < 11; ++y)
+        {
+            layer_set_value(layer->id, 10, y, 6);
+        }
         layer = pull_data_layer();
         layer->name_id = LAYER_TWO;
         layer->width = world_width;
@@ -2711,6 +2925,15 @@ void generate_world(u32 world_name_id)
         add_layer_to_world(layer->id, current.world);
         // town (athens)
         layer_set_value(layer->id, 4, 3, 1);
+        // town (murica)
+        layer_set_value(layer->id, 8, 5, 1);
+        // turd
+        layer_set_value(layer->id, 5, 3, 2);
+        // tree
+        layer_set_value(layer->id, 6, 3, 3);
+        layer_set_value(layer->id, 3, 2, 3);
+        layer_set_value(layer->id, 4, 2, 3);
+        layer_set_value(layer->id, 6, 2, 3);
         layer = pull_data_layer();
         layer->name_id = LAYER_BLOCK;
         layer->width = world_width;
@@ -2718,8 +2941,14 @@ void generate_world(u32 world_name_id)
         layer->is_block = true;
         add_layer_to_world(layer->id, current.world);
         // blocker for land around athens
-        layer_set_value(layer->id, 3, 3, 1);
-        layer_set_value(layer->id, 4, 3, 1);
+        for (u32 x = 3; x < 9; ++x)
+        {
+            layer_set_value(layer->id, x, 2, 1);
+        }
+        for (u32 x = 3; x < 9; ++x)
+        {
+            layer_set_value(layer->id, x, 3, 1);
+        }
 
         npc_id = get_player_npc_id(0);
         world_npc = pull_data_world_npc();
@@ -2737,12 +2966,34 @@ void generate_world(u32 world_name_id)
         ++storage_world.data[current.world].total_npcs;
         update_npc_layer(world_npc->id);
 
-        DATA_ENTITY* entity = pull_data_entity();
-        entity->name_id = PORT_ATHENS;
-        entity->is_interactable = true;
-        entity->interaction_scene = LOAD_PORT_ATHENS;
-        entity->position_x = 4;
-        entity->position_y = 3;
+        // NPC NAKOR CAPTIN
+        npc_id = find_storage_npc_by_name_id(NPC_NAKOR);
+        world_npc = pull_data_world_npc();
+        world_npc->name_id = storage_npc.data[npc_id].name_id;
+        world_npc->type_id = storage_npc.data[npc_id].type_id;
+        world_npc->npc_id = npc_id;
+        world_npc->captain_id = find_storage_captain_by_name_id(NPC_NAKOR);
+        world_npc->position_x = 0;
+        world_npc->position_y = 5;
+        world_npc->direction = DIRECTION_DOWN;
+        world_npc->is_captain = true;
+        storage_captain.data[world_npc->captain_id].world_npc_id = world_npc->id;
+        ++storage_world.data[current.world].total_npcs;
+        update_npc_layer(world_npc->id);
+
+        u32 portal_athens_id = find_storage_entity_by_name_id(ENTITY_PORTAL_ATHENS);
+        DATA_WORLD_ENTITY* world_entity = pull_data_world_entity();
+        world_entity->name_id = ENTITY_PORTAL_ATHENS;
+        world_entity->entity_id = portal_athens_id;
+        world_entity->position_x = 4;
+        world_entity->position_y = 3;
+
+        u32 portal_murica_id = find_storage_entity_by_name_id(ENTITY_PORTAL_MURICA);
+        world_entity = pull_data_world_entity();
+        world_entity->name_id = ENTITY_PORTAL_MURICA;
+        world_entity->entity_id = portal_murica_id;
+        world_entity->position_x = 8;
+        world_entity->position_y = 5;
 
         current.updated_state = UPDATED_STATE_WORLD;
         break;
@@ -3145,15 +3396,6 @@ void generate_world(u32 world_name_id)
         world_npc->is_interactable = true;
         ++storage_world.data[current.world].total_npcs;
         update_npc_layer(world_npc->id);
-        // Note: Keeping this here temporarily for future reference
-        // u32 entity_id = pull_storage_entity_next_open_slot();
-        // DATA_ENTITY* entity = get_data_entity(entity_id);
-        // entity->name_id = ENTITY_START_SAILING;
-        // entity->is_interactable = true;
-        // entity->interaction_on_step_over = true;
-        // entity->interaction_scene = START_SAILING;
-        // entity->position_x = 6;
-        // entity->position_y = 11;
 
         // inventory
         inventory = pull_data_inventory();
@@ -3188,6 +3430,7 @@ void generate_world(u32 world_name_id)
         ++storage_world.data[current.world].total_npcs;
         update_npc_layer(world_npc->id);
 
+        current.game_mode = GAME_MODE_IN_PORT;
         current.updated_state = UPDATED_STATE_WORLD;
         break;
     default:
@@ -3195,6 +3438,67 @@ void generate_world(u32 world_name_id)
         console_log_format("Could not find world %d", args, 1);
     }
 }
+
+
+// -----------------------------------------------------------------------------
+// - WORLD ENTITIES
+// -----------------------------------------------------------------------------
+void move_world_entity_to(u32 world_entity_id, u32 x, u32 y)
+{
+    // TODO: Check for blockage but you have to see if an entity can ignore block
+    // for now make it ignore all blocks by default
+    storage_world_entity.data[world_entity_id].position_x = x;
+    storage_world_entity.data[world_entity_id].position_y = y;
+}
+void move_world_entity_up(u32 world_entity_id)
+{
+    u32 current_x = storage_world_entity.data[world_entity_id].position_x;
+    u32 current_y = storage_world_entity.data[world_entity_id].position_y;
+    u32 intended_y = current_y - 1;
+    if (current_y > 0)
+    {
+        storage_world_entity.data[world_entity_id].position_y = intended_y;
+    }
+    storage_world_entity.data[world_entity_id].direction = DIRECTION_UP;
+    current.updated_state = UPDATED_STATE_NPCS;
+}
+void move_world_entity_down(u32 world_entity_id)
+{
+    u32 current_x = storage_world_entity.data[world_entity_id].position_x;
+    u32 current_y = storage_world_entity.data[world_entity_id].position_y;
+    u32 intended_y = current_y + 1;
+    if (intended_y < storage_world.data[current.world].height)
+    {
+        storage_world_entity.data[world_entity_id].position_y = intended_y;
+    }
+    storage_world_entity.data[world_entity_id].direction = DIRECTION_DOWN;
+    current.updated_state = UPDATED_STATE_NPCS;
+}
+void move_world_entity_left(u32 world_entity_id)
+{
+    u32 current_x = storage_world_entity.data[world_entity_id].position_x;
+    u32 current_y = storage_world_entity.data[world_entity_id].position_y;
+    u32 intended_x = current_x - 1;
+    if (current_x > 0)
+    {
+        storage_world_entity.data[world_entity_id].position_x = intended_x;
+    }
+    storage_world_entity.data[world_entity_id].direction = DIRECTION_LEFT;
+    current.updated_state = UPDATED_STATE_NPCS;
+}
+void move_world_entity_right(u32 world_entity_id)
+{
+    u32 current_x = storage_world_entity.data[world_entity_id].position_x;
+    u32 current_y = storage_world_entity.data[world_entity_id].position_y;
+    u32 intended_x = current_x + 1;
+    if (intended_x < storage_world.data[current.world].width)
+    {
+        storage_world_entity.data[world_entity_id].position_x = intended_x;
+    }
+    storage_world_entity.data[world_entity_id].direction = DIRECTION_RIGHT;
+    current.updated_state = UPDATED_STATE_NPCS;
+}
+
 
 // -----------------------------------------------------------------------------
 // - WORLD NPCS
@@ -3374,6 +3678,11 @@ void move_player_down(u32 player_id)
     u32 world_npc_id = get_player_in_world(player_id);
     move_world_npc_down(world_npc_id);
 }
+u32 get_player_fleet_id(u32 player_id)
+{
+    u32 captain_id = players[player_id];
+    return storage_captain.data[captain_id].general_of_fleet_id;
+}
 
 // -----------------------------------------------------------------------------
 // GENERAL GAME FUNCTIONS
@@ -3436,9 +3745,48 @@ void tick()
         {
             move_player_right(0);
         }
+
+        for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
+        {
+            // This would be the player which we're already dealing with
+            if (i == world_npc_id) { continue; }
+            // get_random_number(0, i + 1);
+            if (storage_world_npc.data[i].id == SENTRY) { continue; }
+            if (storage_world_npc.data[i].captain_id == SENTRY) { continue; }
+            u32 direction = get_random_number(0, 5);
+            switch (direction)
+            {
+            case 0:
+                move_world_npc_down(i);
+                break;
+            case 1:
+                move_world_npc_left(i);
+                break;
+            case 2:
+                move_world_npc_up(i);
+                break;
+            case 3:
+                move_world_npc_right(i);
+                break;
+            default:
+                // console_log("[I] NOT MOVING");
+                break;
+            }
+        }
     }
 }
 
+u32 initialize_entity(u32 name_id)
+{
+    DATA_ENTITY entity;
+    CLEAR_STRUCT(&entity, SENTRY);
+    // u32 is_interactable;
+    // u32 is_solid;
+    // u32 interaction_on_step_over;
+    // u32 interaction_scene;
+    entity.name_id = name_id;
+    return add_storage_entity(&entity, false);
+}
 u32 initialize_npc(u32 name_id, u32 type_id)
 {
     DATA_NPC npc;
@@ -3615,6 +3963,7 @@ u32 initialize_captain(u32 name_id, u32 type_id, u32 inventory_name_id)
         new_ship->power = 103;
         new_ship->speed = 333;
         new_ship->crew = 50;
+        new_ship->durability = 300;
         new_ship->total_cargo_goods = 0;
         fleet_ship_id = initialize_fleet_ship(BASE_SHIP_BALSA, ship_id);
         add_fleet_ship_to_fleet(fleet_ship_id, fleet_id);
@@ -3628,6 +3977,11 @@ void initialize_game()
     // NOTE: can do initialization like
     // SCENE some_scene = {.id=0,.flags={SENTRY}...}
     // to initialize arrays as all SENTRY values if you want to
+    // __builtin_unreachable();
+    // __builtin_trap();
+    // if (__builtin_expect(1, 0)) {
+    //     __builtin_unreachable();
+    // }
 
     tick_counter = 1;
     current.game_mode = GAME_MODE_EMPTY;
@@ -3706,6 +4060,7 @@ void initialize_game()
     initialize_world(WORLD_ATHENS, MAX_WORLD_WIDTH, MAX_WORLD_HEIGHT);
     initialize_world(WORLD_DINGUS_LAND, MAX_WORLD_WIDTH, MAX_WORLD_HEIGHT);
     initialize_world(WORLD_GLOBE_1, MAX_WORLD_WIDTH, MAX_WORLD_HEIGHT);
+    initialize_world(WORLD_MURICA, MAX_WORLD_WIDTH, MAX_WORLD_HEIGHT);
 
     clear_all_ship_materials();
     DATA_SHIP_MATERIAL new_ship_material;
@@ -4223,6 +4578,26 @@ void initialize_game()
     initialize_npc(NPC_KRAKEN, NPC_TYPE_MONSTER);
     // Ships
     initialize_npc(NPC_SHIP, NPC_TYPE_SHIP);
+
+    // Note: Initializing entities at the bottom in case you gotta reference stuff
+    // that's already been created above. Not sure if this is needed yet.
+    initialize_entity(ENTITY_CANNONBALL);
+    initialize_entity(ENTITY_SWORD);
+    initialize_entity(ENTITY_MOVEMENT);
+    initialize_entity(ENTITY_CANNON_TARGET);
+    initialize_entity(ENTITY_BOARDING_TARGET);
+    initialize_entity(ENTITY_VIEW_MORE_TARGET);
+    initialize_entity(ENTITY_CONFIRMATION);
+    u32 portal_entity_id = initialize_entity(ENTITY_PORTAL_ATHENS);
+    storage_entity.data[portal_entity_id].is_interactable = true;
+    storage_entity.data[portal_entity_id].is_solid = false;
+    storage_entity.data[portal_entity_id].interaction_on_step_over = true;
+    storage_entity.data[portal_entity_id].interaction_scene = LOAD_PORT_ATHENS;
+    portal_entity_id = initialize_entity(ENTITY_PORTAL_MURICA);
+    storage_entity.data[portal_entity_id].is_interactable = true;
+    storage_entity.data[portal_entity_id].is_solid = false;
+    storage_entity.data[portal_entity_id].interaction_on_step_over = true;
+    storage_entity.data[portal_entity_id].interaction_scene = LOAD_PORT_MURICA;
 }
 
 void test()
@@ -4232,6 +4607,44 @@ void test()
 
     // u32 base_ship_id = find_storage_base_ship_by_name_id(BASE_SHIP_BALSA);
 }
+
+
+// -----------------------------------------------------------------------------
+// - ENTITY FUNCTIONS (SPECIFIC FOR GAME)
+// -----------------------------------------------------------------------------
+// Note: These functions are super specific to the game where the entities are
+// very particular to things happening in the game
+void entity_spawn(u32 name_id, u32 x, u32 y)
+{
+    u32 entity_id = find_storage_entity_by_name_id(name_id);
+    if (entity_id == SENTRY)
+    {
+        console_log("[E] Could not find entity by name id to spawn");
+        return;
+    }
+    DATA_WORLD_ENTITY* world_entity = pull_data_world_entity();
+    world_entity->name_id = name_id;
+    world_entity->entity_id = entity_id;
+    world_entity->position_x = x;
+    world_entity->position_y = y;
+    current.updated_state = UPDATED_STATE_WORLD;
+}
+void entity_despawn(u32 name_id)
+{
+    for (u32 i = 0; i < MAX_WORLD_ENTITIES; ++i)
+    {
+        u32 this_name_id = storage_world_entity.data[i].name_id;
+        if (this_name_id == name_id)
+        {
+            CLEAR_STRUCT(&storage_world_entity.data[i], SENTRY);
+            free_storage_world_entity_slot(i);
+        }
+    }
+    current.updated_state = UPDATED_STATE_WORLD;
+    // args[0].i = get_storage_world_entity_total_used_slots();
+    // console_log_format("Total used world entity slots %d", args, 1);
+}
+
 
 // -----------------------------------------------------------------------------
 // BLACKJACK
@@ -4672,7 +5085,8 @@ u32 scene_general_shop(u32 action)
         break;
     case ACTION_EXIT:
         console_log("[I] Exiting Scene");
-        clear_inventory_items_by_inventory_id(Scene_General_Shop.inventory_id);
+        // Note: We shouldn't actually run this otherwise we lose the entire set of inventory items
+        // clear_inventory_items_by_inventory_id(Scene_General_Shop.inventory_id);
         Scene_General_Shop.flag_confirmed = 1;
         Scene_General_Shop.flag_initialized = 0;
         Scene_General_Shop.flag_bought = 0;
@@ -5064,11 +5478,31 @@ void ob_increment_turn_order()
         console_log("[I] got new coords for npc");
     }
 }
+void ob_set_intended_move_coords(u32 x, u32 y)
+{
+    data_ocean_battle.intended_move_coords[0] = x;
+    data_ocean_battle.intended_move_coords[1] = y;
+}
+void ob_clear_intended_move_coords()
+{
+    data_ocean_battle.intended_move_coords[0] = SENTRY;
+    data_ocean_battle.intended_move_coords[1] = SENTRY;
+}
+u32 ob_get_intended_move_coords_x()
+{
+    return data_ocean_battle.intended_move_coords[0];
+}
+u32 ob_get_intended_move_coords_y()
+{
+    return data_ocean_battle.intended_move_coords[1];
+}
 void ob_last_man_standing()
 {
-    // MAX_OCEAN_BATTLE_FLEETS
-    // one brute force way to do is to iterate over fleet ships, get ship, if no hull or crew, one ship down
-    u32 fleet_ship_count[MAX_OCEAN_BATTLE_FLEETS] = {0};
+    u32 fleet_ship_count[MAX_OCEAN_BATTLE_FLEETS];
+    for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEETS; ++i)
+    {
+        fleet_ship_count[i] = 0;
+    }
     u32 fleet_ship_ids[MAX_OCEAN_BATTLE_FLEET_SHIPS];
     for (u32 i = 0; i < MAX_OCEAN_BATTLE_FLEET_SHIPS; ++i)
     {
@@ -5205,20 +5639,25 @@ void fake_ocean_battle()
         ++current_attempt;
     }
 }
-u32 scene_ocean_battle(u32 action)
+void scene_ocean_battle_initialize()
 {
-    if (Scene_Ocean_Battle.flag_initialized == 0)
+    if (Scene_Ocean_Battle.flag_initialized == 1)
     {
-        console_log("[I] Setting up ocean battle scene");
-        current.scene = SCENE_OCEAN_BATTLE;
-        Scene_Ocean_Battle.id = SCENE_OCEAN_BATTLE;
-        // Scene_Ocean_Battle.dialog_id = scene_dialog_id; ???
-        Scene_Ocean_Battle.flag_initialized = 1;
-        Scene_Ocean_Battle.flag_confirmed = 0;
-        Scene_Ocean_Battle.previous_game_mode = current.game_mode;
-        current.updated_state = UPDATED_STATE_SCENE;
-        current.game_mode = GAME_MODE_IN_SCENE;
+        console_log("[E] Already initialized");
+        return;
     }
+    console_log("[I] Setting up ocean battle scene");
+    current.scene = SCENE_OCEAN_BATTLE;
+    Scene_Ocean_Battle.id = SCENE_OCEAN_BATTLE;
+    // Scene_Ocean_Battle.dialog_id = scene_dialog_id; ???
+    Scene_Ocean_Battle.flag_initialized = 1;
+    Scene_Ocean_Battle.flag_confirmed = 0;
+    Scene_Ocean_Battle.previous_game_mode = current.game_mode;
+    current.updated_state = UPDATED_STATE_SCENE;
+    current.game_mode = GAME_MODE_IN_SCENE;
+}
+bool scene_ocean_battle_prechecks()
+{
     if (
         current.scene != SENTRY
         &&
@@ -5226,287 +5665,279 @@ u32 scene_ocean_battle(u32 action)
     )
     {
         console_log("[E] Already in scene and it's not this one");
-        return SENTRY;
+        return false;
     }
-    /*
-    if (!initialized) { initialize }
-    if (!setup && !manual_setup) {
-        auto setup (use stats of ships to determine order)
+    return true;
+}
+void scene_ocean_battle_end_turn()
+{
+    if (scene_ocean_battle_prechecks() == false) { return; }
+    if (data_ocean_battle.victory)
+    {
+        console_log("[I] Battle already has a victory. Cannot end turn");
+        return;
     }
-    */
+    console_log("[I] Ending Turn");
+    u32 wnpcid = data_ocean_battle.turn_order_world_npcs[data_ocean_battle.turn_order];
+    DATA_WORLD_NPC* wnpc = &storage_world_npc.data[wnpcid];
+    if (wnpc->is_player)
+    {
+        data_ocean_battle.intended_move_coords[0] = SENTRY;
+        data_ocean_battle.intended_move_coords[1] = SENTRY;
+        data_ocean_battle.intended_cannon_coords[0] = SENTRY;
+        data_ocean_battle.intended_cannon_coords[1] = SENTRY;
+        data_ocean_battle.intended_boarding_coords[0] = SENTRY;
+        data_ocean_battle.intended_boarding_coords[1] = SENTRY;
+        ob_increment_turn_order();
+        // Good
+        // increment turn order
+        // ob_increment_turn_order -> if npc, let them take their full turn
+    }
+    else
+    {
+        console_log("[E] Player cannot end a turn when it's not their turn");
+    }
+}
+void scene_ocean_battle_fire_cannons()
+{
+    if (scene_ocean_battle_prechecks() == false) { return; }
+    if (data_ocean_battle.victory)
+    {
+        console_log("[I] Battle already has a victory. Cannot fire cannons");
+        return;
+    }
+    if (data_ocean_battle.attacked)
+    {
+        console_log("[I] Already attacked with boarding. Cannot attack again");
+        return;
+    }
     u32 intended_x;
     u32 intended_y;
-    switch (action)
+    // TODO: Assume someone puts in invalid coords every time. Check.
+    intended_x = data_ocean_battle.intended_cannon_coords[0];
+    intended_y = data_ocean_battle.intended_cannon_coords[1];
+    for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
     {
-    case OCEAN_BATTLE_END_TURN:
-        if (data_ocean_battle.victory)
+        if (
+            storage_world_npc.data[i].position_x == intended_x
+            &&
+            storage_world_npc.data[i].position_y == intended_y
+        )
         {
-            console_log("[I] Battle already has a victory. Cannot end turn");
-            break;
-        }
-        console_log("[I] Ending Turn");
-        u32 wnpcid = data_ocean_battle.turn_order_world_npcs[data_ocean_battle.turn_order];
-        DATA_WORLD_NPC* wnpc = &storage_world_npc.data[wnpcid];
-        if (wnpc->is_player)
-        {
-            data_ocean_battle.intended_move_coords[0] = SENTRY;
-            data_ocean_battle.intended_move_coords[1] = SENTRY;
-            data_ocean_battle.intended_cannon_coords[0] = SENTRY;
-            data_ocean_battle.intended_cannon_coords[1] = SENTRY;
-            data_ocean_battle.intended_boarding_coords[0] = SENTRY;
-            data_ocean_battle.intended_boarding_coords[1] = SENTRY;
-            ob_increment_turn_order();
-            // Good
-            // increment turn order
-            // ob_increment_turn_order -> if npc, let them take their full turn
-        }
-        else
-        {
-            console_log("[E] Player cannot end a turn when it's not their turn");
-        }
-        break;
-    case OCEAN_BATTLE_FIRE_CANNONS:
-        if (data_ocean_battle.victory)
-        {
-            console_log("[I] Battle already has a victory. Cannot fire cannons");
-            break;
-        }
-        if (data_ocean_battle.attacked)
-        {
-            console_log("[I] Already attacked with boarding. Cannot attack again");
-            break;
-        }
-        // TODO: Assume someone puts in invalid coords every time. Check.
-        intended_x = data_ocean_battle.intended_cannon_coords[0];
-        intended_y = data_ocean_battle.intended_cannon_coords[1];
-        for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
-        {
-            if (
-                storage_world_npc.data[i].position_x == intended_x
-                &&
-                storage_world_npc.data[i].position_y == intended_y
-            )
+            u32 ship_id = storage_world_npc.data[i].entity_id;
+            DATA_SHIP* ship = &storage_ship.data[ship_id];
+            u32 damage = get_random_number(1, 20);
+            if (damage > ship->durability)
             {
-                u32 ship_id = storage_world_npc.data[i].entity_id;
-                DATA_SHIP* ship = &storage_ship.data[ship_id];
-                u32 damage = get_random_number(1, 20);
-                if (damage > ship->durability)
-                {
-                    ship->durability = 0;
-                }
-                else
-                {
-                    ship->durability -= damage;
-                }
-                console_log("[I] Damage dealt");
-                break;
+                ship->durability = 0;
             }
-        }
-        data_ocean_battle.attacked = true;
-        console_log("[I] Cannon attack complete");
-        ob_last_man_standing();
-        break;
-    case OCEAN_BATTLE_BOARD:
-        if (data_ocean_battle.victory)
-        {
-            console_log("[I] Battle already has a victory. Cannot fire cannons");
-            break;
-        }
-        if (data_ocean_battle.attacked)
-        {
-            console_log("[I] Already attacked with cannons. Cannot attack again");
-            break;
-        }
-        // TODO: Assume someone puts in invalid coords every time. Check.
-        intended_x = data_ocean_battle.intended_boarding_coords[0];
-        intended_y = data_ocean_battle.intended_boarding_coords[1];
-        for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
-        {
-            if (
-                storage_world_npc.data[i].position_x == intended_x
-                &&
-                storage_world_npc.data[i].position_y == intended_y
-            )
+            else
             {
-                u32 ship_id = storage_world_npc.data[i].entity_id;
-                DATA_SHIP* ship = &storage_ship.data[ship_id];
-                u32 damage = get_random_number(1, 20);
-                if (damage > ship->crew)
-                {
-                    ship->crew = 0;
-                }
-                else
-                {
-                    ship->crew -= damage;
-                }
-                console_log("[I] Damage dealt");
-                break;
+                ship->durability -= damage;
             }
-        }
-        data_ocean_battle.attacked = true;
-        console_log("[I] Boarding complete");
-        ob_last_man_standing();
-        break;
-    case OCEAN_BATTLE_MOVE:
-        if (data_ocean_battle.victory)
-        {
-            console_log("[I] Battle already has a victory. Cannot fire cannons");
+            console_log("[I] Damage dealt");
             break;
         }
-        if (data_ocean_battle.moved)
+    }
+    data_ocean_battle.attacked = true;
+    console_log("[I] Cannon attack complete");
+    ob_last_man_standing();
+}
+void scene_ocean_battle_board()
+{
+    if (scene_ocean_battle_prechecks() == false) { return; }
+    if (data_ocean_battle.victory)
+    {
+        console_log("[I] Battle already has a victory. Cannot board");
+        return;
+    }
+    if (data_ocean_battle.attacked)
+    {
+        console_log("[I] Already attacked with cannons. Cannot board again");
+        return;
+    }
+    u32 intended_x;
+    u32 intended_y;
+    // TODO: Assume someone puts in invalid coords every time. Check.
+    intended_x = data_ocean_battle.intended_boarding_coords[0];
+    intended_y = data_ocean_battle.intended_boarding_coords[1];
+    for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
+    {
+        if (
+            storage_world_npc.data[i].position_x == intended_x
+            &&
+            storage_world_npc.data[i].position_y == intended_y
+        )
         {
-            console_log("[I] Already moved. Cannot move again.");
+            u32 ship_id = storage_world_npc.data[i].entity_id;
+            DATA_SHIP* ship = &storage_ship.data[ship_id];
+            u32 damage = get_random_number(1, 20);
+            if (damage > ship->crew)
+            {
+                ship->crew = 0;
+            }
+            else
+            {
+                ship->crew -= damage;
+            }
+            console_log("[I] Damage dealt");
             break;
         }
-        // TODO: Assume someone puts in invalid coords every time. Check.
+    }
+    data_ocean_battle.attacked = true;
+    console_log("[I] Boarding complete");
+    ob_last_man_standing();
+}
+void scene_ocean_battle_move()
+{
+    if (scene_ocean_battle_prechecks() == false) { return; }
+    if (data_ocean_battle.victory)
+    {
+        console_log("[I] Battle already has a victory. Cannot move");
+        return;
+    }
+    if (data_ocean_battle.moved)
+    {
+        console_log("[I] Already moved. Cannot move again.");
+        return;
+    }
+    // TODO: Assume someone puts in invalid coords every time. Check.
+    u32 wnpc_id = data_ocean_battle.turn_order_world_npcs[data_ocean_battle.turn_order];
+    storage_world_npc.data[wnpc_id].position_x = data_ocean_battle.intended_move_coords[0];
+    storage_world_npc.data[wnpc_id].position_y = data_ocean_battle.intended_move_coords[1];
+    data_ocean_battle.moved = true;
+    console_log("[I] Move completed");
+}
+void scene_ocean_battle_run_npc_turn()
+{
+    if (scene_ocean_battle_prechecks() == false) { return; }
+    if (data_ocean_battle.victory)
+    {
+        console_log("[I] Battle already has a victory. Cannot run NPC turn");
+        return;
+    }
+    if (data_ocean_battle.moved)
+    {
+        console_log("[I] Already moved. Cannot move again.");
+    }
+    u32 intended_x;
+    u32 intended_y;
+    if (!data_ocean_battle.moved && data_ocean_battle.total_valid_move_coords > 0)
+    {
         u32 wnpc_id = data_ocean_battle.turn_order_world_npcs[data_ocean_battle.turn_order];
         storage_world_npc.data[wnpc_id].position_x = data_ocean_battle.intended_move_coords[0];
         storage_world_npc.data[wnpc_id].position_y = data_ocean_battle.intended_move_coords[1];
         data_ocean_battle.moved = true;
         console_log("[I] Move completed");
-        break;
-    case OCEAN_BATTLE_RUN_NPC_TURN:
-        if (data_ocean_battle.victory)
-        {
-            console_log("[I] Battle already has a victory. Cannot fire cannons");
-        }
-        if (data_ocean_battle.moved)
-        {
-            console_log("[I] Already moved. Cannot move again.");
-        }
-        else if (data_ocean_battle.total_valid_move_coords > 0)
-        {
-            u32 wnpc_id = data_ocean_battle.turn_order_world_npcs[data_ocean_battle.turn_order];
-            storage_world_npc.data[wnpc_id].position_x = data_ocean_battle.intended_move_coords[0];
-            storage_world_npc.data[wnpc_id].position_y = data_ocean_battle.intended_move_coords[1];
-            data_ocean_battle.moved = true;
-            console_log("[I] Move completed");
-        }
-        // Even NPCs need this check
-        if (data_ocean_battle.attacked)
-        {
-            console_log("[I] Already moved. Cannot attack again.");
-        }
-        else
-        {
-            if (data_ocean_battle.total_valid_cannon_coords > 0)
-            {
-                // TODO: Assume someone puts in invalid coords every time. Check.
-                u32 intended_x = data_ocean_battle.intended_cannon_coords[0];
-                u32 intended_y = data_ocean_battle.intended_cannon_coords[1];
-                if (intended_x != SENTRY)
-                {
-                    for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
-                    {
-                        if (
-                            storage_world_npc.data[i].position_x == intended_x
-                            &&
-                            storage_world_npc.data[i].position_y == intended_y
-                        )
-                        {
-                            u32 ship_id = storage_world_npc.data[i].entity_id;
-                            DATA_SHIP* ship = &storage_ship.data[ship_id];
-                            u32 damage = get_random_number(1, 20);
-                            if (damage > ship->durability)
-                            {
-                                ship->durability = 0;
-                            }
-                            else
-                            {
-                                ship->durability -= damage;
-                            }
-                            console_log("[I] Damage dealt");
-                            break;
-                        }
-                    }
-                    data_ocean_battle.attacked = true;
-                    console_log("[I] Cannon attack complete");
-                }
-            }
-            else if (data_ocean_battle.total_valid_boarding_coords > 0)
-            {
-                // TODO: Assume someone puts in invalid coords every time. Check.
-                intended_x = data_ocean_battle.intended_boarding_coords[0];
-                intended_y = data_ocean_battle.intended_boarding_coords[1];
-                if (intended_x != SENTRY)
-                {
-                    for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
-                    {
-                        if (
-                            storage_world_npc.data[i].position_x == intended_x
-                            &&
-                            storage_world_npc.data[i].position_y == intended_y
-                        )
-                        {
-                            u32 ship_id = storage_world_npc.data[i].entity_id;
-                            DATA_SHIP* ship = &storage_ship.data[ship_id];
-                            u32 damage = get_random_number(1, 20);
-                            if (damage > ship->crew)
-                            {
-                                ship->crew = 0;
-                            }
-                            else
-                            {
-                                ship->crew -= damage;
-                            }
-                            console_log("[I] Damage dealt");
-                            break;
-                        }
-                    }
-                    data_ocean_battle.attacked = true;
-                    console_log("[I] Cannon attack complete");
-                }
-            }
-        }
-        ob_last_man_standing();
-        if (data_ocean_battle.victory == false)
-        {
-            ob_increment_turn_order();
-        }
-        break;
-    case OCEAN_BATTLE_EXIT:
-        // TODO: Maybe add a check that, if not in victory, peace out?
-        console_log("[I] Ocean battle exit. Exiting scene.");
-        Scene_Ocean_Battle.flag_confirmed = 1;
-        Scene_Ocean_Battle.flag_initialized = 0;
-        current.game_mode = Scene_Ocean_Battle.previous_game_mode;
-        current.scene = SENTRY;
-        current.updated_state = UPDATED_STATE_SCENE;
-        // Sometimes you need this but, in this scene, why?
-        // Excluding for now
-        break;
     }
-    /*
-        case POST_VICTORY_ACTIONS:
-            if (!victory) { peace out }
-            - add enemy ships to fleet
-            - add cargo to existing ships (or re-shuffle cargo)
-        case EXIT:
-            if (!victory) { peace out }
-            - possible to exit without doing any post victory actions
-            - reset everything
-    */
-    console_log("[I] Did anything happen?");
-    return SENTRY;
+    // Even NPCs need this check
+    if (data_ocean_battle.attacked)
+    {
+        console_log("[I] Already attacked. Cannot attack again.");
+    }
+    if (!data_ocean_battle.attacked && data_ocean_battle.total_valid_cannon_coords > 0)
+    {
+        // TODO: Assume someone puts in invalid coords every time. Check.
+        u32 intended_x = data_ocean_battle.intended_cannon_coords[0];
+        u32 intended_y = data_ocean_battle.intended_cannon_coords[1];
+        if (intended_x != SENTRY)
+        {
+            for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
+            {
+                if (
+                    storage_world_npc.data[i].position_x == intended_x
+                    &&
+                    storage_world_npc.data[i].position_y == intended_y
+                )
+                {
+                    u32 ship_id = storage_world_npc.data[i].entity_id;
+                    DATA_SHIP* ship = &storage_ship.data[ship_id];
+                    u32 damage = get_random_number(1, 20);
+                    if (damage > ship->durability)
+                    {
+                        ship->durability = 0;
+                    }
+                    else
+                    {
+                        ship->durability -= damage;
+                    }
+                    console_log("[I] Damage dealt");
+                    break;
+                }
+            }
+            data_ocean_battle.attacked = true;
+            console_log("[I] Cannon attack complete");
+        }
+    }
+    else if (!data_ocean_battle.attacked && data_ocean_battle.total_valid_boarding_coords > 0)
+    {
+        // TODO: Assume someone puts in invalid coords every time. Check.
+        intended_x = data_ocean_battle.intended_boarding_coords[0];
+        intended_y = data_ocean_battle.intended_boarding_coords[1];
+        if (intended_x != SENTRY)
+        {
+            for (u32 i = 0; i < MAX_WORLD_NPCS; ++i)
+            {
+                if (
+                    storage_world_npc.data[i].position_x == intended_x
+                    &&
+                    storage_world_npc.data[i].position_y == intended_y
+                )
+                {
+                    u32 ship_id = storage_world_npc.data[i].entity_id;
+                    DATA_SHIP* ship = &storage_ship.data[ship_id];
+                    u32 damage = get_random_number(1, 20);
+                    if (damage > ship->crew)
+                    {
+                        ship->crew = 0;
+                    }
+                    else
+                    {
+                        ship->crew -= damage;
+                    }
+                    console_log("[I] Damage dealt");
+                    break;
+                }
+            }
+            data_ocean_battle.attacked = true;
+            console_log("[I] Boarding attack complete");
+        }
+    }
+    ob_last_man_standing();
+    if (data_ocean_battle.victory == false)
+    {
+        console_log("[I] Incrementing turn order after NPC turn ended");
+        ob_increment_turn_order();
+    }
 }
+void scene_ocean_battle_exit()
+{
+    // TODO: Maybe add a check that, if not in victory, peace out?
+    console_log("[I] Ocean battle exit. Exiting scene.");
+    Scene_Ocean_Battle.flag_confirmed = 1;
+    Scene_Ocean_Battle.flag_initialized = 0;
+    current.game_mode = Scene_Ocean_Battle.previous_game_mode;
+    current.scene = SENTRY;
+    current.updated_state = UPDATED_STATE_SCENE;
+    // Sometimes you need this but, in this scene, why?
+    // Excluding for now
+}
+/*
+    case POST_VICTORY_ACTIONS:
+        if (!victory) { peace out }
+        - add enemy ships to fleet
+        - add cargo to existing ships (or re-shuffle cargo)
+    case EXIT:
+        if (!victory) { peace out }
+        - possible to exit without doing any post victory actions
+        - reset everything
+*/
 
 // -----------------------------------------------------------------------------
 // - SINGLE DIALOG SCENE
 // -----------------------------------------------------------------------------
-u32 run_scene_single_dialog(u32 action, u32 scene_id, u32 scene_dialog_id)
+u32 scene_single_dialog_get_scene_id(u32 value)
 {
-    if (Scene_Single_Dialog.flag_initialized == 0)
-    {
-        console_log("[I] Setting up single dialog scene");
-        current.scene = scene_id;
-        Scene_Single_Dialog.id = scene_id;
-        Scene_Single_Dialog.dialog_id = scene_dialog_id;
-        Scene_Single_Dialog.flag_initialized = 1;
-        Scene_Single_Dialog.flag_confirmed = 0;
-        Scene_Single_Dialog.previous_game_mode = current.game_mode;
-        current.updated_state = UPDATED_STATE_SCENE;
-        current.game_mode = GAME_MODE_IN_SCENE;
-    }
     if (
         current.scene != SENTRY
         &&
@@ -5516,34 +5947,53 @@ u32 run_scene_single_dialog(u32 action, u32 scene_id, u32 scene_dialog_id)
         console_log("[E] Already in scene and it's not this one");
         return SENTRY;
     }
-    // If the action is "confirm" && we're not confirmed
-    // then confirm and clear the scene
+    return Scene_Single_Dialog.id;
+}
+u32 scene_single_dialog_get_dialog_id(u32 value)
+{
     if (
-        action == ACTION_CONFIRM
+        current.scene != SENTRY
         &&
-        Scene_Single_Dialog.flag_confirmed == 0
+        current.scene != Scene_Single_Dialog.id
     )
     {
-        console_log("[I] Single dialog scene confirmation. Exiting scene.");
-        Scene_Single_Dialog.flag_confirmed = 1;
-        Scene_Single_Dialog.flag_initialized = 0;
-        current.game_mode = Scene_Single_Dialog.previous_game_mode;
-        current.scene = SENTRY;
-        current.updated_state = UPDATED_STATE_SCENE;
-        // Sometimes you need this but, in this scene, why?
-        // Excluding for now
+        console_log("[E] Already in scene and it's not this one");
         return SENTRY;
     }
-    else if (action != ACTION)
-    {
-        console_log("[E] Invalid action for this scene");
-    }
-    // Otherwise return the dialogue id (machine_name)
     return Scene_Single_Dialog.dialog_id;
+}
+void scene_single_dialog_confirm()
+{
+    console_log("[I] Single dialog scene confirmation. Exiting scene.");
+    Scene_Single_Dialog.flag_confirmed = 1;
+    Scene_Single_Dialog.flag_initialized = 0;
+    current.game_mode = Scene_Single_Dialog.previous_game_mode;
+    current.scene = SENTRY;
+    current.updated_state = UPDATED_STATE_SCENE;
+}
+u32 scene_single_dialog_initialize(u32 action, u32 scene_id, u32 scene_dialog_id)
+{
+    if (Scene_Single_Dialog.flag_initialized == 1)
+    {
+        console_log("[E] Scene single dialog is already initialized");
+        Scene_Single_Dialog.error_code = ERROR_SCENE_ALREADY_INITIALIZED;
+        return SENTRY;
+    }
+    console_log("[I] Setting up single dialog scene");
+    current.scene = scene_id;
+    Scene_Single_Dialog.id = scene_id;
+    Scene_Single_Dialog.dialog_id = scene_dialog_id;
+    Scene_Single_Dialog.error_code = SENTRY;
+    Scene_Single_Dialog.flag_initialized = 1;
+    Scene_Single_Dialog.flag_confirmed = 0;
+    Scene_Single_Dialog.previous_game_mode = current.game_mode;
+    current.updated_state = UPDATED_STATE_SCENE;
+    current.game_mode = GAME_MODE_IN_SCENE;
+    return scene_dialog_id;
 }
 u32 scene_npc_rvice(u32 action)
 {
-    return run_scene_single_dialog(
+    return scene_single_dialog_initialize(
         action,
         SCENE_NPC_RVICE,
         DIALOG_NPC_RVICE
@@ -5551,7 +6001,7 @@ u32 scene_npc_rvice(u32 action)
 }
 u32 scene_npc_lafolie(u32 action)
 {
-    return run_scene_single_dialog(
+    return scene_single_dialog_initialize(
         action,
         SCENE_NPC_LAFOLIE,
         DIALOG_NPC_LAFOLIE
@@ -5559,7 +6009,7 @@ u32 scene_npc_lafolie(u32 action)
 }
 u32 scene_npc_nakor(u32 action)
 {
-    return run_scene_single_dialog(
+    return scene_single_dialog_initialize(
         action,
         SCENE_NPC_NAKOR,
         DIALOG_NPC_NAKOR
@@ -5567,7 +6017,7 @@ u32 scene_npc_nakor(u32 action)
 }
 u32 scene_npc_travis(u32 action)
 {
-    return run_scene_single_dialog(
+    return scene_single_dialog_initialize(
         action,
         SCENE_NPC_TRAVIS,
         DIALOG_NPC_TRAVIS
@@ -5575,7 +6025,7 @@ u32 scene_npc_travis(u32 action)
 }
 u32 scene_npc_loller(u32 action)
 {
-    return run_scene_single_dialog(
+    return scene_single_dialog_initialize(
         action,
         SCENE_NPC_LOLLER,
         DIALOG_NPC_LOLLER
@@ -6051,18 +6501,8 @@ u32 scene_shipyard(u32 action)
 // -----------------------------------------------------------------------------
 // - DOCKYARD SCENE
 // -----------------------------------------------------------------------------
-u32 scene_dockyard(u32 action)
+bool scene_dockyard_prechecks()
 {
-    if (Scene_Dockyard.flag_initialized == 0)
-    {
-        console_log("[I] Setting up dockyard scene");
-        current.scene = SCENE_DOCKYARD;
-        Scene_Dockyard.id = SCENE_DOCKYARD;
-        Scene_Dockyard.dialog_id = DIALOG_DOCKYARD_WELCOME;
-        Scene_Dockyard.flag_initialized = 1;
-        Scene_Dockyard.previous_game_mode = current.game_mode;
-        current.game_mode = GAME_MODE_IN_SCENE;
-    }
     if (
         current.scene != SENTRY
         &&
@@ -6070,63 +6510,222 @@ u32 scene_dockyard(u32 action)
     )
     {
         console_log("[E] Already in scene and it's not this one");
+        return false;
+    }
+    return true;
+}
+u32 scene_dockyard_initialize()
+{
+    if (Scene_Dockyard.flag_initialized == 1)
+    {
+        console_log("[E] Scene dockyard is already initialized");
+        Scene_Dockyard.error_code = ERROR_SCENE_ALREADY_INITIALIZED;
         return SENTRY;
     }
-    switch (action)
-    {
-    case ACTION_DOCKYARD_PURCHASE:
-        if (get_player_gold(0) == 0)
-        {
-            console_log("[E] Player has zero gold");
-            Scene_Dockyard.error_code = ERROR_DOCKYARD_NOT_ENOUGH_GOLD;
-            break;
-        }
-        u32 goods_total = 0;
-        goods_total += Scene_Dockyard.purchase_water;
-        goods_total += Scene_Dockyard.purchase_food;
-        goods_total += Scene_Dockyard.purchase_cannonballs;
-        if (goods_total > get_ship_available_cargo_space(Scene_Dockyard.purchase_for_ship_id))
-        {
-            console_log("[E] Ship does not have enough cargo space for goods");
-            Scene_Dockyard.error_code = ERROR_DOCKYARD_SHIP_NOT_ENOUGH_CARGO_SPACE;
-            break;
-        }
-        u32 price_total = 0;
-        price_total += Scene_Dockyard.purchase_water * Scene_Dockyard.price_water;
-        price_total += Scene_Dockyard.purchase_food * Scene_Dockyard.price_food;
-        price_total += Scene_Dockyard.purchase_cannonballs * Scene_Dockyard.price_cannonballs;
-        if (price_total > get_player_gold(0))
-        {
-            console_log("[E] Not enough gold for this purchase");
-            Scene_Dockyard.error_code = ERROR_DOCKYARD_NOT_ENOUGH_GOLD;
-            break;
-        }
-        subtract_player_gold(0, price_total);
-        add_food_to_ship(Scene_Dockyard.purchase_food, Scene_Dockyard.purchase_for_ship_id);
-        add_water_to_ship(Scene_Dockyard.purchase_water, Scene_Dockyard.purchase_for_ship_id);
-        add_cannonballs_to_ship(Scene_Dockyard.purchase_cannonballs, Scene_Dockyard.purchase_for_ship_id);
-        Scene_Dockyard.dialog_id = DIALOG_DOCKYARD_SUPPLIES_LOADED;
-        break;
-    case ACTION_DOCKYARD_SET_SAIL:
-        // TODO: Check for food/water/crew and make sure you can sail
-        console_log("[I] Exiting dockyard scene");
-        Scene_Dockyard.flag_initialized = 0;
-        clear_scene_dockyard();
-        current.game_mode = Scene_Dockyard.previous_game_mode;
-        current.scene = SENTRY;
-        current.updated_state = UPDATED_STATE_SCENE;
-        generate_world(WORLD_GLOBE_1);
-        break;
-    case ACTION_EXIT:
-        console_log("[I] Exiting dockyard scene");
-        Scene_Dockyard.flag_initialized = 0;
-        clear_scene_dockyard();
-        current.game_mode = Scene_Dockyard.previous_game_mode;
-        current.scene = SENTRY;
-        current.updated_state = UPDATED_STATE_SCENE;
-        break;
-    }
+    console_log("[I] Setting up dockyard scene");
+    current.scene = SCENE_DOCKYARD;
+    Scene_Dockyard.id = SCENE_DOCKYARD;
+    Scene_Dockyard.dialog_id = DIALOG_DOCKYARD_WELCOME;
+    Scene_Dockyard.flag_initialized = 1;
+    Scene_Dockyard.previous_game_mode = current.game_mode;
+    current.game_mode = GAME_MODE_IN_SCENE;
     return SENTRY;
+}
+u32 scene_dockyard_set_purchase_for_ship_id(u32 ship_id)
+{
+    u32 players_fleet_id = get_player_fleet_id(0);
+    if (!is_ship_id_in_fleet(ship_id, players_fleet_id))
+    {
+        console_log("[E] Ship is not in players fleet");
+        Scene_Shipyard.error_code = ERROR_DOCKYARD_SHIP_NOT_IN_PLAYER_FLEET;
+        return SENTRY;
+    }
+    Scene_Dockyard.purchase_for_ship_id = ship_id;
+    return ship_id;
+}
+u32 scene_dockyard_set_purchase_water(u32 value)
+{
+    Scene_Dockyard.purchase_water = value;
+    return Scene_Dockyard.purchase_water;
+}
+u32 scene_dockyard_set_purchase_food(u32 value)
+{
+    Scene_Dockyard.purchase_food = value;
+    return Scene_Dockyard.purchase_food;
+}
+u32 scene_dockyard_set_purchase_cannonballs(u32 value)
+{
+    Scene_Dockyard.purchase_cannonballs = value;
+    return Scene_Dockyard.purchase_cannonballs;
+}
+u32 scene_dockyard_increase_purchase_water()
+{
+    u32 ship_id = Scene_Dockyard.purchase_for_ship_id;
+    u32 available = get_ship_available_cargo_space(ship_id);
+    u32 intended = Scene_Dockyard.purchase_water + 1;
+    intended += Scene_Dockyard.purchase_food;
+    intended += Scene_Dockyard.purchase_cannonballs;
+    if (intended > available)
+    {
+        console_log("[E] Ship cannot hold more cargo");
+        return SENTRY;
+    }
+    Scene_Dockyard.purchase_water += 1;
+    return Scene_Dockyard.purchase_water;
+}
+u32 scene_dockyard_increase_purchase_food()
+{
+    u32 ship_id = Scene_Dockyard.purchase_for_ship_id;
+    u32 available = get_ship_available_cargo_space(ship_id);
+    u32 intended = Scene_Dockyard.purchase_water;
+    intended += Scene_Dockyard.purchase_food + 1;
+    intended += Scene_Dockyard.purchase_cannonballs;
+    if (intended > available)
+    {
+        console_log("[E] Ship cannot hold more cargo");
+        return SENTRY;
+    }
+    Scene_Dockyard.purchase_food += 1;
+    return Scene_Dockyard.purchase_food;
+}
+u32 scene_dockyard_increase_purchase_cannonballs()
+{
+    u32 ship_id = Scene_Dockyard.purchase_for_ship_id;
+    u32 available = get_ship_available_cargo_space(ship_id);
+    u32 intended = Scene_Dockyard.purchase_water;
+    intended += Scene_Dockyard.purchase_food;
+    intended += Scene_Dockyard.purchase_cannonballs + 1;
+    if (intended > available)
+    {
+        console_log("[E] Ship cannot hold more cargo");
+        return SENTRY;
+    }
+    Scene_Dockyard.purchase_cannonballs += 1;
+    return Scene_Dockyard.purchase_cannonballs;
+}
+u32 scene_dockyard_decrease_purchase_water()
+{
+    if (Scene_Dockyard.purchase_water > 0)
+    {
+        Scene_Dockyard.purchase_water -= 1;
+    }
+    return Scene_Dockyard.purchase_water;
+}
+u32 scene_dockyard_decrease_purchase_food()
+{
+    if (Scene_Dockyard.purchase_food > 0)
+    {
+        Scene_Dockyard.purchase_food -= 1;
+    }
+    return Scene_Dockyard.purchase_food;
+}
+u32 scene_dockyard_decrease_purchase_cannonballs()
+{
+    if (Scene_Dockyard.purchase_cannonballs > 0)
+    {
+        Scene_Dockyard.purchase_cannonballs -= 1;
+    }
+    return Scene_Dockyard.purchase_cannonballs;
+}
+u32 scene_dockyard_ship_intended_available_space()
+{
+    u32 ship_id = Scene_Dockyard.purchase_for_ship_id;
+    u32 available = get_ship_available_cargo_space(ship_id);
+    available -= Scene_Dockyard.purchase_water;
+    available -= Scene_Dockyard.purchase_food;
+    available -= Scene_Dockyard.purchase_cannonballs;
+    return available;
+}
+u32 scene_dockyard_ship_intended_used_space()
+{
+    u32 ship_id = Scene_Dockyard.purchase_for_ship_id;
+    u32 available = get_ship_available_cargo_space(ship_id);
+    available -= Scene_Dockyard.purchase_water;
+    available -= Scene_Dockyard.purchase_food;
+    available -= Scene_Dockyard.purchase_cannonballs;
+    return get_ship_max_cargo_space(ship_id) - available;
+}
+u32 scene_dockyard_purchase()
+{
+    if (!scene_dockyard_prechecks()) { return SENTRY; }
+    if (get_player_gold(0) == 0)
+    {
+        console_log("[E] Player has zero gold");
+        Scene_Dockyard.error_code = ERROR_DOCKYARD_NOT_ENOUGH_GOLD;
+        return SENTRY;
+    }
+    u32 goods_total = 0;
+    goods_total += Scene_Dockyard.purchase_water;
+    goods_total += Scene_Dockyard.purchase_food;
+    goods_total += Scene_Dockyard.purchase_cannonballs;
+    if (goods_total > get_ship_available_cargo_space(Scene_Dockyard.purchase_for_ship_id))
+    {
+        console_log("[E] Ship does not have enough cargo space for goods");
+        Scene_Dockyard.error_code = ERROR_DOCKYARD_SHIP_NOT_ENOUGH_CARGO_SPACE;
+        return SENTRY;
+    }
+    u32 price_total = 0;
+    price_total += Scene_Dockyard.purchase_water * Scene_Dockyard.price_water;
+    price_total += Scene_Dockyard.purchase_food * Scene_Dockyard.price_food;
+    price_total += Scene_Dockyard.purchase_cannonballs * Scene_Dockyard.price_cannonballs;
+    if (price_total > get_player_gold(0))
+    {
+        console_log("[E] Not enough gold for this purchase");
+        Scene_Dockyard.error_code = ERROR_DOCKYARD_NOT_ENOUGH_GOLD;
+        return SENTRY;
+    }
+    subtract_player_gold(0, price_total);
+    add_food_to_ship(
+        Scene_Dockyard.purchase_food,
+        Scene_Dockyard.purchase_for_ship_id
+    );
+    add_water_to_ship(
+        Scene_Dockyard.purchase_water,
+        Scene_Dockyard.purchase_for_ship_id
+    );
+    add_cannonballs_to_ship(
+        Scene_Dockyard.purchase_cannonballs,
+        Scene_Dockyard.purchase_for_ship_id
+    );
+    Scene_Dockyard.dialog_id = DIALOG_DOCKYARD_SUPPLIES_LOADED;
+    return 1;
+}
+u32 scene_dockyard_set_sail()
+{
+    if (!scene_dockyard_prechecks()) { return SENTRY; }
+    u32 players_fleet_id = get_player_fleet_id(0);
+    if (!can_fleet_set_sail(players_fleet_id))
+    {
+        console_log("[E] Fleet cannot set sail");
+        Scene_Dockyard.error_code = ERROR_DOCKYARD_CANNOT_SET_SAIL;
+        return SENTRY;
+    }
+    console_log("[I] Exiting dockyard scene");
+    Scene_Dockyard.flag_initialized = 0;
+    clear_scene_dockyard();
+    current.game_mode = Scene_Dockyard.previous_game_mode;
+    current.scene = SENTRY;
+    current.updated_state = UPDATED_STATE_SCENE;
+    generate_world(WORLD_GLOBE_1);
+    return SENTRY;
+}
+u32 scene_dockyard_exit()
+{
+    if (!scene_dockyard_prechecks()) { return SENTRY; }
+    console_log("[I] Exiting dockyard scene");
+    Scene_Dockyard.flag_initialized = 0;
+    clear_scene_dockyard();
+    current.game_mode = Scene_Dockyard.previous_game_mode;
+    current.scene = SENTRY;
+    current.updated_state = UPDATED_STATE_SCENE;
+    return SENTRY;
+}
+void scene_reset_supply_ship()
+{
+    Scene_Dockyard.purchase_for_ship_id = SENTRY;
+    Scene_Dockyard.purchase_food = SENTRY;
+    Scene_Dockyard.purchase_water = SENTRY;
+    Scene_Dockyard.purchase_cannonballs = SENTRY;
 }
 
 u32 scene_innkeeper(u32 action)

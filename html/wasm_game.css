@@ -4,6 +4,11 @@
     --atlas-height: 16px;
     --atlas-image: url("assets/atlas.png");
     --bg-size: calc(3008px/2) calc(3008px/2);
+    --main-character-image: url("assets/main-character_universal.png");
+    --main-character-image-bg-size: calc(832px/2) calc(1344px/2);
+    --banker-npc-image: url("assets/banker-npc_universal.png");
+    --goods-shop-owner-npc-image: url("assets/goods_shop_owner-npc_universal.png");
+    --general-shop-owner-npc-image: url("assets/general_shop_owner-npc_universal.png");
     --tile-scaled: 32px;
     --bg-red: 20;
 }
@@ -163,6 +168,11 @@ button.blue
 }
 
 
+.hidden {
+    display: none;
+}
+
+
 .outer_border
 {
     /*background: linear-gradient(306deg, #6186ee, #243fa8);
@@ -178,7 +188,6 @@ button.blue
     max-height: 200px;
     overflow: auto;
     border: 1px solid rgb(175, 175, 175);
-    margin-bottom: 10px;
 }
 .popup
 {
@@ -212,6 +221,15 @@ ui-scene-single-dialog .popup
     bottom: auto;
     right: auto;
 }
+.popup .icon_button:hover,
+.popup .icon_button.hover,
+.popup .table_row_cell:hover,
+.popup .table_row_cell.hover
+{
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    cursor: pointer;
+}
 .popup button
 {
     padding: 0.1rem;
@@ -228,9 +246,12 @@ ui-scene-single-dialog .popup
     /*background: linear-gradient(360deg, rgba(20, 20, 20, 0.8), rgba(50, 50, 50, 0.8));*/
     background: linear-gradient(360deg, rgba(0, 0, 0, 70%), rgba(20, 20, 20, 70%));
 }
-.popup button:hover
+.popup button:hover,
+.popup button.hover
 {
     background: linear-gradient(360deg, rgba(0, 0, 0, 0.8), rgba(80, 80, 80, 0.8));
+    color: white;
+    cursor: pointer;
 }
 .popup button.active
 {
