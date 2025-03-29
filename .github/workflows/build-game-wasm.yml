@@ -1,0 +1,44 @@
+name: Game WASM Zig Compile
+run-name: Game WASM Zig Compile
+on:
+  workflow_dispatch:
+  push:
+      branches:
+        - release
+jobs:
+  compile-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.11.0
+      - name: Compile Game Zig
+        run: zig build
+      - name: Tag version auto
+        uses: reecetech/version-increment@2023.9.3
+        id: version
+        with:
+          scheme: calver
+          release_branch: release
+      - name: Tag latest
+        uses: EndBug/latest-tag@latest
+        with:
+          ref: 'latest'
+          description: Latest Release
+      - name: Bundle game.wasm
+        uses: a7ul/tar-action@v1.1.0
+        id: compress
+        with:
+          command: c
+          cwd: ./zig-out/lib
+          files: |
+            game.wasm
+          outPath: "game-wasm.tar.gz"
+      - name: Publish Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          files: "game-wasm.tar.gz"
